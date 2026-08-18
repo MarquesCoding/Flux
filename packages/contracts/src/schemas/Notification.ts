@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const NOTIFICATION_EVENTS = ['media.added', 'party.invited'] as const;
+const NOTIFICATION_EVENTS = ['media.added', 'party.invited', 'sharing.withdrawn'] as const;
 
 const NotificationEventSchema = z.enum(NOTIFICATION_EVENTS);
 
@@ -9,6 +9,7 @@ type NotificationEvent = (typeof NOTIFICATION_EVENTS)[number];
 const NOTIFICATION_EVENT_LABELS: Record<NotificationEvent, string> = {
   'media.added': 'Something new to watch',
   'party.invited': 'Somebody wants to watch with you',
+  'sharing.withdrawn': 'A link you handed out was withdrawn',
 };
 
 const NotificationSchema = z.object({

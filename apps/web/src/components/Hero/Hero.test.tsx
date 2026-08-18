@@ -62,6 +62,27 @@ describe('Hero', () => {
     expect(container.querySelector('.sticky')).toBeNull();
   });
 
+  it('says there is more underneath, where there is', () => {
+    const { container } = renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(container.querySelector('[aria-hidden] svg')).not.toBeNull();
+  });
+
+  it('stands clear of whatever the shell puts along the bottom', () => {
+    const { container } = renderInACache(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+    const mark = container.querySelector('[aria-hidden] svg')?.parentElement;
+
+    expect(mark?.className).toContain('var(--dock-clearance,0px)');
+  });
+
+  it('says nothing of the sort when it fills what it is in and nothing is below', () => {
+    const { container } = renderInACache(
+      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />,
+    );
+
+    expect(container.querySelector('[aria-hidden] svg')).toBeNull();
+  });
+
   it('shows nothing at all when there is nothing to feature', () => {
     const { container } = renderInACache(<Hero items={[]} onPlay={vi.fn()} />);
 

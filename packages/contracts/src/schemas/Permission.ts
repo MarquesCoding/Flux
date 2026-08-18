@@ -19,6 +19,7 @@ const PERMISSIONS = [
 
   'sharing.link',
   'sharing.party',
+  'sharing.manage',
 
   'streaming.view',
   'streaming.stop',

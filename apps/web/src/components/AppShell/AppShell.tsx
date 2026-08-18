@@ -247,7 +247,7 @@ const AppShell = ({
   ];
 
   return (
-    <div className="relative min-h-screen text-text">
+    <div className="flux-docked relative min-h-screen text-text">
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} />
 
       <NavDock

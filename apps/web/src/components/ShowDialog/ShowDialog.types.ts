@@ -6,6 +6,7 @@ type ShowDialogProps = {
   onClose: () => void;
   onPlay: (media: MediaSummary, startSeconds: number) => void;
   onInspect?: (media: MediaSummary) => void;
+  onShare?: (show: ShowSummary) => void;
   watchedFractionFor?: (mediaId: string) => number | undefined;
   resumeFor?: (mediaId: string) => number | null;
   isFinished?: (mediaId: string) => boolean;

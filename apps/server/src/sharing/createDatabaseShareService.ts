@@ -1,13 +1,15 @@
 import { randomUUID } from 'node:crypto';
-import { and, count, desc, eq, sql } from 'drizzle-orm';
-import { mediaItem, series, share, shareVisit } from '@FluxServer/db/Schema';
+import { and, count, desc, eq, isNull } from 'drizzle-orm';
+import { mediaItem, series, share, shareVisit, user } from '@FluxServer/db/Schema';
 import { isShareLive } from '@FluxContracts/schemas/Share';
 import { hashShareToken, makeShareToken } from './shareToken';
 import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { Share, ShareKind } from '@FluxContracts/schemas/Share';
+import type { AdminShare, Share, ShareKind } from '@FluxContracts/schemas/Share';
 import type { ResolvedShare, ShareService } from './ShareService';
 
 const LIMIT = 500;
+
+const GONE = 'Something no longer here';
 
 /**
  * Reads a stored kind back as one Flux recognises, so a row written by a later version does not
@@ -20,6 +22,53 @@ const readKind = (stored: string): ShareKind | null =>
   stored === 'item' || stored === 'series' ? stored : null;
 
 /**
+ * The columns every listing reads: the link, how far it has been used, and what it points at.
+ *
+ * The count is asked for with `$count` rather than written out as a correlated subquery, because
+ * Drizzle omits table qualifiers in a select over one table: a hand-written
+ * `where "shareId" = "id"` then resolves both names against the subquery's own table rather than
+ * the share outside it, and counts nothing at all. It is right by accident in a query that
+ * happens to join, which is exactly how it stayed wrong in one listing and not the other.
+ *
+ * The title is joined rather than looked up per row. A listing that asked what each link pointed at
+ * one link at a time cost a query per row, and the links somebody has withdrawn count towards that
+ * as much as the ones still working — so a household that shares a lot paid for its whole history
+ * every time the page opened.
+ *
+ * @param db - The database, which is what knows how to build the count.
+ * @returns The selection both listings read.
+ */
+const columnsFor = (db: FluxDatabase) => ({
+  id: share.id,
+  kind: share.kind,
+  mediaItemId: share.mediaItemId,
+  seriesId: share.seriesId,
+  createdAt: share.createdAt,
+  expiresAt: share.expiresAt,
+  viewCap: share.viewCap,
+  revokedAt: share.revokedAt,
+  views: db.$count(shareVisit, eq(shareVisit.shareId, share.id)),
+  itemTitle: mediaItem.title,
+  itemSeriesTitle: mediaItem.seriesTitle,
+  seriesTitle: series.title,
+});
+
+type ShareRow = {
+  id: string;
+  kind: string;
+  mediaItemId: string | null;
+  seriesId: string | null;
+  createdAt: Date;
+  expiresAt: Date | null;
+  viewCap: number | null;
+  revokedAt: Date | null;
+  views: number;
+  itemTitle: string | null;
+  itemSeriesTitle: string | null;
+  seriesTitle: string | null;
+};
+
+/**
  * The links somebody has handed out, held in Postgres. Tokens are stored hashed and never read
  * back — resolving a link hashes what arrived and looks for the match, so a copy of the database is
  * not a set of working keys to the library.
@@ -28,6 +77,8 @@ const readKind = (stored: string): ShareKind | null =>
  * @returns The share service.
  */
 const createDatabaseShareService = (db: FluxDatabase): ShareService => {
+  const COLUMNS = columnsFor(db);
+
   const countViews = async (shareId: string): Promise<number> => {
     const [found] = await db
       .select({ howMany: count() })
@@ -57,6 +108,39 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
     const row = rows[0];
 
     return row === undefined ? null : (row.seriesTitle ?? row.title);
+  };
+
+  const describe = (row: ShareRow, now: Date): Share | null => {
+    const kind = readKind(row.kind);
+    const subjectId = row.mediaItemId ?? row.seriesId;
+
+    if (kind === null || subjectId === null) {
+      return null;
+    }
+
+    const title = kind === 'series' ? row.seriesTitle : (row.itemSeriesTitle ?? row.itemTitle);
+
+    return {
+      id: row.id,
+      kind,
+      mediaId: row.mediaItemId,
+      seriesId: row.seriesId,
+      title: title ?? GONE,
+      createdAt: row.createdAt.toISOString(),
+      expiresAt: row.expiresAt === null ? null : row.expiresAt.toISOString(),
+      viewCap: row.viewCap,
+      views: row.views,
+      isRevoked: row.revokedAt !== null,
+      isSpent: !isShareLive(
+        {
+          expiresAt: row.expiresAt,
+          viewCap: row.viewCap,
+          views: row.views,
+          revokedAt: row.revokedAt,
+        },
+        now,
+      ),
+    } satisfies Share;
   };
 
   return {
@@ -112,58 +196,44 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
 
     list: async (createdBy) => {
       const rows = await db
-        .select({
-          id: share.id,
-          kind: share.kind,
-          mediaItemId: share.mediaItemId,
-          seriesId: share.seriesId,
-          createdAt: share.createdAt,
-          expiresAt: share.expiresAt,
-          viewCap: share.viewCap,
-          revokedAt: share.revokedAt,
-          views: sql<number>`(select count(*)::int from ${shareVisit} where ${shareVisit.shareId} = ${share.id})`,
-        })
+        .select(COLUMNS)
         .from(share)
+        .leftJoin(mediaItem, eq(mediaItem.id, share.mediaItemId))
+        .leftJoin(series, eq(series.id, share.seriesId))
         .where(eq(share.createdBy, createdBy))
         .orderBy(desc(share.createdAt))
         .limit(LIMIT);
 
       const now = new Date();
 
-      const described = await Promise.all(
-        rows.map(async (row) => {
-          const kind = readKind(row.kind);
-          const subjectId = row.mediaItemId ?? row.seriesId;
+      return rows.map((row) => describe(row, now)).filter((one) => one !== null);
+    },
 
-          if (kind === null || subjectId === null) {
-            return null;
-          }
+    listEverybody: async () => {
+      const rows = await db
+        .select({ ...COLUMNS, createdBy: share.createdBy, createdByName: user.name })
+        .from(share)
+        .innerJoin(user, eq(user.id, share.createdBy))
+        .leftJoin(mediaItem, eq(mediaItem.id, share.mediaItemId))
+        .leftJoin(series, eq(series.id, share.seriesId))
+        .orderBy(desc(share.createdAt))
+        .limit(LIMIT);
 
-          return {
-            id: row.id,
-            kind,
-            mediaId: row.mediaItemId,
-            seriesId: row.seriesId,
-            title: (await titleOf(kind, subjectId)) ?? 'Something no longer here',
-            createdAt: row.createdAt.toISOString(),
-            expiresAt: row.expiresAt === null ? null : row.expiresAt.toISOString(),
-            viewCap: row.viewCap,
-            views: row.views,
-            isRevoked: row.revokedAt !== null,
-            isSpent: !isShareLive(
-              {
-                expiresAt: row.expiresAt,
-                viewCap: row.viewCap,
-                views: row.views,
-                revokedAt: row.revokedAt,
-              },
-              now,
-            ),
-          } satisfies Share;
-        }),
-      );
+      const now = new Date();
 
-      return described.filter((one) => one !== null);
+      return rows
+        .map((row) => {
+          const one = describe(row, now);
+
+          return one === null
+            ? null
+            : ({
+                ...one,
+                createdBy: row.createdBy,
+                createdByName: row.createdByName,
+              } satisfies AdminShare);
+        })
+        .filter((one) => one !== null);
     },
 
     revoke: async (createdBy, shareId) => {
@@ -174,6 +244,32 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
         .returning({ id: share.id });
 
       return changed.length > 0;
+    },
+
+    revokeAnybody: async (shareId) => {
+      const changed = await db
+        .update(share)
+        .set({ revokedAt: new Date() })
+        .where(and(eq(share.id, shareId), isNull(share.revokedAt)))
+        .returning({
+          createdBy: share.createdBy,
+          kind: share.kind,
+          mediaItemId: share.mediaItemId,
+          seriesId: share.seriesId,
+        });
+
+      const row = changed[0];
+
+      if (row === undefined) {
+        return null;
+      }
+
+      const kind = readKind(row.kind);
+      const subjectId = row.mediaItemId ?? row.seriesId;
+
+      const title = kind === null || subjectId === null ? null : await titleOf(kind, subjectId);
+
+      return { createdBy: row.createdBy, title: title ?? GONE };
     },
 
     resolve: async (token) => {
@@ -201,12 +297,22 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
         kind,
         mediaId: row.mediaItemId,
         seriesId: row.seriesId,
-        title: (await titleOf(kind, subjectId)) ?? 'Something no longer here',
+        title: (await titleOf(kind, subjectId)) ?? GONE,
         expiresAt: row.expiresAt,
         viewCap: row.viewCap,
         views: await countViews(row.id),
         revokedAt: row.revokedAt,
       } satisfies ResolvedShare;
+    },
+
+    hasJoined: async (shareId, joiner) => {
+      const rows = await db
+        .select({ id: shareVisit.id })
+        .from(shareVisit)
+        .where(and(eq(shareVisit.shareId, shareId), eq(shareVisit.joiner, joiner)))
+        .limit(1);
+
+      return rows.length > 0;
     },
 
     join: async (shareId, joiner) => {
@@ -227,4 +333,4 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
   };
 };
 
-export { createDatabaseShareService, LIMIT };
+export { createDatabaseShareService, columnsFor, LIMIT };

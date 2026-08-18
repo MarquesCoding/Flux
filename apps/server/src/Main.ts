@@ -1045,6 +1045,27 @@ const app = createApp({
   ratings: createDatabaseRatingService(db),
   shares: createDatabaseShareService(db),
   shareSessions: createShareSessions(),
+  sayALinkWasWithdrawn: async ({ accountId, title, byName }) => {
+    await notifyHousehold({
+      store: notifications,
+      event: 'sharing.withdrawn',
+      title: 'A link you handed out was withdrawn',
+      body: `${byName} withdrew your link to ${title}. Anybody watching through it has stopped.`,
+      link: null,
+      vapid: await readPushKeys(),
+      only: [accountId],
+      onProblem: (reason) => {
+        log.error('server', `withdrawn link: ${reason}`);
+      },
+      announce: (userIds) => {
+        realtime.publish(
+          'notifications',
+          { event: 'sharing.withdrawn' },
+          { kind: 'accounts', accountIds: [...userIds] },
+        );
+      },
+    });
+  },
   profiles: profileService,
   promoteProfile: async ({ profileId, email, password }) => {
     const rows = await db

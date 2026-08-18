@@ -13,12 +13,13 @@ import { createMemoryShareService } from '@FluxServer/sharing/createMemoryShareS
 import { createShareSessions } from '@FluxServer/sharing/createShareSessions';
 import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
-import { CreatedShareSchema } from '@FluxContracts/schemas/Share';
+import { AdminShareListSchema, CreatedShareSchema } from '@FluxContracts/schemas/Share';
 import type { NewShare } from '@FluxContracts/schemas/Share';
 import { z } from 'zod';
 
 const SessionAccountSchema = z.object({ user: z.object({ id: z.string() }) });
 import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
 
 const BASE = 'http://localhost:8420';
 const LIBRARY_ID = '2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f';
@@ -30,6 +31,45 @@ const CREDENTIALS = {
   name: 'Marques',
   email: 'marques@flux.local',
   password: 'a-long-enough-password',
+};
+
+const playable = (id: string, title: string): MediaItem => ({
+  id,
+  title,
+  year: 2016,
+  container: 'mkv',
+  durationSeconds: 7200,
+  videoCodec: 'h264',
+  videoRange: 'SDR',
+  videoBitDepth: 8,
+  canCopySegments: true,
+  videoIsInterlaced: false,
+  width: 1920,
+  height: 1080,
+  bitrateKbps: 8000,
+  audioStreams: [{ index: 1, codec: 'aac', channels: 2, isDefault: true, isAtmos: false }],
+  subtitleStreams: [],
+});
+
+const A_BROWSER = {
+  schemaVersion: 1,
+  name: 'Browser',
+  maxWidth: 1920,
+  maxHeight: 1080,
+  maxBitrateKbps: 8000,
+  maxAudioChannels: 2,
+  supportedVideoRanges: ['SDR'],
+  tenBitVideoCodecs: [],
+  maxVideoLevels: {},
+  canPlayInterlaced: true,
+  canPlayAnamorphic: true,
+  canRotate: true,
+  unsupportedAudioProfiles: [],
+  supportedSubtitleFormats: ['webvtt'],
+  directPlayProfiles: [{ container: 'mp4', videoCodecs: ['h264'], audioCodecs: ['aac'] }],
+  transcodingProfiles: [
+    { container: 'ts', videoCodec: 'h264', audioCodec: 'aac', protocol: 'hls' },
+  ],
 };
 
 const item = (over: Partial<MediaDetail> = {}): MediaDetail =>
@@ -66,7 +106,10 @@ const build = () => {
   const shares = createMemoryShareService({
     shares: [],
     titles: { [FILM]: 'Arrival', [OTHER]: 'Nocturnal Animals', [SHOW]: 'The Bear' },
+    names: { 'somebody-else': 'Ada' },
   });
+
+  const told: { accountId: string; title: string; byName: string }[] = [];
 
   const app = createApp({
     auth,
@@ -88,7 +131,10 @@ const build = () => {
       ],
       media: [item(), item({ id: OTHER, title: 'Nocturnal Animals' })],
     }),
-    playback: createMemoryPlaybackService(),
+    playback: createMemoryPlaybackService({
+      media: { [FILM]: playable(FILM, 'Arrival'), [OTHER]: playable(OTHER, 'Nocturnal Animals') },
+      sessions: {},
+    }),
     segments: createMemorySegmentService(),
     subtitles: createMemorySubtitleService({}),
     profiles: createMemoryProfileService(),
@@ -98,9 +144,14 @@ const build = () => {
     shares,
     shareSessions: createShareSessions(),
     permissions,
+    sayALinkWasWithdrawn: (one) => {
+      told.push(one);
+
+      return Promise.resolve();
+    },
   });
 
-  return { app, shares, permissions };
+  return { app, shares, permissions, told };
 };
 
 /**
@@ -125,6 +176,32 @@ const signedIn = async (built: ReturnType<typeof build>): Promise<string> => {
 
   if (said.success && member !== undefined) {
     built.permissions.state.assignments[said.data.user.id] = [member.id];
+  }
+
+  return cookie;
+};
+
+/**
+ * Somebody signed in and allowed to look after everybody's links, which is what the Manager role
+ * carries on a real server.
+ */
+const signedInToManage = async (built: ReturnType<typeof build>): Promise<string> => {
+  const cookie = await signedIn(built);
+
+  const session = await built.app.request(`${BASE}/api/auth/get-session`, {
+    headers: { cookie, origin: BASE },
+  });
+
+  const said = SessionAccountSchema.safeParse(await session.json());
+
+  const role = await built.permissions.createRole({
+    name: 'Looks after links',
+    position: 50,
+    permissions: ['sharing.link', 'sharing.manage'],
+  });
+
+  if (said.success) {
+    built.permissions.state.assignments[said.data.user.id] = [role.id];
   }
 
   return cookie;
@@ -257,6 +334,77 @@ describe('opening a link as somebody with no account', () => {
     expect(response.status).toBe(410);
   });
 
+  it('remembers a guest past the end of their browsing, so tomorrow they are the same person', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+    const made = await shared(built.app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    const joiner = response.headers
+      .getSetCookie()
+      .find((one) => one.startsWith('flux_share_joiner='));
+
+    expect(joiner).toMatch(/Max-Age=\d+/);
+  });
+
+  it('never remembers a guest for longer than the link they hold', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+
+    const made = await shared(built.app, cookie, {
+      kind: 'item',
+      mediaId: FILM,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    const joiner =
+      response.headers.getSetCookie().find((one) => one.startsWith('flux_share_joiner=')) ?? '';
+
+    const keptFor = Number(/Max-Age=(\d+)/.exec(joiner)?.[1] ?? '0');
+
+    expect(keptFor).toBeGreaterThan(0);
+    expect(keptFor).toBeLessThanOrEqual(60);
+  });
+
+  it('lets the one person it was meant for come back to it', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const first = await opened(app, made.token);
+
+    expect(first.response.status).toBe(200);
+
+    const again = await app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { cookie: first.jar, origin: BASE },
+    });
+
+    expect(again.status).toBe(200);
+  });
+
+  it('lets that person keep watching, rather than refusing their own segments', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const { jar } = await opened(app, made.token);
+
+    const response = await app.request(`${BASE}/api/media/${FILM}`, {
+      headers: { cookie: jar, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+  });
+
   it('stops working once it has been opened as often as it was meant to be', async () => {
     const built = build();
     const { app, shares } = built;
@@ -271,6 +419,25 @@ describe('opening a link as somebody with no account', () => {
   });
 });
 
+/**
+ * Starts playing as a guest holding a link, and answers with the session the server named. The name
+ * is the server's to choose — `direct-<item>` for a file played as it is, the media service's own
+ * name for a transcode — and the guest has to be able to fetch a manifest under whichever it picked.
+ */
+const playing = async (
+  app: ReturnType<typeof build>['app'],
+  jar: string,
+  mediaId = FILM,
+): Promise<string> => {
+  const response = await app.request(`${BASE}/api/playback/${mediaId}/session`, {
+    method: 'POST',
+    headers: { cookie: jar, origin: BASE, 'content-type': 'application/json' },
+    body: JSON.stringify({ deviceProfile: A_BROWSER }),
+  });
+
+  return z.object({ sessionId: z.string() }).parse(await response.json()).sessionId;
+};
+
 describe('what a guest may reach', () => {
   it('reaches what was shared', async () => {
     const built = build();
@@ -284,6 +451,44 @@ describe('what a guest may reach', () => {
     });
 
     expect(response.status).toBe(200);
+  });
+
+  it('fetches the manifest of the session its own link started', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie);
+    const { jar } = await opened(app, made.token);
+
+    const sessionId = await playing(app, jar);
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(sessionId)}/index.m3u8`,
+      { headers: { cookie: jar, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('never reaches a session belonging to somebody else’s link', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+
+    const mine = await shared(app, cookie);
+    const theirs = await shared(app, cookie, { kind: 'item', mediaId: OTHER });
+
+    const { jar: myJar } = await opened(app, mine.token);
+    const { jar: theirJar } = await opened(app, theirs.token);
+
+    const theirSession = await playing(app, theirJar, OTHER);
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(theirSession)}/index.m3u8`,
+      { headers: { cookie: myJar, origin: BASE } },
+    );
+
+    expect(response.status).toBe(403);
   });
 
   it('never reaches anything else in the library', async () => {
@@ -406,5 +611,128 @@ describe('withdrawing a link', () => {
     const listed = await response.json();
 
     expect(JSON.stringify(listed)).not.toContain('Nocturnal Animals');
+  });
+});
+
+describe('what a link tells the rest of the internet', () => {
+  it('asks not to be indexed, since a link is a credential rather than a page', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+    const made = await shared(built.app, cookie);
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    expect(response.headers.get('X-Robots-Tag')).toBe('noindex, nofollow');
+  });
+
+  it('sends no referrer, since the token is in the address and would travel with it', async () => {
+    const built = build();
+
+    const response = await built.app.request(`${BASE}/api/health`, { headers: { origin: BASE } });
+
+    expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
+  });
+});
+
+describe('looking after everybody’s links', () => {
+  it('refuses somebody who may share but may not look after what others shared', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+
+    const response = await built.app.request(`${BASE}/api/admin/shares`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('lists what everybody handed out, and says who handed each one out', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    await shared(built.app, cookie);
+    await built.shares.create('somebody-else', { kind: 'item', mediaId: OTHER });
+
+    const response = await built.app.request(`${BASE}/api/admin/shares`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    const listed = AdminShareListSchema.parse(await response.json());
+
+    expect(listed.shares).toHaveLength(2);
+    expect(listed.shares.map((one) => one.title)).toContain('Nocturnal Animals');
+    expect(listed.shares.find((one) => one.title === 'Nocturnal Animals')?.createdByName).toBe(
+      'Ada',
+    );
+  });
+
+  it('withdraws somebody else’s link, and the link stops working at once', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    const response = await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+
+    const { response: asGuest } = await opened(built.app, theirs?.token ?? '');
+
+    expect(asGuest.status).toBe(410);
+  });
+
+  it('tells whoever made the link that it was withdrawn, and by whom', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(built.told).toEqual([
+      { accountId: 'somebody-else', title: 'Arrival', byName: CREDENTIALS.name },
+    ]);
+  });
+
+  it('says nothing to somebody withdrawing their own link', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const mine = await shared(built.app, cookie);
+
+    await built.app.request(`${BASE}/api/admin/shares/${mine.id}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(built.told).toEqual([]);
+  });
+
+  it('withdraws a link once, so a second attempt says there is nothing to withdraw', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    const again = await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(again.status).toBe(404);
+    expect(built.told).toHaveLength(1);
   });
 });

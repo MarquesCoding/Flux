@@ -53,6 +53,12 @@ describe('OptionMenu', () => {
     expect(onSelect).toHaveBeenCalledWith('2');
   });
 
+  it('is drawn above a dialog, since a menu inside one is opened from inside one', async () => {
+    await open([speed()]);
+
+    expect(screen.getByRole('menu').className).toContain('z-50');
+  });
+
   it('closes once a choice is made', async () => {
     const user = await open([speed()]);
 

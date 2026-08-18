@@ -38,6 +38,33 @@ describe('Dialog', () => {
     expect(onClose).toHaveBeenCalled();
   });
 
+  it('puts its overlay at the same height as its panel, so the last dialog opened is on top', () => {
+    render(
+      <Dialog label="Share" isOpen onClose={() => undefined}>
+        <p>inside</p>
+      </Dialog>,
+    );
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+    const panel = document.querySelector('[data-slot="dialog-content"]');
+
+    expect(overlay?.className).toContain('z-50');
+    expect(panel?.className).toContain('z-50');
+  });
+
+  it('blurs whatever it opened over, which on a second dialog is the first', () => {
+    render(
+      <Dialog label="Share" isOpen onClose={() => undefined}>
+        <p>inside</p>
+      </Dialog>,
+    );
+
+    const overlay = document.querySelector('[data-slot="dialog-overlay"]');
+
+    expect(overlay?.className).toContain('backdrop-blur-sm');
+    expect(overlay?.className).not.toContain('z-40');
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(Dialog.displayName).toBe('Dialog');
   });

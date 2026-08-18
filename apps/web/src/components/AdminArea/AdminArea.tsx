@@ -17,6 +17,7 @@ import { MatchPicker } from './components/MatchPicker/MatchPicker';
 import { OverviewPanel } from './components/OverviewPanel/OverviewPanel';
 import { RolesPanel } from './components/RolesPanel/RolesPanel';
 import { WebhooksPanel } from './components/WebhooksPanel/WebhooksPanel';
+import { SharesPanel } from './components/SharesPanel/SharesPanel';
 import {
   createWebhook,
   deleteWebhook,
@@ -77,6 +78,7 @@ const SECTIONS = [
     label: 'Activity',
     items: [
       { id: 'activity', label: 'Sessions' },
+      { id: 'shares', label: 'Links' },
       { id: 'jobs', label: 'Jobs' },
     ],
   },
@@ -803,6 +805,19 @@ const AdminArea = ({
                   void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
                 }}
               />
+            </TabPanel>
+
+            <TabPanel
+              value="shares"
+              render={
+                <motion.div
+                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.2, ease: 'easeOut' }}
+                />
+              }
+            >
+              <SharesPanel />
             </TabPanel>
 
             <TabPanel
