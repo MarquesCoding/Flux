@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { reasonIfShareEnded } from './reasonIfShareEnded';
+import { shareEndingFor } from './shareEndingFor';
 
 const openShare = vi.hoisted(() => vi.fn());
 
@@ -9,22 +9,22 @@ beforeEach(() => {
   vi.clearAllMocks();
 });
 
-describe('reasonIfShareEnded', () => {
-  it('says why a link stopped working, in the server’s own words', async () => {
-    openShare.mockResolvedValue({ kind: 'gone', reason: 'This link was withdrawn.' });
+describe('shareEndingFor', () => {
+  it('says which of the three ways a link ended', async () => {
+    openShare.mockResolvedValue({ kind: 'gone', reason: 'x', ended: 'spent' });
 
-    await expect(reasonIfShareEnded('a-token')).resolves.toBe('This link was withdrawn.');
+    await expect(shareEndingFor('a-token')).resolves.toBe('spent');
   });
 
   it('says nothing where the link still works, since the fault was something else', async () => {
     openShare.mockResolvedValue({ kind: 'opened', share: { kind: 'item', title: 'x', items: [] } });
 
-    await expect(reasonIfShareEnded('a-token')).resolves.toBeNull();
+    await expect(shareEndingFor('a-token')).resolves.toBeNull();
   });
 
   it('says nothing where the server could not be asked at all', async () => {
     openShare.mockResolvedValue({ kind: 'unknown' });
 
-    await expect(reasonIfShareEnded('a-token')).resolves.toBeNull();
+    await expect(shareEndingFor('a-token')).resolves.toBeNull();
   });
 });

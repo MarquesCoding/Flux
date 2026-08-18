@@ -2,13 +2,13 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderInACache } from '@FluxWeb/testing/renderInACache';
-import { reasonIfShareEnded } from '@FluxWeb/sharing/reasonIfShareEnded';
+import { shareEndingFor } from '@FluxWeb/sharing/shareEndingFor';
 import { SharePage } from './SharePage';
 import type { ShareAreaProps } from '@FluxWeb/components/ShareArea/ShareArea.types';
 import type { VideoPlayerProps } from '@FluxWeb/components/VideoPlayer/VideoPlayer.types';
 
-vi.mock('@FluxWeb/sharing/reasonIfShareEnded', () => ({
-  reasonIfShareEnded: vi.fn(),
+vi.mock('@FluxWeb/sharing/shareEndingFor', () => ({
+  shareEndingFor: vi.fn(),
 }));
 
 const drawn = vi.hoisted((): { share: ShareAreaProps | null; player: VideoPlayerProps | null } => ({
@@ -113,7 +113,7 @@ describe('SharePage', () => {
   });
 
   it('takes the picture away as soon as the link stops working', async () => {
-    vi.mocked(reasonIfShareEnded).mockResolvedValue('This link was withdrawn.');
+    vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
 
     const user = userEvent.setup();
 
@@ -127,22 +127,22 @@ describe('SharePage', () => {
       expect(screen.queryByText('playing Arrival')).not.toBeInTheDocument();
     });
 
-    expect(reasonIfShareEnded).toHaveBeenCalledWith('a-token');
-    expect(drawn.share?.endedReason).toBe('This link was withdrawn.');
+    expect(shareEndingFor).toHaveBeenCalledWith('a-token');
+    expect(drawn.share?.ended).toBe('withdrawn');
   });
 
   it('asks nothing while nothing is playing, since the screen asks for itself', async () => {
-    vi.mocked(reasonIfShareEnded).mockResolvedValue('This link was withdrawn.');
+    vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
 
     renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
 
     await new Promise((settle) => setTimeout(settle, 30));
 
-    expect(reasonIfShareEnded).not.toHaveBeenCalled();
+    expect(shareEndingFor).not.toHaveBeenCalled();
   });
 
   it('leaves a working link alone', async () => {
-    vi.mocked(reasonIfShareEnded).mockResolvedValue(null);
+    vi.mocked(shareEndingFor).mockResolvedValue(null);
 
     const user = userEvent.setup();
 
@@ -150,7 +150,7 @@ describe('SharePage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
     await waitFor(() => {
-      expect(reasonIfShareEnded).toHaveBeenCalled();
+      expect(shareEndingFor).toHaveBeenCalled();
     });
 
     expect(screen.getByText('playing Arrival')).toBeInTheDocument();

@@ -1,16 +1,19 @@
 import { Icon } from '@FluxUI/Icon';
-import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { Spinner } from '@FluxUI/Spinner';
 import { openShare } from '@FluxWeb/sharing/fetchShares';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { EpisodeRow } from '@FluxWeb/components/ShowDialog/components/EpisodeRow/EpisodeRow';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
+import { describeShareEnding } from '@FluxWeb/sharing/describeShareEnding';
 import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
+import type { ShareEnding } from '@FluxContracts/schemas/Share';
 import type { ShareAreaProps } from './ShareArea.types';
 
 type Standing =
-  { kind: 'reading' } | { kind: 'opened'; share: OpenedShare } | { kind: 'closed'; reason: string };
+  | { kind: 'reading' }
+  | { kind: 'opened'; share: OpenedShare }
+  | { kind: 'closed'; ended: ShareEnding | null };
 
 /**
  * What somebody with no account sees when they follow a link. Deliberately not the library with
@@ -25,12 +28,12 @@ type Standing =
  * @param token - The token the link carries.
  * @param onPlay - Told to start something, and where from.
  * @param resumeFor - Where they got to in a given episode, for as long as this page lives.
- * @param endedReason - Why the link stopped working, where something noticed before this screen did.
- *   Shown at once rather than asking again, so a guest whose link is withdrawn mid-stream is told
+ * @param ended - How the link stopped working, where something noticed before this screen did. Shown
+ *   at once rather than asking again, so a guest whose link is withdrawn mid-stream is told
  *   immediately instead of watching a spinner while the server repeats what is already known.
  * @param name - What this server calls itself.
  */
-const ShareArea = ({ token, onPlay, resumeFor, endedReason, name = 'Flux' }: ShareAreaProps) => {
+const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Flux' }: ShareAreaProps) => {
   const [standing, setStanding] = useState<Standing>({ kind: 'reading' });
 
   useEffect(() => {
@@ -49,11 +52,7 @@ const ShareArea = ({ token, onPlay, resumeFor, endedReason, name = 'Flux' }: Sha
         return;
       }
 
-      setStanding({
-        kind: 'closed',
-        reason:
-          outcome.kind === 'gone' ? outcome.reason : 'This link does not work. Ask for a new one.',
-      });
+      setStanding({ kind: 'closed', ended: outcome.kind === 'gone' ? outcome.ended : null });
     });
 
     return () => {
@@ -61,17 +60,21 @@ const ShareArea = ({ token, onPlay, resumeFor, endedReason, name = 'Flux' }: Sha
     };
   }, [token]);
 
-  const closed = endedReason ?? (standing.kind === 'closed' ? standing.reason : null);
+  const closed = ended ?? (standing.kind === 'closed' ? standing.ended : null);
 
-  if (closed !== null) {
+  if (closed !== null || standing.kind === 'closed') {
+    const told = closed === null ? null : describeShareEnding(closed);
+
     return (
       <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
-        <Icon of={Unlink01Icon} size={40} className="text-text-muted" />
+        {told === null ? null : <Icon of={told.icon} size={40} className="text-text-muted" />}
 
-        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{closed}</h1>
+        <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">
+          {told?.said ?? 'This link does not work.'}
+        </h1>
 
         <p className="max-w-[40ch] font-body text-sm text-text-muted">
-          Whoever sent it can send another.
+          {told?.detail ?? 'Ask whoever sent it for a new one.'}
         </p>
       </main>
     );

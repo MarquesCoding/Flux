@@ -2,10 +2,17 @@ import { z } from 'zod';
 import {
   AdminShareListSchema,
   CreatedShareSchema,
+  ShareEndingSchema,
   ShareListSchema,
 } from '@FluxContracts/schemas/Share';
 import { MediaSummarySchema } from '@FluxContracts/schemas/Library';
-import type { AdminShare, CreatedShare, NewShare, Share } from '@FluxContracts/schemas/Share';
+import type {
+  AdminShare,
+  CreatedShare,
+  NewShare,
+  Share,
+  ShareEnding,
+} from '@FluxContracts/schemas/Share';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 const OpenedShareSchema = z.object({
@@ -17,7 +24,9 @@ const OpenedShareSchema = z.object({
 type OpenedShare = z.infer<typeof OpenedShareSchema>;
 
 type ShareOutcome =
-  { kind: 'opened'; share: OpenedShare } | { kind: 'gone'; reason: string } | { kind: 'unknown' };
+  | { kind: 'opened'; share: OpenedShare }
+  | { kind: 'gone'; reason: string; ended: ShareEnding }
+  | { kind: 'unknown' };
 
 /**
  * Reads the links this account has handed out, with how far each has been used.
@@ -138,11 +147,14 @@ const openShare = async (token: string): Promise<ShareOutcome> => {
     });
 
     if (response.status === 410) {
-      const said = z.object({ error: z.string() }).safeParse(await response.json());
+      const said = z
+        .object({ error: z.string(), ended: ShareEndingSchema })
+        .safeParse(await response.json());
 
       return {
         kind: 'gone',
         reason: said.success ? said.data.error : 'This link no longer works.',
+        ended: said.success ? said.data.ended : 'withdrawn',
       };
     }
 

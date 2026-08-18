@@ -79,6 +79,41 @@ const isShareLive = (standing: ShareStanding, now: Date): boolean => {
   return standing.viewCap === null || standing.views < standing.viewCap;
 };
 
+const SHARE_ENDINGS = ['withdrawn', 'expired', 'spent'] as const;
+
+const ShareEndingSchema = z.enum(SHARE_ENDINGS);
+
+type ShareEnding = (typeof SHARE_ENDINGS)[number];
+
+/**
+ * Says which of the three ways a share ended, for a screen that treats them as the different things
+ * they are. Answers with null while it still works.
+ *
+ * The order is the order of certainty rather than of likelihood: a withdrawn link was withdrawn even
+ * if it would also have expired by now, because that is what somebody did to it.
+ *
+ * @param standing - What the share was created with and how far it has been used.
+ * @param now - The moment being judged.
+ * @returns How it ended, or null where nothing has.
+ */
+const howShareEnded = (standing: ShareStanding, now: Date): ShareEnding | null => {
+  if (standing.revokedAt !== null) {
+    return 'withdrawn';
+  }
+
+  if (standing.expiresAt !== null && standing.expiresAt.getTime() <= now.getTime()) {
+    return 'expired';
+  }
+
+  return standing.viewCap !== null && standing.views >= standing.viewCap ? 'spent' : null;
+};
+
+const SHARE_ENDING_SAID: Record<ShareEnding, string> = {
+  withdrawn: 'This link was withdrawn.',
+  expired: 'This link has expired.',
+  spent: 'This link has been used up.',
+};
+
 /**
  * Says why a share is no longer good, for telling somebody holding a dead link something better
  * than that it does not work. Answers with null while it still works.
@@ -88,19 +123,9 @@ const isShareLive = (standing: ShareStanding, now: Date): boolean => {
  * @returns What ended it, or null where nothing has.
  */
 const whyShareEnded = (standing: ShareStanding, now: Date): string | null => {
-  if (standing.revokedAt !== null) {
-    return 'This link was withdrawn.';
-  }
+  const ending = howShareEnded(standing, now);
 
-  if (standing.expiresAt !== null && standing.expiresAt.getTime() <= now.getTime()) {
-    return 'This link has expired.';
-  }
-
-  if (standing.viewCap !== null && standing.views >= standing.viewCap) {
-    return 'This link has been opened as many times as it was meant to be.';
-  }
-
-  return null;
+  return ending === null ? null : SHARE_ENDING_SAID[ending];
 };
 
 /**
@@ -121,7 +146,7 @@ const shareReaches = (
     ? scope.mediaId === item.id
     : scope.seriesId !== null && scope.seriesId === item.seriesId;
 
-export type { Share, AdminShare, ShareKind, NewShare, CreatedShare, ShareStanding };
+export type { Share, AdminShare, ShareKind, NewShare, CreatedShare, ShareStanding, ShareEnding };
 
 export {
   ShareSchema,
@@ -132,7 +157,11 @@ export {
   NewShareSchema,
   CreatedShareSchema,
   isShareLive,
+  howShareEnded,
   whyShareEnded,
+  ShareEndingSchema,
+  SHARE_ENDINGS,
+  SHARE_ENDING_SAID,
   shareReaches,
   SHARE_KINDS,
 };

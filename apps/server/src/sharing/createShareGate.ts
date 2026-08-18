@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
-import { isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
 import { covers, reachOf } from './shareReach';
 import type { ShareService } from './ShareService';
 import type { ShareSessions } from './createShareSessions';
@@ -55,7 +55,10 @@ const createShareGate = ({ shares, sessions, itemOf }: ShareGateOptions) =>
 
     if (!isShareLive(standing, new Date())) {
       return context.json(
-        { error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.' },
+        {
+          error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.',
+          ended: howShareEnded(standing, new Date()) ?? 'withdrawn',
+        },
         410,
       );
     }

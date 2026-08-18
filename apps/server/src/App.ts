@@ -70,7 +70,7 @@ import {
   openShareRoute,
 } from '@FluxServer/routes/ShareRoute';
 import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
-import { isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
 import { getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 
@@ -2650,7 +2650,10 @@ const createApp = ({
 
     if (!isShareLive(standing, new Date())) {
       return context.json(
-        { error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.' },
+        {
+          error: whyShareEnded(standing, new Date()) ?? 'This link no longer works.',
+          ended: howShareEnded(standing, new Date()) ?? 'withdrawn',
+        },
         410,
       );
     }

@@ -1,4 +1,5 @@
 import { openShare } from '@FluxWeb/sharing/fetchShares';
+import type { ShareEnding } from '@FluxContracts/schemas/Share';
 
 /**
  * Asks whether a link has stopped working, and why, for a guest whose stream has just failed. A
@@ -9,13 +10,13 @@ import { openShare } from '@FluxWeb/sharing/fetchShares';
  * this browser, so asking again is the same visit rather than another one.
  *
  * @param token - The token the link carries.
- * @returns Why the link stopped working, or null where it still works and the fault was something
+ * @returns How the link stopped working, or null where it still works and the fault was something
  *   else.
  */
-const reasonIfShareEnded = async (token: string): Promise<string | null> => {
+const shareEndingFor = async (token: string): Promise<ShareEnding | null> => {
   const outcome = await openShare(token);
 
-  return outcome.kind === 'gone' ? outcome.reason : null;
+  return outcome.kind === 'gone' ? outcome.ended : null;
 };
 
-export { reasonIfShareEnded };
+export { shareEndingFor };

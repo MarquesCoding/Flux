@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { NewShareSchema, isShareLive, shareReaches, whyShareEnded } from './Share';
+import { NewShareSchema, howShareEnded, isShareLive, shareReaches, whyShareEnded } from './Share';
 import type { ShareStanding } from './Share';
 
 const NOW = new Date('2026-08-16T12:00:00.000Z');
@@ -77,8 +77,37 @@ describe('whyShareEnded', () => {
     );
   });
 
-  it('says it was opened as often as it was meant to be', () => {
-    expect(whyShareEnded(standing({ viewCap: 1, views: 1 }), NOW)).toContain('as many times');
+  it('says it has been used up', () => {
+    expect(whyShareEnded(standing({ viewCap: 1, views: 1 }), NOW)).toBe(
+      'This link has been used up.',
+    );
+  });
+});
+
+describe('howShareEnded', () => {
+  it('names each of the three ways a link ends', () => {
+    expect(howShareEnded(standing({ revokedAt: new Date('2026-01-01T00:00:00Z') }), NOW)).toBe(
+      'withdrawn',
+    );
+
+    expect(howShareEnded(standing({ expiresAt: new Date('2020-01-01T00:00:00Z') }), NOW)).toBe(
+      'expired',
+    );
+
+    expect(howShareEnded(standing({ viewCap: 1, views: 1 }), NOW)).toBe('spent');
+  });
+
+  it('says nothing of a link that still works', () => {
+    expect(howShareEnded(standing({}), NOW)).toBeNull();
+  });
+
+  it('calls a link that was withdrawn withdrawn, even where it would also have expired', () => {
+    const both = standing({
+      revokedAt: new Date('2026-01-01T00:00:00Z'),
+      expiresAt: new Date('2020-01-01T00:00:00Z'),
+    });
+
+    expect(howShareEnded(both, NOW)).toBe('withdrawn');
   });
 });
 

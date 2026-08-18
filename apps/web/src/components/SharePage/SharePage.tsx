@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { ShareArea } from '@FluxWeb/components/ShareArea/ShareArea';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { reasonIfShareEnded } from '@FluxWeb/sharing/reasonIfShareEnded';
+import { shareEndingFor } from '@FluxWeb/sharing/shareEndingFor';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { ShareEnding } from '@FluxContracts/schemas/Share';
 import type { SharePageProps } from './SharePage.types';
 
 const ASK_EVERY_MILLISECONDS = 5000;
@@ -29,7 +30,7 @@ const SharePage = ({ name, askEveryMilliseconds = ASK_EVERY_MILLISECONDS }: Shar
   const { place } = usePlace();
   const [playing, setPlaying] = useState<MediaSummary | null>(null);
   const [reached, setReached] = useState<Map<string, number>>(new Map());
-  const [ended, setEnded] = useState<string | null>(null);
+  const [ended, setEnded] = useState<ShareEnding | null>(null);
   const token = place.shareToken ?? '';
 
   useEffect(() => {
@@ -40,10 +41,10 @@ const SharePage = ({ name, askEveryMilliseconds = ASK_EVERY_MILLISECONDS }: Shar
     let abandoned = false;
 
     const ask = async () => {
-      const reason = await reasonIfShareEnded(token);
+      const ending = await shareEndingFor(token);
 
-      if (!abandoned && reason !== null) {
-        setEnded(reason);
+      if (!abandoned && ending !== null) {
+        setEnded(ending);
         setPlaying(null);
       }
     };
@@ -80,7 +81,7 @@ const SharePage = ({ name, askEveryMilliseconds = ASK_EVERY_MILLISECONDS }: Shar
     <ShareArea
       token={token}
       name={name}
-      endedReason={ended}
+      ended={ended}
       resumeFor={(mediaId) => reached.get(mediaId) ?? null}
       onPlay={setPlaying}
     />

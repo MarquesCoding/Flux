@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import {
+  ShareEndingSchema,
   AdminShareListSchema,
   CreatedShareSchema,
   NewShareSchema,
@@ -14,6 +15,8 @@ const CreatedShare = CreatedShareSchema.openapi('CreatedShare');
 const NewShare = NewShareSchema.openapi('NewShare');
 const AdminShareList = AdminShareListSchema.openapi('AdminShareList');
 const ShareError = z.object({ error: z.string() }).openapi('ShareError');
+
+const ShareEnded = z.object({ error: z.string(), ended: ShareEndingSchema }).openapi('ShareEnded');
 
 const OpenedShare = z
   .object({
@@ -145,8 +148,8 @@ const openShareRoute = createRoute({
       content: { 'application/json': { schema: ShareError } },
     },
     410: {
-      description: 'This link no longer works',
-      content: { 'application/json': { schema: ShareError } },
+      description: 'This link no longer works, and which of the three ways it ended',
+      content: { 'application/json': { schema: ShareEnded } },
     },
   },
 });

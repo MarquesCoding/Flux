@@ -86,7 +86,7 @@ describe('what a guest is shown', () => {
   });
 
   it('says a link has ended the moment it is told, without asking again first', async () => {
-    opened({ endedReason: 'This link was withdrawn.' });
+    opened({ ended: 'withdrawn' });
 
     expect(
       await screen.findByRole('heading', { name: 'This link was withdrawn.' }),
@@ -162,24 +162,48 @@ describe('a series that was shared', () => {
 });
 
 describe('a link that no longer works', () => {
-  it('says why, in words', async () => {
-    answers({ kind: 'gone', reason: 'This link has expired.' });
+  it('says a link that ran out of time has expired', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'expired' });
 
     opened();
 
     expect(
       await screen.findByRole('heading', { name: 'This link has expired.' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/made to last a while/)).toBeInTheDocument();
   });
 
-  it('says a withdrawn link was withdrawn', async () => {
-    answers({ kind: 'gone', reason: 'This link was withdrawn.' });
+  it('says a withdrawn link was withdrawn, and that somebody did it', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'withdrawn' });
 
     opened();
 
     expect(
       await screen.findByRole('heading', { name: 'This link was withdrawn.' }),
     ).toBeInTheDocument();
+    expect(screen.getByText(/stopped it working/)).toBeInTheDocument();
+  });
+
+  it('says a link opened its full number of times has been used up', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'spent' });
+
+    opened();
+
+    expect(
+      await screen.findByRole('heading', { name: 'This link has been used up.' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/set number of times/)).toBeInTheDocument();
+  });
+
+  it('tells the three endings apart rather than calling them all withdrawn', async () => {
+    answers({ kind: 'gone', reason: 'x', ended: 'spent' });
+
+    opened();
+
+    await screen.findByRole('heading', { name: 'This link has been used up.' });
+
+    expect(screen.queryByText(/withdrawn/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/expired/)).not.toBeInTheDocument();
   });
 
   it('says something useful for a link that never existed', async () => {
@@ -191,7 +215,7 @@ describe('a link that no longer works', () => {
   });
 
   it('offers no way in, since a guest has no account to sign in to', async () => {
-    answers({ kind: 'gone', reason: 'This link has expired.' });
+    answers({ kind: 'gone', reason: 'x', ended: 'expired' });
 
     opened();
 

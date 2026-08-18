@@ -148,12 +148,28 @@ describe('openShare', () => {
     expect(outcome.kind).toBe('opened');
   });
 
-  it('tells a link that has run out apart from one that never existed', async () => {
-    fetchMock.mockResolvedValue(said(410, { error: 'This link has expired.' }));
+  it('falls back to withdrawn where the server names no ending it recognises', async () => {
+    fetchMock.mockResolvedValue(said(410, { error: 'This link no longer works.' }));
 
     const gone = await openShare('a-token');
 
-    expect(gone).toEqual({ kind: 'gone', reason: 'This link has expired.' });
+    expect(gone).toEqual({
+      kind: 'gone',
+      reason: 'This link no longer works.',
+      ended: 'withdrawn',
+    });
+  });
+
+  it('tells a link that has run out apart from one that never existed', async () => {
+    fetchMock.mockResolvedValue(said(410, { error: 'This link has expired.', ended: 'expired' }));
+
+    const gone = await openShare('a-token');
+
+    expect(gone).toEqual({
+      kind: 'gone',
+      reason: 'This link has expired.',
+      ended: 'expired',
+    });
 
     fetchMock.mockResolvedValue(said(404, { error: 'This link does not work.' }));
 
