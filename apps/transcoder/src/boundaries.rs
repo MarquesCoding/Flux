@@ -15,8 +15,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::keyframes::{
-    cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths, Cut,
-    Keyframes,
+    cut_interval, grouped_lengths, longest_segment, read_keyframes, safe_segment_lengths,
+    segment_groups, segment_lengths, Cut, Keyframes,
 };
 use crate::monitor::{record, LogLevel};
 use crate::playlist::build_vod_playlist;
@@ -26,6 +26,15 @@ use crate::transcode_plan::{SessionSpec, VideoAction, MANIFEST_NAME};
 /// The segment boundaries, cached beside the segments they describe.
 pub const LENGTHS_NAME: &str = "lengths.json";
 
+/// The shortest segment worth offering a player as a request of its own.
+///
+/// Not the length asked for, which is a different question: a segment of three
+/// and a half seconds where four were wanted is the ordinary result of cutting
+/// on a source's own keyframes and there is nothing wrong with it. This is the
+/// point below which a segment costs a whole round trip for a scrap of film,
+/// and is better sent along with its neighbour.
+const SHORTEST_OFFERED_SEGMENT: f64 = 1.0;
+
 /// What this version of Flux writes into a plan's directory.
 ///
 /// Bumped whenever the segments themselves change shape — a different
@@ -33,7 +42,7 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 /// written by an older Flux describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 5;
+const LAYOUT: u32 = 6;
 
 /// The longest segment a copied stream may produce before copying is refused.
 ///
@@ -108,6 +117,15 @@ pub struct Boundaries {
     /// the segments far too long. The lengths then describe an encode, because
     /// that is the only way the film plays.
     pub can_copy: bool,
+    /// How many of the lengths above make up each segment the playlist offers.
+    ///
+    /// One apiece for everything but a copied source whose keyframes crowd
+    /// together, where a few of the muxer's segments are too short to be worth
+    /// a request of their own and are offered together instead. Empty for
+    /// boundaries written before Flux grouped anything, which are read as one
+    /// apiece.
+    #[serde(default)]
+    pub groups: Vec<u32>,
 }
 
 impl Boundaries {
@@ -115,6 +133,25 @@ impl Boundaries {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.lengths.is_empty()
+    }
+
+    /// How many of the muxer's segments make up each one the playlist offers.
+    ///
+    /// One apiece where nothing was grouped, which is both the ordinary case
+    /// and what boundaries cached before grouping existed have to mean.
+    #[must_use]
+    pub fn grouping(&self) -> Vec<u32> {
+        if self.groups.len() == self.lengths.len() {
+            return self.groups.clone();
+        }
+
+        vec![1; self.lengths.len()]
+    }
+
+    /// The length of each segment the playlist offers.
+    #[must_use]
+    pub fn offered_lengths(&self) -> Vec<f64> {
+        grouped_lengths(&self.lengths, &self.grouping())
     }
 
     /// Nothing, for a source that could not be read.
@@ -126,6 +163,7 @@ impl Boundaries {
             cut_seconds: 0.0,
             seeks_forward: false,
             can_copy: true,
+            groups: Vec::new(),
         }
     }
 }
@@ -197,12 +235,17 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
 
     let seeks_forward = seeks_forward(probe.container);
 
-    let equal = |can_copy: bool| Boundaries {
-        layout: LAYOUT,
-        lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
-        cut_seconds: wanted,
-        seeks_forward,
-        can_copy,
+    let equal = |can_copy: bool| {
+        let lengths = equal_lengths(probe.duration_seconds, spec.segment_seconds);
+
+        Boundaries {
+            layout: LAYOUT,
+            groups: vec![1; lengths.len()],
+            lengths,
+            cut_seconds: wanted,
+            seeks_forward,
+            can_copy,
+        }
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
@@ -215,9 +258,12 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
             let unsafe_cuts = keyframes.cuts.iter().filter(|cut| !cut.is_safe()).count();
 
             if unsafe_cuts == 0 {
+                let lengths = segment_lengths(&keyframes, cut_seconds);
+
                 return Boundaries {
                     layout: LAYOUT,
-                    lengths: segment_lengths(&keyframes, cut_seconds),
+                    groups: segment_groups(&lengths, SHORTEST_OFFERED_SEGMENT),
+                    lengths,
                     cut_seconds,
                     seeks_forward,
                     can_copy: true,
@@ -225,9 +271,12 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
             }
 
             if can_copy_segments(&keyframes, cut_seconds) {
+                let lengths = safe_segment_lengths(&keyframes, cut_seconds);
+
                 return Boundaries {
                     layout: LAYOUT,
-                    lengths: safe_segment_lengths(&keyframes, cut_seconds),
+                    groups: segment_groups(&lengths, SHORTEST_OFFERED_SEGMENT),
+                    lengths,
                     cut_seconds,
                     seeks_forward,
                     can_copy: true,
@@ -319,7 +368,7 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
     let _ = tokio::fs::write(
         directory.join(MANIFEST_NAME),
-        build_vod_playlist(&found.lengths, spec.container),
+        build_vod_playlist(&found.offered_lengths(), spec.container),
     )
     .await;
 
