@@ -37,6 +37,18 @@ describe('MediaCard', () => {
     expect(onSelect).toHaveBeenCalledOnce();
   });
 
+  it('shows where the keyboard is, so a rail can be walked without a mouse', async () => {
+    const actor = userEvent.setup();
+    render(<MediaCard title="Arrival" subtitle="2016" onSelect={vi.fn()} />);
+
+    await actor.tab();
+
+    const card = screen.getByRole('button');
+
+    expect(card).toHaveFocus();
+    expect(card).toHaveClass('focus-visible:ring-[3px]', 'focus-visible:ring-ring/40');
+  });
+
   it('shows the title and subtitle', () => {
     render(<MediaCard title="Arrival" subtitle="2016 · 1:56" onSelect={vi.fn()} />);
 
