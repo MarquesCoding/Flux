@@ -22,13 +22,18 @@ const readKind = (stored: string): ShareKind | null =>
   stored === 'item' || stored === 'series' ? stored : null;
 
 /**
- * The columns every listing reads, including how far a link has been used.
+ * The columns every listing reads: the link, how far it has been used, and what it points at.
  *
  * The count is asked for with `$count` rather than written out as a correlated subquery, because
  * Drizzle omits table qualifiers in a select over one table: a hand-written
  * `where "shareId" = "id"` then resolves both names against the subquery's own table rather than
  * the share outside it, and counts nothing at all. It is right by accident in a query that
  * happens to join, which is exactly how it stayed wrong in one listing and not the other.
+ *
+ * The title is joined rather than looked up per row. A listing that asked what each link pointed at
+ * one link at a time cost a query per row, and the links somebody has withdrawn count towards that
+ * as much as the ones still working — so a household that shares a lot paid for its whole history
+ * every time the page opened.
  *
  * @param db - The database, which is what knows how to build the count.
  * @returns The selection both listings read.
@@ -43,6 +48,9 @@ const columnsFor = (db: FluxDatabase) => ({
   viewCap: share.viewCap,
   revokedAt: share.revokedAt,
   views: db.$count(shareVisit, eq(shareVisit.shareId, share.id)),
+  itemTitle: mediaItem.title,
+  itemSeriesTitle: mediaItem.seriesTitle,
+  seriesTitle: series.title,
 });
 
 type ShareRow = {
@@ -55,6 +63,9 @@ type ShareRow = {
   viewCap: number | null;
   revokedAt: Date | null;
   views: number;
+  itemTitle: string | null;
+  itemSeriesTitle: string | null;
+  seriesTitle: string | null;
 };
 
 /**
@@ -99,7 +110,7 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
     return row === undefined ? null : (row.seriesTitle ?? row.title);
   };
 
-  const describe = async (row: ShareRow, now: Date): Promise<Share | null> => {
+  const describe = (row: ShareRow, now: Date): Share | null => {
     const kind = readKind(row.kind);
     const subjectId = row.mediaItemId ?? row.seriesId;
 
@@ -107,12 +118,14 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
       return null;
     }
 
+    const title = kind === 'series' ? row.seriesTitle : (row.itemSeriesTitle ?? row.itemTitle);
+
     return {
       id: row.id,
       kind,
       mediaId: row.mediaItemId,
       seriesId: row.seriesId,
-      title: (await titleOf(kind, subjectId)) ?? GONE,
+      title: title ?? GONE,
       createdAt: row.createdAt.toISOString(),
       expiresAt: row.expiresAt === null ? null : row.expiresAt.toISOString(),
       viewCap: row.viewCap,
@@ -185,14 +198,15 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
       const rows = await db
         .select(COLUMNS)
         .from(share)
+        .leftJoin(mediaItem, eq(mediaItem.id, share.mediaItemId))
+        .leftJoin(series, eq(series.id, share.seriesId))
         .where(eq(share.createdBy, createdBy))
         .orderBy(desc(share.createdAt))
         .limit(LIMIT);
 
       const now = new Date();
-      const described = await Promise.all(rows.map(async (row) => describe(row, now)));
 
-      return described.filter((one) => one !== null);
+      return rows.map((row) => describe(row, now)).filter((one) => one !== null);
     },
 
     listEverybody: async () => {
@@ -200,14 +214,16 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
         .select({ ...COLUMNS, createdBy: share.createdBy, createdByName: user.name })
         .from(share)
         .innerJoin(user, eq(user.id, share.createdBy))
+        .leftJoin(mediaItem, eq(mediaItem.id, share.mediaItemId))
+        .leftJoin(series, eq(series.id, share.seriesId))
         .orderBy(desc(share.createdAt))
         .limit(LIMIT);
 
       const now = new Date();
 
-      const described = await Promise.all(
-        rows.map(async (row) => {
-          const one = await describe(row, now);
+      return rows
+        .map((row) => {
+          const one = describe(row, now);
 
           return one === null
             ? null
@@ -216,10 +232,8 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
                 createdBy: row.createdBy,
                 createdByName: row.createdByName,
               } satisfies AdminShare);
-        }),
-      );
-
-      return described.filter((one) => one !== null);
+        })
+        .filter((one) => one !== null);
     },
 
     revoke: async (createdBy, shareId) => {
