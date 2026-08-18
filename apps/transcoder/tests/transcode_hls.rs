@@ -175,6 +175,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         subtitles: SubtitleAction::None,
         source_size: None,
         container: SegmentContainer::Fmp4,
+        source_video_codec: None,
     }
 }
 

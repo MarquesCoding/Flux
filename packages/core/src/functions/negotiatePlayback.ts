@@ -51,12 +51,18 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
  * is and it is within any ceiling asked for, or transcode it down to what it can.
  *
  * Bitrate takes the tighter of the two, because that ceiling is about what a network can carry and
- * is not a matter of taste. Resolution does not: a pinned rung wins outright, even above the size
- * of the screen. `profile.maxWidth` is the display's own size, which is a sensible default and a
- * poor veto — 4K into a 1440p panel is downsampled by the display and looks better for it, which is
- * why every streaming service offers the choice rather than hiding it. What the device genuinely
- * cannot decode is enforced elsewhere, through codec support and level limits, so nothing here is
- * holding back a picture the hardware would choke on.
+ * is not a matter of taste. Resolution is not a ceiling at all: only a rung somebody pinned can
+ * force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible
+ * thing to encode towards once something else has decided to encode, and a poor reason to decide
+ * it — 4K into a 1440p panel is downsampled by the display and looks better for it than anything
+ * re-encoded to fit would, which is why every streaming service offers the choice rather than
+ * hiding it.
+ *
+ * It used to be a veto, and this comment argued against it while the code below did it anyway: a 4K
+ * film was decoded, scaled and re-encoded so that a panel which cannot show 4K could be sent
+ * something slightly smaller than 4K. What the device genuinely cannot decode is enforced
+ * elsewhere, through codec support and level limits — a level is a real statement about a decoder,
+ * where a panel size is a statement about a piece of glass.
  *
  * Which leaves "original" meaning what a viewer would expect it to: as the file is, sized for the
  * screen in front of them. Asking for a rung is asking for something else on purpose.
@@ -234,19 +240,11 @@ const decideVideo = (
         );
   }
 
-  if (media.width > maxWidth || media.height > maxHeight) {
-    const forcedByQuality =
-      clamp !== null && (clamp.maxWidth < profile.maxWidth || clamp.maxHeight < profile.maxHeight);
-
-    return forcedByQuality
-      ? transcodeTo(
-          'UserForcedTranscode',
-          `Quality step limits resolution to ${maxWidth.toString()}x${maxHeight.toString()}`,
-        )
-      : transcodeTo(
-          'VideoResolutionAboveLimit',
-          `Source resolution ${media.width.toString()}x${media.height.toString()} exceeds the client limit`,
-        );
+  if (clamp !== null && (media.width > clamp.maxWidth || media.height > clamp.maxHeight)) {
+    return transcodeTo(
+      'UserForcedTranscode',
+      `Quality step limits resolution to ${clamp.maxWidth.toString()}x${clamp.maxHeight.toString()}`,
+    );
   }
 
   return {

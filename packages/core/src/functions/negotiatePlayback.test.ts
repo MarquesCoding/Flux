@@ -309,12 +309,20 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
   });
 
-  it('transcodes video when the resolution exceeds the client limit', () => {
+  it('passes a picture larger than the screen through, rather than re-encoding it to fit', () => {
     const hd: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
 
     const plan = negotiatePlayback(media, hd);
 
-    expect(plan.video.reason.code).toBe('VideoResolutionAboveLimit');
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('still refuses a picture the decoder itself cannot take, which is the real limit', () => {
+    const modest: DeviceProfile = { ...profile, maxVideoLevels: { hevc: 120 } };
+
+    const plan = negotiatePlayback({ ...media, videoLevel: 153 }, modest);
+
+    expect(plan.video.reason.code).toBe('VideoLevelNotSupported');
   });
 
   it('passes supported text subtitles through', () => {
@@ -472,12 +480,25 @@ describe('negotiatePlayback', () => {
       expect(plan.video).toMatchObject({ maxWidth: 3840, maxHeight: 2160 });
     });
 
-    it('still sizes the original for the screen, a rung being the deliberate part', () => {
+    it('leaves the original at its own size, a rung being the deliberate part', () => {
       const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
 
       const plan = negotiatePlayback(media, smallScreen, null);
 
-      expect(plan.video).toMatchObject({ maxWidth: 1920, maxHeight: 1080 });
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('sizes an encode for the screen once a rung has asked for one', () => {
+      const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
+
+      const plan = negotiatePlayback(media, smallScreen, {
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxVideoBitrateKbps: 3000,
+        maxAudioBitrateKbps: null,
+      });
+
+      expect(plan.video).toMatchObject({ kind: 'transcode', maxWidth: 1280, maxHeight: 720 });
     });
 
     it('leaves audio alone when the clamp does not compress it', () => {
