@@ -1,4 +1,5 @@
-import { RiCloseLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@FluxUI/Button';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import {
@@ -122,7 +123,7 @@ const StreamStats = ({
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
-          <RiCloseLine size={16} aria-hidden />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </header>
 

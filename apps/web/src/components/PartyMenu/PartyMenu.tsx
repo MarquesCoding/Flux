@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { UserGroupIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiGroupFill, RiGroupLine } from '@remixicon/react';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
 import { Button } from '@FluxUI/Button';
 import { PartyPanel } from '@FluxWeb/components/PartyPanel/PartyPanel';
@@ -71,9 +72,9 @@ const PartyMenu = ({
       onOpenChange={show}
       trigger={
         party === null ? (
-          <RiGroupLine size={20} aria-hidden />
+          <Icon of={UserGroupIcon} size={20} />
         ) : (
-          <RiGroupFill size={20} aria-hidden />
+          <Icon of={UserGroupIcon} size={20} />
         )
       }
       className="mb-7.5"

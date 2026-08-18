@@ -1,4 +1,5 @@
-import { RiArrowDownSLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { ArrowDown01Icon } from '@hugeicons/core-free-icons';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import type { ChoiceProps } from './Choice.types';
 
@@ -32,7 +33,7 @@ const Choice = ({ label, options, value, onSelect }: ChoiceProps) => (
       trigger={
         <span className="flex min-w-0 items-center justify-end gap-1.5 text-sm font-medium text-text">
           <span className="truncate">{options.find((one) => one.id === value)?.label ?? ''}</span>
-          <RiArrowDownSLine size={16} aria-hidden className="shrink-0" />
+          <Icon of={ArrowDown01Icon} size={16} className="shrink-0" />
         </span>
       }
     />

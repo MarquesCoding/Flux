@@ -3,6 +3,7 @@
 - **Status:** Accepted
 - **Date:** 2026-08-17
 - **Supersedes:** [ADR-0013](0013-fluxui-component-stack.md)
+- **Superseded by:** [ADR-0020](0020-icons-from-hugeicons-through-one-component.md), for its icon clause only
 
 ## Context
 
@@ -60,7 +61,7 @@ answered:
 
 FluxUI therefore remains a versioned library that plugin authors can build
 against, which is what ADR-0013 was protecting. What changed is what it is built
-*from*.
+_from_.
 
 ## Consequences
 

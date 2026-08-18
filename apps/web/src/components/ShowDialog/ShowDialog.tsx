@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { RiCloseLine, RiInformationLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -172,7 +173,7 @@ const ShowDialog = ({
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-              <RiCloseLine size={20} aria-hidden />
+              <Icon of={Cancel01Icon} size={20} />
             </Button>
           </div>
 
@@ -248,7 +249,7 @@ const ShowDialog = ({
                   onPlay(carryingOn.episode, carryingOn.startSeconds);
                 }}
               >
-                <RiPlayFill size={18} aria-hidden />
+                <Icon of={PlayIcon} size={18} />
                 {carryingOn.isResuming
                   ? `Resume ${formatDuration(carryingOn.startSeconds)}`
                   : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
@@ -266,7 +267,7 @@ const ShowDialog = ({
                   onInspect(carryingOn.episode);
                 }}
               >
-                <RiInformationLine size={18} aria-hidden />
+                <Icon of={InformationCircleIcon} size={18} />
                 About this episode
               </Button>
             )}

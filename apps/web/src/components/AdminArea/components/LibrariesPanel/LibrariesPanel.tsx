@@ -1,14 +1,15 @@
-import { useMemo, useRef, useState } from 'react';
+import { Icon } from '@FluxUI/Icon';
 import {
-  RiAddLine,
-  RiDeleteBinLine,
-  RiImageLine,
-  RiInformationLine,
-  RiMoreLine,
-  RiRefreshLine,
-  RiRestartLine,
-  RiSettings3Line,
-} from '@remixicon/react';
+  Add01Icon,
+  Delete02Icon,
+  Image01Icon,
+  InformationCircleIcon,
+  MoreHorizontalIcon,
+  RefreshIcon,
+  ReloadIcon,
+  Settings01Icon,
+} from '@hugeicons/core-free-icons';
+import { useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
 import { DataTable } from '@FluxUI/DataTable';
@@ -159,7 +160,7 @@ const LibrariesPanel = ({
                 Reading
               </Badge>
 
-              <RiInformationLine size={15} className="shrink-0 text-text-muted" aria-hidden />
+              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -172,14 +173,14 @@ const LibrariesPanel = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<RiMoreLine size={16} aria-hidden />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'scan',
                       label: 'Scan for changes',
-                      icon: <RiRefreshLine size={15} aria-hidden />,
+                      icon: <Icon of={RefreshIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id);
@@ -188,7 +189,7 @@ const LibrariesPanel = ({
                     {
                       id: 'reread',
                       label: 'Read every file again',
-                      icon: <RiRestartLine size={15} aria-hidden />,
+                      icon: <Icon of={ReloadIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id, true);
@@ -197,7 +198,7 @@ const LibrariesPanel = ({
                     {
                       id: 'previews',
                       label: 'Generate missing previews',
-                      icon: <RiImageLine size={15} aria-hidden />,
+                      icon: <Icon of={Image01Icon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onRegeneratePreviews(row.original.id);
@@ -210,7 +211,7 @@ const LibrariesPanel = ({
                     {
                       id: 'settings',
                       label: 'Library settings',
-                      icon: <RiSettings3Line size={15} aria-hidden />,
+                      icon: <Icon of={Settings01Icon} size={15} />,
                       onChoose: () => {
                         live.current.setSettingsLibraryId(row.original.id);
                       },
@@ -238,7 +239,7 @@ const LibrariesPanel = ({
             disabled={isBusy}
             onClick={onScanAll}
           >
-            <RiRestartLine size={16} aria-hidden />
+            <Icon of={ReloadIcon} size={16} />
             Scan all libraries
           </Button>
 
@@ -252,7 +253,7 @@ const LibrariesPanel = ({
               setIsConfirmingReset(true);
             }}
           >
-            <RiDeleteBinLine size={16} aria-hidden />
+            <Icon of={Delete02Icon} size={16} />
             Reset and rebuild
           </Button>
 
@@ -264,7 +265,7 @@ const LibrariesPanel = ({
               setIsAdding(true);
             }}
           >
-            <RiAddLine size={16} aria-hidden />
+            <Icon of={Add01Icon} size={16} />
             Add library
           </Button>
         </div>

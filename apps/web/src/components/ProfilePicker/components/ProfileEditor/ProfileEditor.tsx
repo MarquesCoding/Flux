@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { ImageAdd01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiImageAddLine, RiRefreshLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { FilePicker } from '@FluxUI/FilePicker';
@@ -206,7 +207,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }
             }}
           >
-            <RiRefreshLine size={16} aria-hidden />
+            <Icon of={RefreshIcon} size={16} />
             Different faces
           </Button>
 
@@ -219,7 +220,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
             >
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/10 hover:text-text">
-                <RiImageAddLine size={16} aria-hidden />
+                <Icon of={ImageAdd01Icon} size={16} />
                 {photo === null ? 'Upload a photo' : photo.name}
               </span>
             </FilePicker>

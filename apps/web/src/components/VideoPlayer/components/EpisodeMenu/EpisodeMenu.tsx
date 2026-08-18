@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { File01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiArticleFill, RiArticleLine } from '@remixicon/react';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
@@ -64,9 +65,7 @@ const EpisodeMenu = ({
       isDisabled={isDisabled}
       isOpen={isOpen}
       onOpenChange={show}
-      trigger={
-        isOpen ? <RiArticleFill size={20} aria-hidden /> : <RiArticleLine size={20} aria-hidden />
-      }
+      trigger={isOpen ? <Icon of={File01Icon} size={20} /> : <Icon of={File01Icon} size={20} />}
       className="w-80 sm:w-96 mb-7.5"
     >
       <ul className="flex flex-col gap-3">

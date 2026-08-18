@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Add01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiAddLine, RiCloseLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { AddTriggerDialog } from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
 import { describeTrigger } from '@FluxWeb/admin/describeTrigger';
@@ -41,7 +42,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
               setIsAdding(true);
             }}
           >
-            <RiAddLine size={16} aria-hidden />
+            <Icon of={Add01Icon} size={16} />
             Add trigger
           </Button>
         </div>
@@ -90,7 +91,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
                       onRemove(entry.id);
                     }}
                   >
-                    <RiCloseLine size={16} aria-hidden />
+                    <Icon of={Cancel01Icon} size={16} />
                   </Button>
                 </li>
               );
