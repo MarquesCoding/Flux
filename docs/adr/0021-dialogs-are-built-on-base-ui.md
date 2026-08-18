@@ -46,8 +46,14 @@ attribution above. The second was closer than it was given credit for.
 
 ## Decision
 
-**Leaving is eased on `--ease-in-out`, arriving on `--ease-out`.** This is the
-fix for the reported bug and it is independent of the primitive.
+**Leaving is eased on `--ease-in-out`, arriving on `--ease-out`.** This is one
+half of the fix for the reported bug and it is independent of the primitive.
+
+The other half was not in FluxUI at all. Both detail dialogs derived their
+contents from the same value that dismisses them, so an overview, a cast and a
+seasons list all became nothing in the render that began the exit, and the panel
+spent that exit as an empty box. `useHeldWhileLeaving` in the web app holds them
+until the leaving is done. Confirmed working together.
 
 **`Dialog` is built on Base UI. Nothing else is.**
 
@@ -72,7 +78,8 @@ get.
 
 ### What this gets us
 
-Dialogs close visibly — though that is owed to the curve rather than to Base UI.
+Dialogs close visibly — though that is owed to the curve and to the web app
+holding its content, rather than to Base UI.
 
 An exit animation that is demonstrably held open by the primitive rather than
 assumed to be, which is worth something on its own after three wrong diagnoses.
