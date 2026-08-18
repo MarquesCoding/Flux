@@ -150,7 +150,7 @@ const SignedIn = ({ title }: SignedInProps) => {
     void Promise.all(
       wanted.map(async (id) => ({
         id,
-        detail: await cache.ensureQueryData(libraryQueries.detail(id)),
+        detail: await cache.ensureQueryData(libraryQueries.detail(id)).catch(() => null),
       })),
     ).then((answers) => {
       if (abandoned) {

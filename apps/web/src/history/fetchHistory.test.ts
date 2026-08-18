@@ -52,22 +52,22 @@ describe('reading a history', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toContain('offset=60');
   });
 
-  it('answers with nothing rather than throwing when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(refused);
 
-    await expect(fetchHistory()).resolves.toEqual([]);
+    await expect(fetchHistory()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the network is gone', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchHistory()).resolves.toEqual([]);
+    await expect(fetchHistory()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the body is not a history', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ nonsense: true }));
 
-    await expect(fetchHistory()).resolves.toEqual([]);
+    await expect(fetchHistory()).rejects.toThrow();
   });
 });
 
@@ -98,15 +98,15 @@ describe('forgetting the lot', () => {
     await expect(forgetHistory()).resolves.toBe(12);
   });
 
-  it('answers with none rather than throwing when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(refused);
 
-    await expect(forgetHistory()).resolves.toBe(0);
+    await expect(forgetHistory()).rejects.toThrow();
   });
 
-  it('answers with none rather than throwing when the network is gone', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(forgetHistory()).resolves.toBe(0);
+    await expect(forgetHistory()).rejects.toThrow();
   });
 });

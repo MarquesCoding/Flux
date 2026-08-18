@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { LibraryFacetsSchema } from '@FluxContracts/schemas/Library';
 import type { LibraryFacets } from '@FluxContracts/schemas/Library';
 
@@ -7,23 +8,7 @@ import type { LibraryFacets } from '@FluxContracts/schemas/Library';
  * would find something.
  */
 const fetchFacets = async (): Promise<LibraryFacets> => {
-  const empty: LibraryFacets = {
-    genres: [],
-    decades: [],
-    maxRating: 0,
-  };
-
-  const response = await fetch('/api/library-facets', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return empty;
-  }
-
-  const read = LibraryFacetsSchema.safeParse(await response.json().catch(() => null));
-
-  return read.success ? read.data : empty;
+  return readFromServer('/api/library-facets', LibraryFacetsSchema);
 };
 
 export { fetchFacets };

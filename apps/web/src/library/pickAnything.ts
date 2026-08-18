@@ -16,7 +16,7 @@ type Shelf = {
  * @returns The programmes worth offering.
  */
 const shelfOfShows = async (libraryId: string): Promise<Shelf> => {
-  const shows = await fetchShows(libraryId);
+  const shows = await fetchShows(libraryId).catch(() => []);
 
   return {
     total: shows.length,

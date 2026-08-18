@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 import {
   NotificationPreferenceSchema,
@@ -24,18 +25,7 @@ type NotificationSettings = z.infer<typeof PreferencesSchema>;
  * not read.
  */
 const fetchNotifications = async (): Promise<Inbox> => {
-  const empty = { notifications: [], unread: 0 };
-  const response = await fetch('/api/notifications', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return empty;
-  }
-
-  const read = InboxSchema.safeParse(await response.json().catch(() => null));
-
-  return read.success ? read.data : empty;
+  return readFromServer('/api/notifications', InboxSchema);
 };
 
 /**
@@ -68,18 +58,7 @@ const markNotificationsRead = async (id?: string): Promise<number> => {
  * @returns The preferences and the push key, or empty ones where the request failed.
  */
 const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
-  const unknownYet = { preferences: [], pushPublicKey: '' };
-  const response = await fetch('/api/notifications/preferences', {
-    credentials: 'same-origin',
-  }).catch(() => null);
-
-  if (response === null || !response.ok) {
-    return unknownYet;
-  }
-
-  const read = PreferencesSchema.safeParse(await response.json().catch(() => null));
-
-  return read.success ? read.data : unknownYet;
+  return readFromServer('/api/notifications/preferences', PreferencesSchema);
 };
 
 export { fetchNotificationSettings, fetchNotifications, markNotificationsRead };

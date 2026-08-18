@@ -53,16 +53,16 @@ describe('reading what a server allows', () => {
     expect(lastCall().url).toBe('/api/admin/permissions');
   });
 
-  it('has no permissions to offer when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     answering({ error: 'no' }, false, 403);
 
-    await expect(fetchPermissionCatalogue()).resolves.toEqual([]);
+    await expect(fetchPermissionCatalogue()).rejects.toThrow();
   });
 
-  it('has no permissions to offer when the server cannot be reached', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     unreachable();
 
-    await expect(fetchPermissionCatalogue()).resolves.toEqual([]);
+    await expect(fetchPermissionCatalogue()).rejects.toThrow();
   });
 
   it('reads the roles', async () => {
@@ -73,10 +73,10 @@ describe('reading what a server allows', () => {
     await expect(fetchRoles()).resolves.toMatchObject([{ name: 'Admin' }]);
   });
 
-  it('has no roles to offer when the server cannot be reached', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     unreachable();
 
-    await expect(fetchRoles()).resolves.toEqual([]);
+    await expect(fetchRoles()).rejects.toThrow();
   });
 
   it('reads what one account is allowed', async () => {
@@ -92,16 +92,16 @@ describe('reading what a server allows', () => {
     expect(lastCall().url).toBe('/api/admin/accounts/user-1/roles');
   });
 
-  it('has nothing to say about an account the server will not describe', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     answering({ error: 'no' }, false, 403);
 
-    await expect(fetchAccountPermissions('user-1')).resolves.toBeNull();
+    await expect(fetchAccountPermissions('user-1')).rejects.toThrow();
   });
 
-  it('has nothing to say about an account when the server cannot be reached', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     unreachable();
 
-    await expect(fetchAccountPermissions('user-1')).resolves.toBeNull();
+    await expect(fetchAccountPermissions('user-1')).rejects.toThrow();
   });
 });
 

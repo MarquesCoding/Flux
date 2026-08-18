@@ -2,6 +2,7 @@ import { Icon } from '@FluxUI/Icon';
 import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -147,7 +148,15 @@ const SharePanel = () => {
         Withdrawing a link stops it at once, including for anybody watching through it.
       </p>
 
-      {asked.isPending ? (
+      {asked.isError ? (
+        <CouldNotRead
+          what="Your links"
+          isTryingAgain={asked.isFetching}
+          onTryAgain={() => {
+            void asked.refetch();
+          }}
+        />
+      ) : asked.isPending ? (
         <div className="p-4">
           <Spinner label="Reading your links" size="sm" />
         </div>
@@ -155,7 +164,7 @@ const SharePanel = () => {
         <DataTable
           label="Links you have handed out"
           columns={columns}
-          rows={asked.data ?? []}
+          rows={asked.data}
           emptyMessage="You have not handed out any links. Sharing something from its page makes one."
         />
       )}

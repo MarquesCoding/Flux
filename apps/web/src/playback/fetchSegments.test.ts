@@ -86,15 +86,15 @@ describe('fetchSegments', () => {
     await expect(fetchSegments('media-1')).resolves.toEqual([intro]);
   });
 
-  it('answers with nothing for an item nothing is known about', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     respondWith({ ok: false, body: null });
 
-    await expect(fetchSegments('media-1')).resolves.toEqual([]);
+    await expect(fetchSegments('media-1')).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing on a response it cannot read', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     respondWith({ ok: true, body: { segments: [{ kind: 'nonsense' }] } });
 
-    await expect(fetchSegments('media-1')).resolves.toEqual([]);
+    await expect(fetchSegments('media-1')).rejects.toThrow();
   });
 });

@@ -6,6 +6,7 @@ import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { collapseToShows } from '@FluxWeb/library/pickFeatured';
@@ -305,7 +306,16 @@ const SearchArea = ({
             animate="shown"
             exit="gone"
           >
-            {items.length === 0 && !isReading ? (
+            {libraries.isError || found.isError ? (
+              <CouldNotRead
+                what="The library"
+                isTryingAgain={libraries.isFetching || found.isFetching}
+                onTryAgain={() => {
+                  void libraries.refetch();
+                  void found.refetch();
+                }}
+              />
+            ) : items.length === 0 && !isReading ? (
               <p className="max-w-prose text-text-muted">
                 {isNarrowed
                   ? 'Nothing matches all of that. Taking one of the filters off is usually the fastest way back.'

@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
@@ -5,17 +6,7 @@ import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schema
  * The profiles on this account, each with their own history, favourites and watch progress.
  */
 const fetchProfiles = async (): Promise<ViewerProfile[]> => {
-  try {
-    const response = await fetch('/api/profiles', { headers: { accept: 'application/json' } });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return ViewerProfileListSchema.parse(await response.json()).profiles;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/profiles', ViewerProfileListSchema)).profiles;
 };
 
 /**

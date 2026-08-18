@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 
 const SubtitleTrackSchema = z.object({
@@ -23,19 +24,7 @@ const SUBTITLES_OFF = 'off';
  * @returns The tracks to offer, or none where the request failed.
  */
 const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> => {
-  try {
-    const response = await fetch(`/api/media/${mediaId}/subtitles`, {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return SubtitleListSchema.parse(await response.json()).tracks;
-  } catch {
-    return [];
-  }
+  return (await readFromServer(`/api/media/${mediaId}/subtitles`, SubtitleListSchema)).tracks;
 };
 
 /**

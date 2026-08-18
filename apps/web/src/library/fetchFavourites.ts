@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
 
 /**
@@ -5,22 +6,9 @@ import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
  * a household wants to come back to is not what another does.
  */
 const fetchFavourites = async (): Promise<string[]> => {
-  try {
-    const response = await fetch('/api/favourites', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return FavouriteListSchema.parse(await response.json()).favourites.map(
-      (entry) => entry.mediaId,
-    );
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/favourites', FavouriteListSchema)).favourites.map(
+    (entry) => entry.mediaId,
+  );
 };
 
 /**

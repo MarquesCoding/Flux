@@ -54,21 +54,21 @@ describe('readVersion', () => {
     await expect(readVersion()).resolves.toBe(LOCAL);
   });
 
-  it('says nothing when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({}, false);
 
-    await expect(readVersion()).resolves.toBeNull();
+    await expect(readVersion()).rejects.toThrow();
   });
 
-  it('says nothing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(readVersion()).resolves.toBeNull();
+    await expect(readVersion()).rejects.toThrow();
   });
 
-  it('says nothing rather than throwing when the answer is not a version', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({ nothing: true });
 
-    await expect(readVersion()).resolves.toBeNull();
+    await expect(readVersion()).rejects.toThrow();
   });
 });

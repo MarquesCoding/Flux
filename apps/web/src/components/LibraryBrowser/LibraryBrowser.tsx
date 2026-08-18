@@ -8,6 +8,7 @@ import { RevealItem } from '@FluxUI/RevealItem';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { groupIntoRails } from '@FluxWeb/library/groupIntoRails';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { viewingQueries } from '@FluxWeb/query/viewingQueries';
@@ -129,9 +130,14 @@ const LibraryBrowser = ({
 
   if (askedFor.isError || page.isError) {
     return (
-      <p role="alert" className="text-sm text-danger">
-        Your library could not be loaded. Check that the server is running and reload.
-      </p>
+      <CouldNotRead
+        what="Your library"
+        isTryingAgain={askedFor.isFetching || page.isFetching}
+        onTryAgain={() => {
+          void askedFor.refetch();
+          void page.refetch();
+        }}
+      />
     );
   }
 

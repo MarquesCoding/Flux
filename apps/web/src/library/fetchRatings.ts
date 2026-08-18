@@ -1,9 +1,8 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { HouseholdRatingSchema, RatingListSchema } from '@FluxContracts/schemas/Rating';
 import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
 
 type RatingSubject = { mediaId: string } | { seriesId: string };
-
-const NOTHING: HouseholdRating = { average: null, count: 0 };
 
 /**
  * Builds the address a subject's rating is reached at, so an item and a programme are asked about in
@@ -22,20 +21,7 @@ const addressOf = (subject: RatingSubject): string =>
  * @returns What they have rated, or none where the request failed.
  */
 const fetchRatings = async (): Promise<Rating[]> => {
-  try {
-    const response = await fetch('/api/ratings', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return RatingListSchema.parse(await response.json()).ratings;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/ratings', RatingListSchema)).ratings;
 };
 
 /**
@@ -67,20 +53,7 @@ const setRating = async (subject: RatingSubject, stars: number | null): Promise<
  * @returns The average and how many gave it.
  */
 const fetchHouseholdRating = async (subject: RatingSubject): Promise<HouseholdRating> => {
-  try {
-    const response = await fetch(`${addressOf(subject)}/rating/household`, {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return NOTHING;
-    }
-
-    return HouseholdRatingSchema.parse(await response.json());
-  } catch {
-    return NOTHING;
-  }
+  return readFromServer(`${addressOf(subject)}/rating/household`, HouseholdRatingSchema);
 };
 
 export type { RatingSubject };

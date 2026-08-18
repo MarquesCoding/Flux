@@ -16,6 +16,7 @@ import { Badge } from '@FluxUI/Badge';
 import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import { useHeldWhileLeaving } from '@FluxWeb/shell/useHeldWhileLeaving';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
@@ -320,7 +321,15 @@ const ShowDialog = ({
               )}
             </header>
 
-            {isLoading ? (
+            {show !== null && asked.isError ? (
+              <CouldNotRead
+                what="The episodes"
+                isTryingAgain={asked.isFetching}
+                onTryAgain={() => {
+                  void asked.refetch();
+                }}
+              />
+            ) : isLoading ? (
               <Spinner label="Reading the episodes" size="sm" />
             ) : inOrder.length === 0 ? (
               <p className="text-sm text-text-muted">

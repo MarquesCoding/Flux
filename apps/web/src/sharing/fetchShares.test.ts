@@ -56,10 +56,10 @@ describe('fetchShares', () => {
     await expect(fetchShares()).resolves.toHaveLength(1);
   });
 
-  it('answers with none where the request failed', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchShares()).resolves.toEqual([]);
+    await expect(fetchShares()).rejects.toThrow();
   });
 });
 
@@ -93,16 +93,16 @@ describe('fetchEverybodysShares', () => {
     expect(everybody[0]?.createdByName).toBe('Ada');
   });
 
-  it('reads nothing where this account may not look', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said(403, { error: 'no' }));
 
-    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+    await expect(fetchEverybodysShares()).rejects.toThrow();
   });
 
-  it('reads nothing rather than throwing where the server answers with nonsense', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ shares: [{ nothing: 'recognisable' }] }));
 
-    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+    await expect(fetchEverybodysShares()).rejects.toThrow();
   });
 });
 

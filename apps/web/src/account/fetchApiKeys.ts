@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { ApiKeySchema, CreatedApiKeySchema } from '@FluxContracts/schemas/ApiKey';
 import { z } from 'zod';
 import type { ApiKey, CreatedApiKey } from '@FluxContracts/schemas/ApiKey';
@@ -14,21 +15,8 @@ const asJson = {
  * The API keys on this account, with what each may do and when it was last used. Never the keys
  * themselves — the server keeps only a hash, so a key is readable once at the moment it is made.
  */
-const fetchApiKeys = async (): Promise<ApiKey[] | null> => {
-  try {
-    const response = await fetch('/api/keys', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return ApiKeyListSchema.parse(await response.json()).keys;
-  } catch {
-    return null;
-  }
+const fetchApiKeys = async (): Promise<ApiKey[]> => {
+  return (await readFromServer('/api/keys', ApiKeyListSchema)).keys;
 };
 
 /**

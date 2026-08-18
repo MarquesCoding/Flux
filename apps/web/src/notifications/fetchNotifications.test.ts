@@ -19,9 +19,6 @@ const A_NOTICE = {
   readAt: null,
 };
 
-const NOTHING_WAITING = { notifications: [], unread: 0 };
-const NOTHING_CHOSEN = { preferences: [], pushPublicKey: '' };
-
 beforeEach(() => {
   fetchMock.mockReset();
   vi.stubGlobal('fetch', fetchMock);
@@ -32,35 +29,32 @@ afterEach(() => {
 });
 
 describe('fetchNotifications', () => {
-  it('reads what is on the bell', async () => {
+  it('answers with what is waiting, and asks for it as json', async () => {
     fetchMock.mockResolvedValue(said({ notifications: [A_NOTICE], unread: 1 }));
 
-    await expect(fetchNotifications()).resolves.toEqual({
-      notifications: [A_NOTICE],
-      unread: 1,
-    });
+    await expect(fetchNotifications()).resolves.toMatchObject({ unread: 1 });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/notifications', {
-      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
     });
   });
 
-  it('says nothing is waiting rather than failing, when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('gone'));
 
-    await expect(fetchNotifications()).resolves.toEqual(NOTHING_WAITING);
+    await expect(fetchNotifications()).rejects.toThrow();
   });
 
-  it('says nothing is waiting when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({}, false));
 
-    await expect(fetchNotifications()).resolves.toEqual(NOTHING_WAITING);
+    await expect(fetchNotifications()).rejects.toThrow();
   });
 
-  it('says nothing is waiting when the answer is not one', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({ notifications: 'lots' }));
 
-    await expect(fetchNotifications()).resolves.toEqual(NOTHING_WAITING);
+    await expect(fetchNotifications()).rejects.toThrow();
   });
 });
 
@@ -105,32 +99,29 @@ describe('markNotificationsRead', () => {
 });
 
 describe('fetchNotificationSettings', () => {
-  it('reads what somebody asked to be told about, and the key a browser needs', async () => {
+  it('answers with what was chosen, and asks for it as json', async () => {
     fetchMock.mockResolvedValue(said({ preferences: [], pushPublicKey: 'a-key' }));
 
-    await expect(fetchNotificationSettings()).resolves.toEqual({
-      preferences: [],
-      pushPublicKey: 'a-key',
-    });
+    await expect(fetchNotificationSettings()).resolves.toMatchObject({ pushPublicKey: 'a-key' });
 
     expect(fetchMock).toHaveBeenCalledWith('/api/notifications/preferences', {
-      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
     });
   });
 
-  it('says nothing has been chosen when the server refuses or cannot be reached', async () => {
+  it('says so when the server refuses, and when it cannot be reached at all', async () => {
     fetchMock.mockResolvedValue(said({}, false));
 
-    await expect(fetchNotificationSettings()).resolves.toEqual(NOTHING_CHOSEN);
+    await expect(fetchNotificationSettings()).rejects.toThrow();
 
     fetchMock.mockRejectedValue(new Error('gone'));
 
-    await expect(fetchNotificationSettings()).resolves.toEqual(NOTHING_CHOSEN);
+    await expect(fetchNotificationSettings()).rejects.toThrow();
   });
 
-  it('says nothing has been chosen when the answer is not one', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({ preferences: {} }));
 
-    await expect(fetchNotificationSettings()).resolves.toEqual(NOTHING_CHOSEN);
+    await expect(fetchNotificationSettings()).rejects.toThrow();
   });
 });

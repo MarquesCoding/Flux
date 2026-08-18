@@ -42,22 +42,22 @@ describe('fetchApiKeys', () => {
     expect(await fetchApiKeys()).toHaveLength(1);
   });
 
-  it('answers with nothing when the account may not hold keys', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     answers({ error: 'nope' }, 403);
 
-    expect(await fetchApiKeys()).toBeNull();
+    await expect(fetchApiKeys()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('offline'));
 
-    expect(await fetchApiKeys()).toBeNull();
+    await expect(fetchApiKeys()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than trusting a shape it did not expect', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answers({ keys: [{ id: 'key-1' }] });
 
-    expect(await fetchApiKeys()).toBeNull();
+    await expect(fetchApiKeys()).rejects.toThrow();
   });
 });
 
