@@ -4,7 +4,7 @@ type EncodeBitrateOptions = {
   sourceBitrateKbps: number;
   sourceCodec: VideoCodec;
   targetCodec: VideoCodec;
-  ceilingKbps: number;
+  ceilingKbps: number | null;
   sourceWidth?: number | null;
   sourceHeight?: number | null;
   maxWidth?: number | null;
@@ -43,6 +43,8 @@ const LOW_BITRATE_FLOORS = [
 ] as const;
 
 const NO_SCALING_ABOVE_KBPS = 30_000;
+
+const UNKNOWN_SOURCE_KBPS = 20_000;
 
 const STARVED_SOURCE_BOOSTS = [
   { atOrBelowKbps: 2_000, factor: 2.5 },
@@ -121,13 +123,16 @@ const downscaleShare = ({
  * would boost it straight back to where it started, which is the exact fault this is here to fix.
  * So the size discount is taken last, on a figure that already reflects what the source is worth.
  *
- * Finally the result is held to the client's ceiling, which is where this departs from the model
- * it follows: a ceiling exists because a device or a network cannot take more, so it is not
- * something an efficiency calculation gets to overrule. It is applied once, at the end, and only
- * there — a ceiling is already a figure for the size being delivered, so discounting against it a
- * second time charges the same reduction twice and lands somewhere nobody would choose.
+ * Finally the result is held to the client's ceiling where there is one, which is where this
+ * departs from the model it follows: a ceiling exists because a device or a network cannot take
+ * more, so it is not something an efficiency calculation gets to overrule. It is applied once, at
+ * the end, and only there — a ceiling is already a figure for the size being delivered, so
+ * discounting against it a second time charges the same reduction twice and lands somewhere nobody
+ * would choose. Nothing states one by default, and the figure anchored to the source stands on its
+ * own where nothing does.
  *
- * @param options - What the source spends, what is being encoded to, and what the client allows.
+ * @param options - What the source spends, what is being encoded to, and what the client allows,
+ *   where it says.
  * @returns The bitrate to encode at, in kbps.
  */
 const encodeBitrateFor = ({
@@ -141,7 +146,7 @@ const encodeBitrateFor = ({
   maxHeight,
 }: EncodeBitrateOptions): number => {
   if (!Number.isFinite(sourceBitrateKbps) || sourceBitrateKbps <= 0) {
-    return ceilingKbps;
+    return ceilingKbps ?? UNKNOWN_SOURCE_KBPS;
   }
 
   const boost =
@@ -157,10 +162,11 @@ const encodeBitrateFor = ({
 
   const forSource = anchored * scale;
 
-  return Math.min(
-    Math.round(forSource * downscaleShare({ sourceWidth, sourceHeight, maxWidth, maxHeight })),
-    ceilingKbps,
+  const forDelivery = Math.round(
+    forSource * downscaleShare({ sourceWidth, sourceHeight, maxWidth, maxHeight }),
   );
+
+  return ceilingKbps === null ? forDelivery : Math.min(forDelivery, ceilingKbps);
 };
 
 export type { EncodeBitrateOptions };

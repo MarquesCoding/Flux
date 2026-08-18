@@ -81,9 +81,11 @@ const rangeFor = (media: MediaItem, profile: DeviceProfile): VideoRange | null =
  * Decides what to do with the picture: pass it through untouched where the device can play it as it
  * is and it is within any ceiling asked for, or transcode it down to what it can.
  *
- * Bitrate takes the tighter of the two, because that ceiling is about what a network can carry and
- * is not a matter of taste. Resolution is not a ceiling at all: only a rung somebody pinned can
- * force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible
+ * Bitrate takes the tighter of whatever ceilings exist, because that one is about what a network
+ * can carry rather than a matter of taste — but a browser cannot state it and Flux stopped
+ * inventing it on the browser's behalf, so in practice the only ceiling is a rung somebody pinned.
+ * Resolution is not a ceiling at all, for the same reason and more plainly: only a rung somebody
+ * pinned can force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible
  * thing to encode towards once something else has decided to encode, and a poor reason to decide
  * it — 4K into a 1440p panel is downsampled by the display and looks better for it than anything
  * re-encoded to fit would, which is why every streaming service offers the choice rather than
@@ -112,10 +114,12 @@ const decideVideo = (
   const targetCodec = fallback === undefined ? 'h264' : fallback.videoCodec;
   const clamp = qualityClamp ?? null;
 
+  const stated = profile.maxBitrateKbps ?? null;
+
   const maxBitrateKbps =
     clamp === null
-      ? profile.maxBitrateKbps
-      : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps);
+      ? stated
+      : Math.min(stated ?? clamp.maxVideoBitrateKbps, clamp.maxVideoBitrateKbps);
   const maxWidth = clamp === null ? profile.maxWidth : clamp.maxWidth;
   const maxHeight = clamp === null ? profile.maxHeight : clamp.maxHeight;
 
@@ -257,8 +261,9 @@ const decideVideo = (
     );
   }
 
-  if (media.bitrateKbps > maxBitrateKbps) {
-    const forcedByQuality = clamp !== null && clamp.maxVideoBitrateKbps < profile.maxBitrateKbps;
+  if (maxBitrateKbps !== null && media.bitrateKbps > maxBitrateKbps) {
+    const forcedByQuality =
+      clamp !== null && (stated === null || clamp.maxVideoBitrateKbps < stated);
 
     return forcedByQuality
       ? transcodeTo(

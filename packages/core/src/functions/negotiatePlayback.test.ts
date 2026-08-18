@@ -45,6 +45,8 @@ const profile: DeviceProfile = {
   ],
 };
 
+const unlimited: DeviceProfile = { ...profile, maxBitrateKbps: undefined };
+
 describe('negotiatePlayback', () => {
   it('passes every axis through when the client supports the source', () => {
     const plan = negotiatePlayback(media, profile);
@@ -181,6 +183,37 @@ describe('negotiatePlayback', () => {
     const plan = negotiatePlayback(eightBit, { ...profile, supportedVideoRanges: ['SDR'] });
 
     expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('sends a heavy source as it is where nothing stated a ceiling to hold it to', () => {
+    const heavy = { ...media, bitrateKbps: 25756 };
+
+    const plan = negotiatePlayback(heavy, unlimited);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('still holds a heavy source to a rung the viewer pinned, ceiling or no ceiling', () => {
+    const heavy = { ...media, bitrateKbps: 25756 };
+
+    const plan = negotiatePlayback(heavy, unlimited, {
+      maxWidth: 3840,
+      maxHeight: 2160,
+      maxVideoBitrateKbps: 8000,
+      maxAudioBitrateKbps: 128,
+    });
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('UserForcedTranscode');
+  });
+
+  it('encodes to what the source is worth where nothing capped it', () => {
+    const modest = { ...media, bitrateKbps: 8900, videoCodec: 'av1' as const };
+
+    const plan = negotiatePlayback(modest, { ...unlimited, supportedVideoRanges: ['SDR'] });
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', codec: 'h264' });
+    expect(plan.video.kind === 'transcode' && plan.video.maxBitrateKbps).toBeGreaterThan(8900);
   });
 
   it('preserves a supported HDR range through a bitrate transcode', () => {
