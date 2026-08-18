@@ -45,13 +45,13 @@ The leaving classes hang on `data-open` and `data-closed` rather than
 `data-[state=open]` and `data-[state=closed]`, because those are what Base UI
 sets. This is the one place in the codebase speaking that vocabulary.
 
-**Focus returns on a keyboard dismissal only.** Base UI's default returns focus
-to whatever opened the dialog on every close. After a click that leaves a focus
-ring on the element that was clicked — a media card still outlined after the
-dialog over it was dismissed — and pulls that element back into view. This is the
-same distinction `:focus-visible` draws, and Base UI supplies the interaction
-type to draw it with. A keyboard has nowhere else to go, so it still gets focus
-back.
+**Focus restoration is left at Base UI's default**, which hands focus back to
+whatever opened the dialog. Narrowing that to keyboard dismissals was tried and
+reverted: it stopped the exit animation, because a popup that keeps focus while
+it is closing is torn down rather than animated out. The behaviour it was aimed
+at — a media card left ringed after the dialog over it was dismissed — is
+recorded below as open rather than traded for the animation this ADR exists to
+get.
 
 ## Consequences
 
@@ -71,12 +71,12 @@ was decided.
 FluxUI animates off `data-[state]`; `Dialog` animates off `data-open`. Anyone
 copying motion between them has to translate.
 
-**Base UI locks page scroll differently to Radix**, and closing a dialog has been
-reported to return the page to the top. Whether that is the scroll lock, the
-focus restoration this ADR gates, or the router restoring scroll on the address
-change that dismissal causes, is not yet established — it could not be
-reproduced outside a browser. The focus gating above is expected to address it if
-the cause is focus; it is not a confirmed fix.
+**A media card is left with a focus ring** after the dialog over it is dismissed.
+Focus is restored to it correctly, and it styles that with `focus-visible` rather
+than `focus`, so the browser is carrying focus-visible state through a
+programmatic restore that began from a click. This is open. The obvious fix —
+declining to restore focus after a pointer dismissal — is the one that broke the
+exit animation, so it needs a different answer.
 
 ## Alternatives considered
 
@@ -104,5 +104,6 @@ A second component needs Base UI. Two is a pattern, and at two the question of
 moving the library properly should be asked rather than answered one component at
 a time.
 
-The scroll-to-top on dismissal is reproduced and understood, since the answer may
-change what this ADR says about the scroll lock.
+A way is found to keep a pointer dismissal from leaving a ring behind without
+holding focus inside the closing popup, since that is the one thing tried so far
+and it cost the animation.

@@ -44,11 +44,6 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * it was dismissed and never played its exit. Base UI holds the element through the animation and
  * says so with `data-closed`, which is what these classes are hung on.
  *
- * Closing hands focus back only to a keyboard, which is the same distinction `:focus-visible`
- * draws. Returning it after a click puts a focus ring on whatever was clicked to open the dialog —
- * a media card left outlined after it was dismissed — and scrolls that element back into view,
- * neither of which a pointer asked for. A keyboard has nowhere else to go, so it still gets it.
- *
  * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
  * draws a focus ring around whatever happens to be first — the favourite button, an icon — which
  * reads as though the dialog has already chosen something on the viewer's behalf. The panel takes
@@ -90,7 +85,6 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
           ref={panelRef}
           aria-label={label}
           initialFocus={panelRef}
-          finalFocus={(closeType) => closeType === 'keyboard'}
           data-slot="dialog-content"
           className={cn(
             'fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden bg-card text-card-foreground',
