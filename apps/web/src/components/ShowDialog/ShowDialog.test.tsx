@@ -78,6 +78,39 @@ afterEach(() => {
 });
 
 describe('ShowDialog', () => {
+  it('offers to share the programme, since that is what this dialog is about', async () => {
+    const onShare = vi.fn();
+
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2] }]));
+
+    const programme = { ...summary, seriesId: '5d3e2c1b-0a9f-4e8d-9c7b-6a5f4e3d2c1b' };
+
+    renderInACache(
+      <ShowDialog show={programme} onClose={vi.fn()} onPlay={vi.fn()} onShare={onShare} />,
+    );
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Share' }));
+
+    expect(onShare).toHaveBeenCalledWith(programme);
+  });
+
+  it('offers no way to share a programme it has no series for', async () => {
+    fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1] }]));
+
+    renderInACache(
+      <ShowDialog
+        show={{ ...summary, seriesId: null }}
+        onClose={vi.fn()}
+        onPlay={vi.fn()}
+        onShare={vi.fn()}
+      />,
+    );
+
+    await screen.findByRole('button', { name: /Play Episode 1/ });
+
+    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
+  });
+
   it('lists the episodes it holds', async () => {
     fetchShowMock.mockResolvedValue(detail([{ seasonNumber: 1, episodes: [1, 2, 3] }]));
     renderInACache(<ShowDialog show={summary} onClose={vi.fn()} onPlay={vi.fn()} />);

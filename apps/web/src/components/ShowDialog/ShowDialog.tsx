@@ -1,5 +1,10 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import {
+  Cancel01Icon,
+  InformationCircleIcon,
+  Link01Icon,
+  PlayIcon,
+} from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -65,6 +70,7 @@ const ShowDialog = ({
   onClose,
   onPlay,
   onInspect,
+  onShare,
   watchedFractionFor,
   resumeFor,
   isFinished,
@@ -269,6 +275,20 @@ const ShowDialog = ({
               >
                 <Icon of={InformationCircleIcon} size={18} />
                 About this episode
+              </Button>
+            )}
+
+            {onShare === undefined || (shown.seriesId ?? null) === null ? null : (
+              <Button
+                variant="secondary"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onShare(shown);
+                }}
+              >
+                <Icon of={Link01Icon} size={18} />
+                Share
               </Button>
             )}
           </div>
