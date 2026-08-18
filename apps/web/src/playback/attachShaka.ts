@@ -23,6 +23,7 @@ type ShakaStats = {
 
 type ShakaPlayer = {
   attach: (element: HTMLMediaElement) => Promise<void>;
+  configure?: (config: { manifest: { hls: { sequenceMode: boolean } } }) => void;
   load: (manifestUrl: string, startSeconds?: number) => Promise<void>;
   destroy: () => Promise<void>;
   addEventListener?: (name: string, listener: (event: Event) => void) => void;
@@ -54,6 +55,8 @@ type AttachOptions = {
 };
 
 const CRITICAL = 2;
+
+const SEQUENCE_MODE = { manifest: { hls: { sequenceMode: true } } } as const;
 
 type DeliveredFormat = {
   videoCodec: string | null;
@@ -157,6 +160,17 @@ const faultFrom = (event: Event): PlaybackFault | null => {
  *   a fault the engine could not recover from.
  * @returns A handle carrying the teardown to call — an orphaned engine keeps buffering and holds
  *   the element open — and a reading of what the engine is actually being sent.
+ *
+ * Shaka is told to take its timestamps from the order segments arrive in rather than from inside
+ * them. Its own default is the opposite, and on a copied stream it drops frames: measured against a
+ * 4K HEVC remux, the picture skipped 17.292s to 17.458s, again at 35.833s and again at 46.958s — a
+ * reorder window of frames lost at a segment join each time, while the sound played through and
+ * nothing was counted as dropped. The same segments through hls.js lost none of them, which is what
+ * showed the fault was here rather than in what Flux had produced.
+ *
+ * It is not a trade against seeking, which was the reason to doubt it. Seeks landed closer and
+ * settled quicker than the default — within a frame at worst against 42ms, and 35ms against 108ms —
+ * and resuming part way into a film landed nearer as well.
  */
 const attachShaka = async ({
   element,
@@ -170,6 +184,8 @@ const attachShaka = async ({
   shaka.polyfill.installAll();
 
   const player = new shaka.Player();
+
+  player.configure?.(SEQUENCE_MODE);
 
   player.addEventListener?.('error', (event) => {
     const fault = faultFrom(event);

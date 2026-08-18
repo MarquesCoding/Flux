@@ -10,11 +10,13 @@ type Engine = {
 
 const engine = (): Engine => {
   const listeners: ((event: Event) => void)[] = [];
+  const configured = vi.fn();
 
   const player: ShakaPlayer = {
     attach: vi.fn().mockResolvedValue(undefined),
     load: vi.fn().mockResolvedValue(undefined),
     destroy: vi.fn().mockResolvedValue(undefined),
+    configure: configured,
     addEventListener: (_name, listener) => {
       listeners.push(listener);
     },
@@ -27,6 +29,7 @@ const engine = (): Engine => {
         attach = player.attach;
         load = player.load;
         destroy = player.destroy;
+        configure = configured;
         addEventListener = (name: string, listener: (event: Event) => void) => {
           player.addEventListener?.(name, listener);
         };
@@ -168,5 +171,46 @@ describe('deliveredFormat, a playlist that declares no bandwidth', () => {
     const found = deliveredFormat([{ active: true, bandwidth: 0 }], null, null);
 
     expect(found?.bitrateKbps).toBeNull();
+  });
+});
+
+describe('the timestamps Shaka plays to', () => {
+  it('takes them from the order segments arrive in, which is what stops it dropping frames', async () => {
+    const { module, player } = engine();
+
+    await attachShaka({
+      element: document.createElement('video'),
+      manifestUrl: '/manifest.m3u8',
+      loadShaka: () => Promise.resolve(module),
+    });
+
+    expect(player.configure).toHaveBeenCalledWith({ manifest: { hls: { sequenceMode: true } } });
+  });
+
+  it('settles that before it loads anything, since it cannot be changed underneath a stream', async () => {
+    const order: string[] = [];
+    const module: ShakaModule = {
+      polyfill: { installAll: vi.fn() },
+      Player: class {
+        attach = () => Promise.resolve();
+        destroy = () => Promise.resolve();
+        configure = () => {
+          order.push('configure');
+        };
+        load = () => {
+          order.push('load');
+
+          return Promise.resolve();
+        };
+      },
+    };
+
+    await attachShaka({
+      element: document.createElement('video'),
+      manifestUrl: '/manifest.m3u8',
+      loadShaka: () => Promise.resolve(module),
+    });
+
+    expect(order).toEqual(['configure', 'load']);
   });
 });
