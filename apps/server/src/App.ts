@@ -860,7 +860,7 @@ const createApp = ({
       return context.json({ error: 'No such session or segment.' }, 404);
     }
 
-    return context.body(file.body, 200, { 'content-type': file.contentType });
+    return context.body(file.body, 200, forwardedFileHeaders(file));
   });
 
   app.openapi(directFileRoute, async (context) => {

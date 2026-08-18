@@ -217,7 +217,7 @@ type Transcoder = {
   isReachable: () => Promise<boolean>;
   probe: (path: string) => Promise<MediaProbe>;
   startSession: (spec: SessionSpec, deviceId?: string) => Promise<SessionResponse>;
-  readSessionFile: (sessionId: string, name: string) => Promise<TranscoderFile | null>;
+  readSessionFile: (sessionId: string, name: string) => Promise<TranscoderStreamedFile | null>;
   readFile: (path: string, range: string | null) => Promise<TranscoderStreamedFile | null>;
   fingerprint: (request: FingerprintRequest) => Promise<Fingerprint>;
   readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>;
@@ -269,9 +269,12 @@ type TranscoderStreamedFile = {
   contentLength: string | null;
 };
 
+type StreamFetchLike = (url: string, init?: HttpRequestInit) => Promise<StreamedResponse>;
+
 type CreateTranscoderClientOptions = {
   baseUrl: string;
   fetchImpl?: FetchLike;
+  streamFetchImpl?: StreamFetchLike;
 };
 
 const UNIX_PREFIX = 'unix:';
@@ -329,9 +332,7 @@ type StreamedResponse = {
 /**
  * Opens a response whose body is read as it arrives.
  */
-const createStreamFetch = (
-  socketPath: string | null,
-): ((url: string, init?: HttpRequestInit) => Promise<StreamedResponse>) => {
+const createStreamFetch = (socketPath: string | null): StreamFetchLike => {
   if (socketPath === null) {
     return async (url, init) => fetch(url, init);
   }
@@ -357,6 +358,7 @@ class TranscoderError extends Error {
 const createTranscoderClient = ({
   baseUrl,
   fetchImpl,
+  streamFetchImpl,
 }: CreateTranscoderClientOptions): Transcoder => {
   const socketPath = readSocketPath(baseUrl);
   const origin = socketPath === null ? baseUrl : 'http://transcoder.local';
@@ -371,7 +373,7 @@ const createTranscoderClient = ({
     return response;
   };
 
-  const streamFrom = createStreamFetch(socketPath);
+  const streamFrom = streamFetchImpl ?? createStreamFetch(socketPath);
 
   /**
    * Opens a file on the media service and hands back the body still arriving.
@@ -427,20 +429,12 @@ const createTranscoderClient = ({
         ).json(),
       ),
 
-    readSessionFile: async (sessionId, name) => {
-      const response = await call2(
+    readSessionFile: async (sessionId, name) =>
+      openStream(
         `${origin}/sessions/${encodeURIComponent(sessionId)}/${encodeURIComponent(name)}`,
-      );
-
-      if (!response.ok) {
-        return null;
-      }
-
-      return {
-        body: await response.arrayBuffer(),
-        contentType: response.headers.get('content-type') ?? 'application/octet-stream',
-      };
-    },
+        null,
+        'application/octet-stream',
+      ),
 
     readFile: async (path, range) =>
       openStream(
