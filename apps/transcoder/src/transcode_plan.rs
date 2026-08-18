@@ -1469,8 +1469,9 @@ impl TranscodePlan {
         if self.start_at.seconds > 0.0 {
             args.push("-ss".into());
             args.push(format!("{:.6}", self.start_at.seconds));
-            args.push("-copyts".into());
         }
+
+        args.push("-copyts".into());
 
         args.push("-i".into());
         args.push(self.spec.input_path.clone());
@@ -1488,6 +1489,8 @@ impl TranscodePlan {
 
         self.push_audio_args(&mut args);
 
+        args.push("-avoid_negative_ts".into());
+        args.push("disabled".into());
         args.push("-f".into());
         args.push("hls".into());
         args.push("-muxdelay".into());
@@ -1504,6 +1507,8 @@ impl TranscodePlan {
         args.push(self.start_at.index.to_string());
 
         if self.spec.container.needs_init_segment() {
+            args.push("-hls_segment_options".into());
+            args.push("movflags=+frag_discont+skip_sidx".into());
             args.push("-hls_segment_type".into());
             args.push("fmp4".into());
             args.push("-hls_fmp4_init_filename".into());
@@ -1775,13 +1780,76 @@ mod tests {
         );
     }
 
-    /// A run from the beginning has nothing to preserve.
+    /// A run from the beginning has the film's own clock to preserve too.
+    ///
+    /// This test used to assert the opposite, on the reasoning that a run
+    /// starting at nought has nothing to keep. It has: an audio encoder's first
+    /// frame carries a priming delay that puts it before the video, and ffmpeg's
+    /// default answer is to shift the whole film forward so nothing is negative.
+    /// Measured on a real remux — the playlist, built from the source's own
+    /// keyframes, says the second segment begins at 3.458; the media ffmpeg
+    /// wrote began it at 3.626. Every boundary in the film was 167ms out of step
+    /// with the playlist describing it.
     #[test]
-    fn does_not_ask_to_copy_timestamps_a_run_starts_with_anyway() {
-        assert!(!plan(spec())
+    fn keeps_the_films_own_timestamps_from_the_beginning_as_well() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args.iter().any(|argument| argument == "-copyts"));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-avoid_negative_ts", "disabled"]));
+    }
+
+    /// The muxer must not shift what the playlist has already described.
+    ///
+    /// `-copyts` alone is not enough: it keeps the timestamps and the muxer
+    /// shifts them anyway. Both were measured together, and only together did
+    /// the media land on the keyframes the playlist names.
+    #[test]
+    fn refuses_the_muxers_offer_to_move_the_film_off_its_own_clock() {
+        let mut sought = plan(spec());
+        sought.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
+        };
+
+        for session in [plan(spec()), sought] {
+            let args = session.to_ffmpeg_args();
+
+            assert!(
+                args.windows(2)
+                    .any(|pair| pair == ["-avoid_negative_ts", "disabled"]),
+                "expected the shift to be refused"
+            );
+        }
+    }
+
+    /// Fragmented MP4 needs the initial delay written into its fragments, and
+    /// no index box written over the boundaries.
+    ///
+    /// Without `frag_discont` the delay never reaches `moof/traf/tfdt`, so the
+    /// audio of every fragment is stamped a frame away from where it belongs.
+    /// Without `skip_sidx` ffmpeg writes an index HLS never reads, and rewrites
+    /// the presentation times of open-GOP boundary packets to build it.
+    #[test]
+    fn tells_the_fragmented_muxer_what_a_player_needs_and_nothing_it_does_not() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-hls_segment_options", "movflags=+frag_discont+skip_sidx"]));
+    }
+
+    /// Transport streams carry none of that and must not be told to.
+    #[test]
+    fn leaves_a_transport_stream_run_without_fragment_options() {
+        let mut session = plan(spec());
+        session.spec.container = SegmentContainer::MpegTs;
+
+        assert!(!session
             .to_ffmpeg_args()
             .iter()
-            .any(|argument| argument == "-copyts"));
+            .any(|argument| argument == "-hls_segment_options"));
     }
 
     /// A film played from the beginning seeks to nothing.
