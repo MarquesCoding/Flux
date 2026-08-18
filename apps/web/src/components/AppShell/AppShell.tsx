@@ -42,14 +42,14 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
 };
 
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <Icon of={Home01Icon} size={18} />,
-  shows: <Icon of={Tv01Icon} size={18} />,
-  films: <Icon of={FilmRoll01Icon} size={18} />,
-  new: <Icon of={FireIcon} size={18} />,
-  favourites: <Icon of={FavouriteIcon} size={18} />,
-  search: <Icon of={Search01Icon} size={18} />,
-  account: <Icon of={UserCircleIcon} size={18} />,
-  admin: <Icon of={Settings01Icon} size={18} />,
+  home: <Icon of={Home01Icon} size={18} isActive />,
+  shows: <Icon of={Tv01Icon} size={18} isActive />,
+  films: <Icon of={FilmRoll01Icon} size={18} isActive />,
+  new: <Icon of={FireIcon} size={18} isActive />,
+  favourites: <Icon of={FavouriteIcon} size={18} isActive />,
+  search: <Icon of={Search01Icon} size={18} isActive />,
+  account: <Icon of={UserCircleIcon} size={18} isActive />,
+  admin: <Icon of={Settings01Icon} size={18} isActive />,
 };
 
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
