@@ -12,17 +12,18 @@ import type { ButtonProps } from './Button.types';
  *
  * How it is painted is declared as variants rather than assembled per caller, so that the
  * combinations — a small icon-only ghost, a large primary — resolve by one set of rules instead of
- * drifting apart. A round shape survives only where round means a circle: an icon on its own reads
- * as a target, where a lozenge of text reads as soft, and the corner is the loudest thing about a
- * button after its colour.
+ * drifting apart. The corner is the loudest thing about a button after its colour, so the default is
+ * the same modest radius everything else in Flux wears, whatever is inside it. A circle is asked for
+ * rather than inferred: carrying only an icon is not a reason to be round, or every close button in
+ * the product becomes a bubble.
  *
  * @param children - What the button shows; optional, since a control can be its own content.
  * @param variant - How it is painted, from the headline glossy down to bare, which paints nothing.
  * @param size - How large it is, or none to leave height and padding to the caller.
  * @param isLoading - Whether the thing it does is under way, which also stops it being pressed twice.
- * @param isPill - Whether to round it fully, which is how the platform's bars and docks are drawn.
+ * @param isPill - Whether to round it fully, which is a circle for an icon on its own.
  * @param label - What it does in words, required of anything wearing only an icon.
- * @param isIconOnly - Whether it is a glyph and nothing else, which makes it square and round.
+ * @param isIconOnly - Whether it is a glyph and nothing else, which makes it square rather than wide.
  * @param isActive - Whether what it does is currently in force, said as well as shown.
  * @param hasTooltip - Whether resting a pointer on it shows the label.
  * @param tooltipDelayMilliseconds - How long a pointer rests before the label appears.
@@ -60,8 +61,7 @@ const Button = ({
           variant,
           size,
           isIconOnly,
-          shape:
-            isBare && !isPill && !isIconOnly ? 'bare' : isPill || isIconOnly ? 'pill' : 'square',
+          shape: isBare && !isPill ? 'bare' : isPill ? 'pill' : 'square',
         }),
         isActive && !isBare ? 'bg-white/20' : '',
         className,
