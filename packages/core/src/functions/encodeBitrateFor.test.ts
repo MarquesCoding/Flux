@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { encodeBitrateFor, efficiencyOf } from './encodeBitrateFor';
+import { encodeBitrateFor, efficiencyOf, downscaleShare } from './encodeBitrateFor';
 
 describe('efficiencyOf', () => {
   it('weighs the modern codecs against h264', () => {
@@ -139,5 +139,169 @@ describe('encodeBitrateFor', () => {
     });
 
     expect(bitrate).toBe(12_000);
+  });
+});
+
+describe('downscaleShare', () => {
+  it('gives a quarter of the pixels about a third of the bits, not a quarter', () => {
+    const share = downscaleShare({
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(share).toBeCloseTo(0.354, 3);
+  });
+
+  it('charges full price when the picture is not shrinking', () => {
+    expect(
+      downscaleShare({
+        sourceWidth: 1920,
+        sourceHeight: 1080,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      }),
+    ).toBe(1);
+  });
+
+  it('pays nothing extra for an upscale, there being no detail to spend it on', () => {
+    expect(
+      downscaleShare({
+        sourceWidth: 1280,
+        sourceHeight: 720,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      }),
+    ).toBe(1);
+  });
+
+  it('charges full price where a dimension is not known', () => {
+    expect(
+      downscaleShare({
+        sourceWidth: null,
+        sourceHeight: 2160,
+        maxWidth: 1920,
+        maxHeight: 1080,
+      }),
+    ).toBe(1);
+    expect(
+      downscaleShare({
+        sourceWidth: 3840,
+        sourceHeight: 2160,
+        maxWidth: undefined,
+        maxHeight: 1080,
+      }),
+    ).toBe(1);
+  });
+
+  it('fits by whichever dimension binds first', () => {
+    const wide = downscaleShare({
+      sourceWidth: 3840,
+      sourceHeight: 1600,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(wide).toBeCloseTo(0.354, 3);
+  });
+});
+
+describe('encodeBitrateFor, downscaling', () => {
+  it('stops a rung reducing the picture while saving no bandwidth at all', () => {
+    const asked = {
+      sourceBitrateKbps: 4500,
+      sourceCodec: 'hevc',
+      targetCodec: 'hevc',
+      ceilingKbps: 4500,
+    } as const;
+
+    const withoutSize = encodeBitrateFor(asked);
+    const withSize = encodeBitrateFor({
+      ...asked,
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(withoutSize).toBe(4500);
+    expect(withSize).toBeLessThan(2_000);
+  });
+
+  it('still refuses to exceed the client ceiling', () => {
+    const bitrate = encodeBitrateFor({
+      sourceBitrateKbps: 80_000,
+      sourceCodec: 'hevc',
+      targetCodec: 'h264',
+      ceilingKbps: 8_000,
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(bitrate).toBeLessThanOrEqual(8_000);
+  });
+
+  it('does not starve a downscale of an already poor source', () => {
+    const bitrate = encodeBitrateFor({
+      sourceBitrateKbps: 1_500,
+      sourceCodec: 'h264',
+      targetCodec: 'h264',
+      ceilingKbps: 4_500,
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(bitrate).toBeGreaterThan(1_000);
+  });
+
+  it('behaves exactly as before when no dimensions are given', () => {
+    const asked = {
+      sourceBitrateKbps: 9_000,
+      sourceCodec: 'hevc',
+      targetCodec: 'h264',
+      ceilingKbps: 20_000,
+    } as const;
+
+    expect(encodeBitrateFor(asked)).toBe(
+      encodeBitrateFor({ ...asked, sourceWidth: null, sourceHeight: null }),
+    );
+  });
+});
+
+describe('encodeBitrateFor, the ceiling is applied once', () => {
+  it('does not discount against a ceiling that is already a figure for the smaller picture', () => {
+    const bitrate = encodeBitrateFor({
+      sourceBitrateKbps: 24_000,
+      sourceCodec: 'h264',
+      targetCodec: 'h264',
+      ceilingKbps: 700,
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 640,
+      maxHeight: 360,
+    });
+
+    expect(bitrate).toBe(700);
+  });
+
+  it('still lands under the ceiling where the source genuinely is not worth it', () => {
+    const bitrate = encodeBitrateFor({
+      sourceBitrateKbps: 4_500,
+      sourceCodec: 'hevc',
+      targetCodec: 'hevc',
+      ceilingKbps: 4_500,
+      sourceWidth: 3840,
+      sourceHeight: 2160,
+      maxWidth: 1920,
+      maxHeight: 1080,
+    });
+
+    expect(bitrate).toBeGreaterThan(1_200);
+    expect(bitrate).toBeLessThan(2_000);
   });
 });

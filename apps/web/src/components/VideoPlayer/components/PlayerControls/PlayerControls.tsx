@@ -43,16 +43,22 @@ import type { PlayerControlsProps } from './PlayerControls.types';
 const rateLabel = (rate: number): string => `${rate.toString()}x`;
 
 /**
- * Formats a quality step's bitrate for the menu in megabits, which is the unit a viewer judges a
- * connection in, rather than the kilobits the ladder stores.
+ * Says what a rung costs when nothing better is known, as a ceiling rather than a figure it hits.
  *
- * @param maxVideoBitrateKbps - The step's ceiling, as the ladder holds it.
- * @returns What the menu shows beside the step.
+ * The fallback for a session that has not worked out what the rung would actually deliver. Where it
+ * has, that figure is passed in instead, being derived from the source rather than from the ladder.
+ *
+ * A rung caps the bitrate; it does not aim at it. What actually goes out is derived from the
+ * source, so a well compressed film comes in under the number and a viewer told it flat would be
+ * owed an explanation. "Up to" is true either way.
+ *
+ * @param maxVideoBitrateKbps - The rung's ceiling.
+ * @returns The ceiling in the largest unit that keeps it readable.
  */
 const bitrateDetail = (maxVideoBitrateKbps: number): string =>
   maxVideoBitrateKbps >= 1000
-    ? `${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
-    : `${maxVideoBitrateKbps.toString()} kbps`;
+    ? `up to ${(maxVideoBitrateKbps / 1000).toFixed(1)} Mbps`
+    : `up to ${maxVideoBitrateKbps.toString()} kbps`;
 
 const SUBTITLE_STEP_SECONDS = 0.25;
 
@@ -77,6 +83,7 @@ const SUBTITLE_STEP_SECONDS = 0.25;
  * @param audioTracks - The audio tracks available.
  * @param selectedAudioIndex - The audio track in use, if the player has settled on one.
  * @param availableQualitySteps - The rungs of the ladder this session offers.
+ * @param qualityStepCosts - What each rung would actually cost, where the session has worked it out.
  * @param selectedQuality - Whether quality is being chosen automatically or pinned to a rung.
  * @param isDisabled - Whether the controls are inert, as they are while a session is starting.
  * @param onTogglePlay - Called to play or pause.
@@ -124,6 +131,7 @@ const PlayerControls = ({
   audioTracks,
   selectedAudioIndex,
   availableQualitySteps,
+  qualityStepCosts = {},
   selectedQuality,
   isDisabled = false,
   onTogglePlay,
@@ -422,7 +430,13 @@ const PlayerControls = ({
                     );
                   },
                   choices: [
-                    { id: 'original', label: 'Original' },
+                    {
+                      id: 'original',
+                      label: 'Original',
+                      ...(qualityStepCosts.original === undefined
+                        ? {}
+                        : { detail: qualityStepCosts.original }),
+                    },
                     ...availableQualitySteps.map((id) => {
                       const step = QUALITY_STEPS.find((entry) => entry.id === id);
 
@@ -431,7 +445,10 @@ const PlayerControls = ({
                         label: step?.label ?? id,
                         ...(step === undefined
                           ? {}
-                          : { detail: bitrateDetail(step.maxVideoBitrateKbps) }),
+                          : {
+                              detail:
+                                qualityStepCosts[id] ?? bitrateDetail(step.maxVideoBitrateKbps),
+                            }),
                       };
                     }),
                   ],
