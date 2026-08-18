@@ -5,6 +5,8 @@ import { openShare } from '@FluxWeb/sharing/fetchShares';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
 import { EpisodeRow } from '@FluxWeb/components/ShowDialog/components/EpisodeRow/EpisodeRow';
 import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
+import { intoSeasons } from '@FluxWeb/library/intoSeasons';
+import { nameSeason } from '@FluxWeb/library/nameSeason';
 import { describeShareEnding } from '@FluxWeb/sharing/describeShareEnding';
 import type { OpenedShare } from '@FluxWeb/sharing/fetchShares';
 import type { ShareEnding } from '@FluxContracts/schemas/Share';
@@ -24,6 +26,10 @@ type Standing =
  * A guest has no profile, so nothing they do is recorded — where they got to lives for as long as
  * the page does and no longer, which is enough to stop a binge restarting each episode from zero
  * without giving somebody with no account anything that persists.
+ *
+ * A programme fills the screen and then gives way as it is scrolled, the way the library's own hero
+ * does, because there is a list underneath worth arriving at. A single item has nothing beneath it,
+ * so it simply fills the screen and stays there.
  *
  * @param token - The token the link carries.
  * @param onPlay - Told to start something, and where from.
@@ -90,6 +96,7 @@ const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Flux' }: ShareArea
 
   const { share } = standing;
   const [first] = [...share.items].sort(inBroadcastOrder);
+  const hasEpisodes = share.kind === 'series' && share.items.length > 1;
 
   if (first === undefined) {
     return (
@@ -108,7 +115,7 @@ const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Flux' }: ShareArea
       </span>
 
       <Hero
-        fills
+        fills={!hasEpisodes}
         items={[first]}
         onPlay={(media, startSeconds) => {
           onPlay(media, startSeconds);
@@ -116,29 +123,33 @@ const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Flux' }: ShareArea
         resumeFor={(mediaId) => resumeFor?.(mediaId) ?? null}
       />
 
-      {share.kind === 'series' && share.items.length > 1 ? (
-        <section className="mx-auto flex w-full max-w-5xl flex-col gap-3 px-5 pb-16 sm:px-8">
-          <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-            Episodes
-          </h2>
+      {hasEpisodes ? (
+        <section className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 pb-16 pt-8 sm:px-8">
+          {intoSeasons(share.items).map((season) => (
+            <div key={String(season.seasonNumber)} className="flex flex-col gap-3">
+              <h2 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+                {nameSeason(season.seasonNumber)}
+              </h2>
 
-          <ul className="flex flex-col gap-2">
-            {[...share.items].sort(inBroadcastOrder).map((episode) => {
-              const reached = resumeFor?.(episode.id) ?? null;
+              <ul className="flex flex-col gap-2">
+                {season.episodes.map((episode) => {
+                  const reached = resumeFor?.(episode.id) ?? null;
 
-              return (
-                <li key={episode.id}>
-                  <EpisodeRow
-                    episode={episode}
-                    onPlay={(media, startSeconds) => {
-                      onPlay(media, startSeconds);
-                    }}
-                    {...(reached === null ? {} : { resumeSeconds: reached })}
-                  />
-                </li>
-              );
-            })}
-          </ul>
+                  return (
+                    <li key={episode.id}>
+                      <EpisodeRow
+                        episode={episode}
+                        onPlay={(media, startSeconds) => {
+                          onPlay(media, startSeconds);
+                        }}
+                        {...(reached === null ? {} : { resumeSeconds: reached })}
+                      />
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          ))}
         </section>
       ) : null}
     </main>

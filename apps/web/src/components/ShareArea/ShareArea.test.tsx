@@ -132,12 +132,31 @@ describe('a series that was shared', () => {
     });
   });
 
-  it('lists its episodes', async () => {
+  it('lists its episodes under the season they belong to', async () => {
     opened();
 
-    expect(await screen.findByRole('heading', { name: 'Episodes' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
     expect(screen.getByText('System')).toBeInTheDocument();
     expect(screen.getByText('Hands')).toBeInTheDocument();
+  });
+
+  it('separates the seasons, so episode one after episode seven reads as a beginning', async () => {
+    answers({
+      kind: 'opened',
+      share: {
+        kind: 'series',
+        title: 'The Bear',
+        items: [
+          item({ id: 'a', title: 'System', seasonNumber: 1, episodeNumber: 1 }),
+          item({ id: 'b', title: 'Sheridan', seasonNumber: 2, episodeNumber: 1 }),
+        ],
+      },
+    });
+
+    opened();
+
+    expect(await screen.findByRole('heading', { name: 'Season 1' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Season 2' })).toBeInTheDocument();
   });
 
   it('offers the first episode rather than whichever came back first', async () => {

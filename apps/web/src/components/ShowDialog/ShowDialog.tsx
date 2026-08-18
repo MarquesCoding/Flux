@@ -8,6 +8,7 @@ import {
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
+import { nameSeason } from '@FluxWeb/library/nameSeason';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { BackdropScrim } from '@FluxUI/BackdropScrim';
@@ -34,20 +35,6 @@ import type { ShowDialogProps } from './ShowDialog.types';
  * @returns The address to load.
  */
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
-
-/**
- * Names a season the way somebody would say it, giving specials their own name rather than calling
- * them season zero.
- *
- * @param seasonNumber - The season.
- * @returns What to call it.
- */
-const nameSeason = (seasonNumber: number | null): string =>
-  seasonNumber === null
-    ? 'Specials'
-    : seasonNumber === 0
-      ? 'Specials'
-      : `Season ${seasonNumber.toString()}`;
 
 /**
  * A programme in full: its seasons, its episodes, where a viewer got to in each, and the episodes
