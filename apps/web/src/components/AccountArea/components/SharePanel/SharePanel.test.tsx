@@ -241,4 +241,21 @@ describe('SharePanel', () => {
 
     expect(await screen.findByText(/You have not handed out any links/)).toBeInTheDocument();
   });
+
+  it('says the links could not be read, rather than that there are none', async () => {
+    fetchShares.mockRejectedValue(new Error('offline'));
+
+    renderInACache(<SharePanel />);
+
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
+    expect(screen.queryByText(/You have not handed out any links/)).not.toBeInTheDocument();
+  });
+
+  it('offers to read them again', async () => {
+    fetchShares.mockRejectedValue(new Error('offline'));
+
+    renderInACache(<SharePanel />);
+
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  });
 });

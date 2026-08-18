@@ -1025,39 +1025,46 @@ const VideoPlayer = ({
       }
     });
 
-    void cache.ensureQueryData(libraryQueries.detail(media.id)).then((found) => {
-      if (!abandoned) {
-        setDetail(found);
-      }
-    });
+    void cache
+      .ensureQueryData(libraryQueries.detail(media.id))
+      .catch(() => null)
+      .then((found) => {
+        if (!abandoned) {
+          setDetail(found);
+        }
+      });
 
-    void fetchSegments(media.id).then((found) => {
-      if (!abandoned) {
-        setSegments(found);
-      }
-    });
+    void fetchSegments(media.id)
+      .catch(() => [])
+      .then((found) => {
+        if (!abandoned) {
+          setSegments(found);
+        }
+      });
 
-    void fetchSubtitleTracks(media.id).then((found) => {
-      if (abandoned) {
-        return;
-      }
+    void fetchSubtitleTracks(media.id)
+      .catch(() => [])
+      .then((found) => {
+        if (abandoned) {
+          return;
+        }
 
-      setSubtitleTracks(found);
+        setSubtitleTracks(found);
 
-      const remembered = readPlaybackPreferences().subtitleLanguage;
+        const remembered = readPlaybackPreferences().subtitleLanguage;
 
-      if (remembered === SUBTITLES_OFF) {
-        setSelectedSubtitleId(SUBTITLES_OFF);
+        if (remembered === SUBTITLES_OFF) {
+          setSelectedSubtitleId(SUBTITLES_OFF);
 
-        return;
-      }
+          return;
+        }
 
-      const continuing = trackForLanguage(found, remembered);
+        const continuing = trackForLanguage(found, remembered);
 
-      if (continuing !== null) {
-        setSelectedSubtitleId(continuing.id);
-      }
-    });
+        if (continuing !== null) {
+          setSelectedSubtitleId(continuing.id);
+        }
+      });
 
     return () => {
       abandoned = true;

@@ -219,7 +219,7 @@ describe('LibraryBrowser', () => {
     fetchLibrariesMock.mockRejectedValue(new Error('offline'));
     renderInACache(<LibraryBrowser onPlay={vi.fn()} />);
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be loaded');
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
   });
 
   it('opens with a featured item when asked for a hero', async () => {

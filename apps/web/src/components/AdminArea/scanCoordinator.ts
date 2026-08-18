@@ -136,7 +136,7 @@ const runAndTrack = async (
  * scan started here is already being followed.
  */
 const resumeRunning = async (): Promise<void> => {
-  const running = await fetchRunningScans();
+  const running = await fetchRunningScans().catch(() => []);
 
   await Promise.all(
     running

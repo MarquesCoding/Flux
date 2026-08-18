@@ -105,6 +105,7 @@ const FluxShell = () => {
 
         return null;
       })
+      .catch(() => null)
       .then((found) => {
         if (!abandoned) {
           setOpenShow(found);

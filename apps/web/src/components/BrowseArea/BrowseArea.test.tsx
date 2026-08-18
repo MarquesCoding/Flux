@@ -124,12 +124,21 @@ describe('BrowseArea', () => {
     });
   });
 
-  it('carries on when the server cannot be reached', async () => {
+  it('says it could not be read when the server cannot be reached, rather than that it is empty', async () => {
     fetchLibraries.mockRejectedValue(new Error('offline'));
 
     renderInACache(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
-    expect(await screen.findByText(/Nothing here stands on its own yet/)).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
+    expect(screen.queryByText(/Nothing here stands on its own yet/)).not.toBeInTheDocument();
+  });
+
+  it('offers to try again, since a server that was down may not be', async () => {
+    fetchLibraries.mockRejectedValue(new Error('offline'));
+
+    renderInACache(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

@@ -32,6 +32,7 @@ import {
   unbanAccount,
 } from '@FluxWeb/admin/fetchAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { adminQueries } from '@FluxWeb/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Account } from '@FluxWeb/admin/fetchAccounts';
@@ -59,9 +60,13 @@ const AccountsPanel = () => {
 
   const cache = useQueryClient();
 
-  const accounts = useQuery(adminQueries.accounts()).data ?? [];
-  const catalogue = useQuery(adminQueries.permissions()).data ?? [];
-  const roles = useQuery(adminQueries.roles()).data ?? [];
+  const askedAccounts = useQuery(adminQueries.accounts());
+  const askedCatalogue = useQuery(adminQueries.permissions());
+  const askedRoles = useQuery(adminQueries.roles());
+
+  const accounts = askedAccounts.data ?? [];
+  const catalogue = askedCatalogue.data ?? [];
+  const roles = askedRoles.data ?? [];
   const held = useQuery(adminQueries.accountPermissions(accountId)).data ?? null;
 
   const reload = useCallback(async () => {
@@ -351,15 +356,27 @@ const AccountsPanel = () => {
           </Button>
         </CardHeader>
 
-        <DataTable
-          label="Accounts"
-          columns={columns}
-          rows={shown}
-          pageSize={10}
-          emptyMessage={
-            accounts.length === 0 ? 'Nobody has an account yet.' : 'Nobody here matches that.'
-          }
-        />
+        {askedAccounts.isError ? (
+          <CouldNotRead
+            what="The accounts"
+            isTryingAgain={askedAccounts.isFetching}
+            onTryAgain={() => {
+              void askedAccounts.refetch();
+              void askedCatalogue.refetch();
+              void askedRoles.refetch();
+            }}
+          />
+        ) : (
+          <DataTable
+            label="Accounts"
+            columns={columns}
+            rows={shown}
+            pageSize={10}
+            emptyMessage={
+              accounts.length === 0 ? 'Nobody has an account yet.' : 'Nobody here matches that.'
+            }
+          />
+        )}
       </Card>
 
       <Dialog

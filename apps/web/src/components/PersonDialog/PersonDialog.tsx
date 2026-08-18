@@ -9,6 +9,7 @@ import { Rail } from '@FluxUI/Rail';
 import { RevealItem } from '@FluxUI/RevealItem';
 import { Skeleton } from '@FluxUI/Skeleton';
 import { hasAnythingToShow } from '@FluxContracts/schemas/Person';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { RailCard } from '@FluxWeb/components/RailCard/RailCard';
@@ -87,7 +88,8 @@ const PersonDialog = ({
 
   const born = describeBirth(person?.bornOn ?? null);
   const said = [born, person?.bornIn ?? null].filter((one) => one !== null);
-  const isEmpty = !isLoading && !hasAnythingToShow(person, credits);
+  const couldNotRead = personId !== null && (asked.isError || theirs.isError);
+  const isEmpty = !isLoading && !couldNotRead && !hasAnythingToShow(person, credits);
 
   return (
     <Dialog
@@ -144,6 +146,17 @@ const PersonDialog = ({
           {person?.biography === null || person?.biography === undefined ? null : (
             <ReadMore lines={6}>{person.biography}</ReadMore>
           )}
+
+          {couldNotRead ? (
+            <CouldNotRead
+              what="Anything about them"
+              isTryingAgain={asked.isFetching || theirs.isFetching}
+              onTryAgain={() => {
+                void asked.refetch();
+                void theirs.refetch();
+              }}
+            />
+          ) : null}
 
           {isEmpty ? (
             <p className="font-body text-sm text-text-muted">

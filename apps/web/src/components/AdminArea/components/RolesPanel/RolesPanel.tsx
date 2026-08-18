@@ -24,6 +24,7 @@ import { describePermission } from '@FluxWeb/admin/describePermission';
 import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
 import { createRole, deleteRole, updateRole } from '@FluxWeb/admin/fetchRoles';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { adminQueries } from '@FluxWeb/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { Refusal } from '@FluxWeb/admin/fetchRoles';
@@ -49,8 +50,12 @@ const RolesPanel = () => {
 
   const cache = useQueryClient();
 
-  const roles = useQuery(adminQueries.roles()).data ?? [];
-  const catalogue = useQuery(adminQueries.permissions()).data ?? [];
+  const askedRoles = useQuery(adminQueries.roles());
+  const askedCatalogue = useQuery(adminQueries.permissions());
+
+  const roles = askedRoles.data ?? [];
+  const catalogue = askedCatalogue.data ?? [];
+  const couldNotRead = askedRoles.isError || askedCatalogue.isError;
 
   const reload = useCallback(
     async () => cache.invalidateQueries({ queryKey: adminQueries.roles().queryKey }),
@@ -193,7 +198,18 @@ const RolesPanel = () => {
           </Button>
         </CardHeader>
 
-        <DataTable label="Roles" columns={columns} rows={roles} emptyMessage="No roles yet." />
+        {couldNotRead ? (
+          <CouldNotRead
+            what="The roles"
+            isTryingAgain={askedRoles.isFetching || askedCatalogue.isFetching}
+            onTryAgain={() => {
+              void askedRoles.refetch();
+              void askedCatalogue.refetch();
+            }}
+          />
+        ) : (
+          <DataTable label="Roles" columns={columns} rows={roles} emptyMessage="No roles yet." />
+        )}
       </Card>
 
       <Dialog
