@@ -3,7 +3,9 @@
 - **Status:** Accepted
 - **Date:** 2026-08-17
 - **Supersedes:** [ADR-0013](0013-fluxui-component-stack.md)
-- **Superseded by:** [ADR-0020](0020-icons-from-hugeicons-through-one-component.md), for its icon clause only
+- **Superseded by:** [ADR-0020](0020-icons-from-hugeicons-through-one-component.md),
+  for its icon clause; [ADR-0021](0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md),
+  for its primitive and its registry clause
 
 ## Context
 

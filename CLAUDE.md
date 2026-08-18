@@ -64,14 +64,36 @@ standalone functions. snake_case for Rust modules.
 | Data         | Postgres + Drizzle + pg-boss        | [0005](docs/adr/0005-data-layer-postgres-drizzle-pgboss.md)                          |
 | Plugins      | Process-per-plugin, brokered        | [0007](docs/adr/0007-plugin-runtime-brokered.md)                                     |
 | Media        | Rust + FFmpeg child process         | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)                                  |
-| UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)                      |
+| UI           | Base UI + Tailwind + CVA + Motion   | [0021](docs/adr/0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md)          |
 | Lint         | oxlint + ESLint + husky             | [0014](docs/adr/0014-lint-and-commit-enforcement.md)                                 |
 | Realtime     | One WebSocket, viewer + admin feeds | [0017](docs/adr/0017-realtime-one-socket-two-feeds.md)                               |
 | Web state    | TanStack Query + TanStack Router    | [0019](docs/adr/0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) |
 
-**Not used:** the shadcn registry (its conventions are adopted, its generated code
-is not — see [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)),
-Redis, SQLite, tRPC as a primary API, barrel files.
+**Not used:** Redis, SQLite, tRPC as a primary API, barrel files, `lucide-react`
+(icons come from Hugeicons through `@FluxUI/Icon` — see
+[0020](docs/adr/0020-icons-from-hugeicons-through-one-component.md)).
+
+## FluxUI is mid-rebuild
+
+FluxUI is being rebuilt from the shadcn registry on Base UI
+([0021](docs/adr/0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md)).
+Three directories, and which one you are in decides which rules apply:
+
+| Directory                    | What it is                                             | Rules                               |
+| ---------------------------- | ------------------------------------------------------ | ----------------------------------- |
+| `packages/ui/src/old`        | The 53 hand-written components every screen still uses | Full house rules                    |
+| `packages/ui/src/base`       | All 63 generated from the registry, untouched          | Quarantined — lint and coverage off |
+| `packages/ui/src/components` | Restyled, out of quarantine                            | Full house rules                    |
+
+- **Do not hand-edit `src/base`.** It is regenerable; the only edits it carries
+  are its import lines. Restyle a component by rewriting it into
+  `src/components` to house standard — one member per file, a `.types.ts`,
+  TSDoc, a co-located test — and repointing its alias.
+- **Do not add to `src/old`.** It only shrinks.
+- **Do not import `lucide-react`**, in the base layer or anywhere. `base/icons.tsx`
+  is where the registry's icon imports land.
+- **`accent` is the brand colour**, not shadcn's hover surface. That role is
+  `subtle`.
 
 ## Working expectations
 

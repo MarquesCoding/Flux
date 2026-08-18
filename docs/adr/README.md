@@ -44,9 +44,10 @@ more valuable than a tidy directory.
 | [0015](0015-casting-to-devices.md)                                          | Cast by handing devices an address, with Google's sender     | Accepted                           |
 | [0016](0016-fixture-provenance-decides-how-it-is-verified.md)               | Where a fixture came from decides how it is checked          | Accepted                           |
 | [0017](0017-realtime-one-socket-two-feeds.md)                               | One realtime socket, with a viewer feed and an admin feed    | Accepted                           |
-| [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions               | Accepted, icons superseded by 0020 |
+| [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions               | Accepted, superseded by 0020, 0021 |
 | [0019](0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) | Server state in TanStack Query, addresses in TanStack Router | Accepted                           |
 | [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component            | Accepted                           |
+| [0021](0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md)          | FluxUI rebuilt from the shadcn registry, on Base UI          | Accepted                           |
 
 ## Format
 
