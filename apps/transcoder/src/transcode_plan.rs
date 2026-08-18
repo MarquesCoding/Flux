@@ -1508,7 +1508,7 @@ impl TranscodePlan {
 
         if self.spec.container.needs_init_segment() {
             args.push("-hls_segment_options".into());
-            args.push("movflags=+frag_discont+skip_sidx".into());
+            args.push("movflags=+frag_discont+skip_sidx+negative_cts_offsets".into());
             args.push("-hls_segment_type".into());
             args.push("fmp4".into());
             args.push("-hls_fmp4_init_filename".into());
@@ -1831,13 +1831,24 @@ mod tests {
     /// audio of every fragment is stamped a frame away from where it belongs.
     /// Without `skip_sidx` ffmpeg writes an index HLS never reads, and rewrites
     /// the presentation times of open-GOP boundary packets to build it.
+    ///
+    /// Without `negative_cts_offsets` a fragment cannot say a sample is
+    /// presented after it is decoded, so the muxer stamps the fragment with the
+    /// first presentation time instead of the first decode time. Every fragment
+    /// then declares a decode clock one reorder window late — measured at 167ms
+    /// on a film whose frames are reordered four deep — and at a join the frames
+    /// inside that window have nowhere consistent to sit. A viewer sees the
+    /// picture skip while the sound plays on: 17.292s to 17.458s in one
+    /// measurement, which is that window exactly.
     #[test]
     fn tells_the_fragmented_muxer_what_a_player_needs_and_nothing_it_does_not() {
         let args = plan(spec()).to_ffmpeg_args();
 
-        assert!(args
-            .windows(2)
-            .any(|pair| pair == ["-hls_segment_options", "movflags=+frag_discont+skip_sidx"]));
+        assert!(args.windows(2).any(|pair| pair
+            == [
+                "-hls_segment_options",
+                "movflags=+frag_discont+skip_sidx+negative_cts_offsets"
+            ]));
     }
 
     /// Transport streams carry none of that and must not be told to.
