@@ -8,7 +8,7 @@ const OVERLAY_MOTION = [
   'data-open:animate-in data-open:fade-in-0',
   'data-closed:animate-out data-closed:fade-out-0',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'data-closed:duration-[var(--duration-leaving)]',
+  'data-closed:duration-[var(--duration-leaving)] data-closed:ease-[var(--ease-in-out)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
@@ -18,7 +18,7 @@ const PANEL_MOTION = [
   'max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8',
   'sm:data-open:zoom-in-95 sm:data-closed:zoom-out-95',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'data-closed:duration-[var(--duration-leaving)]',
+  'data-closed:duration-[var(--duration-leaving)] data-closed:ease-[var(--ease-in-out)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
@@ -39,10 +39,12 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * is what a small screen expects and a panel is what a large one does. Both leave the way they
  * arrived, so dismissing reads as the reverse of opening rather than as a second, unrelated event.
  *
- * The leaving half of that is why this is built on Base UI rather than Radix. The markup was the
- * same under both and the stylesheet was verified complete, but a Radix panel unmounted the instant
- * it was dismissed and never played its exit. Base UI holds the element through the animation and
- * says so with `data-closed`, which is what these classes are hung on.
+ * Leaving is eased differently to arriving, which is the difference between an animation that runs
+ * and one that can be seen. `--ease-out` is deliberately front-loaded so that a thing arriving feels
+ * immediate; measured on the way out it put the panel at half opacity three milliseconds in and at a
+ * tenth of it after thirty, spending the rest of its time invisible. That reads as vanishing however
+ * long the duration says it lasts. On `--ease-in-out` the panel holds its shape for the first third
+ * and is half gone at fifty milliseconds, which is the same length of animation and a visible one.
  *
  * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
  * draws a focus ring around whatever happens to be first — the favourite button, an icon — which

@@ -80,6 +80,18 @@ describe('Dialog', () => {
       'motion-reduce:duration-[var(--duration-instant)]',
     );
   });
+  it('leaves on a curve that can be seen, rather than one that front-loads the whole move', () => {
+    render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    );
+
+    expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
+      'data-closed:ease-[var(--ease-in-out)]',
+    );
+  });
+
   it('leaves the way it arrived, rather than being snatched away', () => {
     render(
       <Dialog label="Arrival" isOpen onClose={vi.fn()}>
