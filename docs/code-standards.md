@@ -366,35 +366,6 @@ and say what it is for.
 control in an app is how design systems die; a second component owning the same
 element is how they rot.
 
-### Where a component lives decides which rules apply to it
-
-FluxUI is mid-rebuild from the shadcn registry
-([ADR-0021](adr/0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md)) and
-has three directories until that finishes.
-
-| Directory                    | What it holds                                         |
-| ---------------------------- | ----------------------------------------------------- |
-| `packages/ui/src/old`        | Hand-written components the application still renders |
-| `packages/ui/src/base`       | Generated from the registry, untouched                |
-| `packages/ui/src/components` | Restyled and out of quarantine                        |
-
-Everything in this document applies to `old` and `components` exactly as
-written. `base` is **quarantined**: ESLint and oxlint waive the rules generated
-code cannot satisfy — one member per file, TSDoc, type assertions, `unknown`,
-raw controls, loose equality — and coverage excludes it, so untested generated
-code neither props up nor drags down a threshold meant to measure written code.
-
-The quarantine is a staging area with an exit, not a second standard.
-
-- **Do not hand-edit `src/base`.** It must stay regenerable, so the only edits it
-  carries are the import lines that point Lucide at `base/icons.tsx` and `cn` at
-  `@FluxUI/cn`. A fix belongs upstream or in the restyled copy.
-- **Do not add to `src/old`.** It only shrinks.
-- **Restyling is how a component leaves.** Rewrite it into `src/components`
-  against this document in full — one member per file, a `.types.ts`, TSDoc on
-  functions, a co-located test — and repoint its alias in
-  `tsconfig.paths.json`. Only then does it count as FluxUI.
-
 ### Base UI owns behaviour; FluxUI owns appearance
 
 If Base UI ships a primitive for what you are building, build on it. Roles,

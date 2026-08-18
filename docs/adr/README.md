@@ -47,7 +47,7 @@ more valuable than a tidy directory.
 | [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions               | Accepted, superseded by 0020, 0021 |
 | [0019](0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) | Server state in TanStack Query, addresses in TanStack Router | Accepted                           |
 | [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component            | Accepted                           |
-| [0021](0021-fluxui-rebuilt-from-the-shadcn-registry-on-base-ui.md)          | FluxUI rebuilt from the shadcn registry, on Base UI          | Accepted                           |
+| [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                 | Accepted                           |
 
 ## Format
 

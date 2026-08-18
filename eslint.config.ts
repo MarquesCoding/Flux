@@ -50,6 +50,11 @@ export default tseslint.config(
                 'Icons come from @hugeicons/core-free-icons, drawn by @FluxUI/Icon — see code standards section 10.',
             },
             {
+              group: ['@base-ui/react', '@base-ui/react/*'],
+              message:
+                'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
+            },
+            {
               group: ['@hugeicons/react'],
               importNames: ['HugeiconsIcon'],
               message:
@@ -97,9 +102,9 @@ export default tseslint.config(
   },
   {
     files: [
-      'packages/ui/src/old/Button/Button.tsx',
-      'packages/ui/src/old/TextField/TextField.tsx',
-      'packages/ui/src/old/FilePicker/FilePicker.tsx',
+      'packages/ui/src/components/Button/Button.tsx',
+      'packages/ui/src/components/TextField/TextField.tsx',
+      'packages/ui/src/components/FilePicker/FilePicker.tsx',
     ],
     rules: {
       'no-restricted-syntax': [
@@ -117,22 +122,12 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/ui/src/old/Icon/Icon.tsx'],
+    files: [
+      'packages/ui/src/components/Icon/Icon.tsx',
+      'packages/ui/src/components/Dialog/Dialog.tsx',
+    ],
     rules: {
       'no-restricted-imports': 'off',
-    },
-  },
-  {
-    files: ['packages/ui/src/base/**', 'packages/ui/src/hooks/**'],
-    rules: {
-      'flux/no-comments': 'off',
-      'no-restricted-syntax': 'off',
-      '@typescript-eslint/no-unnecessary-condition': 'off',
-      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
-      '@typescript-eslint/no-unsafe-argument': 'off',
-      '@typescript-eslint/no-unsafe-assignment': 'off',
-      '@typescript-eslint/no-unsafe-member-access': 'off',
-      '@typescript-eslint/restrict-template-expressions': 'off',
     },
   },
   {

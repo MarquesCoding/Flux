@@ -27,14 +27,6 @@
       "rules": {
         "import/no-default-export": "off"
       }
-    },
-    {
-      "files": ["packages/ui/src/base/**", "packages/ui/src/hooks/**"],
-      "rules": {
-        "eqeqeq": "off",
-        "react/no-danger": "off",
-        "unicorn/no-document-cookie": "off"
-      }
     }
   ]
 }

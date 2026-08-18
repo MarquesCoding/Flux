@@ -115,15 +115,6 @@
   --color-input: var(--color-border);
   --color-ring: var(--color-accent);
 
-  --color-sidebar: var(--color-surface-raised);
-  --color-sidebar-foreground: var(--color-text);
-  --color-sidebar-primary: var(--color-accent);
-  --color-sidebar-primary-foreground: var(--color-accent-contrast);
-  --color-sidebar-accent: var(--color-subtle);
-  --color-sidebar-accent-foreground: var(--color-text);
-  --color-sidebar-border: var(--color-border);
-  --color-sidebar-ring: var(--color-ring);
-
   --radius: 0.5rem;
   --radius-xs: calc(var(--radius) - 4px);
   --radius-sm: calc(var(--radius) - 2px);
@@ -162,21 +153,6 @@
   --glass-tint: color-mix(in oklab, var(--color-surface-raised) 62%, transparent);
   --glass-edge: color-mix(in oklab, white 22%, transparent);
   --glass-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.65);
-}
-
-:root {
-  --background: var(--color-background);
-  --foreground: var(--color-foreground);
-  --primary: var(--color-primary);
-  --primary-foreground: var(--color-primary-foreground);
-  --secondary: var(--color-secondary);
-  --secondary-foreground: var(--color-secondary-foreground);
-  --muted: var(--color-muted);
-  --muted-foreground: var(--color-muted-foreground);
-  --popover: var(--color-popover);
-  --popover-foreground: var(--color-popover-foreground);
-  --border: var(--color-border);
-  --destructive: var(--color-destructive);
 }
 
 @layer theme {
