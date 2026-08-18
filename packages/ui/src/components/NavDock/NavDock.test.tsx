@@ -48,6 +48,30 @@ describe('NavDock', () => {
     expect(screen.getByRole('button', { name: 'Films' })).not.toHaveAttribute('aria-current');
   });
 
+  it('shows where you are in a way the pointer cannot take away', async () => {
+    const actor = userEvent.setup();
+
+    render(<NavDock {...props} />);
+
+    const here = screen.getByRole('button', { name: 'Home' });
+    const elsewhere = screen.getByRole('button', { name: 'Films' });
+
+    expect(here).toHaveClass('text-accent');
+
+    await actor.hover(elsewhere);
+
+    expect(here).toHaveClass('text-accent');
+    expect(elsewhere).not.toHaveClass('text-accent');
+  });
+
+  it('stands a mark under the place being stood on, and nowhere else', () => {
+    const { container } = render(<NavDock {...props} />);
+
+    const dots = container.querySelectorAll('.bg-accent');
+
+    expect(dots).toHaveLength(1);
+  });
+
   it('goes where it is asked', async () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
