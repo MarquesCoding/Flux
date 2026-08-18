@@ -334,6 +334,45 @@ describe('opening a link as somebody with no account', () => {
     expect(response.status).toBe(410);
   });
 
+  it('remembers a guest past the end of their browsing, so tomorrow they are the same person', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+    const made = await shared(built.app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    const joiner = response.headers
+      .getSetCookie()
+      .find((one) => one.startsWith('flux_share_joiner='));
+
+    expect(joiner).toMatch(/Max-Age=\d+/);
+  });
+
+  it('never remembers a guest for longer than the link they hold', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+
+    const made = await shared(built.app, cookie, {
+      kind: 'item',
+      mediaId: FILM,
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+    });
+
+    const response = await built.app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { origin: BASE },
+    });
+
+    const joiner =
+      response.headers.getSetCookie().find((one) => one.startsWith('flux_share_joiner=')) ?? '';
+
+    const keptFor = Number(/Max-Age=(\d+)/.exec(joiner)?.[1] ?? '0');
+
+    expect(keptFor).toBeGreaterThan(0);
+    expect(keptFor).toBeLessThanOrEqual(60);
+  });
+
   it('lets the one person it was meant for come back to it', async () => {
     const built = build();
     const { app } = built;

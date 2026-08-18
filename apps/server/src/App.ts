@@ -71,10 +71,13 @@ import {
 } from '@FluxServer/routes/ShareRoute';
 import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
 import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { rememberGuestFor } from '@FluxServer/sharing/rememberGuestFor';
 import { getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 
 const SHARE_JOINER = 'flux_share_joiner';
+
+const GUEST_REMEMBERED_FOR_SECONDS = 30 * 86_400;
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
@@ -2662,8 +2665,11 @@ const createApp = ({
 
     await shares.join(found.id, joiner);
 
-    setCookie(context, SHARE_JOINER, joiner, { path: '/', httpOnly: true, sameSite: 'Lax' });
-    setCookie(context, SHARE_COOKIE, token, { path: '/', httpOnly: true, sameSite: 'Lax' });
+    const keptFor = rememberGuestFor(found.expiresAt, new Date(), GUEST_REMEMBERED_FOR_SECONDS);
+    const kept = { path: '/', httpOnly: true, sameSite: 'Lax', maxAge: keptFor } as const;
+
+    setCookie(context, SHARE_JOINER, joiner, kept);
+    setCookie(context, SHARE_COOKIE, token, kept);
 
     const items = await library.itemsForShare(found);
 
