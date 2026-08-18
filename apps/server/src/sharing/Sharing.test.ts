@@ -13,7 +13,7 @@ import { createMemoryShareService } from '@FluxServer/sharing/createMemoryShareS
 import { createShareSessions } from '@FluxServer/sharing/createShareSessions';
 import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
 import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
-import { CreatedShareSchema } from '@FluxContracts/schemas/Share';
+import { AdminShareListSchema, CreatedShareSchema } from '@FluxContracts/schemas/Share';
 import type { NewShare } from '@FluxContracts/schemas/Share';
 import { z } from 'zod';
 
@@ -66,7 +66,10 @@ const build = () => {
   const shares = createMemoryShareService({
     shares: [],
     titles: { [FILM]: 'Arrival', [OTHER]: 'Nocturnal Animals', [SHOW]: 'The Bear' },
+    names: { 'somebody-else': 'Ada' },
   });
+
+  const told: { accountId: string; title: string; byName: string }[] = [];
 
   const app = createApp({
     auth,
@@ -98,9 +101,14 @@ const build = () => {
     shares,
     shareSessions: createShareSessions(),
     permissions,
+    sayALinkWasWithdrawn: (one) => {
+      told.push(one);
+
+      return Promise.resolve();
+    },
   });
 
-  return { app, shares, permissions };
+  return { app, shares, permissions, told };
 };
 
 /**
@@ -125,6 +133,32 @@ const signedIn = async (built: ReturnType<typeof build>): Promise<string> => {
 
   if (said.success && member !== undefined) {
     built.permissions.state.assignments[said.data.user.id] = [member.id];
+  }
+
+  return cookie;
+};
+
+/**
+ * Somebody signed in and allowed to look after everybody's links, which is what the Manager role
+ * carries on a real server.
+ */
+const signedInToManage = async (built: ReturnType<typeof build>): Promise<string> => {
+  const cookie = await signedIn(built);
+
+  const session = await built.app.request(`${BASE}/api/auth/get-session`, {
+    headers: { cookie, origin: BASE },
+  });
+
+  const said = SessionAccountSchema.safeParse(await session.json());
+
+  const role = await built.permissions.createRole({
+    name: 'Looks after links',
+    position: 50,
+    permissions: ['sharing.link', 'sharing.manage'],
+  });
+
+  if (said.success) {
+    built.permissions.state.assignments[said.data.user.id] = [role.id];
   }
 
   return cookie;
@@ -406,5 +440,106 @@ describe('withdrawing a link', () => {
     const listed = await response.json();
 
     expect(JSON.stringify(listed)).not.toContain('Nocturnal Animals');
+  });
+});
+
+describe('looking after everybody’s links', () => {
+  it('refuses somebody who may share but may not look after what others shared', async () => {
+    const built = build();
+    const cookie = await signedIn(built);
+
+    const response = await built.app.request(`${BASE}/api/admin/shares`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(403);
+  });
+
+  it('lists what everybody handed out, and says who handed each one out', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    await shared(built.app, cookie);
+    await built.shares.create('somebody-else', { kind: 'item', mediaId: OTHER });
+
+    const response = await built.app.request(`${BASE}/api/admin/shares`, {
+      headers: { cookie, origin: BASE },
+    });
+
+    const listed = AdminShareListSchema.parse(await response.json());
+
+    expect(listed.shares).toHaveLength(2);
+    expect(listed.shares.map((one) => one.title)).toContain('Nocturnal Animals');
+    expect(listed.shares.find((one) => one.title === 'Nocturnal Animals')?.createdByName).toBe(
+      'Ada',
+    );
+  });
+
+  it('withdraws somebody else’s link, and the link stops working at once', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    const response = await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+
+    const { response: asGuest } = await opened(built.app, theirs?.token ?? '');
+
+    expect(asGuest.status).toBe(410);
+  });
+
+  it('tells whoever made the link that it was withdrawn, and by whom', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(built.told).toEqual([
+      { accountId: 'somebody-else', title: 'Arrival', byName: CREDENTIALS.name },
+    ]);
+  });
+
+  it('says nothing to somebody withdrawing their own link', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const mine = await shared(built.app, cookie);
+
+    await built.app.request(`${BASE}/api/admin/shares/${mine.id}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(built.told).toEqual([]);
+  });
+
+  it('withdraws a link once, so a second attempt says there is nothing to withdraw', async () => {
+    const built = build();
+    const cookie = await signedInToManage(built);
+
+    const theirs = await built.shares.create('somebody-else', { kind: 'item', mediaId: FILM });
+
+    await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    const again = await built.app.request(`${BASE}/api/admin/shares/${theirs?.id ?? ''}`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(again.status).toBe(404);
+    expect(built.told).toHaveLength(1);
   });
 });

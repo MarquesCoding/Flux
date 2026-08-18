@@ -1,5 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { createShare, fetchShares, openShare, revokeShare, shareAddress } from './fetchShares';
+import {
+  createShare,
+  fetchEverybodysShares,
+  fetchShares,
+  openShare,
+  revokeAnybodysShare,
+  revokeShare,
+  shareAddress,
+} from './fetchShares';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 type FetchLike = (
@@ -66,6 +74,53 @@ describe('createShare', () => {
     fetchMock.mockResolvedValue(said(403, { error: 'This account may not share.' }));
 
     await expect(createShare({ kind: 'item', mediaId: MADE.mediaId })).resolves.toBeNull();
+  });
+});
+
+describe('fetchEverybodysShares', () => {
+  it('reads every link, and who handed each one out', async () => {
+    const { token, ...withoutToken } = MADE;
+
+    fetchMock.mockResolvedValue(
+      ok({ shares: [{ ...withoutToken, createdBy: 'ada', createdByName: 'Ada' }] }),
+    );
+
+    expect(token).toBeTruthy();
+
+    const everybody = await fetchEverybodysShares();
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/admin/shares', expect.anything());
+    expect(everybody[0]?.createdByName).toBe('Ada');
+  });
+
+  it('reads nothing where this account may not look', async () => {
+    fetchMock.mockResolvedValue(said(403, { error: 'no' }));
+
+    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+  });
+
+  it('reads nothing rather than throwing where the server answers with nonsense', async () => {
+    fetchMock.mockResolvedValue(ok({ shares: [{ nothing: 'recognisable' }] }));
+
+    await expect(fetchEverybodysShares()).resolves.toEqual([]);
+  });
+});
+
+describe('revokeAnybodysShare', () => {
+  it('withdraws anybody’s link through the admin route', async () => {
+    fetchMock.mockResolvedValue(said(204, null));
+
+    await expect(revokeAnybodysShare(MADE.id)).resolves.toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/admin/shares/${MADE.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('says it did not where the server refused', async () => {
+    fetchMock.mockResolvedValue(said(403, { error: 'no' }));
+
+    await expect(revokeAnybodysShare(MADE.id)).resolves.toBe(false);
   });
 });
 

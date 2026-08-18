@@ -64,7 +64,9 @@ import { readPersonRoute, readPersonCreditsRoute } from '@FluxServer/routes/Pers
 import {
   createShareRoute,
   listSharesRoute,
+  listEverybodysSharesRoute,
   revokeShareRoute,
+  revokeAnybodysShareRoute,
   openShareRoute,
 } from '@FluxServer/routes/ShareRoute';
 import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
@@ -366,6 +368,11 @@ type CreateAppOptions = {
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
   realtime?: RealtimePublisher;
   logs?: LogStore;
+  sayALinkWasWithdrawn?: (told: {
+    accountId: string;
+    title: string;
+    byName: string;
+  }) => Promise<void>;
 };
 
 /**
@@ -419,6 +426,7 @@ const createApp = ({
   editAccount,
   realtime,
   logs,
+  sayALinkWasWithdrawn,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
 
@@ -2552,6 +2560,48 @@ const createApp = ({
     }
 
     return context.json({ shares: await shares.list(account.id) }, 200);
+  });
+
+  app.openapi(listEverybodysSharesRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await requires(context.req.raw.headers, 'sharing.manage'))) {
+      return context.json({ error: 'This account may not look at everybody’s links.' }, 403);
+    }
+
+    return context.json({ shares: await shares.listEverybody() }, 200);
+  });
+
+  app.openapi(revokeAnybodysShareRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || shares === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    if (!(await requires(context.req.raw.headers, 'sharing.manage'))) {
+      return context.json({ error: 'This account may not withdraw somebody else’s link.' }, 403);
+    }
+
+    const withdrawn = await shares.revokeAnybody(context.req.valid('param').shareId);
+
+    if (withdrawn === null) {
+      return context.json({ error: 'No such link.' }, 404);
+    }
+
+    if (withdrawn.createdBy !== account.id) {
+      await sayALinkWasWithdrawn?.({
+        accountId: withdrawn.createdBy,
+        title: withdrawn.title,
+        byName: account.name,
+      });
+    }
+
+    return context.body(null, 204);
   });
 
   app.openapi(revokeShareRoute, async (context) => {

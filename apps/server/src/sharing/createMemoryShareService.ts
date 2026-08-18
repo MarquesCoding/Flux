@@ -22,6 +22,7 @@ type MemoryShare = {
 type MemoryState = {
   shares: MemoryShare[];
   titles?: Record<string, string>;
+  names?: Record<string, string>;
 };
 
 /**
@@ -29,7 +30,7 @@ type MemoryState = {
  * the database version does, since a twin that stored them plainly would let a test pass while
  * describing a server that keeps working keys in the clear.
  *
- * @param state - Any links already handed out, and the titles of what they name.
+ * @param state - Any links already handed out, the titles of what they name, and who made them.
  * @returns The share service, and the state behind it.
  */
 const createMemoryShareService = (
@@ -105,6 +106,15 @@ const createMemoryShareService = (
           .map((held) => describe(held, new Date())),
       ),
 
+    listEverybody: () =>
+      Promise.resolve(
+        state.shares.map((held) => ({
+          ...describe(held, new Date()),
+          createdBy: held.createdBy,
+          createdByName: state.names?.[held.createdBy] ?? 'Somebody',
+        })),
+      ),
+
     revoke: (createdBy, shareId) => {
       const held = state.shares.find((one) => one.id === shareId && one.createdBy === createdBy);
 
@@ -115,6 +125,18 @@ const createMemoryShareService = (
       held.revokedAt = new Date();
 
       return Promise.resolve(true);
+    },
+
+    revokeAnybody: (shareId) => {
+      const held = state.shares.find((one) => one.id === shareId && one.revokedAt === null);
+
+      if (held === undefined) {
+        return Promise.resolve(null);
+      }
+
+      held.revokedAt = new Date();
+
+      return Promise.resolve({ createdBy: held.createdBy, title: held.title });
     },
 
     resolve: (token) => {

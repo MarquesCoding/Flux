@@ -1,7 +1,11 @@
 import { z } from 'zod';
-import { CreatedShareSchema, ShareListSchema } from '@FluxContracts/schemas/Share';
+import {
+  AdminShareListSchema,
+  CreatedShareSchema,
+  ShareListSchema,
+} from '@FluxContracts/schemas/Share';
 import { MediaSummarySchema } from '@FluxContracts/schemas/Library';
-import type { CreatedShare, NewShare, Share } from '@FluxContracts/schemas/Share';
+import type { AdminShare, CreatedShare, NewShare, Share } from '@FluxContracts/schemas/Share';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
 const OpenedShareSchema = z.object({
@@ -32,6 +36,29 @@ const fetchShares = async (): Promise<Share[]> => {
     }
 
     return ShareListSchema.parse(await response.json()).shares;
+  } catch {
+    return [];
+  }
+};
+
+/**
+ * Reads every link this server has handed out, whoever handed it out, for somebody allowed to look
+ * after all of them.
+ *
+ * @returns The links, or none where the request failed or this account may not see them.
+ */
+const fetchEverybodysShares = async (): Promise<AdminShare[]> => {
+  try {
+    const response = await fetch('/api/admin/shares', {
+      credentials: 'same-origin',
+      headers: { accept: 'application/json' },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    return AdminShareListSchema.parse(await response.json()).shares;
   } catch {
     return [];
   }
@@ -72,6 +99,22 @@ const createShare = async (asked: NewShare): Promise<CreatedShare | null> => {
  */
 const revokeShare = async (shareId: string): Promise<boolean> => {
   const response = await fetch(`/api/shares/${shareId}`, {
+    method: 'DELETE',
+    credentials: 'same-origin',
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
+ * Withdraws anybody's link, for somebody allowed to look after all of them. Whoever made it is told,
+ * unless they are the one withdrawing it.
+ *
+ * @param shareId - The link to withdraw.
+ * @returns Whether it was withdrawn.
+ */
+const revokeAnybodysShare = async (shareId: string): Promise<boolean> => {
+  const response = await fetch(`/api/admin/shares/${shareId}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -126,4 +169,13 @@ const shareAddress = (token: string, origin: string): string =>
 
 export type { OpenedShare, ShareOutcome, MediaSummary };
 
-export { fetchShares, createShare, revokeShare, openShare, shareAddress, OpenedShareSchema };
+export {
+  fetchShares,
+  fetchEverybodysShares,
+  createShare,
+  revokeShare,
+  revokeAnybodysShare,
+  openShare,
+  shareAddress,
+  OpenedShareSchema,
+};

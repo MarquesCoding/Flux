@@ -20,6 +20,13 @@ const ShareSchema = z.object({
 
 const ShareListSchema = z.object({ shares: z.array(ShareSchema) });
 
+const AdminShareSchema = ShareSchema.extend({
+  createdBy: z.string(),
+  createdByName: z.string(),
+});
+
+const AdminShareListSchema = z.object({ shares: z.array(AdminShareSchema) });
+
 const NewShareSchema = z
   .object({
     kind: ShareKindSchema,
@@ -36,6 +43,7 @@ const NewShareSchema = z
 const CreatedShareSchema = ShareSchema.extend({ token: z.string().min(1) });
 
 type Share = z.infer<typeof ShareSchema>;
+type AdminShare = z.infer<typeof AdminShareSchema>;
 type ShareKind = z.infer<typeof ShareKindSchema>;
 type NewShare = z.infer<typeof NewShareSchema>;
 type CreatedShare = z.infer<typeof CreatedShareSchema>;
@@ -113,11 +121,13 @@ const shareReaches = (
     ? scope.mediaId === item.id
     : scope.seriesId !== null && scope.seriesId === item.seriesId;
 
-export type { Share, ShareKind, NewShare, CreatedShare, ShareStanding };
+export type { Share, AdminShare, ShareKind, NewShare, CreatedShare, ShareStanding };
 
 export {
   ShareSchema,
   ShareListSchema,
+  AdminShareSchema,
+  AdminShareListSchema,
   ShareKindSchema,
   NewShareSchema,
   CreatedShareSchema,

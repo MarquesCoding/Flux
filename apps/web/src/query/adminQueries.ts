@@ -14,6 +14,7 @@ import {
   fetchAccountPermissions,
 } from '@FluxWeb/admin/fetchRoles';
 import { fetchWebhooks, fetchWebhookDeliveries } from '@FluxWeb/admin/fetchWebhooks';
+import { fetchEverybodysShares } from '@FluxWeb/sharing/fetchShares';
 import { readWholeLibrary } from '@FluxWeb/library/readWholeLibrary';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 
@@ -188,6 +189,17 @@ const everything = (libraryIds: readonly string[]) =>
     enabled: libraryIds.length > 0,
   });
 
+/**
+ * Every link this server has handed out, and who handed each one out.
+ *
+ * @returns The query.
+ */
+const shares = () =>
+  queryOptions({
+    queryKey: [...ADMIN, 'shares'],
+    queryFn: () => fetchEverybodysShares(),
+  });
+
 const adminQueries = {
   overview,
   scans,
@@ -202,6 +214,7 @@ const adminQueries = {
   webhooks,
   deliveries,
   everything,
+  shares,
   key: ADMIN,
 };
 

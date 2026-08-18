@@ -9,28 +9,29 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
 import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
-import { revokeShare } from '@FluxWeb/sharing/fetchShares';
-import { shareQueries } from '@FluxWeb/query/shareQueries';
+import { revokeAnybodysShare } from '@FluxWeb/sharing/fetchShares';
+import { adminQueries } from '@FluxWeb/query/adminQueries';
 import { saidWhen } from '@FluxWeb/format/saidWhen';
 import { standingOf } from '@FluxWeb/sharing/standingOf';
 import { untilWhen } from '@FluxWeb/sharing/untilWhen';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Share } from '@FluxContracts/schemas/Share';
+import type { AdminShare } from '@FluxContracts/schemas/Share';
 
 /**
- * The links this account has handed out: what each points at, when it was made, what will end it,
- * how far through its allowance it is, and a way to withdraw it.
+ * Every link this server has handed out, whoever handed it out: what each points at, who made it,
+ * what will end it, how far through its allowance it is, and a way to withdraw it.
  *
- * A withdrawn link stays in the list rather than disappearing. Somebody who has just withdrawn one
- * wants to see that it happened, and a link that ended on its own is the same kind of fact.
+ * Withdrawing somebody else's link tells them it happened and who did it. That is deliberate — a
+ * link disappearing without a word is the kind of silent act that makes a shared server feel
+ * arbitrary, and whoever made it is the one who has to explain to the person holding it.
  */
-const SharePanel = () => {
+const SharesPanel = () => {
   const cache = useQueryClient();
-  const asked = useQuery(shareQueries.mine());
-  const [withdrawing, setWithdrawing] = useState<Share | null>(null);
+  const asked = useQuery(adminQueries.shares());
+  const [withdrawing, setWithdrawing] = useState<AdminShare | null>(null);
   const [isWorking, setIsWorking] = useState(false);
 
-  const columns = useMemo<DataTableColumn<Share>[]>(
+  const columns = useMemo<DataTableColumn<AdminShare>[]>(
     () => [
       {
         id: 'title',
@@ -48,6 +49,14 @@ const SharePanel = () => {
               Made {saidWhen(row.original.createdAt)}
             </span>
           </span>
+        ),
+      },
+      {
+        id: 'createdBy',
+        header: 'Handed out by',
+        accessorFn: (share) => share.createdByName,
+        cell: ({ row }) => (
+          <span className="truncate text-sm text-text">{row.original.createdByName}</span>
         ),
       },
       {
@@ -114,7 +123,7 @@ const SharePanel = () => {
         detail={
           withdrawing === null
             ? ''
-            : `The link to ${withdrawing.title} stops working at once, including for anybody watching through it right now.`
+            : `${withdrawing.createdByName}’s link to ${withdrawing.title} stops working at once, including for anybody watching through it right now. They will be told it was withdrawn.`
         }
         confirmLabel="Withdraw it"
         isDestructive
@@ -132,8 +141,8 @@ const SharePanel = () => {
 
           setIsWorking(true);
 
-          void revokeShare(share.id)
-            .then(async () => cache.invalidateQueries({ queryKey: shareQueries.key }))
+          void revokeAnybodysShare(share.id)
+            .then(async () => cache.invalidateQueries({ queryKey: adminQueries.shares().queryKey }))
             .finally(() => {
               setIsWorking(false);
               setWithdrawing(null);
@@ -141,29 +150,29 @@ const SharePanel = () => {
         }}
       />
 
-      <CardHeader title="Links you have handed out" />
+      <CardHeader title="Links handed out" />
 
       <p className="px-4 text-sm text-text-muted">
         Anybody holding one of these can watch what it points at without an account here.
-        Withdrawing a link stops it at once, including for anybody watching through it.
+        Withdrawing a link stops it at once, and tells whoever made it.
       </p>
 
       {asked.isPending ? (
         <div className="p-4">
-          <Spinner label="Reading your links" size="sm" />
+          <Spinner label="Reading the links" size="sm" />
         </div>
       ) : (
         <DataTable
-          label="Links you have handed out"
+          label="Links handed out"
           columns={columns}
           rows={asked.data ?? []}
-          emptyMessage="You have not handed out any links. Sharing something from its page makes one."
+          emptyMessage="Nobody has handed out a link."
         />
       )}
     </Card>
   );
 };
 
-SharePanel.displayName = 'SharePanel';
+SharesPanel.displayName = 'SharesPanel';
 
-export { SharePanel };
+export { SharesPanel };

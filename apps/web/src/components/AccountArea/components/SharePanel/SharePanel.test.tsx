@@ -65,7 +65,7 @@ describe('SharePanel', () => {
     renderInACache(<SharePanel />);
 
     expect(await screen.findByText('Live')).toBeInTheDocument();
-    expect(screen.getByText('Until you withdraw it')).toBeInTheDocument();
+    expect(screen.getByText('Until it is withdrawn')).toBeInTheDocument();
   });
 
   it('says what will end a link, whether that is a date or an allowance', async () => {
