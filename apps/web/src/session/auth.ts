@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
+import { writeCurrentProfile } from '@FluxWeb/profiles/currentProfile';
 import type { SessionUser } from '@FluxContracts/schemas/Session';
 import type { Passkey } from '@FluxContracts/schemas/Passkey';
 
@@ -32,14 +33,28 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * The plugins are the ones the server mounts and this application calls: `admin` for the role on a
  * user, `twoFactor`, and `passkey`.
  *
+ * Anything carrying a body says so. The library sends its own JSON without naming it, and a server
+ * asked to parse a body it was not told the shape of is entitled to refuse — which is a sign-out
+ * that answers politely and leaves the session exactly where it was.
+ *
  * @returns The client.
  */
 const buildClient = () =>
   createAuthClient({
     basePath: '/api/auth',
     fetchOptions: {
-      customFetchImpl: async (input, init) =>
-        globalThis.fetch(input instanceof Request ? input : String(input), init),
+      customFetchImpl: async (input, init) => {
+        const headers = new Headers(init?.headers);
+
+        if (init?.body !== undefined && init.body !== null && !headers.has('content-type')) {
+          headers.set('content-type', 'application/json');
+        }
+
+        return globalThis.fetch(input instanceof Request ? input : String(input), {
+          ...init,
+          headers,
+        });
+      },
     },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],
   });
@@ -98,14 +113,32 @@ const fetchSession = async (): Promise<SessionUser | null> => {
 
 /**
  * Ends this session on the server, so the cookie is cleared where it was issued rather than only
- * being forgotten here.
+ * being forgotten here, and forgets which face this device was watching as.
+ *
+ * The face is held on the device rather than in the session, which is what makes signing out easy to
+ * get wrong: end the session alone and the next person to sign in on this television is silently
+ * treated as whoever used it last, with their history and their place in everything.
+ *
+ * Whether it worked is taken from the library's own success hook rather than from the absence of an
+ * error, so that an answer of true means the server said the session is over — which is what the
+ * caller is about to act on by emptying the cache and walking away from the account.
  *
  * @returns Whether the session was ended.
  */
 const signOut = async (): Promise<boolean> => {
-  const { error } = await client.signOut();
+  let ended = false;
 
-  return error === null;
+  await client.signOut({
+    fetchOptions: {
+      onSuccess: () => {
+        ended = true;
+      },
+    },
+  });
+
+  writeCurrentProfile(null);
+
+  return ended;
 };
 
 /**
