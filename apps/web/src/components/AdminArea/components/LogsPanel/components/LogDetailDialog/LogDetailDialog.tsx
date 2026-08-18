@@ -1,4 +1,5 @@
-import { RiCloseLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogTitle } from '@FluxUI/DialogTitle';
@@ -51,7 +52,7 @@ const LogDetailDialog = ({ record, isOpen, onClose }: LogDetailDialogProps) => {
     <Dialog label="Log record" isOpen={isOpen && record !== null} onClose={onClose}>
       <DialogTitle title="Log record">
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-          <RiCloseLine size={16} aria-hidden />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </DialogTitle>
 

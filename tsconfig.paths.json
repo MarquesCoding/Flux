@@ -6,10 +6,12 @@
       "@FluxSDK/*": ["./packages/plugin-sdk/src/*"],
       "@FluxServer/*": ["./apps/server/src/*"],
       "@FluxUI/Badge": ["./packages/ui/src/components/Badge/Badge.tsx"],
+      "@FluxUI/Icon": ["./packages/ui/src/components/Icon/Icon.tsx"],
       "@FluxUI/Button/buttonStyles": ["./packages/ui/src/components/Button/buttonStyles.ts"],
       "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
       "@FluxUI/DataTable": ["./packages/ui/src/components/DataTable/DataTable.tsx"],
       "@FluxUI/Badge.types": ["./packages/ui/src/components/Badge/Badge.types.ts"],
+      "@FluxUI/Icon.types": ["./packages/ui/src/components/Icon/Icon.types.ts"],
       "@FluxUI/DataTable.types": ["./packages/ui/src/components/DataTable/DataTable.types.ts"],
       "@FluxUI/StatTile": ["./packages/ui/src/components/StatTile/StatTile.tsx"],
       "@FluxUI/TrendChart": ["./packages/ui/src/components/TrendChart/TrendChart.tsx"],
@@ -101,7 +103,9 @@
       "@FluxUI/notify": ["./packages/ui/src/functions/notify.ts"],
       "@FluxUI/tooltipScopeContext": ["./packages/ui/src/functions/tooltipScopeContext.ts"],
       "@FluxUI/TooltipScope": ["./packages/ui/src/components/TooltipScope/TooltipScope.tsx"],
-      "@FluxUI/TooltipScope.types": ["./packages/ui/src/components/TooltipScope/TooltipScope.types.ts"],
+      "@FluxUI/TooltipScope.types": [
+        "./packages/ui/src/components/TooltipScope/TooltipScope.types.ts"
+      ],
       "@FluxUI/Tooltip": ["./packages/ui/src/components/Tooltip/Tooltip.tsx"],
       "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
       "@FluxUI/animations/motion": ["./packages/ui/src/animations/motion.ts"],

@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { Alert02Icon, CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { RiAlertLine, RiCheckboxCircleLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { HoverCard } from '@FluxUI/HoverCard';
 import { Button } from '@FluxUI/Button';
@@ -495,9 +496,9 @@ const AdminArea = ({
             <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
               <span className="flex items-center gap-1.5">
                 {overview?.transcoder.isReachable === true ? (
-                  <RiCheckboxCircleLine size={16} className="text-accent" aria-hidden />
+                  <Icon of={CheckmarkCircle02Icon} size={16} className="text-accent" />
                 ) : (
-                  <RiAlertLine size={16} className="text-danger" aria-hidden />
+                  <Icon of={Alert02Icon} size={16} className="text-danger" />
                 )}
                 {overview === null
                   ? 'Reading the server…'
@@ -608,7 +609,7 @@ const AdminArea = ({
             transition={revealTransition(prefersReducedMotion)}
             className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
           >
-            <RiAlertLine size={18} className="shrink-0 text-danger" aria-hidden />
+            <Icon of={Alert02Icon} size={18} className="shrink-0 text-danger" />
             Some of this could not be read from the server, so parts of the page may be missing
             rather than empty.
             <Button

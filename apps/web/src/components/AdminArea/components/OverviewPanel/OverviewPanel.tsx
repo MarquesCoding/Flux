@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { ArrowRight01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { RiArrowRightSLine, RiRefreshLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -61,7 +62,7 @@ const Region = ({
           isLoading={isActionBusy}
         >
           {action}
-          {actionIcon ?? <RiArrowRightSLine size={14} aria-hidden />}
+          {actionIcon ?? <Icon of={ArrowRight01Icon} size={14} />}
         </Button>
       )}
     </header>
@@ -306,7 +307,7 @@ const OverviewPanel = ({
           title="Storage Flux is using"
           className="lg:col-span-4"
           action="Refresh"
-          actionIcon={<RiRefreshLine size={14} aria-hidden />}
+          actionIcon={<Icon of={RefreshIcon} size={14} />}
           isActionBusy={isCounting}
           onAction={() => {
             void recount();
@@ -339,7 +340,7 @@ const OverviewPanel = ({
               }}
             >
               All work
-              <RiArrowRightSLine size={14} aria-hidden />
+              <Icon of={ArrowRight01Icon} size={14} />
             </Button>
           </CardHeader>
 

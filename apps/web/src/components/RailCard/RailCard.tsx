@@ -1,7 +1,8 @@
+import { Icon } from '@FluxUI/Icon';
+import { ArrowTurnForwardIcon, FavouriteIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { RiClockwiseLine, RiHeartFill, RiHeartLine, RiPlayFill } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { MediaCard } from '@FluxUI/MediaCard';
 import { Badge } from '@FluxUI/Badge';
@@ -337,7 +338,7 @@ const RailCard = ({
                       onPlay(media, resumeSeconds ?? 0);
                     }}
                   >
-                    <RiPlayFill size={15} aria-hidden />
+                    <Icon of={PlayIcon} size={15} />
                     {resumeSeconds === undefined
                       ? 'Play'
                       : `Resume from ${formatDuration(resumeSeconds)}`}
@@ -354,7 +355,7 @@ const RailCard = ({
                         onPlay(media, 0);
                       }}
                     >
-                      <RiClockwiseLine size={17} aria-hidden />
+                      <Icon of={ArrowTurnForwardIcon} size={17} />
                     </Button>
                   )}
 
@@ -371,9 +372,9 @@ const RailCard = ({
                       }}
                     >
                       {isKept ? (
-                        <RiHeartFill size={17} aria-hidden />
+                        <Icon of={FavouriteIcon} size={17} />
                       ) : (
-                        <RiHeartLine size={17} aria-hidden />
+                        <Icon of={FavouriteIcon} size={17} />
                       )}
                     </Button>
                   )}

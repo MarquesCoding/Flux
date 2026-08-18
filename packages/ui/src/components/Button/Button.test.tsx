@@ -123,9 +123,22 @@ describe('Button', () => {
       expect(button).not.toHaveClass('px-3.5');
     });
 
-    it('rounds an icon on its own fully, since there round means a circle', () => {
+    it('wears the same corner as everything else, since an icon is not a reason to be round', () => {
       render(
         <Button isIconOnly label="Mute">
+          <span aria-hidden>x</span>
+        </Button>,
+      );
+
+      const button = screen.getByRole('button', { name: 'Mute' });
+
+      expect(button).toHaveClass('rounded-md');
+      expect(button).not.toHaveClass('rounded-full');
+    });
+
+    it('is a circle where one was asked for, which is what a pill means for a glyph', () => {
+      render(
+        <Button isIconOnly isPill label="Mute">
           <span aria-hidden>x</span>
         </Button>,
       );

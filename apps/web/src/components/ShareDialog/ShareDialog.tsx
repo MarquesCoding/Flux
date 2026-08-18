@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon, Copy01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiCloseLine, RiFileCopyLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
@@ -111,7 +112,7 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
       <DialogContent>
         <DialogTitle title={`Share ${media?.seriesTitle ?? media?.title ?? 'this'}`}>
           <Button isIconOnly variant="ghost" label="Close" onClick={onClose}>
-            <RiCloseLine size={20} aria-hidden />
+            <Icon of={Cancel01Icon} size={20} />
           </Button>
         </DialogTitle>
 
@@ -168,7 +169,7 @@ const ShareDialog = ({ media, isOpen, onClose, origin }: ShareDialogProps) => {
                 });
               }}
             >
-              <RiFileCopyLine size={16} aria-hidden />
+              <Icon of={Copy01Icon} size={16} />
               {isCopied ? 'Copied' : 'Copy the link'}
             </Button>
           </div>

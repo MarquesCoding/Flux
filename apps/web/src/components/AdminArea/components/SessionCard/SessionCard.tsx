@@ -1,12 +1,13 @@
-import { useState } from 'react';
+import { Icon } from '@FluxUI/Icon';
 import {
-  RiChat1Line,
-  RiInformationLine,
-  RiPauseLine,
-  RiPlayLine,
-  RiStopLine,
-  RiTvFill,
-} from '@remixicon/react';
+  InformationCircleIcon,
+  Message01Icon,
+  PauseIcon,
+  PlayIcon,
+  StopIcon,
+  Tv01Icon,
+} from '@hugeicons/core-free-icons';
+import { useState } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -36,7 +37,7 @@ const SessionCard = ({
   onMessage,
 }: SessionCardProps) => {
   const { playback } = session;
-  const DeviceIcon = deviceIconFor(session.deviceLabel);
+  const deviceGlyph = deviceIconFor(session.deviceLabel);
   const [isShowingStats, setIsShowingStats] = useState(false);
 
   const health = playback?.health ?? null;
@@ -52,7 +53,7 @@ const SessionCard = ({
             className="h-full w-full object-cover"
           />
         ) : (
-          <RiTvFill size={20} className="text-text-muted" aria-hidden />
+          <Icon of={Tv01Icon} size={20} className="text-text-muted" />
         )}
       </span>
 
@@ -70,7 +71,7 @@ const SessionCard = ({
         </span>
 
         <span className="flex min-w-0 items-center gap-1.5 text-xs text-text-muted">
-          <DeviceIcon size={14} className="shrink-0" aria-hidden />
+          <Icon of={deviceGlyph} size={14} className="shrink-0" />
           <span className="truncate" title={session.deviceLabel}>
             {session.deviceLabel}
           </span>
@@ -126,7 +127,7 @@ const SessionCard = ({
                 disabled={isBusy}
                 onClick={onPause}
               >
-                <RiPauseLine size={15} aria-hidden />
+                <Icon of={PauseIcon} size={15} />
               </Button>
             ) : (
               <Button
@@ -137,7 +138,7 @@ const SessionCard = ({
                 disabled={isBusy}
                 onClick={onResume}
               >
-                <RiPlayLine size={15} aria-hidden />
+                <Icon of={PlayIcon} size={15} />
               </Button>
             )}
 
@@ -149,7 +150,7 @@ const SessionCard = ({
               disabled={isBusy}
               onClick={onStop}
             >
-              <RiStopLine size={15} aria-hidden />
+              <Icon of={StopIcon} size={15} />
             </Button>
 
             <Button
@@ -160,7 +161,7 @@ const SessionCard = ({
               disabled={isBusy}
               onClick={onMessage}
             >
-              <RiChat1Line size={15} aria-hidden />
+              <Icon of={Message01Icon} size={15} />
             </Button>
           </>
         )}
@@ -174,7 +175,7 @@ const SessionCard = ({
             setIsShowingStats(true);
           }}
         >
-          <RiInformationLine size={15} aria-hidden />
+          <Icon of={InformationCircleIcon} size={15} />
         </Button>
       </div>
 

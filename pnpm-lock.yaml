@@ -149,9 +149,12 @@ importers:
       '@flux/ui':
         specifier: workspace:*
         version: link:../../packages/ui
-      '@remixicon/react':
-        specifier: ^4.9.0
-        version: 4.9.0(react@19.2.8)
+      '@hugeicons/core-free-icons':
+        specifier: ^4.2.3
+        version: 4.2.3
+      '@hugeicons/react':
+        specifier: ^1.1.9
+        version: 1.1.9(react@19.2.8)
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
@@ -286,6 +289,12 @@ importers:
 
   packages/ui:
     dependencies:
+      '@hugeicons/core-free-icons':
+        specifier: ^4.2.3
+        version: 4.2.3
+      '@hugeicons/react':
+        specifier: ^1.1.9
+        version: 1.1.9(react@19.2.8)
       '@radix-ui/react-avatar':
         specifier: ^1.2.6
         version: 1.2.6(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -331,9 +340,6 @@ importers:
       '@radix-ui/react-tooltip':
         specifier: ^1.2.16
         version: 1.2.16(@types/react-dom@19.2.4(@types/react@19.2.18))(@types/react@19.2.18)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
-      '@remixicon/react':
-        specifier: ^4.9.0
-        version: 4.9.0(react@19.2.8)
       '@tanstack/react-table':
         specifier: ^9.1.2
         version: 9.1.2(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -2303,6 +2309,20 @@ packages:
       hono: '>=3.9.0'
       zod: ^3.19.1
 
+  '@hugeicons/core-free-icons@4.2.3':
+    resolution:
+      {
+        integrity: sha512-fpiU0qFZkv4ABi23xJ2m4qNr0BBfuIaYjPboN8WDA6aj9D+OzXa7eykxKOpACZRuGbDz1U9S5DsNx1d5KNnsgA==,
+      }
+
+  '@hugeicons/react@1.1.9':
+    resolution:
+      {
+        integrity: sha512-O+lWSWjbijoAvMCxn4K2bQWCGN5+mP1y5j+X99j23mXMj+s0X25fs71T6t9YJLaBodwmZdaewD27dzS/PiboQw==,
+      }
+    peerDependencies:
+      react: '>=16.0.0'
+
   '@humanfs/core@0.19.2':
     resolution:
       {
@@ -3646,14 +3666,6 @@ packages:
         optional: true
       react-redux:
         optional: true
-
-  '@remixicon/react@4.9.0':
-    resolution:
-      {
-        integrity: sha512-5/jLDD4DtKxH2B4QVXTobvV1C2uL8ab9D5yAYNtFt+w80O0Ys1xFOrspqROL3fjrZi+7ElFUWE37hBfaAl6U+Q==,
-      }
-    peerDependencies:
-      react: '>=18.2.0'
 
   '@rolldown/binding-android-arm64@1.2.4':
     resolution:
@@ -11694,6 +11706,12 @@ snapshots:
       hono: 4.13.1
       zod: 3.25.76
 
+  '@hugeicons/core-free-icons@4.2.3': {}
+
+  '@hugeicons/react@1.1.9(react@19.2.8)':
+    dependencies:
+      react: 19.2.8
+
   '@humanfs/core@0.19.2':
     dependencies:
       '@humanfs/types': 0.15.0
@@ -12572,10 +12590,6 @@ snapshots:
     optionalDependencies:
       react: 19.2.8
       react-redux: 9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1)
-
-  '@remixicon/react@4.9.0(react@19.2.8)':
-    dependencies:
-      react: 19.2.8
 
   '@rolldown/binding-android-arm64@1.2.4':
     optional: true

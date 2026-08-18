@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { RefreshIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useMemo, useState } from 'react';
-import { RiRefreshLine, RiSearchLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
@@ -132,7 +133,7 @@ const MediaPanel = ({
                 void rebuild(row.original);
               }}
             >
-              <RiRefreshLine size={15} aria-hidden />
+              <Icon of={RefreshIcon} size={15} />
               {rebuilding === row.original.id
                 ? 'Rebuilding…'
                 : rebuilt.has(row.original.id)
@@ -148,7 +149,7 @@ const MediaPanel = ({
                 onCorrect(row.original);
               }}
             >
-              <RiSearchLine size={15} aria-hidden />
+              <Icon of={Search01Icon} size={15} />
               Wrong match?
             </Button>
           </span>

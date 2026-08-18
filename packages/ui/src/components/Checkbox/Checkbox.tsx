@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { useId } from 'react';
 import * as RadixCheckbox from '@radix-ui/react-checkbox';
-import { RiCheckLine } from '@remixicon/react';
 import { cn } from '@FluxUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
@@ -47,7 +48,7 @@ const Checkbox = ({
         )}
       >
         <RadixCheckbox.Indicator className="flex text-primary-foreground animate-in zoom-in-75 duration-[var(--duration-instant)] motion-reduce:animate-none">
-          <RiCheckLine size={14} aria-hidden />
+          <Icon of={Tick02Icon} size={14} />
         </RadixCheckbox.Indicator>
       </RadixCheckbox.Root>
       <span id={labelId}>{label}</span>
