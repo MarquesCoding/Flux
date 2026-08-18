@@ -45,7 +45,7 @@ const SharePage = ({ name }: SharePageProps) => {
     <ShareArea
       token={place.shareToken ?? ''}
       name={name}
-      resumeFor={(mediaId) => reached.get(mediaId) ?? 0}
+      resumeFor={(mediaId) => reached.get(mediaId) ?? null}
       onPlay={setPlaying}
     />
   );

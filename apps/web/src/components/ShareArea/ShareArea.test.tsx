@@ -78,6 +78,13 @@ describe('what a guest is shown', () => {
     expect(onPlay).toHaveBeenCalledWith(expect.anything(), 640);
   });
 
+  it('offers to play rather than to resume where nothing has been watched', async () => {
+    opened({ resumeFor: () => null });
+
+    expect(await screen.findByRole('button', { name: 'Play' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Resume from/ })).not.toBeInTheDocument();
+  });
+
   it('offers no way anywhere else', async () => {
     opened();
 

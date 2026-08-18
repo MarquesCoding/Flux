@@ -134,6 +134,12 @@ describe('SharePage', () => {
     expect(screen.getByRole('button', { name: 'Play it' })).toBeInTheDocument();
   });
 
+  it('has nothing to resume before anything has been watched', () => {
+    renderInACache(<SharePage name="Flux" />);
+
+    expect(drawn.share?.resumeFor?.(ARRIVAL.id)).toBeNull();
+  });
+
   it('has nowhere else to go, since a guest is not signed in', () => {
     renderInACache(<SharePage name="The Attic" />);
 

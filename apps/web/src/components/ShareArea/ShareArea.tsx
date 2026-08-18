@@ -115,17 +115,21 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
           </h2>
 
           <ul className="flex flex-col gap-2">
-            {[...share.items].sort(inBroadcastOrder).map((episode) => (
-              <li key={episode.id}>
-                <EpisodeRow
-                  episode={episode}
-                  onPlay={(media, startSeconds) => {
-                    onPlay(media, startSeconds);
-                  }}
-                  {...(resumeFor === undefined ? {} : { resumeSeconds: resumeFor(episode.id) })}
-                />
-              </li>
-            ))}
+            {[...share.items].sort(inBroadcastOrder).map((episode) => {
+              const reached = resumeFor?.(episode.id) ?? null;
+
+              return (
+                <li key={episode.id}>
+                  <EpisodeRow
+                    episode={episode}
+                    onPlay={(media, startSeconds) => {
+                      onPlay(media, startSeconds);
+                    }}
+                    {...(reached === null ? {} : { resumeSeconds: reached })}
+                  />
+                </li>
+              );
+            })}
           </ul>
         </section>
       ) : null}
