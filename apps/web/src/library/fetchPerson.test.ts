@@ -39,22 +39,28 @@ describe('fetchPerson', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/people/1245');
   });
 
-  it('answers with nobody where the catalogue said nothing', async () => {
+  it('answers with nobody where the library has no such person, which is an answer', async () => {
     fetchMock.mockResolvedValue(refused);
 
     await expect(fetchPerson(1245)).resolves.toBeNull();
   });
 
-  it('answers with nobody where the request threw', async () => {
-    fetchMock.mockRejectedValue(new Error('offline'));
+  it('says so when the server refuses for any other reason', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
 
-    await expect(fetchPerson(1245)).resolves.toBeNull();
+    await expect(fetchPerson(1245)).rejects.toThrow();
   });
 
-  it('answers with nobody where the server sent something unreadable', async () => {
+  it('says so when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(fetchPerson(1245)).rejects.toThrow();
+  });
+
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ name: 'Amy Adams' }));
 
-    await expect(fetchPerson(1245)).resolves.toBeNull();
+    await expect(fetchPerson(1245)).rejects.toThrow();
   });
 });
 
@@ -70,23 +76,15 @@ describe('fetchPersonCredits', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/people/1245/credits');
   });
 
-  it('answers with nothing where the request was refused', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(refused);
 
-    await expect(fetchPersonCredits(1245)).resolves.toEqual({
-      films: [],
-      shows: [],
-      episodes: [],
-    });
+    await expect(fetchPersonCredits(1245)).rejects.toThrow();
   });
 
-  it('answers with nothing where the request threw', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchPersonCredits(1245)).resolves.toEqual({
-      films: [],
-      shows: [],
-      episodes: [],
-    });
+    await expect(fetchPersonCredits(1245)).rejects.toThrow();
   });
 });

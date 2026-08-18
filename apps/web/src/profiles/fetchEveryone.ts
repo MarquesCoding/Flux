@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
@@ -10,19 +11,7 @@ const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) });
  * accounts behind them.
  */
 const fetchEveryone = async (): Promise<ViewerProfile[]> => {
-  try {
-    const response = await fetch('/api/profiles/everyone', {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return ViewerProfileListSchema.parse(await response.json()).profiles;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/profiles/everyone', ViewerProfileListSchema)).profiles;
 };
 
 /**

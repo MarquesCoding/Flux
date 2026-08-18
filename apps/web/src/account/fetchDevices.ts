@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 
 const DeviceSchema = z.object({
@@ -19,20 +20,7 @@ type Device = z.infer<typeof DeviceSchema>;
  * to anybody counting.
  */
 const fetchDevices = async (): Promise<Device[]> => {
-  try {
-    const response = await fetch('/api/account/devices', {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return DeviceListSchema.parse(await response.json()).devices;
-  } catch {
-    return [];
-  }
+  return (await readFromServer('/api/account/devices', DeviceListSchema)).devices;
 };
 
 /**

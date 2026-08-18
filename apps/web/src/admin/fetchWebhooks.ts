@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';
@@ -26,14 +27,12 @@ type NewWebhook = {
  * @returns The subscriptions, or none where the request failed.
  */
 const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
-  const response = await fetch('/api/webhooks', { credentials: 'same-origin' }).catch(() => null);
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.object({ webhooks: z.array(WebhookSubscriptionSchema) }).parse(await response.json())
-    .webhooks;
+  return (
+    await readFromServer(
+      '/api/webhooks',
+      z.object({ webhooks: z.array(WebhookSubscriptionSchema) }),
+    )
+  ).webhooks;
 };
 
 /**
@@ -128,16 +127,12 @@ const testWebhook = async (id: string): Promise<Refusal> => {
  * @returns Its recent deliveries.
  */
 const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> => {
-  const response = await fetch(`/api/webhooks/${id}/deliveries`, {
-    credentials: 'same-origin',
-  }).catch(() => null);
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.object({ deliveries: z.array(WebhookDeliverySchema) }).parse(await response.json())
-    .deliveries;
+  return (
+    await readFromServer(
+      `/api/webhooks/${id}/deliveries`,
+      z.object({ deliveries: z.array(WebhookDeliverySchema) }),
+    )
+  ).deliveries;
 };
 
 /**

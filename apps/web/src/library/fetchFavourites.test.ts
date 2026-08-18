@@ -33,22 +33,22 @@ describe('fetchFavourites', () => {
     await expect(fetchFavourites()).resolves.toEqual(['9c858901-8a57-4791-81fe-4c455b099bc9']);
   });
 
-  it('answers with nothing rather than throwing when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
 
-    await expect(fetchFavourites()).resolves.toEqual([]);
+    await expect(fetchFavourites()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the answer is not one', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ favourites: [{ mediaId: 'not an identifier' }] }));
 
-    await expect(fetchFavourites()).resolves.toEqual([]);
+    await expect(fetchFavourites()).rejects.toThrow();
   });
 
-  it('answers with nothing rather than throwing when the request fails outright', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchFavourites()).resolves.toEqual([]);
+    await expect(fetchFavourites()).rejects.toThrow();
   });
 });
 

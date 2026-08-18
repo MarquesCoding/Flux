@@ -38,20 +38,20 @@ describe('fetchShows', () => {
     });
   });
 
-  it('answers with none where the server refused or could not be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockResolvedValue(said({}, false));
 
-    await expect(fetchShows(LIBRARY)).resolves.toEqual([]);
+    await expect(fetchShows(LIBRARY)).rejects.toThrow();
 
     fetchMock.mockRejectedValue(new Error('gone'));
 
-    await expect(fetchShows(LIBRARY)).resolves.toEqual([]);
+    await expect(fetchShows(LIBRARY)).rejects.toThrow();
   });
 
-  it('answers with none where the answer is not a list of programmes', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({ shows: 'lots' }));
 
-    await expect(fetchShows(LIBRARY)).resolves.toEqual([]);
+    await expect(fetchShows(LIBRARY)).rejects.toThrow();
   });
 });
 
@@ -66,21 +66,21 @@ describe('fetchShow', () => {
     });
   });
 
-  it('answers with nothing where the library holds no such programme', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({}, false));
 
-    await expect(fetchShow(LIBRARY, 'ted')).resolves.toBeNull();
+    await expect(fetchShow(LIBRARY, 'ted')).rejects.toThrow();
   });
 
-  it('answers with nothing where the answer is not a programme', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(said({ id: 'ted' }));
 
-    await expect(fetchShow(LIBRARY, 'ted')).resolves.toBeNull();
+    await expect(fetchShow(LIBRARY, 'ted')).rejects.toThrow();
   });
 
-  it('answers with nothing where the server could not be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('gone'));
 
-    await expect(fetchShow(LIBRARY, 'ted')).resolves.toBeNull();
+    await expect(fetchShow(LIBRARY, 'ted')).rejects.toThrow();
   });
 });

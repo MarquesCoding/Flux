@@ -56,22 +56,22 @@ describe('fetchProfiles', () => {
     await expect(fetchProfiles()).resolves.toEqual([PROFILE]);
   });
 
-  it('shows nobody rather than failing when the server refuses', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({}, false);
 
-    await expect(fetchProfiles()).resolves.toEqual([]);
+    await expect(fetchProfiles()).rejects.toThrow();
   });
 
-  it('shows nobody rather than failing when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchProfiles()).resolves.toEqual([]);
+    await expect(fetchProfiles()).rejects.toThrow();
   });
 
-  it('shows nobody rather than throwing on an answer it cannot read', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     answerWith({ profiles: [{ id: 'not a profile' }] });
 
-    await expect(fetchProfiles()).resolves.toEqual([]);
+    await expect(fetchProfiles()).rejects.toThrow();
   });
 });
 

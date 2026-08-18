@@ -46,22 +46,22 @@ describe('fetchRatings', () => {
     ]);
   });
 
-  it('answers with none where the request was refused', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(refused);
 
-    await expect(fetchRatings()).resolves.toEqual([]);
+    await expect(fetchRatings()).rejects.toThrow();
   });
 
-  it('answers with none where the request threw', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchRatings()).resolves.toEqual([]);
+    await expect(fetchRatings()).rejects.toThrow();
   });
 
-  it('answers with none where the server sent something unreadable', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(ok({ ratings: [{ stars: 'four' }] }));
 
-    await expect(fetchRatings()).resolves.toEqual([]);
+    await expect(fetchRatings()).rejects.toThrow();
   });
 });
 
@@ -128,21 +128,15 @@ describe('fetchHouseholdRating', () => {
     expect(fetchMock.mock.calls[0]?.[0]).toBe(`/api/series/${SERIES_ID}/rating/household`);
   });
 
-  it('answers with nothing rather than zero where the request was refused', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     fetchMock.mockResolvedValue(refused);
 
-    await expect(fetchHouseholdRating({ mediaId: MEDIA_ID })).resolves.toEqual({
-      average: null,
-      count: 0,
-    });
+    await expect(fetchHouseholdRating({ mediaId: MEDIA_ID })).rejects.toThrow();
   });
 
-  it('answers with nothing where the request threw', async () => {
+  it('says so when the server cannot be reached', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
-    await expect(fetchHouseholdRating({ mediaId: MEDIA_ID })).resolves.toEqual({
-      average: null,
-      count: 0,
-    });
+    await expect(fetchHouseholdRating({ mediaId: MEDIA_ID })).rejects.toThrow();
   });
 });

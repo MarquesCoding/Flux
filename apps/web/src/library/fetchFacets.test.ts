@@ -38,21 +38,21 @@ describe('fetchFacets', () => {
     expect(fetchImpl).toHaveBeenCalledWith('/api/library-facets', expect.anything());
   });
 
-  it('offers no filters rather than failing when the server refuses', async () => {
+  it('says so when the server refuses, rather than answering with nothing', async () => {
     vi.stubGlobal('fetch', answering({ error: 'Nobody is signed in.' }, 401));
 
-    expect(await fetchFacets()).toStrictEqual(NOTHING);
+    await expect(fetchFacets()).rejects.toThrow();
   });
 
-  it('offers no filters when the server cannot be reached', async () => {
+  it('says so when the server cannot be reached', async () => {
     vi.stubGlobal('fetch', vi.fn().mockRejectedValue(new Error('offline')));
 
-    expect(await fetchFacets()).toStrictEqual(NOTHING);
+    await expect(fetchFacets()).rejects.toThrow();
   });
 
-  it('offers no filters when the answer is not one it understands', async () => {
+  it('says so when the answer is not the shape it was promised', async () => {
     vi.stubGlobal('fetch', answering({ unexpected: true }));
 
-    expect(await fetchFacets()).toStrictEqual(NOTHING);
+    await expect(fetchFacets()).rejects.toThrow();
   });
 });

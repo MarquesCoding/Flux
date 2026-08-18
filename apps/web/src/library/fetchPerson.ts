@@ -1,7 +1,7 @@
+import { readFromServerOrAbsent } from '@FluxWeb/query/readFromServerOrAbsent';
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { PersonCreditsSchema, PersonSchema } from '@FluxContracts/schemas/Person';
 import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
-
-const NOTHING: PersonCredits = { films: [], shows: [], episodes: [] };
 
 /**
  * Reads what the catalogue knows about somebody — their portrait, their biography, where and when
@@ -12,20 +12,7 @@ const NOTHING: PersonCredits = { films: [], shows: [], episodes: [] };
  * @returns Who they are, or null where the catalogue answered nothing.
  */
 const fetchPerson = async (personId: number): Promise<Person | null> => {
-  try {
-    const response = await fetch(`/api/people/${personId.toString()}`, {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return PersonSchema.parse(await response.json());
-  } catch {
-    return null;
-  }
+  return readFromServerOrAbsent(`/api/people/${personId.toString()}`, PersonSchema);
 };
 
 /**
@@ -37,20 +24,7 @@ const fetchPerson = async (personId: number): Promise<Person | null> => {
  * @returns The films, programmes and episodes of theirs held here.
  */
 const fetchPersonCredits = async (personId: number): Promise<PersonCredits> => {
-  try {
-    const response = await fetch(`/api/people/${personId.toString()}/credits`, {
-      credentials: 'same-origin',
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return NOTHING;
-    }
-
-    return PersonCreditsSchema.parse(await response.json());
-  } catch {
-    return NOTHING;
-  }
+  return readFromServer(`/api/people/${personId.toString()}/credits`, PersonCreditsSchema);
 };
 
 export { fetchPerson, fetchPersonCredits };

@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';
@@ -31,16 +32,12 @@ type AccountPermissions = z.infer<typeof AccountPermissionsSchema>;
  * @returns The permissions, or none where the request failed.
  */
 const fetchPermissionCatalogue = async (): Promise<Permission[]> => {
-  const response = await fetch('/api/admin/permissions', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.object({ permissions: z.array(PermissionSchema) }).parse(await response.json())
-    .permissions;
+  return (
+    await readFromServer(
+      '/api/admin/permissions',
+      z.object({ permissions: z.array(PermissionSchema) }),
+    )
+  ).permissions;
 };
 
 /**
@@ -50,15 +47,7 @@ const fetchPermissionCatalogue = async (): Promise<Permission[]> => {
  * @returns The roles, or none where the request failed.
  */
 const fetchRoles = async (): Promise<Role[]> => {
-  const response = await fetch('/api/admin/roles', { credentials: 'same-origin' }).catch(
-    () => null,
-  );
-
-  if (response === null || !response.ok) {
-    return [];
-  }
-
-  return z.object({ roles: z.array(RoleSchema) }).parse(await response.json()).roles;
+  return (await readFromServer('/api/admin/roles', z.object({ roles: z.array(RoleSchema) }))).roles;
 };
 
 /**
@@ -127,16 +116,8 @@ const deleteRole = async (id: string): Promise<Refusal> => {
  * @param userId - The account being asked about.
  * @returns What it may do, or null where the request failed.
  */
-const fetchAccountPermissions = async (userId: string): Promise<AccountPermissions | null> => {
-  const response = await fetch(`/api/admin/accounts/${userId}/roles`, {
-    credentials: 'same-origin',
-  }).catch(() => null);
-
-  if (response === null || !response.ok) {
-    return null;
-  }
-
-  return AccountPermissionsSchema.parse(await response.json());
+const fetchAccountPermissions = async (userId: string): Promise<AccountPermissions> => {
+  return readFromServer(`/api/admin/accounts/${userId}/roles`, AccountPermissionsSchema);
 };
 
 /**

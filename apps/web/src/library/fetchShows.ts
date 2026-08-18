@@ -1,3 +1,5 @@
+import { readFromServerOrAbsent } from '@FluxWeb/query/readFromServerOrAbsent';
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show';
 import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
 
@@ -9,19 +11,7 @@ import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
  * @returns Its programmes.
  */
 const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
-  try {
-    const response = await fetch(`/api/libraries/${libraryId}/shows`, {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return [];
-    }
-
-    return ShowListSchema.parse(await response.json()).shows;
-  } catch {
-    return [];
-  }
+  return (await readFromServer(`/api/libraries/${libraryId}/shows`, ShowListSchema)).shows;
 };
 
 /**
@@ -33,19 +23,7 @@ const fetchShows = async (libraryId: string): Promise<ShowSummary[]> => {
  * @returns The programme, or null where the library holds no such thing.
  */
 const fetchShow = async (libraryId: string, showId: string): Promise<ShowDetail | null> => {
-  try {
-    const response = await fetch(`/api/libraries/${libraryId}/shows/${showId}`, {
-      headers: { accept: 'application/json' },
-    });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return ShowDetailSchema.parse(await response.json());
-  } catch {
-    return null;
-  }
+  return readFromServerOrAbsent(`/api/libraries/${libraryId}/shows/${showId}`, ShowDetailSchema);
 };
 
 export { fetchShows, fetchShow };

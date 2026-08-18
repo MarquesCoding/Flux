@@ -1,3 +1,4 @@
+import { readFromServer } from '@FluxWeb/query/readFromServer';
 import { z } from 'zod';
 
 const HealthSchema = z.object({ version: z.string() });
@@ -20,18 +21,8 @@ const describeVersion = (reported: string): string =>
  * Which version of Flux this is, as the server reports it — worth having in the interface so that a
  * problem can be reported against a version rather than against "the latest".
  */
-const readVersion = async (): Promise<string | null> => {
-  try {
-    const response = await fetch('/api/health', { headers: { accept: 'application/json' } });
-
-    if (!response.ok) {
-      return null;
-    }
-
-    return describeVersion(HealthSchema.parse(await response.json()).version);
-  } catch {
-    return null;
-  }
+const readVersion = async (): Promise<string> => {
+  return describeVersion((await readFromServer('/api/health', HealthSchema)).version);
 };
 
 export { readVersion, describeVersion, LOCAL };
