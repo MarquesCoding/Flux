@@ -17,6 +17,7 @@ import { Spinner } from '@FluxUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { useQuery } from '@tanstack/react-query';
+import { useHeldWhileLeaving } from '@FluxWeb/shell/useHeldWhileLeaving';
 import { libraryQueries } from '@FluxWeb/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';
@@ -71,7 +72,7 @@ const ShowDialog = ({
   const prefersReducedMotion = useReducedMotion();
 
   const asked = useQuery(libraryQueries.show(show?.libraryId ?? null, show?.id ?? null));
-  const detail = show === null ? null : (asked.data ?? null);
+  const detail = useHeldWhileLeaving(asked.data ?? null, show !== null);
   const isLoading = show !== null && asked.isPending;
 
   const carryOnRef = useRef({ resumeFor, isFinished });

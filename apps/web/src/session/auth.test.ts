@@ -13,7 +13,7 @@ import {
   verifyTotp,
 } from './auth';
 
-const fetchMock = vi.fn();
+const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>();
 
 const AN_ACCOUNT = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -96,6 +96,25 @@ describe('signOut', () => {
     await expect(signOut()).resolves.toBe(true);
 
     expect(asked()).toBe('/api/auth/sign-out');
+  });
+
+  it('sends what it is sending, so the server will parse the body it was given', async () => {
+    fetchMock.mockResolvedValue(said({ success: true }));
+
+    await signOut();
+
+    const sent = new Headers(fetchMock.mock.calls[0]?.[1]?.headers);
+
+    expect(sent.get('content-type')).toBe('application/json');
+  });
+
+  it('forgets which face this device was watching as', async () => {
+    window.localStorage.setItem('flux.profile', 'somebody');
+    fetchMock.mockResolvedValue(said({ success: true }));
+
+    await signOut();
+
+    expect(window.localStorage.getItem('flux.profile')).toBeNull();
   });
 
   it('says so when the server would not end it', async () => {

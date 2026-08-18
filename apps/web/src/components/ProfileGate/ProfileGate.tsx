@@ -1,4 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
+import { Logo } from '@FluxUI/Logo';
 import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -89,6 +90,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [isTitleOver, setIsTitleOver] = useState(false);
   const [isReturning, setIsReturning] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
+
+  const isFlux = name.toLowerCase() === 'flux';
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
   const prefersReducedMotion = useReducedMotion();
 
@@ -237,15 +240,27 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           scale: { duration: 0.7, ease: 'easeOut' },
           layout: move,
         }}
-        className={cn(
-          'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
-          'tracking-[-0.05em] text-transparent',
-          isTitleOver
-            ? 'text-[clamp(1.75rem,4vw,2.5rem)]'
-            : 'absolute text-[clamp(3rem,12vw,7rem)]',
-        )}
+        className={cn('flex items-center gap-1', isTitleOver ? '' : 'absolute')}
       >
-        {name}
+        {isFlux ? (
+          <Logo
+            size={isTitleOver ? 44 : 128}
+            isDotted={!isTitleOver}
+            hasEdge
+            isAnimated
+            label={name}
+          />
+        ) : (
+          <span
+            className={cn(
+              'bg-gradient-to-br from-text via-text to-accent bg-clip-text font-semibold',
+              'tracking-[-0.05em] text-transparent',
+              isTitleOver ? 'text-[clamp(1.75rem,4vw,2.5rem)]' : 'text-[clamp(3rem,12vw,7rem)]',
+            )}
+          >
+            {name}
+          </span>
+        )}
       </motion.p>
 
       {!isTitleOver ? null : everyone === null ? (

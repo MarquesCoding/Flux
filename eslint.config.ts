@@ -50,6 +50,11 @@ export default tseslint.config(
                 'Icons come from @hugeicons/core-free-icons, drawn by @FluxUI/Icon — see code standards section 10.',
             },
             {
+              group: ['@base-ui/react', '@base-ui/react/*'],
+              message:
+                'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
+            },
+            {
               group: ['@hugeicons/react'],
               importNames: ['HugeiconsIcon'],
               message:
@@ -117,7 +122,10 @@ export default tseslint.config(
     },
   },
   {
-    files: ['packages/ui/src/components/Icon/Icon.tsx'],
+    files: [
+      'packages/ui/src/components/Icon/Icon.tsx',
+      'packages/ui/src/components/Dialog/Dialog.tsx',
+    ],
     rules: {
       'no-restricted-imports': 'off',
     },
