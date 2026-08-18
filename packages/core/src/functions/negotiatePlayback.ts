@@ -48,9 +48,18 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
 
 /**
  * Decides what to do with the picture: pass it through untouched where the device can play it as it
- * is and it is within any ceiling asked for, or transcode it down to what it can. The ceiling is the
- * tighter of what the device says it can take and what the viewer pinned, since a viewer choosing a
- * lower quality means it, and a device saying it cannot manage a higher one is not negotiable.
+ * is and it is within any ceiling asked for, or transcode it down to what it can.
+ *
+ * Bitrate takes the tighter of the two, because that ceiling is about what a network can carry and
+ * is not a matter of taste. Resolution does not: a pinned rung wins outright, even above the size
+ * of the screen. `profile.maxWidth` is the display's own size, which is a sensible default and a
+ * poor veto — 4K into a 1440p panel is downsampled by the display and looks better for it, which is
+ * why every streaming service offers the choice rather than hiding it. What the device genuinely
+ * cannot decode is enforced elsewhere, through codec support and level limits, so nothing here is
+ * holding back a picture the hardware would choke on.
+ *
+ * Which leaves "original" meaning what a viewer would expect it to: as the file is, sized for the
+ * screen in front of them. Asking for a rung is asking for something else on purpose.
  *
  * @param media - The file, as the catalogue holds it.
  * @param profile - What the device says it can play.
@@ -70,9 +79,8 @@ const decideVideo = (
     clamp === null
       ? profile.maxBitrateKbps
       : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps);
-  const maxWidth = clamp === null ? profile.maxWidth : Math.min(profile.maxWidth, clamp.maxWidth);
-  const maxHeight =
-    clamp === null ? profile.maxHeight : Math.min(profile.maxHeight, clamp.maxHeight);
+  const maxWidth = clamp === null ? profile.maxWidth : clamp.maxWidth;
+  const maxHeight = clamp === null ? profile.maxHeight : clamp.maxHeight;
 
   const transcodeTo = (
     code:
@@ -99,6 +107,10 @@ const decideVideo = (
       sourceCodec: media.videoCodec,
       targetCodec,
       ceilingKbps: maxBitrateKbps,
+      sourceWidth: media.width,
+      sourceHeight: media.height,
+      maxWidth,
+      maxHeight,
     }),
     maxWidth,
     maxHeight,

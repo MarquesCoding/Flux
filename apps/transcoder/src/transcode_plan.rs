@@ -957,6 +957,80 @@ impl HardwareAccel {
     }
 }
 
+/// How hard each encoder family is asked to work, on its own scale.
+///
+/// There is no shared unit here and the scales do not even point the same way. x264 and x265 count
+/// CRF from 0 to 51 where lower is better; SVT-AV1 goes to 63 and needs a higher number for the
+/// same picture; `VideoToolbox` runs 1 to 100 with **higher** being better, which is the trap in
+/// this table. A value copied from one family into another is not merely mistuned, it is a
+/// different request entirely, and the two directions mean a mistake reads as either mush or a file
+/// several times the size it should be.
+///
+/// Measured against this build rather than taken from documentation. Each pairing below was run.
+const QUALITY_TARGETS: [(&str, &str, &str); 10] = [
+    ("libx264", "-crf", "21"),
+    ("libx265", "-crf", "24"),
+    ("libsvtav1", "-crf", "32"),
+    ("libvpx-vp9", "-crf", "32"),
+    ("h264_videotoolbox", "-q:v", "62"),
+    ("hevc_videotoolbox", "-q:v", "62"),
+    ("h264_nvenc", "-cq", "23"),
+    ("hevc_nvenc", "-cq", "25"),
+    ("av1_nvenc", "-cq", "29"),
+    ("libvpx", "-crf", "32"),
+];
+
+/// Encoders that will not open on a quality target without a bitrate to anchor it to.
+const NEEDS_A_BITRATE_TOO: [&str; 2] = ["libvpx-vp9", "libvpx"];
+
+/// How much the encoder may overshoot the cap before it has to give the bits back.
+const BUFFER_MULTIPLE: u32 = 2;
+
+/// How to ask an encoder for a picture, rather than for a number of bits.
+///
+/// A bitrate is not a quality. Told to hit four and a half megabits, an encoder spends all of them
+/// whatever it is given: an animated film that would have been transparent at half the bits gets
+/// them anyway, and a grainy one that needed more is held to the same figure and smears. What the
+/// content actually costs varies by more than the ladder ever could.
+///
+/// So the bitrate becomes a **ceiling** rather than a target, and the encoder is given a quality to
+/// hold instead. It spends what the picture needs and stops. The file size stops being dictated and
+/// becomes a consequence, which is also what FLUX-21 wants for download estimates: `maxrate` times
+/// duration is an upper bound, and the real file usually comes in under it.
+///
+/// `bufsize` is what makes the ceiling mean anything. It is the window the cap is measured over —
+/// without it an encoder may satisfy `maxrate` on average while sending a burst no connection can
+/// carry through the scene that mattered.
+///
+/// An encoder with no quality scale here keeps the bitrate it always had, now capped rather than
+/// merely aimed at. That is strictly better than before and asks nothing of a backend nobody has
+/// put a file through: AMF, RKMPP, QSV and VAAPI each express quality differently enough that
+/// guessing would be worse than the honest bitrate they already get.
+///
+#[must_use]
+pub fn rate_control_arguments(encoder: &str, max_bitrate_kbps: u32) -> Vec<String> {
+    let target = QUALITY_TARGETS.iter().find(|(name, _, _)| *name == encoder);
+
+    let mut arguments = Vec::new();
+
+    if let Some((_, flag, value)) = target {
+        arguments.push((*flag).to_owned());
+        arguments.push((*value).to_owned());
+    }
+
+    if target.is_none() || NEEDS_A_BITRATE_TOO.contains(&encoder) {
+        arguments.push("-b:v".to_owned());
+        arguments.push(format!("{max_bitrate_kbps}k"));
+    }
+
+    arguments.push("-maxrate".to_owned());
+    arguments.push(format!("{max_bitrate_kbps}k"));
+    arguments.push("-bufsize".to_owned());
+    arguments.push(format!("{}k", max_bitrate_kbps * BUFFER_MULTIPLE));
+
+    arguments
+}
+
 /// The render node a `VAAPI` or `QSV` pipeline is opened on.
 pub const DEFAULT_DEVICE: &str = "/dev/dri/renderD128";
 
@@ -1149,8 +1223,7 @@ impl TranscodePlan {
             } => {
                 args.push("-c:v".into());
                 args.push(encoder.clone());
-                args.push("-b:v".into());
-                args.push(format!("{max_bitrate_kbps}k"));
+                args.extend(rate_control_arguments(encoder, *max_bitrate_kbps));
                 args.extend(
                     NO_EMBEDDED_CAPTIONS
                         .iter()
@@ -1417,9 +1490,9 @@ impl TranscodePlan {
 mod tests {
     use super::{
         composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
-        keeps_frames_on_the_gpu, software_equivalent, AudioAction, DeviceFilters, FrameRoute,
-        HardwareAccel, SegmentContainer, SegmentStart, SessionSpec, SubtitleAction, ToneMapping,
-        TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        keeps_frames_on_the_gpu, rate_control_arguments, software_equivalent, AudioAction,
+        DeviceFilters, FrameRoute, HardwareAccel, SegmentContainer, SegmentStart, SessionSpec,
+        SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -2207,6 +2280,102 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
         assert_eq!(width % 2, 0);
         assert_eq!(height % 2, 0);
+    }
+
+    /// The scales do not agree and two of them do not even point the same way, so the mapping is
+    /// checked rather than trusted. Every pairing here was run against the shipped build.
+    #[test]
+    fn asks_each_encoder_for_quality_on_its_own_scale() {
+        for (encoder, flag, value) in [
+            ("libx264", "-crf", "21"),
+            ("libx265", "-crf", "24"),
+            ("libsvtav1", "-crf", "32"),
+            ("h264_videotoolbox", "-q:v", "62"),
+            ("h264_nvenc", "-cq", "23"),
+        ] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                arguments.windows(2).any(|pair| pair == [flag, value]),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// `VideoToolbox` counts the other way. Sixty-two is a good picture there and near worthless as a
+    /// CRF, so a value carried across from x264 would not be mistuned but inverted.
+    #[test]
+    fn does_not_hand_videotoolbox_a_crf_value() {
+        let arguments = rate_control_arguments("h264_videotoolbox", 2500);
+
+        assert!(
+            !arguments.iter().any(|argument| argument == "-crf"),
+            "{arguments:?}"
+        );
+    }
+
+    /// The ceiling is the point. Without bufsize an encoder can satisfy maxrate on average and
+    /// still burst through a scene at a rate the connection cannot carry.
+    #[test]
+    fn caps_every_encoder_with_a_window_to_measure_it_over() {
+        for encoder in ["libx264", "h264_videotoolbox", "h264_vaapi", "h264_amf"] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                arguments
+                    .windows(2)
+                    .any(|pair| pair == ["-maxrate", "2500k"]),
+                "{encoder}: {arguments:?}"
+            );
+            assert!(
+                arguments
+                    .windows(2)
+                    .any(|pair| pair == ["-bufsize", "5000k"]),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// A backend nobody has put a file through keeps what it had, capped rather than merely aimed
+    /// at. Guessing a quality scale for it would be worse than the bitrate it already gets.
+    #[test]
+    fn leaves_an_unmeasured_backend_on_a_bitrate() {
+        for encoder in ["h264_vaapi", "hevc_qsv", "h264_amf", "h264_rkmpp"] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                arguments.windows(2).any(|pair| pair == ["-b:v", "2500k"]),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// VP9 refuses a quality target with nothing to anchor it to: "Rate control parameters set
+    /// without a bitrate". Measured, and the reason this exception exists.
+    #[test]
+    fn gives_vp9_the_bitrate_it_insists_on_alongside_the_quality() {
+        let arguments = rate_control_arguments("libvpx-vp9", 2500);
+
+        assert!(
+            arguments.windows(2).any(|pair| pair == ["-crf", "32"]),
+            "{arguments:?}"
+        );
+        assert!(
+            arguments.windows(2).any(|pair| pair == ["-b:v", "2500k"]),
+            "{arguments:?}"
+        );
+    }
+
+    /// A quality targeted encoder must not also be told to hit a bitrate, which is the instruction
+    /// the quality target replaces.
+    #[test]
+    fn does_not_ask_a_quality_targeted_encoder_to_hit_a_bitrate_as_well() {
+        let arguments = rate_control_arguments("libx264", 2500);
+
+        assert!(
+            !arguments.iter().any(|argument| argument == "-b:v"),
+            "{arguments:?}"
+        );
     }
 
     #[test]

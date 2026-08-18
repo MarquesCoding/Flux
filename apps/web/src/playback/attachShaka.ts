@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { deliveredBitrateKbps } from '@FluxWeb/playback/deliveredBitrateKbps';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 type ShakaVariant = {
@@ -14,12 +15,19 @@ type ShakaVariant = {
   channelsCount?: number | null;
 };
 
+type ShakaStats = {
+  bytesDownloaded?: number;
+  playTime?: number;
+  streamBandwidth?: number;
+};
+
 type ShakaPlayer = {
   attach: (element: HTMLMediaElement) => Promise<void>;
   load: (manifestUrl: string, startSeconds?: number) => Promise<void>;
   destroy: () => Promise<void>;
   addEventListener?: (name: string, listener: (event: Event) => void) => void;
   getVariantTracks?: () => ShakaVariant[];
+  getStats?: () => ShakaStats;
 };
 
 type ShakaModule = {
@@ -75,7 +83,21 @@ type AttachedStream = {
  * @param variants - The variants the engine knows about.
  * @returns The active one, or nothing where the engine has not selected one yet.
  */
-const deliveredFormat = (variants: readonly ShakaVariant[]): DeliveredFormat | null => {
+const mediaFetched = (element: HTMLVideoElement): number => {
+  try {
+    const ranges = element.buffered;
+
+    return ranges.length === 0 ? 0 : ranges.end(ranges.length - 1);
+  } catch {
+    return 0;
+  }
+};
+
+const deliveredFormat = (
+  variants: readonly ShakaVariant[],
+  stats: ShakaStats | null,
+  measuredKbps: number | null = null,
+): DeliveredFormat | null => {
   const active = variants.find((variant) => variant.active);
 
   if (active === undefined) {
@@ -90,9 +112,11 @@ const deliveredFormat = (variants: readonly ShakaVariant[]): DeliveredFormat | n
     height: active.height ?? null,
     frameRate: active.frameRate ?? null,
     bitrateKbps:
-      active.bandwidth === null || active.bandwidth === undefined
-        ? null
-        : Math.round(active.bandwidth / 1000),
+      deliveredBitrateKbps({
+        declaredBandwidth: active.bandwidth ?? stats?.streamBandwidth,
+        bytesFetched: null,
+        mediaSecondsFetched: null,
+      }) ?? measuredKbps,
     audioSampleRate: active.audioSamplingRate ?? null,
     audioChannels: active.channelsCount ?? null,
   };
@@ -163,12 +187,38 @@ const attachShaka = async ({
     await player.load(manifestUrl);
   }
 
+  let lastSample: { bytes: number; mediaSeconds: number } | null = null;
+  let measuredKbps: number | null = null;
+
   return {
     detach: () => player.destroy(),
-    readDelivered: () => deliveredFormat(player.getVariantTracks?.() ?? []),
+    readDelivered: () => {
+      const stats = player.getStats?.() ?? null;
+      const sample = { bytes: stats?.bytesDownloaded ?? 0, mediaSeconds: mediaFetched(element) };
+
+      const bytesFetched = sample.bytes - (lastSample?.bytes ?? 0);
+      const mediaSecondsFetched = sample.mediaSeconds - (lastSample?.mediaSeconds ?? 0);
+
+      if (lastSample === null || bytesFetched < 0 || mediaSecondsFetched < 0) {
+        lastSample = sample;
+      } else {
+        const measured = deliveredBitrateKbps({
+          declaredBandwidth: null,
+          bytesFetched,
+          mediaSecondsFetched,
+        });
+
+        if (measured !== null) {
+          measuredKbps = measured;
+          lastSample = sample;
+        }
+      }
+
+      return deliveredFormat(player.getVariantTracks?.() ?? [], stats, measuredKbps);
+    },
   };
 };
 
-export type { AttachedStream, DeliveredFormat, ShakaModule, ShakaPlayer, ShakaVariant };
+export type { AttachedStream, DeliveredFormat, ShakaModule, ShakaPlayer, ShakaStats, ShakaVariant };
 
 export { attachShaka, deliveredFormat, faultFrom, CRITICAL };
