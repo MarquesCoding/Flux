@@ -160,6 +160,9 @@ const createMemoryShareService = (
       } satisfies ResolvedShare);
     },
 
+    hasJoined: (shareId, joiner) =>
+      Promise.resolve(state.shares.find((one) => one.id === shareId)?.joiners.has(joiner) === true),
+
     join: (shareId, joiner) => {
       state.shares.find((one) => one.id === shareId)?.joiners.add(joiner);
 

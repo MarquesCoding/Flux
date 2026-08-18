@@ -51,6 +51,31 @@ describe('isShareLive', () => {
     expect(isShareLive(standing({ viewCap: 3, views: 3 }), NOW)).toBe(false);
   });
 
+  it('still admits somebody it has already let in, who is one of the views it counted', () => {
+    expect(isShareLive(standing({ viewCap: 1, views: 1, isReturning: true }), NOW)).toBe(true);
+  });
+
+  it('refuses somebody new once it is full, which is what a cap is for', () => {
+    expect(isShareLive(standing({ viewCap: 1, views: 1, isReturning: false }), NOW)).toBe(false);
+  });
+
+  it('withdraws from somebody already let in, since that is not about how many there are', () => {
+    const pulled = standing({ viewCap: 1, views: 1, isReturning: true, revokedAt: NOW });
+
+    expect(isShareLive(pulled, NOW)).toBe(false);
+  });
+
+  it('expires for somebody already let in, for the same reason', () => {
+    const stale = standing({
+      viewCap: 1,
+      views: 1,
+      isReturning: true,
+      expiresAt: new Date('2020-01-01T00:00:00Z'),
+    });
+
+    expect(isShareLive(stale, NOW)).toBe(false);
+  });
+
   it('stops when either runs out, whichever comes first', () => {
     const spent = standing({ viewCap: 1, views: 1, expiresAt: new Date('2027-01-01T00:00:00Z') });
     const stale = standing({ viewCap: 100, views: 0, expiresAt: new Date('2020-01-01T00:00:00Z') });
@@ -99,6 +124,10 @@ describe('howShareEnded', () => {
 
   it('says nothing of a link that still works', () => {
     expect(howShareEnded(standing({}), NOW)).toBeNull();
+  });
+
+  it('says nothing of a full link to somebody it already let in', () => {
+    expect(howShareEnded(standing({ viewCap: 1, views: 1, isReturning: true }), NOW)).toBeNull();
   });
 
   it('calls a link that was withdrawn withdrawn, even where it would also have expired', () => {

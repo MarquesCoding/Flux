@@ -53,6 +53,7 @@ type ShareStanding = {
   viewCap: number | null;
   views: number;
   revokedAt: Date | null;
+  isReturning?: boolean;
 };
 
 /**
@@ -63,7 +64,13 @@ type ShareStanding = {
  * Revocation is immediate by construction: it is read on every request rather than remembered from
  * when a session began, so a stream already playing stops at its next request.
  *
- * @param standing - What the share was created with and how far it has been used.
+ * A cap counts the people let in, so somebody already among them is not turned away by it. The
+ * alternative locks the one person a link was made for out of it the moment they arrive — they are
+ * counted on the way in, and every request after that is measured against a total they are already
+ * part of.
+ *
+ * @param standing - What the share was created with, how far it has been used, and whether whoever
+ *   is asking has been let in before.
  * @param now - The moment being judged.
  * @returns Whether the share is still good.
  */
@@ -76,7 +83,9 @@ const isShareLive = (standing: ShareStanding, now: Date): boolean => {
     return false;
   }
 
-  return standing.viewCap === null || standing.views < standing.viewCap;
+  return (
+    standing.viewCap === null || standing.isReturning === true || standing.views < standing.viewCap
+  );
 };
 
 const SHARE_ENDINGS = ['withdrawn', 'expired', 'spent'] as const;
@@ -105,7 +114,11 @@ const howShareEnded = (standing: ShareStanding, now: Date): ShareEnding | null =
     return 'expired';
   }
 
-  return standing.viewCap !== null && standing.views >= standing.viewCap ? 'spent' : null;
+  return standing.viewCap !== null &&
+    standing.isReturning !== true &&
+    standing.views >= standing.viewCap
+    ? 'spent'
+    : null;
 };
 
 const SHARE_ENDING_SAID: Record<ShareEnding, string> = {

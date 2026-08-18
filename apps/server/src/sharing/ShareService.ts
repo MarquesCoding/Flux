@@ -31,6 +31,7 @@ type ShareService = {
   revokeAnybody: (shareId: string) => Promise<WithdrawnShare | null>;
   resolve: (token: string) => Promise<ResolvedShare | null>;
   join: (shareId: string, joiner: string) => Promise<void>;
+  hasJoined: (shareId: string, joiner: string) => Promise<boolean>;
 };
 
 export type { ShareService, ResolvedShare, WithdrawnShare };

@@ -334,6 +334,38 @@ describe('opening a link as somebody with no account', () => {
     expect(response.status).toBe(410);
   });
 
+  it('lets the one person it was meant for come back to it', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const first = await opened(app, made.token);
+
+    expect(first.response.status).toBe(200);
+
+    const again = await app.request(`${BASE}/api/share/${made.token}`, {
+      headers: { cookie: first.jar, origin: BASE },
+    });
+
+    expect(again.status).toBe(200);
+  });
+
+  it('lets that person keep watching, rather than refusing their own segments', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie, { kind: 'item', mediaId: FILM, viewCap: 1 });
+
+    const { jar } = await opened(app, made.token);
+
+    const response = await app.request(`${BASE}/api/media/${FILM}`, {
+      headers: { cookie: jar, origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
+  });
+
   it('stops working once it has been opened as often as it was meant to be', async () => {
     const built = build();
     const { app, shares } = built;

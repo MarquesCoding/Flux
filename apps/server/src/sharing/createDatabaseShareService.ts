@@ -305,6 +305,16 @@ const createDatabaseShareService = (db: FluxDatabase): ShareService => {
       } satisfies ResolvedShare;
     },
 
+    hasJoined: async (shareId, joiner) => {
+      const rows = await db
+        .select({ id: shareVisit.id })
+        .from(shareVisit)
+        .where(and(eq(shareVisit.shareId, shareId), eq(shareVisit.joiner, joiner)))
+        .limit(1);
+
+      return rows.length > 0;
+    },
+
     join: async (shareId, joiner) => {
       await db
         .insert(shareVisit)

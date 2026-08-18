@@ -2639,14 +2639,16 @@ const createApp = ({
       return context.json({ error: 'This link does not work.' }, 404);
     }
 
+    const held = getCookie(context, SHARE_JOINER);
+    const joiner = held ?? randomUUID();
+
     const standing = {
       expiresAt: found.expiresAt,
       viewCap: found.viewCap,
       views: found.views,
       revokedAt: found.revokedAt,
+      isReturning: held !== undefined && (await shares.hasJoined(found.id, held)),
     };
-
-    const joiner = getCookie(context, SHARE_JOINER) ?? randomUUID();
 
     if (!isShareLive(standing, new Date())) {
       return context.json(
