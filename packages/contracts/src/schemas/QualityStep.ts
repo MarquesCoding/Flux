@@ -1,10 +1,20 @@
 import { z } from 'zod';
 
-const QUALITY_STEP_IDS = ['1440p', '1080p', '720p', '480p', '360p', '240p', '144p'] as const;
+const QUALITY_STEP_IDS = [
+  '2160p',
+  '1440p',
+  '1080p',
+  '720p',
+  '480p',
+  '360p',
+  '240p',
+  '144p',
+] as const;
 
 const QualityStepIdSchema = z.enum(QUALITY_STEP_IDS);
 
 const QUALITY_STEPS = [
+  { id: '2160p', label: '4K', maxWidth: 3840, maxHeight: 2160, maxVideoBitrateKbps: 15000 },
   { id: '1440p', label: '1440p', maxWidth: 2560, maxHeight: 1440, maxVideoBitrateKbps: 8000 },
   { id: '1080p', label: '1080p', maxWidth: 1920, maxHeight: 1080, maxVideoBitrateKbps: 4500 },
   { id: '720p', label: '720p', maxWidth: 1280, maxHeight: 720, maxVideoBitrateKbps: 2500 },

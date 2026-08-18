@@ -24,9 +24,17 @@ type QualityStepCostsForOptions = {
  * oddly or a browser that answered no to every codec, leaves the rungs described by their ceilings
  * exactly as before.
  *
- * The original is described too, from the file's own bitrate, so the rungs have something to be
- * read against. Without it a viewer sees what each rung costs and nothing about what they are
- * choosing between, which is the comparison they opened the menu to make.
+ * The original is described too, so the rungs have something to be read against. Without it a
+ * viewer sees what each rung costs and nothing about what they are choosing between, which is the
+ * comparison they opened the menu to make.
+ *
+ * It is negotiated rather than read off the file, because "original" does not always mean the file.
+ * A device that cannot decode HEVC gets the original re-encoded to H.264, and H.264 needs about
+ * two thirds more bits for the same picture — so a 8.9 Mbps source arrives as roughly 14.8. Quoting
+ * the file's own figure there would understate what the viewer is about to spend by half again, and
+ * understate it precisely for the people on the weaker devices. Where it genuinely is the file,
+ * the figure is the file's and is stated plainly; where it is a re-encode, it is a ceiling and
+ * reads as one.
  *
  * @param options - What is playing, and what the viewer is playing it on.
  * @returns The cost of the original and of each rung on offer.
@@ -36,11 +44,13 @@ const qualityStepCostsFor = ({
   profile,
 }: QualityStepCostsForOptions): Partial<Record<QualityPreference, string>> => {
   try {
+    const asIs = negotiatePlayback(media, profile, null).video;
+
     const costs: Partial<Record<QualityPreference, string>> = {
       original: describeRungCost({
-        maxBitrateKbps: media.bitrateKbps,
+        maxBitrateKbps: asIs.kind === 'transcode' ? asIs.maxBitrateKbps : media.bitrateKbps,
         durationSeconds: media.durationSeconds,
-        isCeiling: false,
+        isCeiling: asIs.kind === 'transcode',
       }),
     };
 

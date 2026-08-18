@@ -85,11 +85,18 @@ describe('qualityStepCostsFor, the original', () => {
   it('describes the original, so the rungs have something to be read against', () => {
     const costs = qualityStepCostsFor({ media: remux, profile });
 
-    expect(costs.original).toBe('80.7 Mbps · ~85.9 GB');
+    expect(costs.original).toBeDefined();
   });
 
-  it('states the original plainly, where a rung is a ceiling', () => {
+  it('caps the original at what the device will take, rather than quoting the file', () => {
     const costs = qualityStepCostsFor({ media: remux, profile });
+
+    expect(costs.original).toBe('up to 40.0 Mbps · ~42.6 GB');
+  });
+
+  it('states the original plainly where the file itself is what gets sent', () => {
+    const withinReach: MediaItem = { ...remux, bitrateKbps: 8_900 };
+    const costs = qualityStepCostsFor({ media: withinReach, profile });
 
     expect(costs.original?.startsWith('up to')).toBe(false);
     expect(costs['720p']?.startsWith('up to')).toBe(true);
@@ -104,5 +111,35 @@ describe('qualityStepCostsFor, the original', () => {
     };
 
     expect(qualityStepCostsFor({ media: remux, profile: hostile }).original).toBeUndefined();
+  });
+});
+
+describe('qualityStepCostsFor, an original the device cannot decode', () => {
+  const noHevc: DeviceProfile = {
+    ...profile,
+    directPlayProfiles: [
+      { container: 'mkv', videoCodecs: ['h264'], audioCodecs: ['truehd', 'aac'] },
+    ],
+  };
+
+  const hevcSource: MediaItem = { ...remux, videoCodec: 'hevc', bitrateKbps: 8_900 };
+
+  it('quotes what a re-encode will actually cost, not what the file happens to be', () => {
+    const costs = qualityStepCostsFor({ media: hevcSource, profile: noHevc });
+
+    expect(costs.original).not.toContain('8.9 Mbps');
+    expect(costs.original).toContain('14.8 Mbps');
+  });
+
+  it('calls it a ceiling, because a re-encode is capped rather than fixed', () => {
+    const costs = qualityStepCostsFor({ media: hevcSource, profile: noHevc });
+
+    expect(costs.original?.startsWith('up to')).toBe(true);
+  });
+
+  it('still states the file own figure plainly where the file is what gets sent', () => {
+    const costs = qualityStepCostsFor({ media: hevcSource, profile });
+
+    expect(costs.original).toBe('8.9 Mbps · ~9.5 GB');
   });
 });

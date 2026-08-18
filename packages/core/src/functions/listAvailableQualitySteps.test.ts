@@ -100,3 +100,29 @@ describe('listAvailableQualitySteps, films shot in scope', () => {
     expect(listAvailableQualitySteps(tall)).not.toContain('1440p');
   });
 });
+
+describe('listAvailableQualitySteps, 4K', () => {
+  const uhd: MediaItem = { ...media, width: 3840, height: 2160, bitrateKbps: 60_994 };
+
+  it('offers a 4K source its own resolution at a lower bitrate', () => {
+    expect(listAvailableQualitySteps(uhd)).toContain('2160p');
+  });
+
+  it('does not offer 4K to a source that has not got it', () => {
+    const hd: MediaItem = { ...media, width: 1920, height: 1080, bitrateKbps: 30_000 };
+
+    expect(listAvailableQualitySteps(hd)).not.toContain('2160p');
+  });
+
+  it('withholds 4K from a 4K source already inside the rung', () => {
+    const lean: MediaItem = { ...uhd, bitrateKbps: 12_000 };
+
+    expect(listAvailableQualitySteps(lean)).not.toContain('2160p');
+  });
+
+  it('offers 4K to a scope film that has the width but not the height', () => {
+    const scope: MediaItem = { ...media, width: 3840, height: 1600, bitrateKbps: 60_994 };
+
+    expect(listAvailableQualitySteps(scope)).toContain('2160p');
+  });
+});

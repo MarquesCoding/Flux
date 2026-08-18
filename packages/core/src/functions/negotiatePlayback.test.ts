@@ -441,7 +441,7 @@ describe('negotiatePlayback', () => {
       expect(plan.video.reason.code).not.toBe('UserForcedTranscode');
     });
 
-    it('never loosens the effective limit beyond the device profile', () => {
+    it('never loosens the bitrate beyond the device profile, whatever was pinned', () => {
       const weak: DeviceProfile = {
         ...profile,
         maxWidth: 640,
@@ -456,7 +456,28 @@ describe('negotiatePlayback', () => {
         maxAudioBitrateKbps: null,
       });
 
-      expect(plan.video).toMatchObject({ maxWidth: 640, maxHeight: 360, maxBitrateKbps: 700 });
+      expect(plan.video).toMatchObject({ maxBitrateKbps: 700 });
+    });
+
+    it('lets a pinned rung ask for more picture than the screen, as every service does', () => {
+      const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
+
+      const plan = negotiatePlayback(media, smallScreen, {
+        maxWidth: 3840,
+        maxHeight: 2160,
+        maxVideoBitrateKbps: 15_000,
+        maxAudioBitrateKbps: null,
+      });
+
+      expect(plan.video).toMatchObject({ maxWidth: 3840, maxHeight: 2160 });
+    });
+
+    it('still sizes the original for the screen, a rung being the deliberate part', () => {
+      const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
+
+      const plan = negotiatePlayback(media, smallScreen, null);
+
+      expect(plan.video).toMatchObject({ maxWidth: 1920, maxHeight: 1080 });
     });
 
     it('leaves audio alone when the clamp does not compress it', () => {
