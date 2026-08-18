@@ -33,7 +33,8 @@ const asOptions = (notice: Notice | undefined) => ({
  * @param notice - A second line, an action, or an identifier to update later.
  * @returns The identifier, for updating or dismissing it.
  */
-const say = (message: string, notice?: Notice): string | number => toast(message, asOptions(notice));
+const say = (message: string, notice?: Notice): string | number =>
+  toast(message, asOptions(notice));
 
 /**
  * Tells the viewer that what they asked for worked.

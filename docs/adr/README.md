@@ -49,6 +49,7 @@ more valuable than a tidy directory.
 | [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component            | Accepted                           |
 | [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                 | Accepted                           |
 | [0022](0022-the-application-is-a-package-and-a-client-is-a-host.md)         | The application is a package; a client is a host             | Accepted                           |
+| [0023](0023-screens-are-part-of-the-application-not-of-a-host.md)           | Screens are part of the application, not of a host           | Accepted                           |
 
 ## Format
 

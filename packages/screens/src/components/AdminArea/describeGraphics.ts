@@ -1,0 +1,36 @@
+import type { Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { Stat } from '@FluxScreens/components/AdminArea/components/StatStrip/StatStrip.types';
+
+/**
+ * Decides what the graphics tile says, and is careful about what it refuses to say. Cards report
+ * either encoder use or whole-device use and rarely both, and the two are not the same number, so
+ * whichever is available is labelled as what it is rather than passed off as the other.
+ *
+ * @param graphics - What the monitor read from the card, or null where there is nothing readable.
+ * @returns The figure, how full the bar should be, and what the figure actually measures.
+ */
+const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat, 'label'> => {
+  if (graphics === null) {
+    return { value: '—', detail: 'No card Flux can read' };
+  }
+
+  if (graphics.encoderPercent !== null) {
+    return {
+      value: `${graphics.encoderPercent.toFixed(0)}%`,
+      fraction: graphics.encoderPercent / 100,
+      detail: 'encoder, not whole card',
+    };
+  }
+
+  if (graphics.devicePercent !== null) {
+    return {
+      value: `${graphics.devicePercent.toFixed(0)}%`,
+      fraction: graphics.devicePercent / 100,
+      detail: 'whole card, not encoder',
+    };
+  }
+
+  return { value: '—', detail: 'Nothing readable' };
+};
+
+export { describeGraphics };
