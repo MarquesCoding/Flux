@@ -60,7 +60,9 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
         }
       }}
     >
-      <RadixDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
+      <RadixDialog.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
         <RadixDialog.Overlay
           data-slot="dialog-overlay"
           className={cn('fixed inset-0 z-40 bg-black/70 backdrop-blur-sm', OVERLAY_MOTION)}
