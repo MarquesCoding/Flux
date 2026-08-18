@@ -1,4 +1,4 @@
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
+import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
 
 type AddTriggerDialogProps = {
   isOpen: boolean;

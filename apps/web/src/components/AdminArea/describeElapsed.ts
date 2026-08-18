@@ -1,4 +1,4 @@
-import type { Job } from '@FluxWeb/admin/fetchAdmin';
+import type { Job } from '@FluxClient/admin/fetchAdmin';
 
 /**
  * Says how long a job took, or how long it has been taking so far, in milliseconds while it is quick

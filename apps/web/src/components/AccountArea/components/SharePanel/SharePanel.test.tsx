@@ -1,14 +1,14 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import { SharePanel } from './SharePanel';
 import type { Share } from '@FluxContracts/schemas/Share';
 
 const fetchShares = vi.fn<() => Promise<Share[]>>();
 const revokeShare = vi.fn<(shareId: string) => Promise<boolean>>();
 
-vi.mock('@FluxWeb/sharing/fetchShares', () => ({
+vi.mock('@FluxClient/sharing/fetchShares', () => ({
   fetchShares: () => fetchShares(),
   revokeShare: (shareId: string) => revokeShare(shareId),
 }));
@@ -45,7 +45,7 @@ describe('SharePanel', () => {
   it('lists the links this account has handed out', async () => {
     fetchShares.mockResolvedValue([share(), share({ id: 'share-2', title: 'Another Thing' })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('The Thing')).toBeInTheDocument();
     expect(screen.getByText('Another Thing')).toBeInTheDocument();
@@ -54,7 +54,7 @@ describe('SharePanel', () => {
   it('says a link covers a whole series, since that is a different thing to have handed out', async () => {
     fetchShares.mockResolvedValue([share({ kind: 'series', mediaId: null, seriesId: 'series-1' })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('Whole series')).toBeInTheDocument();
   });
@@ -62,7 +62,7 @@ describe('SharePanel', () => {
   it('says a working link is live and what will end it', async () => {
     fetchShares.mockResolvedValue([share()]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('Live')).toBeInTheDocument();
     expect(screen.getByText('Until it is withdrawn')).toBeInTheDocument();
@@ -74,7 +74,7 @@ describe('SharePanel', () => {
       share({ id: 'share-2', title: 'Counted Thing', viewCap: 3 }),
     ]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText(/Runs out/)).toBeInTheDocument();
     expect(screen.getByText('Until it has been opened enough times')).toBeInTheDocument();
@@ -88,7 +88,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await user.click(await screen.findByRole('button', { name: /Link to/ }));
 
@@ -109,7 +109,7 @@ describe('SharePanel', () => {
       share({ id: 'share-3', title: 'Spent Thing', viewCap: 2, views: 2, isSpent: true }),
     ]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('Withdrawn')).toBeInTheDocument();
     expect(screen.getByText('Ran out')).toBeInTheDocument();
@@ -119,7 +119,7 @@ describe('SharePanel', () => {
   it('says how far through its allowance a link is', async () => {
     fetchShares.mockResolvedValue([share({ viewCap: 5, views: 2 })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('2 of 5 times')).toBeInTheDocument();
   });
@@ -127,7 +127,7 @@ describe('SharePanel', () => {
   it('counts the openings of a link with no limit without inventing one', async () => {
     fetchShares.mockResolvedValue([share({ views: 3 })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('3 times')).toBeInTheDocument();
   });
@@ -135,7 +135,7 @@ describe('SharePanel', () => {
   it('says a link opened once was opened one time rather than one times', async () => {
     fetchShares.mockResolvedValue([share({ views: 1 })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('1 time')).toBeInTheDocument();
   });
@@ -145,7 +145,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await user.click(await screen.findByRole('button', { name: 'Withdraw the link to The Thing' }));
 
@@ -165,7 +165,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await withdraw(user, 'The Thing');
 
@@ -179,7 +179,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await user.click(await screen.findByRole('button', { name: 'Withdraw the link to The Thing' }));
     await user.keyboard('{Escape}');
@@ -199,7 +199,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await user.click(await screen.findByRole('button', { name: /Standing/ }));
 
@@ -216,7 +216,7 @@ describe('SharePanel', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     await user.click(await screen.findByRole('button', { name: /Opened/ }));
 
@@ -228,7 +228,7 @@ describe('SharePanel', () => {
   it('offers no way to withdraw a link that has already ended', async () => {
     fetchShares.mockResolvedValue([share({ isRevoked: true, isSpent: true })]);
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText('Withdrawn')).toBeInTheDocument();
     expect(
@@ -237,7 +237,7 @@ describe('SharePanel', () => {
   });
 
   it('says plainly when nothing has been handed out', async () => {
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByText(/You have not handed out any links/)).toBeInTheDocument();
   });
@@ -245,7 +245,7 @@ describe('SharePanel', () => {
   it('says the links could not be read, rather than that there are none', async () => {
     fetchShares.mockRejectedValue(new Error('offline'));
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
     expect(screen.queryByText(/You have not handed out any links/)).not.toBeInTheDocument();
@@ -254,7 +254,7 @@ describe('SharePanel', () => {
   it('offers to read them again', async () => {
     fetchShares.mockRejectedValue(new Error('offline'));
 
-    renderInACache(<SharePanel />);
+    renderInAnAddress(<SharePanel />);
 
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });

@@ -247,7 +247,7 @@ describe('LogsPanel', () => {
   });
 });
 
-vi.mock('@FluxWeb/realtime/getRealtimeClient', () => ({
+vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},

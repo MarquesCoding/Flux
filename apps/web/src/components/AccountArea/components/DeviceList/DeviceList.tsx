@@ -9,10 +9,10 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
 import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
-import { endDevice, endOtherDevices, fetchDevices } from '@FluxWeb/account/fetchDevices';
-import { saidWhen } from '@FluxWeb/format/saidWhen';
+import { endDevice, endOtherDevices, fetchDevices } from '@FluxClient/account/fetchDevices';
+import { saidWhen } from '@FluxClient/format/saidWhen';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Device } from '@FluxWeb/account/fetchDevices';
+import type { Device } from '@FluxClient/account/fetchDevices';
 
 /**
  * Everywhere this account is signed in — each device, when it was last used, and a way to end it.

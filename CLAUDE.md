@@ -15,8 +15,8 @@ reference, not a substitute for reading it.
 
 1. **TypeScript and Rust only.** No JavaScript files, including config.
 2. **No duplication across modules.** Needed twice means extracted and shared.
-3. **No `../` imports.** Use `@FluxUI/*`, `@FluxContracts/*`, `@FluxCore/*`,
-   `@FluxSDK/*`.
+3. **No `../` imports.** Use `@FluxUI/*`, `@FluxClient/*`, `@FluxContracts/*`,
+   `@FluxCore/*`, `@FluxSDK/*`.
 4. **No `index.ts` / `index.tsx`.** No barrel files, ever.
 5. **`export { ComponentName }`** — named exports only, no default exports and
    no module objects. One member per file, filename matches the member. Set
@@ -73,6 +73,24 @@ standalone functions. snake_case for Rust modules.
 **Not used:** the shadcn registry (its conventions are adopted, its generated code
 is not — see [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)),
 Redis, SQLite, tRPC as a primary API, barrel files.
+
+## Where front-end code goes
+
+The application is `packages/client` and a client is a host that runs it
+([0022](docs/adr/0022-the-application-is-a-package-and-a-client-is-a-host.md)).
+
+| Directory         | What it holds                                                    |
+| ----------------- | ---------------------------------------------------------------- |
+| `packages/client` | What Flux is: readers, queries, realtime, session, sharing       |
+| `apps/web`        | What a browser is: entry, router, service worker, screens, Shaka |
+
+- **`packages/client` must not import `@FluxWeb/*` or `@FluxUI/*`.** ESLint says
+  so. It does not reach into a client and it does not draw.
+- **Anything it needs from a client is a port on `Platform`** — today a device
+  store, what to call this client, which client this is, and opening a socket. A
+  host installs them with `installPlatform` before anything else runs.
+- **Screens are still in `apps/web`**, all 185 of them. That is the next split,
+  not an oversight.
 
 ## Working expectations
 

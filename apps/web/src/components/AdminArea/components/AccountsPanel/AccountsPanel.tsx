@@ -22,21 +22,21 @@ import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { TextField } from '@FluxUI/TextField';
-import { describePermission } from '@FluxWeb/admin/describePermission';
-import { groupPermissions } from '@FluxWeb/admin/groupPermissions';
-import { assignRole, clearOverride, removeRole, setOverride } from '@FluxWeb/admin/fetchRoles';
+import { describePermission } from '@FluxClient/admin/describePermission';
+import { groupPermissions } from '@FluxClient/admin/groupPermissions';
+import { assignRole, clearOverride, removeRole, setOverride } from '@FluxClient/admin/fetchRoles';
 import {
   banAccount,
   inviteAccount,
   removeAccount,
   unbanAccount,
-} from '@FluxWeb/admin/fetchAccounts';
+} from '@FluxClient/admin/fetchAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { adminQueries } from '@FluxWeb/query/adminQueries';
+import { adminQueries } from '@FluxClient/query/adminQueries';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Account } from '@FluxWeb/admin/fetchAccounts';
-import type { Refusal } from '@FluxWeb/admin/fetchRoles';
+import type { Account } from '@FluxClient/admin/fetchAccounts';
+import type { Refusal } from '@FluxClient/admin/fetchRoles';
 import type { Permission } from '@FluxContracts/schemas/Permission';
 
 type Asked = { kind: 'ban' | 'remove'; account: Account };

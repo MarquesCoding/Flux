@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HistoryPanel } from './HistoryPanel';
@@ -11,7 +11,7 @@ const { fetchMock, forgetOneMock, forgetAllMock } = vi.hoisted(() => ({
   forgetAllMock: vi.fn(),
 }));
 
-vi.mock('@FluxWeb/history/fetchHistory', () => ({
+vi.mock('@FluxClient/history/fetchHistory', () => ({
   fetchHistory: fetchMock,
   forgetViewing: forgetOneMock,
   forgetHistory: forgetAllMock,
@@ -44,19 +44,19 @@ beforeEach(() => {
 
 describe('a viewer’s history', () => {
   it('lists what was watched', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText('Arrival')).toBeInTheDocument();
   });
 
   it('says when it was watched in words', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText(/An hour ago/)).toBeInTheDocument();
   });
 
   it('says how long was actually spent, not how long the thing is', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText(/watched/)).toBeInTheDocument();
   });
@@ -64,7 +64,7 @@ describe('a viewer’s history', () => {
   it('names the series an episode belongs to', async () => {
     fetchMock.mockResolvedValue([viewing({ title: 'Episode 1', seriesTitle: 'Yamada-kun' })]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText(/Yamada-kun/)).toBeInTheDocument();
   });
@@ -72,7 +72,7 @@ describe('a viewer’s history', () => {
   it('marks something finished, since that is the question being asked of it', async () => {
     fetchMock.mockResolvedValue([viewing({ isFinished: true })]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText('Finished')).toBeInTheDocument();
   });
@@ -80,7 +80,7 @@ describe('a viewer’s history', () => {
   it('still shows a viewing whose item has left the library', async () => {
     fetchMock.mockResolvedValue([viewing({ title: null })]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText('No longer in the library')).toBeInTheDocument();
   });
@@ -88,13 +88,13 @@ describe('a viewer’s history', () => {
   it('says so plainly when nothing has been watched', async () => {
     fetchMock.mockResolvedValue([]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText(/Nothing yet/)).toBeInTheDocument();
   });
 
   it('lets a viewer forget one thing', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Forget Arrival' }));
 
@@ -108,7 +108,7 @@ describe('a viewer’s history', () => {
   it('puts a row back when the server would not forget it', async () => {
     forgetOneMock.mockResolvedValue(false);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Forget Arrival' }));
 
@@ -122,7 +122,7 @@ describe('a viewer’s history', () => {
       return Promise.resolve(true);
     });
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await screen.findByText('Arrival');
 
@@ -133,7 +133,7 @@ describe('a viewer’s history', () => {
   });
 
   it('offers more only when a full page came back', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await screen.findByText('Arrival');
 
@@ -143,7 +143,7 @@ describe('a viewer’s history', () => {
   it('asks for the next page from where the last one ended', async () => {
     fetchMock.mockResolvedValueOnce(aFullPage).mockResolvedValueOnce([viewing({ id: 'later' })]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Show more' }));
 
@@ -153,7 +153,7 @@ describe('a viewer’s history', () => {
   it('stops offering more once a short page comes back', async () => {
     fetchMock.mockResolvedValueOnce(aFullPage).mockResolvedValueOnce([viewing({ id: 'later' })]);
 
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     await userEvent.click(await screen.findByRole('button', { name: 'Show more' }));
 
@@ -163,7 +163,7 @@ describe('a viewer’s history', () => {
   });
 
   it('says viewings are forgotten eventually, where somebody will read it', async () => {
-    renderInACache(<HistoryPanel now={NOW} />);
+    renderInAnAddress(<HistoryPanel now={NOW} />);
 
     expect(await screen.findByText(/forgotten automatically after a year/)).toBeInTheDocument();
   });

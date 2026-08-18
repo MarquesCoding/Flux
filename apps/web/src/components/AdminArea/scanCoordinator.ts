@@ -2,10 +2,10 @@ import {
   scanLibrary,
   resetLibrary,
   regenerateLibraryPreviews,
-} from '@FluxWeb/library/fetchLibrary';
-import { cancelJob, fetchRunningScans, runJob } from '@FluxWeb/admin/fetchAdmin';
-import { waitForScanCompletion } from '@FluxWeb/library/waitForScanCompletion';
-import type { ScanJob } from '@FluxWeb/library/fetchLibrary';
+} from '@FluxClient/library/fetchLibrary';
+import { cancelJob, fetchRunningScans, runJob } from '@FluxClient/admin/fetchAdmin';
+import { waitForScanCompletion } from '@FluxClient/library/waitForScanCompletion';
+import type { ScanJob } from '@FluxClient/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
 
 type ScanEntry = {

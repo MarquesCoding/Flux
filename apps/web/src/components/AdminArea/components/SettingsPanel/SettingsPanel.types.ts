@@ -1,4 +1,4 @@
-import type { AdminOverview } from '@FluxWeb/admin/fetchAdmin';
+import type { AdminOverview } from '@FluxClient/admin/fetchAdmin';
 
 type SettingsPanelProps = {
   overview: AdminOverview | null;

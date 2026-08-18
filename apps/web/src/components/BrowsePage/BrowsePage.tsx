@@ -1,10 +1,10 @@
 import { BrowseArea } from '@FluxWeb/components/BrowseArea/BrowseArea';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { useShell } from '@FluxWeb/shell/useShell';
-import { useFavourites } from '@FluxWeb/library/useFavourites';
+import { useShell } from '@FluxClient/shell/useShell';
+import { useFavourites } from '@FluxClient/library/useFavourites';
 import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
-import { resumeFor } from '@FluxWeb/playback/resumeFor';
+import { resumeFor } from '@FluxClient/playback/resumeFor';
 import type { BrowseKind } from '@FluxWeb/components/BrowseArea/BrowseArea.types';
 
 const BROWSABLE = ['shows', 'films', 'new', 'favourites'] as const;

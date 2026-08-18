@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { JobsPanel } from './JobsPanel';
-import type { Job, JobDefinition, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { Job, JobDefinition, Monitor } from '@FluxClient/admin/fetchAdmin';
 
 const definition: JobDefinition = {
   kind: 'library.scan',

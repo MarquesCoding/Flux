@@ -3,9 +3,9 @@ import { Add01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { AddTriggerDialog } from '@FluxWeb/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
-import { describeTrigger } from '@FluxWeb/admin/describeTrigger';
-import { describeTriggerInZone } from '@FluxWeb/admin/describeTriggerInZone';
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
+import { describeTrigger } from '@FluxClient/admin/describeTrigger';
+import { describeTriggerInZone } from '@FluxClient/admin/describeTriggerInZone';
+import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
 import type { JobSchedulePageProps } from './JobSchedulePage.types';
 
 /**

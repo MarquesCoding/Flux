@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { deliveredBitrateKbps } from '@FluxWeb/playback/deliveredBitrateKbps';
+import { deliveredBitrateKbps } from '@FluxClient/playback/deliveredBitrateKbps';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 type ShakaVariant = {

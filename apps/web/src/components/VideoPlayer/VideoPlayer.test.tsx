@@ -1,13 +1,13 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VideoPlayer } from './VideoPlayer';
 import { fakeMediaElement } from '@FluxWeb/testing/fakeMediaElement';
-import { emitPresenceEvent } from '@FluxWeb/presence/presenceEvents';
+import { emitPresenceEvent } from '@FluxClient/presence/presenceEvents';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type * as SegmentsModule from '@FluxWeb/playback/fetchSegments';
-import type * as SubtitlesModule from '@FluxWeb/playback/fetchSubtitles';
+import type * as SegmentsModule from '@FluxClient/playback/fetchSegments';
+import type * as SubtitlesModule from '@FluxClient/playback/fetchSubtitles';
 import type * as TrickplayModule from '@FluxWeb/playback/fetchTrickplay';
 import type * as CastSenderModule from '@FluxWeb/playback/castSender';
 import type * as CastPlaybackModule from '@FluxWeb/playback/castPlayback';
@@ -31,10 +31,10 @@ const isReachableOriginMock = vi.hoisted(() => vi.fn());
 const castStreamMock = vi.hoisted(() => vi.fn());
 const absoluteStreamUrlMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/playback/startPlaybackSession', async () => {
+vi.mock('@FluxClient/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
     describeWhy: (plan: PlaybackPlan) => string[];
-  }>('@FluxWeb/playback/startPlaybackSession');
+  }>('@FluxClient/playback/startPlaybackSession');
 
   return {
     startPlaybackSession: startMock,
@@ -76,26 +76,28 @@ vi.mock('@FluxWeb/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
 }));
 
-vi.mock('@FluxWeb/presence/clientIdentity', () => ({
-  readClientId: () => 'client-1',
+vi.mock('@FluxWeb/platform/thisTabsId', () => ({
+  thisTabsId: () => 'client-1',
 }));
 
 vi.mock('@FluxWeb/playback/captureFrame', () => ({
   captureFrame: captureMock,
 }));
 
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
-vi.mock('@FluxWeb/playback/fetchSegments', async () => {
-  const actual = await vi.importActual<typeof SegmentsModule>('@FluxWeb/playback/fetchSegments');
+vi.mock('@FluxClient/playback/fetchSegments', async () => {
+  const actual = await vi.importActual<typeof SegmentsModule>('@FluxClient/playback/fetchSegments');
 
   return { ...actual, fetchSegments: segmentsMock };
 });
 
-vi.mock('@FluxWeb/playback/fetchSubtitles', async () => {
-  const actual = await vi.importActual<typeof SubtitlesModule>('@FluxWeb/playback/fetchSubtitles');
+vi.mock('@FluxClient/playback/fetchSubtitles', async () => {
+  const actual = await vi.importActual<typeof SubtitlesModule>(
+    '@FluxClient/playback/fetchSubtitles',
+  );
 
   return { ...actual, fetchSubtitleTracks: subtitlesMock };
 });
@@ -258,7 +260,7 @@ afterEach(() => {
 
 describe('VideoPlayer', () => {
   it('shows the title and a video surface', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
     expect(await screen.findByLabelText('Arrival')).toBeInTheDocument();
@@ -266,13 +268,13 @@ describe('VideoPlayer', () => {
 
   it('shows a spinner while the session is starting', () => {
     startMock.mockReturnValue(new Promise(() => undefined));
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument();
   });
 
   it('asks the server for a session for this item', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(startMock).toHaveBeenCalledWith(
@@ -287,7 +289,7 @@ describe('VideoPlayer', () => {
   });
 
   it('attaches the media engine to the returned manifest', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(attachMock).toHaveBeenCalledWith(
@@ -298,7 +300,7 @@ describe('VideoPlayer', () => {
 
   it('shows the playback mode the server chose, on request', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -309,7 +311,7 @@ describe('VideoPlayer', () => {
 
   it('explains why the stream is being converted, on request', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -319,7 +321,7 @@ describe('VideoPlayer', () => {
   });
 
   it('keeps the stats out of the way until asked for', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -329,7 +331,7 @@ describe('VideoPlayer', () => {
 
   it('puts the stats away again', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -344,14 +346,14 @@ describe('VideoPlayer', () => {
       kind: 'failed',
       reason: 'This server has no working encoder for h264.',
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('no working encoder');
   });
 
   it('does not attach an engine when the session failed', async () => {
     startMock.mockResolvedValue({ kind: 'failed', reason: 'nope' });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await screen.findByRole('alert');
 
@@ -360,27 +362,27 @@ describe('VideoPlayer', () => {
 
   it('does not blame the browser for a failure it cannot place', async () => {
     attachMock.mockRejectedValue(new Error('no media source'));
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The stream could not be played.');
   });
 
   it('blames the browser when the browser could not decode it', async () => {
     attachMock.mockRejectedValue({ category: 3, code: 3016 });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not decode the stream');
   });
 
   it('says the stream never arrived when the manifest could not be read', async () => {
     attachMock.mockRejectedValue({ category: 4, code: 4032 });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('did not arrive');
   });
 
   it('stops the session and tears down the engine when closed', async () => {
-    const { unmount } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { unmount } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(attachMock).toHaveBeenCalled();
@@ -398,7 +400,7 @@ describe('VideoPlayer', () => {
   it('does not say a tab has stopped watching just for changing quality or track', async () => {
     const actor = userEvent.setup();
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -415,7 +417,7 @@ describe('VideoPlayer', () => {
   it('sends a heartbeat on a fixed interval, whether or not the player is paused', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await act(async () => {
       await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
@@ -437,7 +439,7 @@ describe('VideoPlayer', () => {
   it('stops sending heartbeats once the session ends', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
-    const { unmount } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { unmount } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await act(async () => {
       await vi.waitFor(() => expect(attachMock).toHaveBeenCalled());
@@ -460,7 +462,7 @@ describe('VideoPlayer', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
       expect(attachMock).toHaveBeenCalled();
@@ -484,7 +486,7 @@ describe('VideoPlayer', () => {
 
     vi.stubGlobal('fetch', fetchMock);
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
 
@@ -516,7 +518,7 @@ describe('VideoPlayer', () => {
     const allowed = replacePlay(play);
 
     try {
-      renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
       await waitFor(() => {
         expect(play).toHaveBeenCalledTimes(2);
@@ -536,7 +538,7 @@ describe('VideoPlayer', () => {
     const allowed = replacePlay(play);
 
     try {
-      renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
       expect(await screen.findByLabelText('Arrival')).toHaveProperty('muted', false);
     } finally {
@@ -549,7 +551,7 @@ describe('VideoPlayer', () => {
 
     vi.stubGlobal('fetch', fetchMock);
     startMock.mockReturnValue(new Promise(() => undefined));
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     window.dispatchEvent(new Event('pagehide'));
 
@@ -563,7 +565,7 @@ describe('VideoPlayer', () => {
   it('can be closed', async () => {
     const onClose = vi.fn();
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={onClose} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={onClose} />);
 
     await actor.click(screen.getByRole('button', { name: /Close/ }));
 
@@ -572,13 +574,13 @@ describe('VideoPlayer', () => {
 
   it('disables the transport until playback is ready', () => {
     startMock.mockReturnValue(new Promise(() => undefined));
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Play' })).toBeDisabled();
   });
 
   it('shows a running position against the length of the film', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await screen.findByLabelText('Arrival');
 
@@ -594,7 +596,7 @@ describe('VideoPlayer', () => {
         warnings: ['This server cannot tone map HDR to SDR, so colours will look washed out.'],
       },
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -610,7 +612,7 @@ describe('VideoPlayer', () => {
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -626,7 +628,7 @@ describe('VideoPlayer', () => {
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -634,14 +636,14 @@ describe('VideoPlayer', () => {
   });
 
   it('offers a seek bar named after the item', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
   });
 
   it('plays on without previews when the server cannot render them', async () => {
     trickplayMock.mockResolvedValue(null);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(await screen.findByRole('slider', { name: 'Seek through Arrival' })).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Preview at/ })).not.toBeInTheDocument();
@@ -664,7 +666,7 @@ describe('VideoPlayer', () => {
       ],
     });
 
-    const { rerender } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { rerender } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await screen.findByRole('slider', { name: 'Seek through Arrival' });
 
@@ -691,7 +693,7 @@ describe('VideoPlayer', () => {
 
   it("drops the previous item's stats when another is played", async () => {
     const actor = userEvent.setup();
-    const { rerender } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { rerender } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -721,7 +723,7 @@ describe('VideoPlayer', () => {
       }),
     );
 
-    const { rerender } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { rerender } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     rerender(
       <VideoPlayer
@@ -738,7 +740,7 @@ describe('VideoPlayer', () => {
   });
 
   it('jumps forward from where the film has got to, not from the beginning', async () => {
-    renderInACache(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 7200);
@@ -760,7 +762,7 @@ describe('VideoPlayer', () => {
   });
 
   it('jumps back from where the film has got to', async () => {
-    renderInACache(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} isImmersive onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 7200);
@@ -782,7 +784,7 @@ describe('VideoPlayer', () => {
   });
 
   it('seeks inside the stream rather than asking for anything', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 600);
@@ -798,7 +800,7 @@ describe('VideoPlayer', () => {
   });
 
   it('seeks past what has been transcoded without starting another session', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 30);
@@ -816,7 +818,7 @@ describe('VideoPlayer', () => {
   });
 
   it('keeps the session it is seeking within', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 30);
@@ -834,7 +836,7 @@ describe('VideoPlayer', () => {
   });
 
   it('reports the position on the film, which is the timeline it is playing', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 7200);
@@ -854,7 +856,7 @@ describe('VideoPlayer', () => {
         delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
       },
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -874,7 +876,7 @@ describe('VideoPlayer', () => {
   it('holds the last frame rather than blanking while the stream changes', async () => {
     const actor = userEvent.setup();
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -913,7 +915,7 @@ describe('VideoPlayer', () => {
       return Promise.resolve({ detach: teardownMock, readDelivered: () => null });
     });
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -937,7 +939,7 @@ describe('VideoPlayer', () => {
   it('lets the new stream replace the held frame once it is playing', async () => {
     const actor = userEvent.setup();
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -960,14 +962,14 @@ describe('VideoPlayer', () => {
   });
 
   it('shows the full spinner when there is no frame to hold', () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     expect(screen.getByRole('status', { name: 'Preparing playback' })).toBeInTheDocument();
   });
 
   it('mutes and unmutes the media element itself', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     const element = screen.getByLabelText('Arrival');
@@ -983,7 +985,7 @@ describe('VideoPlayer', () => {
 
   it('carries the volume through to the media element', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -1003,7 +1005,7 @@ describe('VideoPlayer', () => {
       value: request,
     });
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Full screen' }));
@@ -1013,7 +1015,7 @@ describe('VideoPlayer', () => {
 
   it('jumps back and forward without leaving the session when it can', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 600);
@@ -1032,7 +1034,7 @@ describe('VideoPlayer', () => {
 
   it('never jumps back past the start of the film', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 600);
@@ -1044,7 +1046,7 @@ describe('VideoPlayer', () => {
 
   it('carries the chosen speed through to the media element', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -1065,7 +1067,7 @@ describe('VideoPlayer', () => {
         isHearingImpaired: false,
       },
     ]);
-    const { container } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { container } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -1084,7 +1086,7 @@ describe('VideoPlayer', () => {
         isHearingImpaired: false,
       },
     ]);
-    const { container } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { container } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(await screen.findByRole('button', { name: 'Settings' }));
@@ -1106,7 +1108,7 @@ describe('VideoPlayer', () => {
         plan: { ...transcodingPlan, audio: { kind: 'passthrough', streamIndex: 2, reason } },
       },
     });
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -1131,7 +1133,7 @@ describe('VideoPlayer', () => {
         isHearingImpaired: false,
       },
     ]);
-    const { container } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { container } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -1152,7 +1154,7 @@ describe('VideoPlayer', () => {
         isHearingImpaired: false,
       },
     ]);
-    const { container } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { container } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
 
@@ -1161,7 +1163,7 @@ describe('VideoPlayer', () => {
 
   it('opens the caption settings from the subtitles menu', async () => {
     const actor = userEvent.setup();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -1172,7 +1174,7 @@ describe('VideoPlayer', () => {
 
   it('remembers caption settings for the next film', async () => {
     const actor = userEvent.setup();
-    const { unmount } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    const { unmount } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -1180,7 +1182,7 @@ describe('VideoPlayer', () => {
     await actor.click(await screen.findByRole('button', { name: 'Drop shadow' }));
 
     unmount();
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
     await actor.click(screen.getByRole('button', { name: 'Settings' }));
@@ -1196,7 +1198,7 @@ describe('VideoPlayer', () => {
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
     ]);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     await settled();
@@ -1214,7 +1216,7 @@ describe('VideoPlayer', () => {
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
     ]);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     seekableTo(element, 600);
@@ -1236,7 +1238,7 @@ describe('VideoPlayer', () => {
     segmentsMock.mockResolvedValue([
       { kind: 'intro', startSeconds: 30, endSeconds: 120, source: 'fingerprint' },
     ]);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     await settled();
@@ -1253,7 +1255,7 @@ describe('VideoPlayer', () => {
     segmentsMock.mockResolvedValue([
       { kind: 'recap', startSeconds: 0, endSeconds: 40, source: 'chapters' },
     ]);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     await settled();
@@ -1265,7 +1267,7 @@ describe('VideoPlayer', () => {
   });
 
   it('offers nothing for an item with no known segments', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     await settled();
@@ -1279,7 +1281,7 @@ describe('VideoPlayer', () => {
   it('restarts where it left off when a viewer picks another soundtrack', async () => {
     const actor = userEvent.setup();
     detailMock.mockResolvedValue(detailWithTwoAudioTracks);
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     const element = await screen.findByLabelText('Arrival');
     await settled();
@@ -1311,7 +1313,7 @@ describe('VideoPlayer', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
     try {
-      renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
       const element = await screen.findByLabelText('Arrival');
 
@@ -1336,7 +1338,7 @@ describe('VideoPlayer', () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
 
     try {
-      renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
       const element = await screen.findByLabelText('Arrival');
 
@@ -1361,14 +1363,14 @@ describe('VideoPlayer', () => {
   it('starts playing on arrival rather than waiting to be asked', async () => {
     const play = vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
 
     expect(play).toHaveBeenCalled();
   });
 
   it('asks for whole seconds, since a resumed position is a fraction of one', async () => {
-    renderInACache(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} startSeconds={2103.4567} onClose={vi.fn()} />);
     await settled();
 
     expect(startMock.mock.calls.at(-1)?.[3]).toBe(2103);
@@ -1377,7 +1379,7 @@ describe('VideoPlayer', () => {
   it('says where the viewer has got to as they get there', async () => {
     const onProgress = vi.fn();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -1391,7 +1393,7 @@ describe('VideoPlayer', () => {
   it('says when the film has run out, so a season can go on', async () => {
     const onEnded = vi.fn();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} onEnded={onEnded} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} onEnded={onEnded} />);
     await settled();
 
     fireEvent.ended(await screen.findByLabelText('Arrival'));
@@ -1402,7 +1404,7 @@ describe('VideoPlayer', () => {
   it('counts the film as watched to the end before handing over', async () => {
     const onProgress = vi.fn();
 
-    renderInACache(
+    renderInAnAddress(
       <VideoPlayer media={media} onClose={vi.fn()} onProgress={onProgress} onEnded={vi.fn()} />,
     );
     await settled();
@@ -1415,7 +1417,7 @@ describe('VideoPlayer', () => {
   it('steps a frame at a time rather than seeking, since one frame is already decoded', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -1440,7 +1442,7 @@ describe('VideoPlayer', () => {
     const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
     const actor = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     await actor.keyboard('{ArrowLeft}');
@@ -1449,7 +1451,7 @@ describe('VideoPlayer', () => {
   });
 
   it('offers the rest of the season, and nothing at all for a film', async () => {
-    const { rerender } = renderInACache(
+    const { rerender } = renderInAnAddress(
       <VideoPlayer media={media} onClose={vi.fn()} isImmersive />,
     );
     await settled();
@@ -1512,7 +1514,7 @@ describe('VideoPlayer', () => {
       });
       Object.defineProperty(document, 'exitPictureInPicture', { configurable: true, value: exit });
 
-      const { unmount } = renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+      const { unmount } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
       await settled();
       unmount();
@@ -1531,7 +1533,7 @@ describe('VideoPlayer', () => {
 
       vi.spyOn(HTMLMediaElement.prototype, 'play').mockResolvedValue(undefined);
 
-      renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
 
       const element = await screen.findByLabelText('Arrival');
 
@@ -1569,7 +1571,7 @@ describe('playing on another device', () => {
   const castButton = async () => screen.findByRole('button', { name: CAST_LABEL });
 
   it('offers nothing to cast to on a browser that cannot', async () => {
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
 
     expect(screen.queryByRole('button', { name: CAST_LABEL })).not.toBeInTheDocument();
@@ -1579,7 +1581,7 @@ describe('playing on another device', () => {
     const requestSession = withACastFramework(vi.fn().mockResolvedValue(undefined));
     const user = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
     await user.click(await castButton());
 
@@ -1592,7 +1594,7 @@ describe('playing on another device', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
     await user.click(await castButton());
 
@@ -1606,7 +1608,7 @@ describe('playing on another device', () => {
 
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
     await user.click(await castButton());
 
@@ -1628,7 +1630,7 @@ describe('playing on another device', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
     await settled();
 
     const control = screen.queryByRole('button', { name: CAST_LABEL });
@@ -1645,7 +1647,7 @@ describe('the keys a viewer can reach for', () => {
   const playing = async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -1706,7 +1708,7 @@ describe('the keys a viewer can reach for', () => {
   it('ignores a key pressed while typing somewhere', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <>
         <input aria-label="Somewhere to type" />
         <VideoPlayer media={media} onClose={vi.fn()} isImmersive />
@@ -1744,7 +1746,7 @@ describe('what the player does as the stream behaves', () => {
   const watching = async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -1830,7 +1832,7 @@ describe('when an administrator reaches into the stream', () => {
   const watching = async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -1948,7 +1950,7 @@ describe('once a device has taken the stream', () => {
       session: { ...startedSession, delivery },
     });
 
-    renderInACache(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
     await settled();
 
     const element = await screen.findByLabelText('Arrival');
@@ -2007,7 +2009,7 @@ describe('when the player is in a watch party', () => {
       ...party,
     };
 
-    const view = renderInACache(
+    const view = renderInAnAddress(
       <VideoPlayer media={media} onClose={vi.fn()} isImmersive party={full} />,
     );
 

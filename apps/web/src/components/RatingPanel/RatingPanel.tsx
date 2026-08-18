@@ -1,7 +1,7 @@
 import { StarRating } from '@FluxUI/StarRating';
 import { cn } from '@FluxUI/cn';
 import { useQuery } from '@tanstack/react-query';
-import { viewingQueries } from '@FluxWeb/query/viewingQueries';
+import { viewingQueries } from '@FluxClient/query/viewingQueries';
 import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
 import type { RatingPanelProps } from './RatingPanel.types';
 

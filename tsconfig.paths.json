@@ -2,6 +2,7 @@
   "compilerOptions": {
     "paths": {
       "@FluxContracts/*": ["./packages/contracts/src/*"],
+      "@FluxClient/*": ["./packages/client/src/*"],
       "@FluxCore/*": ["./packages/core/src/*"],
       "@FluxSDK/*": ["./packages/plugin-sdk/src/*"],
       "@FluxServer/*": ["./apps/server/src/*"],

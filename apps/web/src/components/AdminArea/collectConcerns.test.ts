@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { collectConcerns } from './collectConcerns';
-import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxClient/admin/fetchAdmin';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 import type { Library } from '@FluxContracts/schemas/Library';
 

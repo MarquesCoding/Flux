@@ -22,8 +22,8 @@ import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/anima
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { useHeldWhileLeaving } from '@FluxWeb/shell/useHeldWhileLeaving';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { scrollToTopOf } from '@FluxWeb/navigation/scrollToTopOf';

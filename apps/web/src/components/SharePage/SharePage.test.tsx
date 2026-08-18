@@ -1,13 +1,13 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
-import { shareEndingFor } from '@FluxWeb/sharing/shareEndingFor';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
+import { shareEndingFor } from '@FluxClient/sharing/shareEndingFor';
 import { SharePage } from './SharePage';
 import type { ShareAreaProps } from '@FluxWeb/components/ShareArea/ShareArea.types';
 import type { VideoPlayerProps } from '@FluxWeb/components/VideoPlayer/VideoPlayer.types';
 
-vi.mock('@FluxWeb/sharing/shareEndingFor', () => ({
+vi.mock('@FluxClient/sharing/shareEndingFor', () => ({
   shareEndingFor: vi.fn(),
 }));
 
@@ -85,7 +85,7 @@ beforeEach(() => {
 
 describe('SharePage', () => {
   it('opens what the link in the address points at', () => {
-    renderInACache(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Flux" />);
 
     expect(drawn.share?.token).toBe('a-token');
   });
@@ -93,7 +93,7 @@ describe('SharePage', () => {
   it('plays what the guest chose', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Flux" />);
 
     await actor.click(screen.getByRole('button', { name: 'Play it' }));
 
@@ -103,7 +103,7 @@ describe('SharePage', () => {
   it('picks up where a guest got to, for as long as the page lives', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Flux" />);
 
     await actor.click(screen.getByRole('button', { name: 'Play it' }));
     await actor.click(screen.getByRole('button', { name: 'Watch a bit' }));
@@ -117,7 +117,7 @@ describe('SharePage', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
 
@@ -134,7 +134,7 @@ describe('SharePage', () => {
   it('asks nothing while nothing is playing, since the screen asks for itself', async () => {
     vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
 
-    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
 
     await new Promise((settle) => setTimeout(settle, 30));
 
@@ -146,7 +146,7 @@ describe('SharePage', () => {
 
     const user = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
     await waitFor(() => {
@@ -159,7 +159,7 @@ describe('SharePage', () => {
   it('puts a guest back on the screen that explains itself once they close the notice', async () => {
     const user = userEvent.setup();
 
-    renderInACache(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Flux" />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
     await user.click(screen.getByRole('button', { name: 'Stop' }));
@@ -168,13 +168,13 @@ describe('SharePage', () => {
   });
 
   it('has nothing to resume before anything has been watched', () => {
-    renderInACache(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Flux" />);
 
     expect(drawn.share?.resumeFor?.(ARRIVAL.id)).toBeNull();
   });
 
   it('has nowhere else to go, since a guest is not signed in', () => {
-    renderInACache(<SharePage name="The Attic" />);
+    renderInAnAddress(<SharePage name="The Attic" />);
 
     expect(drawn.share?.name).toBe('The Attic');
     expect(screen.queryByRole('navigation')).not.toBeInTheDocument();

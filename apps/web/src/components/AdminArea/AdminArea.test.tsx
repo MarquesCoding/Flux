@@ -1,12 +1,12 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import { AdminArea } from './AdminArea';
 import { resetForTests as resetScanCoordinator } from './scanCoordinator';
-import type { AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
@@ -404,7 +404,7 @@ const goTo = async (actor: ReturnType<typeof userEvent.setup>, section: string) 
 
 describe('AdminArea', () => {
   it('says whether the media service is up', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText(/Media service up/)).toBeInTheDocument();
   });
@@ -424,51 +424,51 @@ describe('AdminArea', () => {
       }),
     );
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('Media service unreachable')).toBeInTheDocument();
   });
 
   it('keeps the figures worth half an eye on', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('42%')).toBeInTheDocument();
   });
 
   it('says how much of the busy processor is Flux itself', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
   });
 
   it('says the graphics figure is the whole card when the encoder cannot be read', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('41%')).toBeInTheDocument();
     expect(await screen.findByText('whole card, not encoder')).toBeInTheDocument();
   });
 
   it('names the card, and says what it will not say, where there is room for it', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('Apple M5 Pro · encoder not readable')).toBeInTheDocument();
   });
 
   it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('2.0 TB free')).toBeInTheDocument();
     expect(await screen.findByText('of 8.0 TB · /media')).toBeInTheDocument();
   });
 
   it('watches over the one socket rather than a stream of its own', () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(FakeSocket.last?.url).toContain('/api/realtime');
   });
 
   it('follows the machine as it changes', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await waitFor(() => {
       expect(screen.getByText('42%')).toBeInTheDocument();
@@ -483,7 +483,7 @@ describe('AdminArea', () => {
   });
 
   it('stops watching once the page is left', async () => {
-    const { unmount } = renderInACache(<AdminArea />);
+    const { unmount } = renderInAnAddress(<AdminArea />);
 
     await waitFor(() => {
       expect(screen.getByText('42%')).toBeInTheDocument();
@@ -498,7 +498,7 @@ describe('AdminArea', () => {
   it('shows what the media service is working on', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
 
@@ -506,19 +506,19 @@ describe('AdminArea', () => {
   });
 
   it('opens on the panel the address named, so a reload lands back where it was', async () => {
-    renderInACache(<AdminArea initialPanel="jobs" />);
+    renderInAnAddress(<AdminArea initialPanel="jobs" />);
 
     expect(await screen.findByText('Background jobs')).toBeInTheDocument();
   });
 
   it('opens on the overview when the address names no panel', async () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('Load, last minute')).toBeInTheDocument();
   });
 
   it('falls back to the overview when the address names one it does not have', async () => {
-    renderInACache(<AdminArea initialPanel="not-a-real-panel" />);
+    renderInAnAddress(<AdminArea initialPanel="not-a-real-panel" />);
 
     expect(await screen.findByText('Load, last minute')).toBeInTheDocument();
   });
@@ -527,7 +527,7 @@ describe('AdminArea', () => {
     const actor = userEvent.setup();
     const onPanelChange = vi.fn();
 
-    renderInACache(<AdminArea onPanelChange={onPanelChange} />);
+    renderInAnAddress(<AdminArea onPanelChange={onPanelChange} />);
 
     await goTo(actor, 'Jobs');
 
@@ -537,7 +537,7 @@ describe('AdminArea', () => {
   it('says why a job failed rather than only that it did', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
 
@@ -547,7 +547,7 @@ describe('AdminArea', () => {
   it('lets an admin start any job on demand from the Work tab', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
 
@@ -573,7 +573,7 @@ describe('AdminArea', () => {
 
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Run now/);
@@ -597,7 +597,7 @@ describe('AdminArea', () => {
   it('asks for confirmation before running Reset and rebuild from the Work tab', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Reset and rebuild', /Run now/);
@@ -613,7 +613,7 @@ describe('AdminArea', () => {
   it('opens a job schedule over the list by pressing into its row, not its Run button', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
@@ -627,7 +627,7 @@ describe('AdminArea', () => {
   it('adds a trigger to a job from its own schedule page', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
@@ -650,7 +650,7 @@ describe('AdminArea', () => {
   it('removes a trigger from a job schedule page', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
@@ -671,7 +671,7 @@ describe('AdminArea', () => {
   it('closes a schedule without leaving the job list', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Jobs');
     await chooseJob(actor, 'Scan for changes', /Edit schedule/);
@@ -687,7 +687,7 @@ describe('AdminArea', () => {
   it('lets an operator set the catalogue key', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Settings');
     await actor.type(screen.getByLabelText('Catalogue key'), 'a-key');
@@ -701,7 +701,7 @@ describe('AdminArea', () => {
   it('keeps who has an account out of settings, since Accounts is where they live', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Settings');
 
@@ -710,13 +710,13 @@ describe('AdminArea', () => {
   });
 
   it('draws something rather than nothing before the server has answered', () => {
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     expect(screen.getByRole('heading', { level: 1, name: 'Server' })).toBeInTheDocument();
   });
 
   it('says nobody has the app open when nobody does', async () => {
-    renderInACache(<AdminArea initialPanel="activity" />);
+    renderInAnAddress(<AdminArea initialPanel="activity" />);
 
     expect(await screen.findByText('Nobody has the app open right now.')).toBeInTheDocument();
   });
@@ -744,7 +744,7 @@ describe('AdminArea', () => {
 
     fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
 
-    renderInACache(<AdminArea initialPanel="activity" />);
+    renderInAnAddress(<AdminArea initialPanel="activity" />);
 
     expect(await screen.findByText(/Arrival/)).toBeInTheDocument();
     expect(screen.getByText(/Playing/)).toBeInTheDocument();
@@ -777,7 +777,7 @@ describe('AdminArea', () => {
     fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
 
     const actor = userEvent.setup();
-    renderInACache(<AdminArea initialPanel="activity" />);
+    renderInAnAddress(<AdminArea initialPanel="activity" />);
 
     await actor.click(await screen.findByRole('button', { name: /Stop/ }));
 
@@ -792,7 +792,7 @@ describe('AdminArea', () => {
   it('lists the library roots', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
 
@@ -803,7 +803,7 @@ describe('AdminArea', () => {
   it("opens a library's settings from its name", async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Library settings/);
@@ -815,7 +815,7 @@ describe('AdminArea', () => {
   it('adds a library from the dialog', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Add library' }));
@@ -836,7 +836,7 @@ describe('AdminArea', () => {
   it('scans a library on request', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
@@ -851,7 +851,7 @@ describe('AdminArea', () => {
   it('offers to scan every library at once, forcing a fresh probe of each', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
@@ -867,7 +867,7 @@ describe('AdminArea', () => {
   it('asks before resetting every library', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
@@ -884,7 +884,7 @@ describe('AdminArea', () => {
   it('clears and rebuilds every library once the operator confirms', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
@@ -905,7 +905,7 @@ describe('AdminArea', () => {
   it('does nothing when the operator backs out of the reset', async () => {
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Reset and rebuild' }));
@@ -935,7 +935,7 @@ describe('AdminArea', () => {
 
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
@@ -982,7 +982,7 @@ describe('AdminArea', () => {
       return respondWith()(input, init);
     });
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
@@ -1035,7 +1035,7 @@ describe('AdminArea', () => {
       return respondWith()(input, init);
     });
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await chooseLibrary(actor, 'Movies', /Scan for changes/);
@@ -1070,7 +1070,7 @@ describe('AdminArea', () => {
 
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
     await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
@@ -1089,7 +1089,7 @@ describe('AdminArea', () => {
 
     const actor = userEvent.setup();
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Libraries');
 
@@ -1101,7 +1101,7 @@ describe('AdminArea', () => {
       respondWith({ ...OVERVIEW, settings: { ...OVERVIEW.settings, hardwareAccel } });
 
     it('reports what was found when nobody has insisted', async () => {
-      renderInACache(<AdminArea />);
+      renderInAnAddress(<AdminArea />);
 
       expect(await screen.findAllByText('videotoolbox · automatic')).not.toHaveLength(0);
     });
@@ -1109,7 +1109,7 @@ describe('AdminArea', () => {
     it('stops claiming hardware once software only is forced', async () => {
       fetchMock.mockImplementation(withAccel('none'));
 
-      renderInACache(<AdminArea />);
+      renderInAnAddress(<AdminArea />);
 
       expect(await screen.findAllByText('Software only · forced')).not.toHaveLength(0);
       expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
@@ -1118,7 +1118,7 @@ describe('AdminArea', () => {
     it('reports the forced backend rather than the automatic pick', async () => {
       fetchMock.mockImplementation(withAccel('nvenc'));
 
-      renderInACache(<AdminArea />);
+      renderInAnAddress(<AdminArea />);
 
       expect(await screen.findAllByText('NVENC · forced')).not.toHaveLength(0);
       expect(screen.queryByText(/videotoolbox/)).not.toBeInTheDocument();
@@ -1127,7 +1127,7 @@ describe('AdminArea', () => {
     it('marks a backend this machine cannot actually do', async () => {
       fetchMock.mockImplementation(withAccel('nvenc'));
 
-      renderInACache(<AdminArea />);
+      renderInAnAddress(<AdminArea />);
 
       const shown = await screen.findAllByText('NVENC · forced');
 
@@ -1137,7 +1137,7 @@ describe('AdminArea', () => {
     it('leaves a backend the machine verified unmarked', async () => {
       fetchMock.mockImplementation(withAccel('videotoolbox'));
 
-      renderInACache(<AdminArea />);
+      renderInAnAddress(<AdminArea />);
 
       const shown = await screen.findAllByText('VideoToolbox · forced');
 
@@ -1178,7 +1178,7 @@ describe('steering somebody else’s stream', () => {
 
     fetchMock.mockImplementation(respondWith(OVERVIEW, [session]));
 
-    renderInACache(<AdminArea />);
+    renderInAnAddress(<AdminArea />);
 
     await goTo(actor, 'Sessions');
 

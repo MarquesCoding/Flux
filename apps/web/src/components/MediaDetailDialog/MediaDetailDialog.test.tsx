@@ -1,5 +1,5 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
@@ -16,7 +16,7 @@ vi.mock('motion/react', async () => ({
 
 const detailMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
@@ -96,19 +96,19 @@ afterEach(() => {
 
 describe('MediaDetailDialog', () => {
   it('shows nothing when nothing was chosen', () => {
-    renderInACache(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('names itself after the item', () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
   });
 
   it('shows what is known before any details arrive', () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
     expect(screen.getByText('2016')).toBeInTheDocument();
@@ -117,7 +117,7 @@ describe('MediaDetailDialog', () => {
 
   it('shows the overview once it arrives', async () => {
     detailMock.mockResolvedValue(detail({ overview: 'A linguist meets visitors.' }));
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('A linguist meets visitors.')).toBeInTheDocument();
   });
@@ -128,14 +128,14 @@ describe('MediaDetailDialog', () => {
         cast: [{ personId: null, name: 'Amy Adams', role: 'Louise Banks', imageUrl: null }],
       }),
     );
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('Amy Adams')).toBeInTheDocument();
     expect(screen.getByText('Louise Banks')).toBeInTheDocument();
   });
 
   it('says why the cast is empty rather than leaving a blank space', async () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await waitFor(() => {
       expect(detailMock).toHaveBeenCalled();
@@ -146,21 +146,21 @@ describe('MediaDetailDialog', () => {
   });
 
   it('says why there is no synopsis rather than showing an empty paragraph', async () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText(/Configure a metadata provider/)).toBeInTheDocument();
   });
 
   it('holds the shape of what is coming while it loads', () => {
     detailMock.mockReturnValue(new Promise(() => undefined));
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(document.querySelectorAll('.animate-pulse').length).toBeGreaterThan(0);
   });
 
   it('says which episode this is when it is one', async () => {
     detailMock.mockResolvedValue(detail({ seasonNumber: 2, episodeNumber: 5 }));
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={{ ...summary, seriesTitle: 'Story of Us', seasonNumber: 2, episodeNumber: 5 }}
         onClose={vi.fn()}
@@ -176,7 +176,7 @@ describe('MediaDetailDialog', () => {
 
   it('offers the rest of the season', async () => {
     detailMock.mockResolvedValue(detail({ seasonNumber: 2, episodeNumber: 5 }));
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -194,7 +194,7 @@ describe('MediaDetailDialog', () => {
     const user = userEvent.setup();
     const sibling = { ...summary, id: 'media-2', title: 'The Next One' };
 
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -212,7 +212,7 @@ describe('MediaDetailDialog', () => {
   it('plays on request', async () => {
     const onPlay = vi.fn();
     const user = userEvent.setup();
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
 
     await user.click(screen.getByRole('button', { name: 'Play' }));
 
@@ -222,7 +222,7 @@ describe('MediaDetailDialog', () => {
   it('closes on request', async () => {
     const onClose = vi.fn();
     const user = userEvent.setup();
-    renderInACache(<MediaDetailDialog media={summary} onClose={onClose} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={onClose} onPlay={vi.fn()} />);
 
     await user.click(screen.getByRole('button', { name: 'Close' }));
 
@@ -231,7 +231,7 @@ describe('MediaDetailDialog', () => {
 
   it('remains readable when the details cannot be loaded at all', async () => {
     detailMock.mockResolvedValue(null);
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await waitFor(() => {
       expect(detailMock).toHaveBeenCalled();
@@ -251,7 +251,7 @@ describe('keeping something, and getting back to where you were', () => {
     const onToggleKept = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -267,7 +267,7 @@ describe('keeping something, and getting back to where you were', () => {
   });
 
   it('offers to stop keeping one that is', async () => {
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -281,7 +281,7 @@ describe('keeping something, and getting back to where you were', () => {
   });
 
   it('offers nothing to keep with when nobody is listening', () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.queryByRole('button', { name: /Keep Arrival/ })).not.toBeInTheDocument();
   });
@@ -290,7 +290,7 @@ describe('keeping something, and getting back to where you were', () => {
     const onBack = vi.fn();
     const actor = userEvent.setup();
 
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -306,7 +306,7 @@ describe('keeping something, and getting back to where you were', () => {
   });
 
   it('calls the way back simply Back when it was not named', async () => {
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} onBack={vi.fn()} />,
     );
 
@@ -314,7 +314,7 @@ describe('keeping something, and getting back to where you were', () => {
   });
 
   it('offers no way back when there is nowhere to go', () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.queryByRole('button', { name: 'Back' })).not.toBeInTheDocument();
   });
@@ -322,13 +322,13 @@ describe('keeping something, and getting back to where you were', () => {
   it('names what an item is filed under once the details arrive', async () => {
     detailMock.mockResolvedValue(detail({ genres: ['Science fiction', 'Drama'] }));
 
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(await screen.findByText('Science fiction')).toBeInTheDocument();
   });
 
   it('says nothing about genres for an item carrying none', async () => {
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     await waitFor(() => {
       expect(detailMock).toHaveBeenCalled();
@@ -349,7 +349,7 @@ describe('keeping something, and getting back to where you were', () => {
       episodeNumber: 2,
     };
 
-    renderInACache(
+    renderInAnAddress(
       <MediaDetailDialog
         media={summary}
         onClose={vi.fn()}
@@ -367,7 +367,7 @@ describe('keeping something, and getting back to where you were', () => {
   it('draws an item without motion for somebody who asked for less', () => {
     motion.isReduced = true;
 
-    renderInACache(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.getByRole('dialog', { name: 'Arrival' })).toBeInTheDocument();
   });
@@ -375,7 +375,7 @@ describe('keeping something, and getting back to where you were', () => {
   it('describes the next thing opened rather than showing it the last one’s skeletons', async () => {
     detailMock.mockReturnValue(new Promise(() => undefined));
 
-    const view = renderInACache(
+    const view = renderInAnAddress(
       <MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />,
     );
 
@@ -403,7 +403,7 @@ describe('opening one item after another', () => {
   it('shows the next item’s title rather than opening it already faded out', async () => {
     detailMock.mockResolvedValue(detail());
 
-    const view = renderInACache(
+    const view = renderInAnAddress(
       <MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />,
     );
 
@@ -436,7 +436,7 @@ describe('opening one item after another', () => {
     detailMock.mockResolvedValue(detail());
 
     const lettered = { ...summary, hasLogo: true };
-    const view = renderInACache(
+    const view = renderInAnAddress(
       <MediaDetailDialog media={lettered} onClose={vi.fn()} onPlay={vi.fn()} />,
     );
 

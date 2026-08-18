@@ -9,7 +9,7 @@ import {
   AVATAR_STYLES,
   profileInitial,
 } from '@FluxContracts/schemas/ViewerProfile';
-import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxWeb/profiles/fetchProfiles';
+import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxClient/profiles/fetchProfiles';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileEditorProps } from './ProfileEditor.types';

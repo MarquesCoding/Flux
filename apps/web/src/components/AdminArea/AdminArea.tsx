@@ -24,7 +24,7 @@ import {
   redeliverWebhook,
   setWebhookEnabled,
   testWebhook,
-} from '@FluxWeb/admin/fetchWebhooks';
+} from '@FluxClient/admin/fetchWebhooks';
 import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
 import { Tabs } from '@FluxUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
@@ -37,11 +37,11 @@ import {
   resumeSession,
   addJobTrigger,
   removeJobTrigger,
-} from '@FluxWeb/admin/fetchAdmin';
-import { rebuildArtefacts } from '@FluxWeb/library/fetchLibrary';
+} from '@FluxClient/admin/fetchAdmin';
+import { rebuildArtefacts } from '@FluxClient/library/fetchLibrary';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminQueries } from '@FluxWeb/query/adminQueries';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { adminQueries } from '@FluxClient/query/adminQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
@@ -66,8 +66,8 @@ import {
 } from './scanCoordinator';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ScheduleTrigger } from '@FluxWeb/admin/fetchAdmin';
-import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
+import type { JobSchedules, ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
+import type { CreatedWebhook } from '@FluxClient/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
 const HISTORY_LENGTH = 60;
@@ -251,13 +251,16 @@ const AdminArea = ({
   );
 
   const onLibraryUpdated = (updated: Library) => {
-    cache.setQueryData(libraryQueries.all().queryKey, (current = []) =>
+    cache.setQueryData(libraryQueries.all().queryKey, (current: Library[] = []) =>
       current.map((entry) => (entry.id === updated.id ? updated : entry)),
     );
   };
 
   const onLibraryCreated = (library: Library) => {
-    cache.setQueryData(libraryQueries.all().queryKey, (current = []) => [...current, library]);
+    cache.setQueryData(libraryQueries.all().queryKey, (current: Library[] = []) => [
+      ...current,
+      library,
+    ]);
   };
 
   const rescan = async (libraryId: string, force = false) => {
@@ -306,7 +309,7 @@ const AdminArea = ({
       return;
     }
 
-    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+    cache.setQueryData(adminQueries.schedules().queryKey, (current: JobSchedules | undefined) =>
       current === undefined
         ? current
         : {
@@ -321,7 +324,7 @@ const AdminArea = ({
   };
 
   const removeTrigger = async (kind: string, triggerId: string) => {
-    cache.setQueryData(adminQueries.schedules().queryKey, (current) =>
+    cache.setQueryData(adminQueries.schedules().queryKey, (current: JobSchedules | undefined) =>
       current === undefined
         ? current
         : {
