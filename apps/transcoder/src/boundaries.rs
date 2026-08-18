@@ -137,11 +137,24 @@ impl Boundaries {
 
     /// How many of the muxer's segments make up each one the playlist offers.
     ///
-    /// One apiece where nothing was grouped, which is both the ordinary case
-    /// and what boundaries cached before grouping existed have to mean.
+    /// One apiece for boundaries cached before Flux grouped anything, which
+    /// carry none and describe a playlist that offered every segment alone.
+    ///
+    /// The counts are checked against the segments they claim to cover rather
+    /// than trusted. Comparing how many groups there are against how many
+    /// segments there are is the wrong question and was asked here first: the
+    /// two are equal only when nothing was gathered, so grouping was thrown
+    /// away in exactly the case it had done some work. What has to match is the
+    /// total.
     #[must_use]
     pub fn grouping(&self) -> Vec<u32> {
-        if self.groups.len() == self.lengths.len() {
+        let covered: usize = self
+            .groups
+            .iter()
+            .map(|count| usize::try_from(*count).unwrap_or(usize::MAX))
+            .sum();
+
+        if !self.groups.is_empty() && covered == self.lengths.len() {
             return self.groups.clone();
         }
 
@@ -377,8 +390,47 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
 #[cfg(test)]
 mod tests {
-    use super::{can_copy_segments, equal_lengths};
+    use super::{can_copy_segments, equal_lengths, Boundaries, LAYOUT};
     use crate::keyframes::{Cut, Keyframes};
+
+    fn grouped(lengths: Vec<f64>, groups: Vec<u32>) -> Boundaries {
+        Boundaries {
+            layout: LAYOUT,
+            lengths,
+            cut_seconds: 0.0747,
+            seeks_forward: false,
+            can_copy: true,
+            groups,
+        }
+    }
+
+    /// The case the first attempt threw away, which was every case that mattered.
+    ///
+    /// Grouping is only ever recorded when it gathered something, so there are
+    /// always fewer groups than segments. Reading it back has to survive that.
+    #[test]
+    fn keeps_a_grouping_that_gathered_something() {
+        let found = grouped(vec![3.5, 0.083, 3.4], vec![1, 2]);
+
+        assert_eq!(found.grouping(), vec![1, 2]);
+        assert_eq!(found.offered_lengths(), vec![3.5, 3.483]);
+    }
+
+    #[test]
+    fn offers_every_segment_alone_where_nothing_was_grouped() {
+        let found = grouped(vec![4.0, 4.0], Vec::new());
+
+        assert_eq!(found.grouping(), vec![1, 1]);
+        assert_eq!(found.offered_lengths(), vec![4.0, 4.0]);
+    }
+
+    /// A grouping that does not add up describes segments that are not there.
+    #[test]
+    fn refuses_a_grouping_that_does_not_cover_the_film() {
+        let found = grouped(vec![4.0, 4.0, 4.0], vec![1, 1]);
+
+        assert_eq!(found.grouping(), vec![1, 1, 1]);
+    }
 
     fn every(seconds: f64, count: u32, duration: f64) -> Keyframes {
         Keyframes {
