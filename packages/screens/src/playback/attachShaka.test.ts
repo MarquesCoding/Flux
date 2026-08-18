@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { attachShaka, deliveredFormat, faultFrom, CRITICAL } from './attachShaka';
-import type { ShakaModule, ShakaPlayer } from './attachShaka';
+import type { ShakaModule, ShakaPlayer, ShakaStats, ShakaVariant } from './attachShaka';
 
 type Engine = {
   module: ShakaModule;
@@ -46,6 +46,48 @@ const engine = (): Engine => {
 };
 
 const element = (): HTMLVideoElement => document.createElement('video');
+
+const bufferedTo = (seconds: number | null): HTMLVideoElement => {
+  const video = element();
+
+  Object.defineProperty(video, 'buffered', {
+    configurable: true,
+    get: () => (seconds === null ? { length: 0, end: () => 0 } : { length: 1, end: () => seconds }),
+  });
+
+  return video;
+};
+
+const reporting = (
+  readings: ShakaStats[],
+  tracks: ShakaVariant[] = [],
+): { module: ShakaModule; player: ShakaPlayer } => {
+  const made = engine();
+  let at = 0;
+
+  const getStats = (): ShakaStats => readings[Math.min(at++, readings.length - 1)] ?? {};
+
+  const getVariantTracks = (): ShakaVariant[] => tracks;
+
+  const player: ShakaPlayer = { ...made.player, getStats, getVariantTracks };
+
+  return {
+    module: {
+      polyfill: made.module.polyfill,
+      Player: class {
+        attach = player.attach;
+        load = player.load;
+        destroy = player.destroy;
+        getStats = getStats;
+        getVariantTracks = getVariantTracks;
+        addEventListener = (name: string, listener: (event: Event) => void) => {
+          made.player.addEventListener?.(name, listener);
+        };
+      },
+    },
+    player,
+  };
+};
 
 describe('faultFrom', () => {
   it('reads what the engine reported', () => {
@@ -168,5 +210,94 @@ describe('deliveredFormat, a playlist that declares no bandwidth', () => {
     const found = deliveredFormat([{ active: true, bandwidth: 0 }], null, null);
 
     expect(found?.bitrateKbps).toBeNull();
+  });
+});
+
+describe('attachShaka, reading what is actually being delivered', () => {
+  it('resumes where it was left, rather than loading from the top', async () => {
+    const made = engine();
+
+    await attachShaka({
+      element: element(),
+      manifestUrl: '/stream.mpd',
+      startSeconds: 120,
+      loadShaka: () => Promise.resolve(made.module),
+    });
+
+    expect(made.player.load).toHaveBeenCalledWith('/stream.mpd', 120);
+  });
+
+  it('says nothing on the first reading, having nothing to measure against', async () => {
+    const made = reporting([{ bytesDownloaded: 1_000_000 }]);
+
+    const stream = await attachShaka({
+      element: bufferedTo(10),
+      manifestUrl: '/stream.mpd',
+      loadShaka: () => Promise.resolve(made.module),
+    });
+
+    expect(stream.readDelivered()).toBeNull();
+  });
+
+  it('reports the rate it measured once two readings are apart', async () => {
+    const made = reporting(
+      [{ bytesDownloaded: 0 }, { bytesDownloaded: 5_000_000 }],
+      [{ active: true, videoCodec: 'avc1.640028', bandwidth: 0 }],
+    );
+    const video = bufferedTo(0);
+    let buffered = 0;
+
+    Object.defineProperty(video, 'buffered', {
+      configurable: true,
+      get: () => ({ length: 1, end: () => buffered }),
+    });
+
+    const stream = await attachShaka({
+      element: video,
+      manifestUrl: '/stream.mpd',
+      loadShaka: () => Promise.resolve(made.module),
+    });
+
+    stream.readDelivered();
+
+    buffered = 10;
+
+    expect(stream.readDelivered()).toEqual(
+      expect.objectContaining({ bitrateKbps: (5_000_000 * 8) / 10 / 1000 }),
+    );
+  });
+
+  it('starts again rather than reporting a negative rate when the counters go backwards', async () => {
+    const made = reporting([{ bytesDownloaded: 9_000_000 }, { bytesDownloaded: 1_000_000 }]);
+
+    const stream = await attachShaka({
+      element: bufferedTo(10),
+      manifestUrl: '/stream.mpd',
+      loadShaka: () => Promise.resolve(made.module),
+    });
+
+    stream.readDelivered();
+
+    expect(stream.readDelivered()).toBeNull();
+  });
+
+  it('treats an element that will not say what it holds as holding nothing', async () => {
+    const made = reporting([{ bytesDownloaded: 1 }]);
+    const video = element();
+
+    Object.defineProperty(video, 'buffered', {
+      configurable: true,
+      get: () => {
+        throw new Error('The element is not ready');
+      },
+    });
+
+    const stream = await attachShaka({
+      element: video,
+      manifestUrl: '/stream.mpd',
+      loadShaka: () => Promise.resolve(made.module),
+    });
+
+    expect(stream.readDelivered()).toBeNull();
   });
 });
