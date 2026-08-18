@@ -4,15 +4,15 @@ import { SplashScreen } from '@FluxUI/SplashScreen';
 import { VideoPlayer } from '@FluxWeb/components/VideoPlayer/VideoPlayer';
 import { PartyMenu } from '@FluxWeb/components/PartyMenu/PartyMenu';
 import { PartyPasswordDialog } from '@FluxWeb/components/PartyPasswordDialog/PartyPasswordDialog';
-import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@FluxWeb/party/whereToBegin';
+import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@FluxClient/party/whereToBegin';
 import { invitationTo } from '@FluxWeb/party/invitationTo';
-import { countCarriedOn } from '@FluxWeb/playback/countCarriedOn';
-import { decideWhatFollows } from '@FluxWeb/playback/decideWhatFollows';
-import { findSiblings, nextEpisode } from '@FluxWeb/library/pickFeatured';
+import { countCarriedOn } from '@FluxClient/playback/countCarriedOn';
+import { decideWhatFollows } from '@FluxClient/playback/decideWhatFollows';
+import { findSiblings, nextEpisode } from '@FluxClient/library/pickFeatured';
 import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@FluxContracts/schemas/WatchProgress';
 import { STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
 import { usePlace } from '@FluxWeb/navigation/usePlace';
-import { useShell } from '@FluxWeb/shell/useShell';
+import { useShell } from '@FluxClient/shell/useShell';
 
 const PROGRESS_EVERY_SECONDS = 5;
 

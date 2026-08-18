@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { JobRunner } from './JobRunner';
 import type { Library } from '@FluxContracts/schemas/Library';
-import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
+import type { JobDefinition } from '@FluxClient/admin/fetchAdmin';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 
 const DEFINITIONS: JobDefinition[] = [

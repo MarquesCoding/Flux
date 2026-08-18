@@ -11,7 +11,7 @@ const { fetchMock, createMock, enableMock, revokeMock } = vi.hoisted(() => ({
   revokeMock: vi.fn(),
 }));
 
-vi.mock('@FluxWeb/account/fetchApiKeys', () => ({
+vi.mock('@FluxClient/account/fetchApiKeys', () => ({
   fetchApiKeys: fetchMock,
   createApiKey: createMock,
   setApiKeyEnabled: enableMock,

@@ -6,7 +6,7 @@ import type { AccountAreaProps } from '@FluxWeb/components/AccountArea/AccountAr
 const drawn = vi.hoisted((): { props: AccountAreaProps | null } => ({ props: null }));
 const signOut = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/session/auth', () => ({ signOut }));
+vi.mock('@FluxClient/session/auth', () => ({ signOut }));
 
 vi.mock('@FluxWeb/components/AccountArea/AccountArea', () => ({
   AccountArea: (props: AccountAreaProps) => {

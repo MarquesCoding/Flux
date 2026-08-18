@@ -5,7 +5,7 @@ import { renderTheApp } from '@FluxWeb/testing/renderTheApp';
 
 const fetchMock = vi.fn();
 
-vi.mock('@FluxWeb/realtime/getRealtimeClient', () => ({
+vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => undefined,
     stop: () => undefined,

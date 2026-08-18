@@ -1,5 +1,5 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowseArea } from './BrowseArea';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
@@ -10,7 +10,7 @@ type Options = { kind?: string; order?: string; ids?: string[]; limit?: number }
 const fetchLibraries = vi.fn<() => Promise<{ id: string }[]>>();
 const fetchLibraryItems = vi.fn<(libraryId: string, options?: Options) => Promise<Page>>();
 
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   fetchLibraries: () => fetchLibraries(),
   fetchLibraryItems: (libraryId: string, options?: Options) =>
     fetchLibraryItems(libraryId, options),
@@ -40,13 +40,13 @@ beforeEach(() => {
 
 describe('BrowseArea', () => {
   it('names the page it is', async () => {
-    renderInACache(<BrowseArea kind="shows" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="shows" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(await screen.findByRole('heading', { name: 'Shows' })).toBeInTheDocument();
   });
 
   it('asks the server for what comes in episodes', async () => {
-    renderInACache(<BrowseArea kind="shows" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="shows" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     await waitFor(() => {
       expect(fetchLibraryItems).toHaveBeenCalledWith(
@@ -57,7 +57,7 @@ describe('BrowseArea', () => {
   });
 
   it('asks for the newest first on the page about newness', async () => {
-    renderInACache(<BrowseArea kind="new" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="new" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     await waitFor(() => {
       expect(fetchLibraryItems).toHaveBeenCalledWith(
@@ -68,7 +68,7 @@ describe('BrowseArea', () => {
   });
 
   it('asks for exactly what this viewer kept, by name', async () => {
-    renderInACache(
+    renderInAnAddress(
       <BrowseArea kind="favourites" favourites={['a', 'b']} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -81,7 +81,7 @@ describe('BrowseArea', () => {
   });
 
   it('asks for nothing at all where nothing has been kept', async () => {
-    renderInACache(
+    renderInAnAddress(
       <BrowseArea kind="favourites" favourites={[]} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -94,7 +94,7 @@ describe('BrowseArea', () => {
   });
 
   it('shows what it found', async () => {
-    renderInACache(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: /Arrival/ })).toBeInTheDocument();
   });
@@ -102,7 +102,7 @@ describe('BrowseArea', () => {
   it('says why it is empty and what would fill it', async () => {
     fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
 
-    renderInACache(<BrowseArea kind="favourites" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="favourites" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(await screen.findByText(/The heart on any item puts it here/)).toBeInTheDocument();
   });
@@ -110,7 +110,7 @@ describe('BrowseArea', () => {
   it('tells the page what it loaded, so an address can be turned back into an item', async () => {
     const onItemsLoaded = vi.fn();
 
-    renderInACache(
+    renderInAnAddress(
       <BrowseArea
         kind="films"
         onPlay={vi.fn()}
@@ -127,7 +127,7 @@ describe('BrowseArea', () => {
   it('says it could not be read when the server cannot be reached, rather than that it is empty', async () => {
     fetchLibraries.mockRejectedValue(new Error('offline'));
 
-    renderInACache(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
     expect(screen.queryByText(/Nothing here stands on its own yet/)).not.toBeInTheDocument();
@@ -136,7 +136,7 @@ describe('BrowseArea', () => {
   it('offers to try again, since a server that was down may not be', async () => {
     fetchLibraries.mockRejectedValue(new Error('offline'));
 
-    renderInACache(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
   });

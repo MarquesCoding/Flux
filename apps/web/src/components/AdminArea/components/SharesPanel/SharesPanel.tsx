@@ -10,12 +10,12 @@ import { CardHeader } from '@FluxUI/CardHeader';
 import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
 import { DataTable } from '@FluxUI/DataTable';
 import { Spinner } from '@FluxUI/Spinner';
-import { revokeAnybodysShare } from '@FluxWeb/sharing/fetchShares';
-import { adminQueries } from '@FluxWeb/query/adminQueries';
-import { saidWhen } from '@FluxWeb/format/saidWhen';
+import { revokeAnybodysShare } from '@FluxClient/sharing/fetchShares';
+import { adminQueries } from '@FluxClient/query/adminQueries';
+import { saidWhen } from '@FluxClient/format/saidWhen';
 import { standingOf } from '@FluxWeb/sharing/standingOf';
-import { untilWhen } from '@FluxWeb/sharing/untilWhen';
-import { saidOpened } from '@FluxWeb/sharing/saidOpened';
+import { untilWhen } from '@FluxClient/sharing/untilWhen';
+import { saidOpened } from '@FluxClient/sharing/saidOpened';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
 import type { AdminShare } from '@FluxContracts/schemas/Share';
 

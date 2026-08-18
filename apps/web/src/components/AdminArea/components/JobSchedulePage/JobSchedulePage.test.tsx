@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { JobSchedulePage } from './JobSchedulePage';
-import type { JobTrigger } from '@FluxWeb/admin/fetchAdmin';
+import type { JobTrigger } from '@FluxClient/admin/fetchAdmin';
 
 const NIGHTLY: JobTrigger = {
   id: 'trigger-1',

@@ -7,7 +7,7 @@ import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/anima
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { cn } from '@FluxUI/cn';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';

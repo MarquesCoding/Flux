@@ -20,7 +20,7 @@ import { ScanProgressBar } from '@FluxWeb/components/AdminArea/components/ScanPr
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import { summariseProgress } from './summariseProgress';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { JobDefinition } from '@FluxWeb/admin/fetchAdmin';
+import type { JobDefinition } from '@FluxClient/admin/fetchAdmin';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 import type { JobRunnerProps } from './JobRunner.types';
 

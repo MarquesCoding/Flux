@@ -9,8 +9,8 @@ const searchCatalogueMock = vi.hoisted(() => vi.fn());
 const correctMatchMock = vi.hoisted(() => vi.fn());
 const forgetCorrectionMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/admin/fetchAdmin', () => ({ searchCatalogue: searchCatalogueMock }));
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/admin/fetchAdmin', () => ({ searchCatalogue: searchCatalogueMock }));
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   correctMatch: correctMatchMock,
   forgetCorrection: forgetCorrectionMock,
 }));

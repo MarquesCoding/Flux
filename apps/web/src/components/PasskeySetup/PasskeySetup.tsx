@@ -5,7 +5,12 @@ import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { TextField } from '@FluxUI/TextField';
 import { describePasskeyUnavailability } from '@FluxWeb/passkeys/isPasskeySupported';
-import { deletePasskey, listPasskeys, registerPasskey, renamePasskey } from '@FluxWeb/session/auth';
+import {
+  deletePasskey,
+  listPasskeys,
+  registerPasskey,
+  renamePasskey,
+} from '@FluxClient/session/auth';
 import type { Passkey } from '@FluxContracts/schemas/Passkey';
 import type { PasskeySetupProps } from './PasskeySetup.types';
 

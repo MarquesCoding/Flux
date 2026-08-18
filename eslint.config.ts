@@ -131,6 +131,28 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/client/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@FluxWeb/*'],
+              message:
+                'The application cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0022.',
+            },
+            {
+              group: ['@FluxUI/*'],
+              message:
+                'The application does not draw. A component belongs to a client, and a shape both need belongs to @FluxContracts.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.config.ts', '**/vitest.setup.ts'],
     ...tseslint.configs.disableTypeChecked,
   },

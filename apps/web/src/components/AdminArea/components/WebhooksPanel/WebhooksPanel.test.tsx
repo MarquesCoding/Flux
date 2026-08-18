@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { WebhooksPanel } from './WebhooksPanel';
 import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
-import type { CreatedWebhook } from '@FluxWeb/admin/fetchWebhooks';
+import type { CreatedWebhook } from '@FluxClient/admin/fetchWebhooks';
 
 const aWebhook = (overrides: Partial<WebhookSubscription> = {}): WebhookSubscription => ({
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RolesPanel } from './RolesPanel';
@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   deleteRole: vi.fn(),
 }));
 
-vi.mock('@FluxWeb/admin/fetchRoles', () => mocks);
+vi.mock('@FluxClient/admin/fetchRoles', () => mocks);
 
 const ADMINISTRATOR = {
   id: 'role_1',
@@ -58,27 +58,27 @@ describe('RolesPanel', () => {
   });
 
   it('lists the roles the server has', async () => {
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     expect(await screen.findByText('Administrator')).toBeInTheDocument();
     expect(screen.getByText('Member')).toBeInTheDocument();
   });
 
   it('says a role grants everything rather than counting to one', async () => {
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     expect(await screen.findByText('Everything')).toBeInTheDocument();
   });
 
   it('counts one permission without saying "1 permissions"', async () => {
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     expect(await screen.findByText('1 permission')).toBeInTheDocument();
   });
 
   it('will not create a role with no name', async () => {
     const user = userEvent.setup();
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Create role/ }));
 
@@ -89,7 +89,7 @@ describe('RolesPanel', () => {
 
   it('creates a role below everybody already using the server', async () => {
     const user = userEvent.setup();
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Create role/ }));
 
@@ -107,7 +107,7 @@ describe('RolesPanel', () => {
 
   it('sets the permissions a role starts with, rather than making them a second job', async () => {
     const user = userEvent.setup();
-    renderInACache(<RolesPanel />);
+    renderInAnAddress(<RolesPanel />);
 
     await user.click(await screen.findByRole('button', { name: /Create role/ }));
 
@@ -124,7 +124,7 @@ describe('RolesPanel', () => {
 
   describe('what a role grants', () => {
     it('stays shut until a role is picked', async () => {
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await screen.findByText('Administrator');
 
@@ -133,7 +133,7 @@ describe('RolesPanel', () => {
 
     it('draws the catalogue the server gave, grouped', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
 
@@ -143,7 +143,7 @@ describe('RolesPanel', () => {
 
     it('shows what the role already has ticked', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Administrator');
 
@@ -153,7 +153,7 @@ describe('RolesPanel', () => {
 
     it('adds a permission the role did not have', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.click(screen.getByLabelText('Run a job'));
@@ -167,7 +167,7 @@ describe('RolesPanel', () => {
   describe('renaming and re-ranking', () => {
     it('seeds the fields from the role that was picked', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
 
@@ -177,7 +177,7 @@ describe('RolesPanel', () => {
 
     it('will not save a change that is not one', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
 
@@ -186,7 +186,7 @@ describe('RolesPanel', () => {
 
     it('will not save a role with no name', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Name'));
@@ -196,7 +196,7 @@ describe('RolesPanel', () => {
 
     it('renames a role', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Name'));
@@ -211,7 +211,7 @@ describe('RolesPanel', () => {
 
     it('re-ranks a role, which is what makes the hierarchy usable at all', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
@@ -226,7 +226,7 @@ describe('RolesPanel', () => {
 
     it('leaves the rank alone rather than sending nonsense when the field is empty', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
@@ -241,7 +241,7 @@ describe('RolesPanel', () => {
       mocks.updateRole.mockResolvedValue({ message: 'That role is at or above your own.' });
 
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.clear(screen.getByLabelText('Rank'));
@@ -257,7 +257,7 @@ describe('RolesPanel', () => {
       mocks.updateRole.mockResolvedValue({ message: 'That role is at or above your own.' });
 
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await edit(user, 'Member');
       await user.click(screen.getByLabelText('Run a job'));
@@ -271,7 +271,7 @@ describe('RolesPanel', () => {
       });
 
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await remove(user, 'Administrator');
 
@@ -280,7 +280,7 @@ describe('RolesPanel', () => {
 
     it('says nothing when the server was happy', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await remove(user, 'Member');
 
@@ -293,7 +293,7 @@ describe('RolesPanel', () => {
 
     it('reads the roles again once a change lands', async () => {
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await remove(user, 'Member');
 
@@ -306,7 +306,7 @@ describe('RolesPanel', () => {
       mocks.deleteRole.mockResolvedValue({ message: 'That role is at or above your own.' });
 
       const user = userEvent.setup();
-      renderInACache(<RolesPanel />);
+      renderInAnAddress(<RolesPanel />);
 
       await remove(user, 'Member');
       await screen.findByRole('alert');

@@ -4,7 +4,7 @@ import { DataTable } from '@FluxUI/DataTable';
 import { describeElapsed } from '@FluxWeb/components/AdminArea/describeElapsed';
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Job } from '@FluxWeb/admin/fetchAdmin';
+import type { Job } from '@FluxClient/admin/fetchAdmin';
 import type { BackgroundJobsProps } from './BackgroundJobs.types';
 
 /**

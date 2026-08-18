@@ -8,7 +8,7 @@ import { DialogFooter } from '@FluxUI/DialogFooter';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { OptionMenu } from '@FluxUI/OptionMenu';
 import { readLanguage, LANGUAGE_NAMES } from '@FluxCore/functions/describeTrack';
-import { updateLibrary } from '@FluxWeb/library/fetchLibrary';
+import { updateLibrary } from '@FluxClient/library/fetchLibrary';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
 

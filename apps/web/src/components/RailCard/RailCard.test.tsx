@@ -1,5 +1,5 @@
 import { act, screen, waitFor } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RailCard } from './RailCard';
@@ -122,7 +122,7 @@ afterEach(() => {
 
 describe('RailCard', () => {
   it('draws the item it stands for', () => {
-    renderInACache(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(screen.getByText('Parasite')).toBeInTheDocument();
   });
@@ -131,7 +131,7 @@ describe('RailCard', () => {
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    renderInACache(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
+    renderInAnAddress(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />);
 
     await actor.click(screen.getByRole('button', { name: /Parasite/ }));
 
@@ -139,7 +139,7 @@ describe('RailCard', () => {
   });
 
   it('does not open on the way past, only where a pointer rests', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -151,7 +151,7 @@ describe('RailCard', () => {
   });
 
   it('opens once a pointer has rested on it', async () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -161,7 +161,7 @@ describe('RailCard', () => {
   });
 
   it('does not open for a finger, which has nowhere to rest', async () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -171,7 +171,7 @@ describe('RailCard', () => {
   });
 
   it('reads the rest of what is known about the item once it is open', async () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -182,7 +182,7 @@ describe('RailCard', () => {
   });
 
   it('names the genres, up to the number worth naming', async () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -195,7 +195,7 @@ describe('RailCard', () => {
   it('opens the page from anywhere on the open card, not from a small button', async () => {
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={onInspect} />,
     );
 
@@ -209,7 +209,7 @@ describe('RailCard', () => {
     const onPlay = vi.fn();
     const onInspect = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={onPlay} onInspect={onInspect} />,
     );
 
@@ -223,7 +223,7 @@ describe('RailCard', () => {
   it('offers to resume where somebody left it', async () => {
     const onPlay = vi.fn();
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard
         media={MEDIA}
 
@@ -240,7 +240,7 @@ describe('RailCard', () => {
   });
 
   it('closes when the pointer leaves', async () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 

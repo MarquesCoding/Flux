@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { renderInACache } from '@FluxWeb/testing/renderInACache';
+import { renderInAnAddress } from '@FluxWeb/testing/renderInAnAddress';
 import { describe, expect, it, vi } from 'vitest';
 import { MediaGrid } from './MediaGrid';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
@@ -25,20 +25,20 @@ const items = [item('a', 'Arrival'), item('b', 'Dune')];
 
 describe('MediaGrid', () => {
   it('draws every item it is given', () => {
-    renderInACache(<MediaGrid items={items} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<MediaGrid items={items} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: /Arrival/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Dune/ })).toBeInTheDocument();
   });
 
   it('draws nothing at all when there is nothing to draw', () => {
-    renderInACache(<MediaGrid items={[]} onPlay={vi.fn()} onInspect={vi.fn()} />);
+    renderInAnAddress(<MediaGrid items={[]} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(screen.queryByRole('button')).not.toBeInTheDocument();
   });
 
   it('says how far through each item this viewer is', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <MediaGrid
         items={items}
         onPlay={vi.fn()}
@@ -55,7 +55,7 @@ describe('MediaGrid', () => {
   });
 
   it('lays the cards out at the size it is given', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <MediaGrid items={items} size="small" onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -63,7 +63,7 @@ describe('MediaGrid', () => {
   });
 
   it('settles on the middle size when nobody has chosen one', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <MediaGrid items={items} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 
@@ -71,7 +71,7 @@ describe('MediaGrid', () => {
   });
 
   it('shows fewer, larger cards when asked for large ones', () => {
-    const { container } = renderInACache(
+    const { container } = renderInAnAddress(
       <MediaGrid items={items} size="large" onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
 

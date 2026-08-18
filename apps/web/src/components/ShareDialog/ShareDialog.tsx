@@ -7,7 +7,7 @@ import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { TextField } from '@FluxUI/TextField';
 import { Choice } from './components/Choice/Choice';
-import { createShare, shareAddress } from '@FluxWeb/sharing/fetchShares';
+import { createShare, shareAddress } from '@FluxClient/sharing/fetchShares';
 import type { NewShare } from '@FluxContracts/schemas/Share';
 import type { ShareDialogProps } from './ShareDialog.types';
 

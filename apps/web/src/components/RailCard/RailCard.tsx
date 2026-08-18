@@ -10,7 +10,7 @@ import { liquidSpring } from '@FluxUI/animations/reveal';
 import { hasFinePointer } from '@FluxUI/hasFinePointer';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxWeb/query/libraryQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { showSlug } from '@FluxCore/functions/showSlug';
 import { MediaPreview } from '@FluxWeb/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxWeb/components/MediaFacts/MediaFacts';

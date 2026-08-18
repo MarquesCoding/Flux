@@ -6,7 +6,7 @@ import type { Library } from '@FluxContracts/schemas/Library';
 
 const updateLibraryMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/library/fetchLibrary', () => ({
+vi.mock('@FluxClient/library/fetchLibrary', () => ({
   updateLibrary: updateLibraryMock,
 }));
 

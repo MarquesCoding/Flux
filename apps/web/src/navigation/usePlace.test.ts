@@ -1,5 +1,5 @@
 import { act, waitFor } from '@testing-library/react';
-import { renderHookInACache } from '@FluxWeb/testing/renderHookInACache';
+import { renderHookInAnAddress } from '@FluxWeb/testing/renderHookInAnAddress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePlace } from './usePlace';
 
@@ -17,13 +17,13 @@ describe('usePlace', () => {
   it('starts wherever the address bar says', () => {
     window.history.replaceState(null, '', '/search?q=blade');
 
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     expect(result.current.place).toMatchObject({ section: 'search', search: 'blade' });
   });
 
   it('writes where somebody moved to into the address', async () => {
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });
@@ -35,7 +35,7 @@ describe('usePlace', () => {
   });
 
   it('keeps what it was not told to change', async () => {
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'search', search: 'blade' });
@@ -56,7 +56,7 @@ describe('usePlace', () => {
 
   it('adds an entry to the history when somebody moves', async () => {
     const push = vi.spyOn(window.history, 'pushState');
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });
@@ -70,7 +70,7 @@ describe('usePlace', () => {
   it('replaces the entry when a place is only corrected, so typing is not a history', async () => {
     const push = vi.spyOn(window.history, 'pushState');
     const replace = vi.spyOn(window.history, 'replaceState');
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.replace({ section: 'search', search: 'b' });
@@ -85,7 +85,7 @@ describe('usePlace', () => {
 
   it('does not record going where it already is', () => {
     const push = vi.spyOn(window.history, 'pushState');
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'home' });
@@ -95,7 +95,7 @@ describe('usePlace', () => {
   });
 
   it('follows the back button', async () => {
-    const { result } = renderHookInACache(() => usePlace());
+    const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
       result.current.go({ section: 'admin' });

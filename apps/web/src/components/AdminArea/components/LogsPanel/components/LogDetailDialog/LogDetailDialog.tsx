@@ -4,7 +4,7 @@ import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogTitle } from '@FluxUI/DialogTitle';
 import { Button } from '@FluxUI/Button';
-import { describeLogDay, describeLogTime } from '@FluxWeb/admin/describeLogTime';
+import { describeLogDay, describeLogTime } from '@FluxClient/admin/describeLogTime';
 import type { LogDetailDialogProps } from './LogDetailDialog.types';
 
 type RowProps = {

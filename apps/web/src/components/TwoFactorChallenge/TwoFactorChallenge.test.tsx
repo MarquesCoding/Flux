@@ -6,7 +6,7 @@ import { TwoFactorChallenge } from './TwoFactorChallenge';
 const verifyTotp = vi.hoisted(() => vi.fn());
 const verifyBackupCode = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxWeb/session/auth', () => ({ verifyTotp, verifyBackupCode }));
+vi.mock('@FluxClient/session/auth', () => ({ verifyTotp, verifyBackupCode }));
 
 const respondWith = (accepted: boolean) => {
   verifyTotp.mockResolvedValue(accepted);

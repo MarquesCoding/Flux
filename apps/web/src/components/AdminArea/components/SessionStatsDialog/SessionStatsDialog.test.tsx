@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SessionStatsDialog } from './SessionStatsDialog';
-import type { ActiveSession } from '@FluxWeb/admin/fetchAdmin';
+import type { ActiveSession } from '@FluxClient/admin/fetchAdmin';
 import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };

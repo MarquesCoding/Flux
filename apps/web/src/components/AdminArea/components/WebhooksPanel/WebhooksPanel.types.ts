@@ -1,5 +1,5 @@
 import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
-import type { CreatedWebhook, NewWebhook, Refusal } from '@FluxWeb/admin/fetchWebhooks';
+import type { CreatedWebhook, NewWebhook, Refusal } from '@FluxClient/admin/fetchWebhooks';
 
 type WebhooksPanelProps = {
   webhooks: WebhookSubscription[];

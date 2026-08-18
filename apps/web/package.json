@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@better-auth/passkey": "^1.6.26",
+    "@flux/client": "workspace:*",
     "@flux/contracts": "workspace:*",
     "@flux/core": "workspace:*",
     "@flux/ui": "workspace:*",

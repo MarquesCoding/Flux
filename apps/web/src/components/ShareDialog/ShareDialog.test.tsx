@@ -9,7 +9,7 @@ const createMock = vi.hoisted(() =>
   vi.fn<(asked: NewShare) => Promise<{ token: string } | null>>(),
 );
 
-vi.mock('@FluxWeb/sharing/fetchShares', () => ({
+vi.mock('@FluxClient/sharing/fetchShares', () => ({
   createShare: createMock,
   shareAddress: (token: string, origin: string) => `${origin}/share/${token}`,
 }));

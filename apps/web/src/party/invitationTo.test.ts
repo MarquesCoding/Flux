@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { invitationTo } from './invitationTo';
-import { readLocation } from '@FluxWeb/navigation/readLocation';
+import { readLocation } from '@FluxClient/navigation/readLocation';
 
 describe('invitationTo', () => {
   it('names the party', () => {

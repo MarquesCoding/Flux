@@ -1,6 +1,7 @@
 import { screen, act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell, aShell } from '@FluxWeb/testing/renderInAShell';
+import { renderInAShell } from '@FluxWeb/testing/renderInAShell';
+import { aShell } from '@FluxClient/testing/aShell';
 import { WatchPage } from './WatchPage';
 import type { VideoPlayerProps } from '@FluxWeb/components/VideoPlayer/VideoPlayer.types';
 

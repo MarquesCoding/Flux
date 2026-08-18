@@ -3,7 +3,7 @@ import type {
   JobTrigger,
   Monitor,
   ScheduleTrigger,
-} from '@FluxWeb/admin/fetchAdmin';
+} from '@FluxClient/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 import type { ScanEntry } from '@FluxWeb/components/AdminArea/scanCoordinator';
 

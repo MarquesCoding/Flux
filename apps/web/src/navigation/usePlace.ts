@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from '@tanstack/react-router';
-import { placeIn, writeLocation } from '@FluxWeb/navigation/readLocation';
-import type { Place } from '@FluxWeb/navigation/readLocation';
+import { placeIn, writeLocation } from '@FluxClient/navigation/readLocation';
+import type { Place } from '@FluxClient/navigation/readLocation';
 
 /**
  * Where the application is, read from the router rather than held in state, so that every place in

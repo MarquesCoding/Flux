@@ -1,4 +1,4 @@
-import type { ActiveSession, AdminOverview, Monitor } from '@FluxWeb/admin/fetchAdmin';
+import type { ActiveSession, AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
 import type { Library } from '@FluxContracts/schemas/Library';
 
 type OverviewPanelProps = {

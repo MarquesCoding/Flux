@@ -4,6 +4,7 @@ import { afterEach } from 'vitest';
 import { toast } from 'sonner';
 import { MotionGlobalConfig } from 'motion/react';
 import { JSDOM } from 'jsdom';
+import { installBrowserPlatform } from './src/platform/installBrowserPlatform';
 
 /**
  * Gives the tests web storage back, on a Node that has taken it away.
@@ -189,3 +190,5 @@ const forgetWhatOutlivesATest = (): void => {
 };
 
 afterEach(forgetWhatOutlivesATest);
+
+installBrowserPlatform();

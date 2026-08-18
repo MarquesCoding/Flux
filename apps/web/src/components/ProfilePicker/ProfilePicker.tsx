@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { removeProfile } from '@FluxWeb/profiles/fetchProfiles';
+import { removeProfile } from '@FluxClient/profiles/fetchProfiles';
 import { ProfileFace } from '@FluxWeb/components/ProfileFace/ProfileFace';
 import { ProfileEditor } from './components/ProfileEditor/ProfileEditor';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';

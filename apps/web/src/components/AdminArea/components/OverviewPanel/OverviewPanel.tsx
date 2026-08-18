@@ -14,8 +14,8 @@ import { describeSince } from '@FluxWeb/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 import { describeQueueKind } from '@FluxWeb/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@FluxWeb/components/AdminArea/describeAcceleration';
-import { measureStorage } from '@FluxWeb/admin/fetchAdmin';
-import type { StorageCount } from '@FluxWeb/admin/fetchAdmin';
+import { measureStorage } from '@FluxClient/admin/fetchAdmin';
+import type { StorageCount } from '@FluxClient/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
