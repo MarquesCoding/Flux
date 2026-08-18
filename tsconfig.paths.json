@@ -38,7 +38,7 @@
         "./packages/ui/src/old/HoverHighlight/HoverHighlight.types.ts"
       ],
       "@FluxUI/Checkbox": ["./packages/ui/src/old/Checkbox/Checkbox.tsx"],
-      "@FluxUI/Dialog": ["./packages/ui/src/old/Dialog/Dialog.tsx"],
+      "@FluxUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
       "@FluxUI/DialogContent": ["./packages/ui/src/old/DialogContent/DialogContent.tsx"],
       "@FluxUI/DialogContent.types": ["./packages/ui/src/old/DialogContent/DialogContent.types.ts"],
       "@FluxUI/DialogFooter": ["./packages/ui/src/old/DialogFooter/DialogFooter.tsx"],

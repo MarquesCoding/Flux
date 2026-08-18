@@ -1,17 +1,24 @@
 import { useRef } from 'react';
-import * as RadixDialog from '@radix-ui/react-dialog';
+import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { cn } from '@FluxUI/cn';
-import { OVERLAY_MOTION } from '@FluxUI/animations/motion';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
 import type { DialogProps, DialogSize } from './Dialog.types';
 
-const PANEL_MOTION = [
-  'data-[state=open]:animate-in data-[state=closed]:animate-out',
-  'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
-  'max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8',
-  'sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95',
+const OVERLAY_MOTION = [
+  'data-open:animate-in data-open:fade-in-0',
+  'data-closed:animate-out data-closed:fade-out-0',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'data-[state=closed]:duration-[var(--duration-leaving)]',
+  'data-closed:duration-[var(--duration-leaving)]',
+  'motion-reduce:duration-[var(--duration-instant)]',
+].join(' ');
+
+const PANEL_MOTION = [
+  'data-open:animate-in data-closed:animate-out',
+  'data-open:fade-in-0 data-closed:fade-out-0',
+  'max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8',
+  'sm:data-open:zoom-in-95 sm:data-closed:zoom-out-95',
+  'duration-[var(--duration-base)] ease-[var(--ease-out)]',
+  'data-closed:duration-[var(--duration-leaving)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
@@ -32,10 +39,19 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * is what a small screen expects and a panel is what a large one does. Both leave the way they
  * arrived, so dismissing reads as the reverse of opening rather than as a second, unrelated event.
  *
+ * The leaving half of that is why this is built on Base UI rather than Radix. The markup was the
+ * same under both and the stylesheet was verified complete, but a Radix panel unmounted the instant
+ * it was dismissed and never played its exit. Base UI holds the element through the animation and
+ * says so with `data-closed`, which is what these classes are hung on.
+ *
  * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
  * draws a focus ring around whatever happens to be first — the favourite button, an icon — which
  * reads as though the dialog has already chosen something on the viewer's behalf. The panel takes
  * the focus instead, so the keyboard still works and nothing appears pre-selected.
+ *
+ * It follows the browser into fullscreen. A portal defaults to the body, which the browser paints
+ * underneath the fullscreen element, so a dialog raised over the player would otherwise open where
+ * nobody could see it.
  *
  * @param label - What the dialog is, read out on opening.
  * @param isOpen - Whether it is showing.
@@ -43,8 +59,7 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * @param children - What the dialog holds, usually a title, some content and a footer.
  * @param size - How large it stands. A stage fills the screen on a phone and takes the same broad
  *   panel on anything larger. Its height is fixed rather than bounded, because a floor and a ceiling
- *   only agree when the content reaches one of them — a cast member with a single film sat at the
- *   floor while the film behind it sat at the ceiling, and the two boxes visibly disagreed.
+ *   only agree when the content reaches one of them.
  * @param className - Extra classes for the caller's own layout.
  */
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
@@ -52,7 +67,7 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
   const panelRef = useRef<HTMLDivElement>(null);
 
   return (
-    <RadixDialog.Root
+    <BaseDialog.Root
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
@@ -60,26 +75,20 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
         }
       }}
     >
-      <RadixDialog.Portal
-        {...(portalContainer === undefined ? {} : { container: portalContainer })}
-      >
-        <RadixDialog.Overlay
+      <BaseDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
+        <BaseDialog.Backdrop
           data-slot="dialog-overlay"
           className={cn('fixed inset-0 z-40 bg-black/70 backdrop-blur-sm', OVERLAY_MOTION)}
         />
 
-        <RadixDialog.Content
+        <BaseDialog.Popup
           ref={panelRef}
           aria-label={label}
-          tabIndex={-1}
+          initialFocus={panelRef}
           data-slot="dialog-content"
-          onOpenAutoFocus={(event) => {
-            event.preventDefault();
-            panelRef.current?.focus({ preventScroll: true });
-          }}
           className={cn(
-            'fixed inset-x-0 bottom-0 top-0 z-50 flex flex-col overflow-hidden bg-card text-card-foreground',
-            'sm:inset-x-auto sm:inset-y-auto sm:left-1/2 sm:top-1/2 sm:max-h-[85vh]',
+            'fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden bg-card text-card-foreground',
+            'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
             'sm:w-[min(42rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2',
             'sm:rounded-lg sm:border sm:border-[var(--surface-line)] sm:shadow-[var(--shadow-overlay)]',
             'outline-none',
@@ -89,9 +98,9 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
           )}
         >
           {children}
-        </RadixDialog.Content>
-      </RadixDialog.Portal>
-    </RadixDialog.Root>
+        </BaseDialog.Popup>
+      </BaseDialog.Portal>
+    </BaseDialog.Root>
   );
 };
 
