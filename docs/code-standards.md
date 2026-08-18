@@ -419,21 +419,33 @@ only when a new primitive gets an owner.
 
 ## 10. Icons
 
-**All icons come from `@remixicon/react`.** `@tabler/icons-react` is banned in
-ESLint, so the set that was here before cannot come back a file at a time.
+**All icons come from `@hugeicons/core-free-icons`, and are drawn by
+`@FluxUI/Icon`.** Remix Icon, Tabler and Lucide are all banned in ESLint, so a
+second set cannot come back a file at a time. The renderer, `HugeiconsIcon`, is
+banned too: a call site names the icon it wants and `Icon` decides how it is
+drawn, which is what keeps the set swappable in one file.
 
-**Prefer the `-line` icon, and its `-fill` twin for the active state.** Remix
-draws both for effectively everything, which is what lets a selected thing
-change weight rather than change drawing. Reaching for a different glyph to
-mean "this one is selected" is how a section turns into a camcorder.
+```tsx
+import { Icon } from '@FluxUI/Icon';
+import { Home01Icon } from '@hugeicons/core-free-icons';
+
+<Icon of={Home01Icon} size={18} />;
+```
+
+**Say "this one is selected" with `isActive`, not with a different glyph.** The
+free set is one style, so today an active icon is the same drawing stroked
+heavier; a licensed set has filled twins, and `whenActive` is where they go.
+Reaching for a different glyph to mean selected is how a section turns into a
+camcorder.
 
 **No raw SVG anywhere in the codebase.** No inline `<svg>` elements, no
 `.svg` imported as a component, no SVG strings.
 
 The sole exception is brand assets — logo, wordmark, favicon — which live as
 files in `packages/ui/assets/brand/` and are referenced by URL, never inlined
-into JSX. If Remix lacks an icon you need, request it upstream or add it to the
-brand assets directory as a considered decision, not inline in a component.
+into JSX. That exception also covers the marks the icon set does not draw: it
+has no brand glyphs, so a browser or a service is named in words or given a
+generic shape rather than approximated with the nearest thing.
 
 ---
 

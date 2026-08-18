@@ -1,4 +1,5 @@
-import { RiUser3Line } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { User02Icon } from '@hugeicons/core-free-icons';
 import { PageDots } from '@FluxUI/PageDots';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
@@ -76,7 +77,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                 <span className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
                   {member.imageUrl === null ? (
                     <span className="flex h-full w-full items-center justify-center">
-                      <RiUser3Line size={48} aria-hidden className="text-text-muted" />
+                      <Icon of={User02Icon} size={48} className="text-text-muted" />
                     </span>
                   ) : (
                     <img

@@ -1,4 +1,5 @@
-import { RiNotification3Fill, RiNotification3Line } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { Notification01Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
@@ -44,9 +45,9 @@ const NotificationBell = ({
       trigger={
         <span className="relative flex size-9 items-center justify-center">
           {unread === 0 ? (
-            <RiNotification3Line size={20} aria-hidden />
+            <Icon of={Notification01Icon} size={20} />
           ) : (
-            <RiNotification3Fill size={20} aria-hidden />
+            <Icon of={Notification01Icon} size={20} />
           )}
 
           {unread === 0 ? null : (

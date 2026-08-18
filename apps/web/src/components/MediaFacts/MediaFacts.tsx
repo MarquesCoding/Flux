@@ -1,4 +1,5 @@
-import { RiStarLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';
@@ -35,7 +36,7 @@ const MediaFacts = ({
             key: 'rating',
             said: (
               <span className="flex items-center gap-1.5 tabular-nums">
-                <RiStarLine size={14} aria-hidden />
+                <Icon of={StarIcon} size={14} />
                 {rating.toFixed(1)}
               </span>
             ),

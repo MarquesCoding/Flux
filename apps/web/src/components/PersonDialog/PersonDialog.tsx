@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon, User02Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiCloseLine, RiUser3Line } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { ReadMore } from '@FluxUI/ReadMore';
 import { Dialog } from '@FluxUI/Dialog';
@@ -98,7 +99,7 @@ const PersonDialog = ({
       <DialogContent className="p-0">
         <div className="absolute right-4 top-4 z-10">
           <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-            <RiCloseLine size={18} aria-hidden />
+            <Icon of={Cancel01Icon} size={18} />
           </Button>
         </div>
 
@@ -106,7 +107,7 @@ const PersonDialog = ({
           <header className="flex flex-wrap items-start gap-5">
             <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
               {person?.portraitUrl === null || person?.portraitUrl === undefined ? (
-                <RiUser3Line size={36} aria-hidden className="text-text-muted" />
+                <Icon of={User02Icon} size={36} className="text-text-muted" />
               ) : (
                 <img
                   src={person.portraitUrl}

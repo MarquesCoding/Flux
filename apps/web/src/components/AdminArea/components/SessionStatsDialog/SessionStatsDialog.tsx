@@ -1,4 +1,5 @@
-import { RiCloseLine } from '@remixicon/react';
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogTitle } from '@FluxUI/DialogTitle';
@@ -47,7 +48,7 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
     <Dialog label="Stream stats" isOpen={isOpen} onClose={onClose}>
       <DialogTitle title="Stream stats">
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-          <RiCloseLine size={16} aria-hidden />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </DialogTitle>
 

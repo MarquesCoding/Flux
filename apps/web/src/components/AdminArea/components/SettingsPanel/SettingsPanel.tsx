@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiExpandUpDownLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Card } from '@FluxUI/Card';
 import { CardHeader } from '@FluxUI/CardHeader';
@@ -64,7 +65,7 @@ const SettingsPanel = ({
                   {accelerationOptions.find((option) => option.id === accel)?.label ?? 'Automatic'}
                 </span>
 
-                <RiExpandUpDownLine size={15} className="shrink-0 text-text-muted" aria-hidden />
+                <Icon of={UnfoldMoreIcon} size={15} className="shrink-0 text-text-muted" />
               </>
             }
             triggerShape="field"

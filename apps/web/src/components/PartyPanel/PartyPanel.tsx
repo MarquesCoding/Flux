@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Clock01Icon, PauseCircleIcon, UserAdd01Icon, ViewIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiEyeLine, RiPauseCircleLine, RiTimeLine, RiUserAddLine } from '@remixicon/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { Switch } from '@FluxUI/Switch';
@@ -102,7 +103,7 @@ const PartyPanel = ({
 
       {!party.isHeld || waitingFor.length === 0 ? null : (
         <p className="flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
-          <RiTimeLine size={14} aria-hidden />
+          <Icon of={Clock01Icon} size={14} />
           {waitingFor.length === 1
             ? `Waiting for ${waitingFor[0] ?? ''} to catch up`
             : `Waiting for ${waitingFor.length.toString()} people to catch up`}
@@ -160,7 +161,7 @@ const PartyPanel = ({
                     onAsk(person.id);
                   }}
                 >
-                  <RiUserAddLine size={14} aria-hidden />
+                  <Icon of={UserAdd01Icon} size={14} />
                   {asked.includes(person.id) ? 'Asked' : 'Ask'}
                 </Button>
               </li>
@@ -186,19 +187,19 @@ const PartyPanel = ({
 
               {member.connectionId === party.timekeeperId && (
                 <Badge size="sm" tone="quiet">
-                  <RiTimeLine size={12} aria-hidden />
+                  <Icon of={Clock01Icon} size={12} />
                   Keeping time
                 </Badge>
               )}
 
               {member.isWatching ? (
                 <span className="flex items-center gap-1 text-xs text-white/70">
-                  <RiEyeLine size={13} aria-hidden />
+                  <Icon of={ViewIcon} size={13} />
                   Watching
                 </span>
               ) : (
                 <span className="flex items-center gap-1 text-xs text-white/70">
-                  <RiPauseCircleLine size={13} aria-hidden />
+                  <Icon of={PauseCircleIcon} size={13} />
                   Not watching
                 </span>
               )}

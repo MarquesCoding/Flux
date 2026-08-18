@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { Cancel01Icon, FilterHorizontalIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { RiCloseLine, RiEqualizerLine, RiSearchLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
 import { Spinner } from '@FluxUI/Spinner';
@@ -168,7 +169,7 @@ const SearchArea = ({
           hasFocusOnMount
           value={search}
           placeholder="Everything you own"
-          icon={<RiSearchLine size={28} aria-hidden />}
+          icon={<Icon of={Search01Icon} size={28} />}
           onValueChange={onSearchChange}
         />
       </motion.div>
@@ -202,7 +203,7 @@ const SearchArea = ({
               setIsShowingFilters(!isShowingFilters);
             }}
           >
-            <RiEqualizerLine size={16} aria-hidden />
+            <Icon of={FilterHorizontalIcon} size={16} />
             {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
           </Button>
 
@@ -218,7 +219,7 @@ const SearchArea = ({
                 clearFilters();
               }}
             >
-              <RiCloseLine size={16} aria-hidden />
+              <Icon of={Cancel01Icon} size={16} />
               Clear
             </Button>
           )}

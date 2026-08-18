@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
-import { RiLinkUnlinkM } from '@remixicon/react';
 import { Spinner } from '@FluxUI/Spinner';
 import { openShare } from '@FluxWeb/sharing/fetchShares';
 import { Hero } from '@FluxWeb/components/Hero/Hero';
@@ -68,7 +69,7 @@ const ShareArea = ({ token, onPlay, resumeFor, name = 'Flux' }: ShareAreaProps) 
   if (standing.kind === 'closed') {
     return (
       <main className="flex min-h-svh flex-col items-center justify-center gap-4 px-6 text-center">
-        <RiLinkUnlinkM size={40} aria-hidden className="text-text-muted" />
+        <Icon of={Unlink01Icon} size={40} className="text-text-muted" />
 
         <h1 className="text-2xl font-semibold tracking-[-0.02em] text-text">{standing.reason}</h1>
 

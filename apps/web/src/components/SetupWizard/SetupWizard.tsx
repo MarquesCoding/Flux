@@ -1,5 +1,6 @@
+import { Icon } from '@FluxUI/Icon';
+import { SquareLock01Icon, SquareUnlock01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiLockLine, RiLockUnlockLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { Checkbox } from '@FluxUI/Checkbox';
 import { TextField } from '@FluxUI/TextField';
@@ -123,9 +124,9 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
 
         <p className="flex items-start gap-2 text-sm text-text-muted">
           {cookieSecure ? (
-            <RiLockLine size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <Icon of={SquareLock01Icon} size={16} className="mt-0.5 shrink-0" />
           ) : (
-            <RiLockUnlockLine size={16} className="mt-0.5 shrink-0" aria-hidden />
+            <Icon of={SquareUnlock01Icon} size={16} className="mt-0.5 shrink-0" />
           )}
           {cookieSecure
             ? 'Secure cookies will be used. Login will not work over plain HTTP.'

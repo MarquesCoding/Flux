@@ -45,9 +45,15 @@ export default tseslint.config(
                 'Parent-relative imports are banned. Use @FluxUI/*, @FluxCore/*, @FluxContracts/* or @FluxSDK/*.',
             },
             {
-              group: ['@tabler/icons-react'],
+              group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react'],
               message:
-                'Icons come from @remixicon/react — see code standards section 10. Prefer the -line icon and its -fill twin for the active state.',
+                'Icons come from @hugeicons/core-free-icons, drawn by @FluxUI/Icon — see code standards section 10.',
+            },
+            {
+              group: ['@hugeicons/react'],
+              importNames: ['HugeiconsIcon'],
+              message:
+                'Draw an icon with @FluxUI/Icon rather than the renderer, so the icon set stays swappable in one file.',
             },
           ],
         },
@@ -108,6 +114,12 @@ export default tseslint.config(
             'Type assertions are banned. Parse untrusted input through a Zod schema instead.',
         },
       ],
+    },
+  },
+  {
+    files: ['packages/ui/src/components/Icon/Icon.tsx'],
+    rules: {
+      'no-restricted-imports': 'off',
     },
   },
   {

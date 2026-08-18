@@ -1,6 +1,7 @@
+import { Icon } from '@FluxUI/Icon';
+import { ArrowDown01Icon, ArrowUp01Icon, UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { useTable } from '@tanstack/react-table';
-import { RiArrowDownLine, RiArrowUpLine, RiExpandUpDownLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { cn } from '@FluxUI/cn';
 import { HoverHighlight } from '@FluxUI/HoverHighlight';
@@ -121,11 +122,11 @@ const DataTable = <Row extends RowData>({
                           <table.FlexRender header={header} />
 
                           {direction === 'asc' ? (
-                            <RiArrowUpLine size={13} aria-hidden />
+                            <Icon of={ArrowUp01Icon} size={13} />
                           ) : direction === 'desc' ? (
-                            <RiArrowDownLine size={13} aria-hidden />
+                            <Icon of={ArrowDown01Icon} size={13} />
                           ) : (
-                            <RiExpandUpDownLine size={13} className="opacity-40" aria-hidden />
+                            <Icon of={UnfoldMoreIcon} size={13} className="opacity-40" />
                           )}
                         </Button>
                       ) : (

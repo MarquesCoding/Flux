@@ -1,10 +1,11 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Icon } from '@FluxUI/Icon';
 import {
-  RiCastLine,
-  RiCloseLine,
-  RiPictureInPicture2Line,
-  RiSkipForwardFill,
-} from '@remixicon/react';
+  Cancel01Icon,
+  CastIcon,
+  NextIcon,
+  PictureInPictureOnIcon,
+} from '@hugeicons/core-free-icons';
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { VideoSurface } from '@FluxUI/VideoSurface';
@@ -1558,7 +1559,7 @@ const VideoPlayer = ({
         </h2>
 
         <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-          <RiCloseLine size={20} aria-hidden />
+          <Icon of={Cancel01Icon} size={20} />
         </Button>
       </header>
 
@@ -1603,7 +1604,7 @@ const VideoPlayer = ({
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <RiPictureInPicture2Line size={32} className="text-text-muted" aria-hidden />
+            <Icon of={PictureInPictureOnIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
@@ -1617,7 +1618,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <RiCastLine size={32} className="text-text-muted" aria-hidden />
+            <Icon of={CastIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
@@ -1723,7 +1724,7 @@ const VideoPlayer = ({
               }}
             >
               {describeSkip(skippable)}
-              <RiSkipForwardFill size={18} aria-hidden />
+              <Icon of={NextIcon} size={18} />
             </Button>
           </div>
         )}

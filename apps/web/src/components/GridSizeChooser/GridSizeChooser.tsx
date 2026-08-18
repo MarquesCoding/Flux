@@ -1,20 +1,21 @@
+import { Icon } from '@FluxUI/Icon';
+import { DashboardSquare01Icon, GridViewIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { RiGridLine, RiLayoutGrid2Line, RiLayoutGridLine } from '@remixicon/react';
 import { Button } from '@FluxUI/Button';
 import { SlidingMark } from '@FluxUI/SlidingMark';
 import { cn } from '@FluxUI/cn';
-import type { RemixiconComponentType } from '@remixicon/react';
 import type { MediaGridSize } from '@FluxWeb/components/MediaGrid/MediaGrid.types';
+import type { IconSvgElement } from '@hugeicons/react';
 import type { GridSizeChooserProps } from './GridSizeChooser.types';
 
 const SIZES: readonly {
   id: MediaGridSize;
   label: string;
-  Icon: RemixiconComponentType;
+  glyph: IconSvgElement;
 }[] = [
-  { id: 'small', label: 'Small cards, more of them', Icon: RiGridLine },
-  { id: 'medium', label: 'Medium cards', Icon: RiLayoutGridLine },
-  { id: 'large', label: 'Large cards, fewer of them', Icon: RiLayoutGrid2Line },
+  { id: 'small', label: 'Small cards, more of them', glyph: GridViewIcon },
+  { id: 'medium', label: 'Medium cards', glyph: DashboardSquare01Icon },
+  { id: 'large', label: 'Large cards, fewer of them', glyph: GridViewIcon },
 ];
 
 /**
@@ -44,7 +45,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
       }}
       className={cn('flux-glass flex items-center gap-1 rounded-full p-1', className)}
     >
-      {SIZES.map(({ id, label, Icon }) => (
+      {SIZES.map(({ id, label, glyph }) => (
         <Button
           key={id}
           isIconOnly
@@ -69,7 +70,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
         >
           {lit === id ? <SlidingMark group="grid-size-mark" /> : null}
 
-          <Icon size={16} aria-hidden />
+          <Icon of={glyph} size={16} />
         </Button>
       ))}
     </div>
