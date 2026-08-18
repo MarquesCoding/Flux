@@ -1,0 +1,354 @@
+import { useEffect, useState } from 'react';
+import { Outlet } from '@tanstack/react-router';
+import { AnimatePresence, motion } from 'motion/react';
+import { groupVariants } from '@FluxUI/animations/reveal';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { AppShell } from '@FluxScreens/components/AppShell/AppShell';
+import { ShowDialog } from '@FluxScreens/components/ShowDialog/ShowDialog';
+import { MediaDetailDialog } from '@FluxScreens/components/MediaDetailDialog/MediaDetailDialog';
+import { PersonDialog } from '@FluxScreens/components/PersonDialog/PersonDialog';
+import { ShareDialog } from '@FluxScreens/components/ShareDialog/ShareDialog';
+import type { ShareSubject } from '@FluxScreens/components/ShareDialog/ShareDialog.types';
+import { StillWatchingDialog } from '@FluxScreens/components/StillWatchingDialog/StillWatchingDialog';
+import { NotificationBell } from '@FluxScreens/components/NotificationBell/NotificationBell';
+import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
+import { markNotificationsRead } from '@FluxClient/notifications/fetchNotifications';
+import {
+  canReceivePush,
+  subscribeToPush,
+  unsubscribeFromPush,
+} from '@FluxScreens/notifications/subscribeToPush';
+import { notificationQueries } from '@FluxClient/query/notificationQueries';
+import { libraryQueries } from '@FluxClient/query/libraryQueries';
+import { useFavourites } from '@FluxClient/library/useFavourites';
+import { useRatings } from '@FluxClient/library/useRatings';
+import { pickAnything } from '@FluxClient/library/pickAnything';
+import { findSiblings } from '@FluxClient/library/pickFeatured';
+import { showSlug } from '@FluxCore/functions/showSlug';
+import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
+import { STILL_WATCHING_ANSWER_SECONDS } from '@FluxContracts/schemas/StillWatching';
+import { resumeFor } from '@FluxClient/playback/resumeFor';
+import { usePlace } from '@FluxScreens/navigation/usePlace';
+import { useShell } from '@FluxClient/shell/useShell';
+import type { ShowSummary } from '@FluxContracts/schemas/Show';
+import type { Inbox } from '@FluxClient/notifications/fetchNotifications';
+
+const NOTHING_WAITING = { notifications: [], unread: 0 };
+
+/**
+ * The chrome every section sits inside: the dock, the bell, the mood behind it, and the dialogs that
+ * sit over whichever section is showing. The dialogs live here rather than in the pages because they
+ * are opened from the address and outlive the page that opened them.
+ */
+const FluxShell = () => {
+  const cache = useQueryClient();
+  const { place, go } = usePlace();
+
+  const {
+    user,
+    watcher,
+    known,
+    rememberItems,
+    progress,
+    moodLights,
+    setStartOverride,
+    askingAbout,
+    setAskingAbout,
+    watchParty,
+  } = useShell();
+
+  const favourites = useFavourites(user.id);
+  const ratings = useRatings(user.id);
+
+  const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
+  const [openRole, setOpenRole] = useState<string | null>(null);
+  const [sharing, setSharing] = useState<ShareSubject | null>(null);
+  const [pushChoice, setPushChoice] = useState<boolean | null>(null);
+
+  const held = useQuery(notificationQueries.inbox());
+  const inbox = held.data ?? NOTHING_WAITING;
+
+  const howToPush = useQuery(notificationQueries.settings());
+  const pushKey = howToPush.data?.pushPublicKey ?? '';
+
+  const isPushOn = pushChoice ?? howToPush.data?.preferences.some((one) => one.push) ?? false;
+
+  const libraries = useQuery(libraryQueries.all());
+
+  const surpriseKinds = [...new Set((libraries.data ?? []).map((one) => one.kind))];
+
+  const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null);
+
+  useEffect(() => {
+    if (place.show === null) {
+      setOpenShow(null);
+
+      return;
+    }
+
+    if (openShow?.id === place.show) {
+      return;
+    }
+
+    let abandoned = false;
+
+    void cache
+      .ensureQueryData(libraryQueries.all())
+      .then(async (found) => {
+        for (const entry of found) {
+          const shows = await cache.ensureQueryData(libraryQueries.shows(entry.id));
+          const wanted = shows.find((one) => one.id === place.show);
+
+          if (wanted !== undefined) {
+            return wanted;
+          }
+        }
+
+        return null;
+      })
+      .catch(() => null)
+      .then((found) => {
+        if (!abandoned) {
+          setOpenShow(found);
+        }
+      });
+
+    return () => {
+      abandoned = true;
+    };
+  }, [place.show, openShow, cache]);
+
+  return (
+    <AppShell
+      section={place.section}
+      onSectionChange={(next) => {
+        go({
+          section: next,
+          search: next === 'search' ? place.search : '',
+          genre: next === 'search' ? place.genre : null,
+        });
+      }}
+      moodLights={place.section === 'home' ? moodLights : []}
+      isAdministrator={user.role === 'admin'}
+      surpriseKinds={surpriseKinds}
+      notifications={
+        <NotificationBell
+          notifications={inbox.notifications}
+          unread={inbox.unread}
+          {...(pushKey === '' || !canReceivePush()
+            ? {}
+            : {
+                push: {
+                  isOn: isPushOn,
+                  onToggle: () => {
+                    void (
+                      isPushOn ? unsubscribeFromPush().then(() => false) : subscribeToPush(pushKey)
+                    ).then(setPushChoice);
+                  },
+                },
+              })}
+          onOpen={() => {
+            void cache.invalidateQueries({ queryKey: notificationQueries.key });
+          }}
+          onRead={(id) => {
+            void markNotificationsRead(id).then((unread) => {
+              cache.setQueryData(
+                notificationQueries.inbox().queryKey,
+                (waiting: Inbox | undefined) =>
+                  waiting === undefined
+                    ? waiting
+                    : {
+                        unread,
+                        notifications: waiting.notifications.map((one) =>
+                          one.id === id && one.readAt === null
+                            ? { ...one, readAt: new Date().toISOString() }
+                            : one,
+                        ),
+                      },
+              );
+            });
+          }}
+          onReadAll={() => {
+            void markNotificationsRead().then(() =>
+              cache.invalidateQueries({ queryKey: notificationQueries.key }),
+            );
+          }}
+          onFollow={(link) => {
+            window.location.assign(link);
+          }}
+        />
+      }
+      onSurprise={(only) => {
+        void pickAnything(only).then((found) => {
+          if (found === null) {
+            return;
+          }
+
+          if (found.kind === 'show') {
+            go({ show: found.showId });
+
+            return;
+          }
+
+          rememberItems([found.item]);
+          go({ inspecting: found.item.id });
+        });
+      }}
+      {...(watcher === null
+        ? {}
+        : { avatar: <ProfileFace profile={watcher} className="size-7 rounded-full text-xs" /> })}
+    >
+      <ShowDialog
+        show={openShow}
+        onShare={(show) => {
+          setSharing({ kind: 'series', seriesId: show.seriesId ?? '', title: show.title });
+        }}
+        onClose={() => {
+          go({ show: null });
+        }}
+        onPlay={(media, startSeconds) => {
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ playing: media.id, show: null });
+        }}
+        onInspect={(media) => {
+          go({ inspecting: media.id });
+        }}
+        watchedFractionFor={(mediaId) => {
+          const found = progress.get(mediaId);
+
+          return found === undefined ? undefined : watchedFraction(found);
+        }}
+        resumeFor={(mediaId) => resumeFor(progress, mediaId)}
+        isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
+        stars={
+          (openShow?.seriesId ?? null) === null
+            ? null
+            : ratings.ratingFor({ seriesId: openShow?.seriesId ?? '' })
+        }
+        onRate={(show, stars) => {
+          if ((show.seriesId ?? null) !== null) {
+            ratings.rate({ seriesId: show.seriesId ?? '' }, stars);
+          }
+        }}
+      />
+
+      <MediaDetailDialog
+        media={inspecting}
+        siblings={inspecting === null ? [] : findSiblings([...known.values()], inspecting)}
+        watchedFractionFor={(mediaId) => {
+          const found = progress.get(mediaId);
+
+          return found === undefined ? undefined : watchedFraction(found);
+        }}
+        onSelectSibling={(sibling) => {
+          go({ inspecting: sibling.id });
+        }}
+        {...(inspecting !== null && resumeFor(progress, inspecting.id) !== null
+          ? { resumeSeconds: resumeFor(progress, inspecting.id) ?? 0 }
+          : {})}
+        {...(openShow === null
+          ? {}
+          : {
+              onBack: () => {
+                go({ inspecting: null });
+              },
+              backLabel: openShow.title,
+            })}
+        isKept={inspecting !== null && favourites.isKept(inspecting.id)}
+        onToggleKept={(media) => {
+          favourites.toggle(media.id);
+        }}
+        stars={inspecting === null ? null : ratings.ratingFor({ mediaId: inspecting.id })}
+        onRate={(media, stars) => {
+          ratings.rate({ mediaId: media.id }, stars);
+        }}
+        onOpenPerson={(member) => {
+          setOpenRole(member.role);
+          go({ person: member.personId ?? null });
+        }}
+        onShare={(media) => {
+          setSharing({ kind: 'item', media });
+        }}
+        onStartParty={(media) => {
+          watchParty.open(media.id);
+          go({ inspecting: null, playing: media.id });
+        }}
+        onClose={() => {
+          go({ inspecting: null });
+        }}
+        onPlay={(media, startSeconds) => {
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ inspecting: null, playing: media.id });
+        }}
+      />
+
+      <ShareDialog
+        subject={sharing}
+        isOpen={sharing !== null}
+        onClose={() => {
+          setSharing(null);
+        }}
+      />
+
+      <StillWatchingDialog
+        isOpen={askingAbout !== null}
+        title={askingAbout?.title ?? ''}
+        secondsToAnswer={STILL_WATCHING_ANSWER_SECONDS}
+        onCarryOn={() => {
+          const following = askingAbout;
+
+          setAskingAbout(null);
+
+          if (following !== null) {
+            go({ playing: following.id, inspecting: null });
+          }
+        }}
+        onGiveUp={() => {
+          const wasPlaying = place.playing;
+
+          setAskingAbout(null);
+          go({ playing: null, inspecting: wasPlaying });
+        }}
+      />
+
+      <PersonDialog
+        personId={place.person}
+        role={openRole}
+        onClose={() => {
+          go({ person: null });
+        }}
+        onPlay={(media, startSeconds) => {
+          setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
+          go({ person: null, inspecting: null, playing: media.id });
+        }}
+        onInspect={(media) => {
+          go({ person: null, inspecting: media.id });
+        }}
+        onOpenShow={(media) => {
+          const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
+
+          if (series !== '') {
+            go({ person: null, show: series });
+          }
+        }}
+      />
+
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={place.section}
+          variants={groupVariants}
+          initial="hidden"
+          animate="shown"
+          exit="gone"
+          style={{ display: 'contents' }}
+        >
+          <Outlet />
+        </motion.div>
+      </AnimatePresence>
+    </AppShell>
+  );
+};
+
+FluxShell.displayName = 'FluxShell';
+
+export { FluxShell };

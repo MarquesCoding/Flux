@@ -1,8 +1,0 @@
-import type { Concern } from '@FluxWeb/components/AdminArea/collectConcerns';
-
-type ConcernsBannerProps = {
-  concerns: Concern[];
-  onOpenPanel: (panel: string) => void;
-};
-
-export type { ConcernsBannerProps };

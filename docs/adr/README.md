@@ -47,8 +47,10 @@ more valuable than a tidy directory.
 | [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions               | Accepted, superseded by 0020, 0021 |
 | [0019](0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) | Server state in TanStack Query, addresses in TanStack Router | Accepted                           |
 | [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component            | Accepted                           |
-| [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                 | Accepted                           |
+| [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                 | Accepted, amended by 0024          |
 | [0022](0022-the-application-is-a-package-and-a-client-is-a-host.md)         | The application is a package; a client is a host             | Accepted                           |
+| [0023](0023-screens-are-part-of-the-application-not-of-a-host.md)           | Screens are part of the application, not of a host           | Accepted                           |
+| [0024](0024-focus-restoration-after-a-dialog-needs-nothing-from-us.md)      | Focus restoration after a dialog needs nothing from us       | Accepted                           |
 
 ## Format
 

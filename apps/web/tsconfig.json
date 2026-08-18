@@ -20,6 +20,9 @@
       "path": "../../packages/core"
     },
     {
+      "path": "../../packages/screens"
+    },
+    {
       "path": "../../packages/ui"
     }
   ]

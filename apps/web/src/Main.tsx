@@ -6,7 +6,7 @@ import { Toaster } from '@FluxUI/Toaster';
 import { TooltipScope } from '@FluxUI/TooltipScope';
 import { buildQueryClient } from '@FluxClient/query/queryClient';
 import { installBrowserPlatform } from '@FluxWeb/platform/installBrowserPlatform';
-import { buildRouter } from '@FluxWeb/routes/buildRouter';
+import { buildRouter } from '@FluxScreens/routes/buildRouter';
 import './styles/main.css';
 
 installBrowserPlatform();

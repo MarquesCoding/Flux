@@ -76,21 +76,26 @@ Redis, SQLite, tRPC as a primary API, barrel files.
 
 ## Where front-end code goes
 
-The application is `packages/client` and a client is a host that runs it
-([0022](docs/adr/0022-the-application-is-a-package-and-a-client-is-a-host.md)).
+The application is `packages/client` and `packages/screens`; a client is a host
+that runs it
+([0022](docs/adr/0022-the-application-is-a-package-and-a-client-is-a-host.md),
+[0023](docs/adr/0023-screens-are-part-of-the-application-not-of-a-host.md)).
 
-| Directory         | What it holds                                                    |
-| ----------------- | ---------------------------------------------------------------- |
-| `packages/client` | What Flux is: readers, queries, realtime, session, sharing       |
-| `apps/web`        | What a browser is: entry, router, service worker, screens, Shaka |
+| Directory          | What it holds                                                |
+| ------------------ | ------------------------------------------------------------ |
+| `packages/client`  | What Flux is: readers, queries, realtime, session, sharing   |
+| `packages/screens` | What Flux looks like: every screen, and the routes onto them |
+| `apps/web`         | What a browser is: entry, platform, socket, service worker   |
 
-- **`packages/client` must not import `@FluxWeb/*` or `@FluxUI/*`.** ESLint says
-  so. It does not reach into a client and it does not draw.
-- **Anything it needs from a client is a port on `Platform`** — today a device
-  store, what to call this client, which client this is, and opening a socket. A
-  host installs them with `installPlatform` before anything else runs.
-- **Screens are still in `apps/web`**, all 185 of them. That is the next split,
-  not an oversight.
+- **Neither package may import `@FluxWeb/*`.** ESLint says so. Neither reaches
+  into a client. `packages/client` may not import `@FluxUI/*` either — it does
+  not draw — while `packages/screens` is what draws.
+- **Anything either needs from a client is a port on `Platform`** — today a
+  device store, what to call this client, which client this is, and opening a
+  socket. A host installs them with `installPlatform` before anything else runs.
+- **A host is eight source files.** If something you are adding to `apps/web`
+  is not the entry point, a platform port or a browser API, it belongs in a
+  package.
 
 ## Working expectations
 

@@ -153,6 +153,23 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/screens/**'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              group: ['@FluxWeb/*'],
+              message:
+                'A screen cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0023.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.config.ts', '**/vitest.setup.ts'],
     ...tseslint.configs.disableTypeChecked,
   },

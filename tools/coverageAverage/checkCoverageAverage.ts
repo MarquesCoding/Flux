@@ -7,9 +7,11 @@ import type { CoverageCounts } from './readCoverageAverage';
 const ROOT = join(import.meta.dirname, '..', '..');
 
 const PACKAGES = [
+  'packages/client',
   'packages/contracts',
   'packages/core',
   'packages/plugin-sdk',
+  'packages/screens',
   'packages/ui',
   'apps/server',
   'apps/web',

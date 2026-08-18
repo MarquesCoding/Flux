@@ -4,6 +4,7 @@
       "@FluxContracts/*": ["./packages/contracts/src/*"],
       "@FluxClient/*": ["./packages/client/src/*"],
       "@FluxCore/*": ["./packages/core/src/*"],
+      "@FluxScreens/*": ["./packages/screens/src/*"],
       "@FluxSDK/*": ["./packages/plugin-sdk/src/*"],
       "@FluxServer/*": ["./apps/server/src/*"],
       "@FluxUI/Badge": ["./packages/ui/src/components/Badge/Badge.tsx"],
