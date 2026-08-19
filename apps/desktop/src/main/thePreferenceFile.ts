@@ -21,10 +21,19 @@ type PreferenceFile = {
  * answer would mean reading and parsing it from disk for every image, every subtitle and every
  * segment of everything anybody watches.
  *
+ * A dot in a key is part of the key. The library reads one as a path by default, so
+ * `flux.server.address` became three nested objects and came back as nothing at all — which is every
+ * preference Flux has, and which meant this client forgot where its server was the moment it was
+ * told.
+ *
  * @returns The file, as three things the rest of the process can do to it.
  */
 const thePreferenceFile = (): PreferenceFile => {
-  opened ??= new Conf<Record<string, string>>({ projectName: 'flux', configName: 'preferences' });
+  opened ??= new Conf<Record<string, string>>({
+    projectName: 'flux',
+    configName: 'preferences',
+    accessPropertiesByDotNotation: false,
+  });
 
   const held = opened;
 
