@@ -122,3 +122,45 @@ describe('createImageCache', () => {
     expect(instance.nameFor(POSTER)).not.toBe(instance.nameFor('https://images.test/x.jpg'));
   });
 });
+
+describe('what the cache does with an answer it cannot use', () => {
+  it('assumes a photograph where the catalogue names no type at all', async () => {
+    const fetchImpl = vi.fn<ImageFetcher>(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => null },
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(64)),
+      }),
+    );
+
+    const { instance } = await cache(fetchImpl);
+
+    await expect(instance.read(POSTER)).resolves.toMatchObject({ contentType: 'image/jpeg' });
+  });
+
+  it('reads the type without the charset the catalogue tacked on', async () => {
+    const fetchImpl = vi.fn<ImageFetcher>(() =>
+      Promise.resolve({
+        ok: true,
+        status: 200,
+        headers: { get: () => 'image/png; charset=binary' },
+        arrayBuffer: () => Promise.resolve(new ArrayBuffer(64)),
+      }),
+    );
+
+    const { instance } = await cache(fetchImpl);
+
+    await expect(instance.read(POSTER)).resolves.not.toBeNull();
+  });
+
+  it('says so, and keeps nothing, when the catalogue cannot be reached', async () => {
+    const onProblem = vi.fn();
+    const fetchImpl = vi.fn<ImageFetcher>(() => Promise.reject(new Error('the network went away')));
+
+    const { instance } = await cache(fetchImpl, onProblem);
+
+    await expect(instance.read(POSTER)).resolves.toBeNull();
+    expect(onProblem).toHaveBeenCalledWith(POSTER, 'the network went away');
+  });
+});

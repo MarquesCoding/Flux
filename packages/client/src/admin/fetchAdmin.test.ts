@@ -21,6 +21,8 @@ import {
   searchCatalogue,
   cancelJob,
   saveHardwareAccel,
+  watchActiveSessions,
+  measureStorage,
 } from './fetchAdmin';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import type { Monitor } from './fetchAdmin';
@@ -705,5 +707,174 @@ describe('messageSession', () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
     expect(await messageSession('tab-1', 'Tea is ready')).toBe(false);
+  });
+});
+
+describe('watchActiveSessions', () => {
+  const aClientThat = () => {
+    const listeners = new Map<RealtimeTopic, (event: RealtimeEvent) => void>();
+    let resumed: (() => void) | null = null;
+
+    const client: RealtimeClient = {
+      start: () => {},
+      stop: () => {},
+      subscribe: (topic, listen) => {
+        listeners.set(topic, listen);
+
+        return () => {
+          listeners.delete(topic);
+        };
+      },
+      identify: () => {},
+      onResumed: (listen) => {
+        resumed = listen;
+
+        return () => {
+          resumed = null;
+        };
+      },
+      isLive: () => true,
+      connectionId: () => null,
+      sendParty: () => {},
+      askClock: () => {},
+      onClockTell: () => () => {},
+      onRefused: () => () => {},
+      onNeedsPassword: () => () => {},
+    };
+
+    return {
+      client,
+      watching: () => [...listeners.keys()],
+      announce: () =>
+        listeners.get('sessions')?.({
+          kind: 'event',
+          topic: 'sessions',
+          atMs: 1,
+          folded: 0,
+          payload: null,
+        }),
+      reconnect: () => resumed?.(),
+    };
+  };
+
+  it('reads the sessions once without waiting to be told they changed', async () => {
+    answerWith([]);
+
+    const onSessions = vi.fn();
+    const fake = aClientThat();
+
+    watchActiveSessions(onSessions, fake.client);
+
+    await vi.waitFor(() => {
+      expect(onSessions).toHaveBeenCalledWith([]);
+    });
+  });
+
+  it('watches the one connection rather than polling for changes', () => {
+    answerWith([]);
+
+    watchActiveSessions(vi.fn(), aClientThat().client);
+
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+
+  it('reads them again when the server says they changed', async () => {
+    answerWith([]);
+
+    const fake = aClientThat();
+
+    watchActiveSessions(vi.fn(), fake.client);
+    fake.announce();
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('reads them again after a connection comes back, having missed what happened', async () => {
+    answerWith([]);
+
+    const fake = aClientThat();
+
+    watchActiveSessions(vi.fn(), fake.client);
+    fake.reconnect();
+
+    await vi.waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+    });
+  });
+
+  it('stops listening, and says nothing more, once it is released', async () => {
+    answerWith([]);
+
+    const onSessions = vi.fn();
+    const fake = aClientThat();
+
+    const stop = watchActiveSessions(onSessions, fake.client);
+
+    stop();
+    onSessions.mockClear();
+
+    expect(fake.watching()).toEqual([]);
+
+    fake.announce();
+
+    await expect(
+      vi.waitFor(() => {
+        expect(onSessions).toHaveBeenCalled();
+      }),
+    ).rejects.toThrow();
+  });
+});
+
+describe('measureStorage', () => {
+  it('asks the server to count what is on disk', async () => {
+    answerWith({ cache: null, artwork: null, libraryBytes: 8 });
+
+    await expect(measureStorage()).resolves.toEqual({
+      cache: null,
+      artwork: null,
+      libraryBytes: 8,
+    });
+  });
+
+  it('says nothing rather than nought when the server refuses', async () => {
+    answerWith({}, false);
+
+    await expect(measureStorage()).resolves.toBeNull();
+  });
+
+  it('says nothing rather than throwing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(measureStorage()).resolves.toBeNull();
+  });
+
+  it('says nothing when the answer is not a count', async () => {
+    answerWith({ nonsense: true });
+
+    await expect(measureStorage()).resolves.toBeNull();
+  });
+});
+
+describe('the sessions an operator can act on', () => {
+  it('answers false rather than throwing when a pause cannot be sent', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(pauseSession('tab-1')).resolves.toBe(false);
+  });
+
+  it('answers false rather than throwing when a resume cannot be sent', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(resumeSession('tab-1')).resolves.toBe(false);
+  });
+});
+
+describe('searchCatalogue, given an answer it cannot read', () => {
+  it('finds nothing rather than throwing', async () => {
+    answerWith({ matches: 'not a list' });
+
+    await expect(searchCatalogue('Arrival', 'movie')).resolves.toEqual([]);
   });
 });

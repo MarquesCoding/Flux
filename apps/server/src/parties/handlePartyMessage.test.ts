@@ -333,3 +333,54 @@ describe('handlePartyMessage', () => {
     expect(partyIn(world.lastTold()?.payload)).toMatchObject({ isHeld: true });
   });
 });
+
+describe('what a party is told when a request cannot be granted', () => {
+  it('says so rather than going quiet when somebody who is not the host removes another', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyJoin', partyId: 'party-1' }, someone('sam', 'Sam'));
+    world.answers.length = 0;
+
+    world.say({ kind: 'partyRemove', connectionId: 'dan' }, someone('sam', 'Sam'));
+
+    expect(world.answers[0]).toMatchObject({ kind: 'refused' });
+  });
+
+  it('takes somebody out when the host asks, and tells them they were removed', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyJoin', partyId: 'party-1' }, someone('sam', 'Sam'));
+
+    world.say({ kind: 'partyRemove', connectionId: 'sam' }, someone('dan', 'Dan'));
+
+    expect(world.told.some((one) => one.to.includes('sam'))).toBe(true);
+  });
+
+  it('loosens only what was asked about, leaving the rest as it was', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyLoosen', everyoneMaySeek: true }, someone('dan', 'Dan'));
+
+    expect(partyIn(world.lastTold()?.payload)).toMatchObject({ everyoneMaySeek: true });
+  });
+
+  it('loosens who may press play without being asked about seeking', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyOpen', mediaId: 'a-film' }, someone('dan', 'Dan'));
+    world.say({ kind: 'partyLoosen', everyoneMayPlayPause: true }, someone('dan', 'Dan'));
+
+    expect(partyIn(world.lastTold()?.payload)).toMatchObject({ everyoneMayPlayPause: true });
+  });
+
+  it('says nothing at all about a party message from somebody in no party', () => {
+    const world = createWorld();
+
+    world.say({ kind: 'partyLoosen', everyoneMaySeek: true }, someone('a-stranger', 'Nobody'));
+
+    expect(world.told).toEqual([]);
+  });
+});

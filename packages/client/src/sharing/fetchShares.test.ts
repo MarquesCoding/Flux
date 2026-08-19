@@ -196,3 +196,21 @@ describe('shareAddress', () => {
     expect(shareAddress('a/b', 'https://flux.example')).toBe('https://flux.example/share/a%2Fb');
   });
 });
+
+describe('when the server cannot be reached at all', () => {
+  beforeEach(() => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+  });
+
+  it('makes no link, rather than throwing at whoever asked for one', async () => {
+    await expect(createShare({ kind: 'item', mediaId: MADE.mediaId })).resolves.toBeNull();
+  });
+
+  it('reports a link as not withdrawn, rather than throwing', async () => {
+    await expect(revokeShare(MADE.id)).resolves.toBe(false);
+  });
+
+  it('reports somebody else\u2019s link as not withdrawn either', async () => {
+    await expect(revokeAnybodysShare(MADE.id)).resolves.toBe(false);
+  });
+});

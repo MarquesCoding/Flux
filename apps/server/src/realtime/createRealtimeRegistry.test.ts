@@ -393,3 +393,45 @@ describe('createRealtimeRegistry', () => {
     expect(split.refused).toStrictEqual(['media']);
   });
 });
+
+describe('a registry asked about connections it does not hold', () => {
+  it('says a connection nobody opened is on no topics', () => {
+    const world = createWorld(new Map());
+
+    expect(world.registry.topicsOf('a-stranger')).toEqual([]);
+  });
+
+  it('takes a topic from a connection nobody opened without complaining', () => {
+    const world = createWorld(new Map());
+
+    expect(() => {
+      world.registry.unsubscribe('a-stranger', ['media']);
+    }).not.toThrow();
+  });
+
+  it('drops what nobody is listening for rather than sending it into nothing', async () => {
+    const world = createWorld(new Map());
+    const tab = createTab('tab', 'viewer');
+
+    world.registry.open(tab.connection);
+    await world.registry.subscribe('tab', ['media']);
+
+    world.registry.publish('media', { added: 1 }, { kind: 'everyone' });
+    world.registry.close('tab');
+    world.clock.tick();
+    await world.registry.drain();
+
+    expect(tab.events()).toStrictEqual([]);
+  });
+
+  it('leaves a connection that dropped its last topic on none at all', async () => {
+    const world = createWorld(new Map());
+    const tab = createTab('tab', 'viewer');
+
+    world.registry.open(tab.connection);
+    await world.registry.subscribe('tab', ['media']);
+    world.registry.unsubscribe('tab', ['media']);
+
+    expect(world.registry.topicsOf('tab')).toEqual([]);
+  });
+});

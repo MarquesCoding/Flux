@@ -125,3 +125,20 @@ describe('fetchNotificationSettings', () => {
     await expect(fetchNotificationSettings()).rejects.toThrow();
   });
 });
+
+describe('markNotificationsRead, given an answer it cannot read', () => {
+  it('reports nothing unread rather than throwing', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(() =>
+        Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () => Promise.reject(new Error('not json')),
+        }),
+      ),
+    );
+
+    await expect(markNotificationsRead('one')).resolves.toBe(0);
+  });
+});
