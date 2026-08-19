@@ -94,6 +94,51 @@ pub fn now_ms() -> u64 {
         })
 }
 
+/// Settles a job whose work is dropped before it finishes.
+///
+/// `run` marks a job finished on the line after the work completes, which never
+/// runs if the future is dropped instead — and an HTTP handler is dropped the
+/// moment its caller goes away. A thumbnails job was found sitting at
+/// `running` for three hours after the request that asked for it timed out,
+/// while later renders of the same film took a minute each. It cost nothing but
+/// the truth: the slot is freed with the permit either way. Still, a queue that
+/// says something is running when nothing is doing it is a queue nobody can
+/// read. See FLUX-145.
+///
+/// The work is settled from a spawned task because a drop cannot await. Where
+/// there is no runtime left to spawn onto — the process is going away — there
+/// is nobody to mislead either.
+struct Abandonment {
+    jobs: Arc<Mutex<VecDeque<Job>>>,
+    id: u64,
+    settled: bool,
+}
+
+impl Drop for Abandonment {
+    fn drop(&mut self) {
+        if self.settled {
+            return;
+        }
+
+        let jobs = Arc::clone(&self.jobs);
+        let id = self.id;
+
+        if let Ok(handle) = tokio::runtime::Handle::try_current() {
+            handle.spawn(async move {
+                let mut jobs = jobs.lock().await;
+
+                if let Some(job) = jobs.iter_mut().find(|job| job.id == id) {
+                    if job.finished_at_ms.is_none() {
+                        job.finished_at_ms = Some(now_ms());
+                        job.state = JobState::Failed;
+                        job.detail = Some("nobody was left waiting for it".to_owned());
+                    }
+                }
+            });
+        }
+    }
+}
+
 /// A bounded queue of background work.
 ///
 /// Cloning shares the same queue, which is what lets the router hand it to
@@ -176,7 +221,15 @@ impl WorkQueue {
         })
         .await;
 
+        let mut abandonment = Abandonment {
+            jobs: Arc::clone(&self.jobs),
+            id,
+            settled: false,
+        };
+
         let outcome = work.await;
+
+        abandonment.settled = true;
 
         self.amend(id, |job| {
             job.finished_at_ms = Some(now_ms());
@@ -312,5 +365,60 @@ mod tests {
         assert_eq!(snapshot.concurrency, 2);
         assert_eq!(snapshot.queued, 0);
         assert_eq!(snapshot.running, 0);
+    }
+
+    /// A job whose caller went away must not sit at running for ever.
+    ///
+    /// Found on a real one: a thumbnails render for a sixty gigabyte remux
+    /// stayed running for three hours after the request timed out, while two
+    /// later renders of the same film finished in a minute each.
+    #[tokio::test]
+    async fn settles_a_job_whose_caller_went_away() {
+        let queue = WorkQueue::new(2);
+        let running = queue.clone();
+
+        let handle = tokio::spawn(async move {
+            let _ = running
+                .run(
+                    "thumbnails",
+                    "film.mkv",
+                    std::future::pending::<Result<u8, String>>(),
+                )
+                .await;
+        });
+
+        while !queue
+            .snapshot()
+            .await
+            .jobs
+            .iter()
+            .any(|job| job.state == JobState::Running)
+        {
+            tokio::task::yield_now().await;
+        }
+
+        handle.abort();
+
+        for _ in 0..1_000 {
+            if queue
+                .snapshot()
+                .await
+                .jobs
+                .iter()
+                .all(|job| job.state != JobState::Running)
+            {
+                break;
+            }
+
+            tokio::task::yield_now().await;
+        }
+
+        let settled = queue.snapshot().await;
+
+        assert!(settled
+            .jobs
+            .iter()
+            .all(|job| job.state != JobState::Running));
+        assert!(settled.jobs.iter().all(|job| job.finished_at_ms.is_some()));
     }
 }
