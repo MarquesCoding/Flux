@@ -1,0 +1,12 @@
+-- A chapter's name was taken as proof of what it was, and it is not. Only two of the nine
+-- episodes of one season carried a chapter called Recap, both beginning at the same round
+-- number straight after a Studio Logo chapter, which is a release group's template rather
+-- than an editorial decision -- and Flux offered to skip the opening of the episode.
+--
+-- Whether a file carries usable chapters at all depends on who encoded it, so the marks are
+-- no longer read. What they already wrote stays behind otherwise, including the wrong one,
+-- because nothing revisits a segment once it is stored.
+--
+-- Removing these frees the row each one held: a segment is unique per item and kind, so a
+-- chapter-derived intro was keeping the fingerprint's own out. Detection fills them back in.
+DELETE FROM "media_segment" WHERE "source" = 'chapters';
