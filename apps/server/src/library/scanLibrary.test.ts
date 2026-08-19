@@ -58,6 +58,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   videoBitDepth: 8,
   videoRangeBase: 'HDR10',
   canCopySegments: true,
+  probeVersion: 1,
   videoFrameRate: 23.976,
   ...overrides,
 });
@@ -121,6 +122,7 @@ const harness = (options: {
     capabilities: () =>
       Promise.resolve({
         ffmpegVersion: 'test',
+        probeVersion: 1,
         ffmpegSupported: true,
         encoders: [],
         hardwareAccels: [],
@@ -330,6 +332,37 @@ describe('selectChanged', () => {
 
     expect(missing).toEqual(['/gone.mkv']);
   });
+
+  it('reads a file again when the rules that read it last time have changed', () => {
+    const { changed } = selectChanged([file('/a.mkv')], [stored('/a.mkv', { probeVersion: 1 })], 2);
+
+    expect(changed).toHaveLength(1);
+  });
+
+  it('leaves a file alone when the rules are the ones it was read under', () => {
+    const { changed } = selectChanged([file('/a.mkv')], [stored('/a.mkv', { probeVersion: 2 })], 2);
+
+    expect(changed).toHaveLength(0);
+  });
+
+  it('reads a file again when nothing recorded which rules read it', () => {
+    const { changed } = selectChanged(
+      [file('/a.mkv')],
+      [stored('/a.mkv', { probeVersion: null })],
+      1,
+    );
+
+    expect(changed).toHaveLength(1);
+  });
+
+  it('leaves the whole library alone when the rules in force are not known', () => {
+    const { changed } = selectChanged(
+      [file('/a.mkv'), file('/b.mkv')],
+      [stored('/a.mkv', { probeVersion: 1 }), stored('/b.mkv', { probeVersion: null })],
+    );
+
+    expect(changed).toHaveLength(0);
+  });
 });
 
 describe('scanLibrary', () => {
@@ -453,6 +486,7 @@ describe('scanLibrary', () => {
         capabilities: () =>
           Promise.resolve({
             ffmpegVersion: 'test',
+            probeVersion: 1,
             ffmpegSupported: true,
             encoders: [],
             hardwareAccels: [],

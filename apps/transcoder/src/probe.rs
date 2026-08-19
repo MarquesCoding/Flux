@@ -11,6 +11,25 @@ use crate::media::{
     AudioStream, Container, MediaProbe, SubtitleStream, VideoRange, VideoStream,
 };
 
+/// What this version of Flux decides about a file when it probes it.
+///
+/// The mirror of `LAYOUT` in `boundaries.rs`, for the library rather than for a
+/// plan's directory. Bumped whenever a rule that turns a file into a stored
+/// answer changes — which streams are read, what counts as copyable, what a
+/// range or a bit depth is taken to be — because a row written under an older
+/// rule holds an answer this build would not give, and nothing else would ever
+/// go back and ask again.
+///
+/// The scan only reprobes a file whose size or modification time moved, or
+/// whose columns are still null. A rule change moves neither, so relaxing the
+/// open-GOP refusal in FLUX-145 changed nothing on its own: `canCopySegments`
+/// was already false for 9 of 19 films and no scan would revisit it. It took a
+/// migration nulling those rows by hand, and the next change would have taken
+/// another. Comparing this instead makes it automatic, and closes the trap
+/// where a rule fix looks right in dev — the file gets rescanned there for
+/// other reasons — and silently does nothing on an install where it does not.
+pub const PROBE_VERSION: u32 = 1;
+
 /// Why a probe failed.
 #[derive(Debug, Error)]
 pub enum ProbeError {
