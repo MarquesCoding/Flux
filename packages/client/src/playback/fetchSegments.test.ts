@@ -53,7 +53,7 @@ describe('skippableAt', () => {
       kind: 'preview',
       startSeconds: 30,
       endSeconds: 60,
-      source: 'chapters',
+      source: 'manual',
     };
 
     expect(skippableAt([preview], 35)).toBeNull();

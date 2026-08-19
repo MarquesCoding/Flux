@@ -114,9 +114,7 @@ describe('asking each provider in turn', () => {
   });
 
   it('keeps the first answer for a kind and does not let a later one replace it', async () => {
-    const first = providerNamed('chapters', () =>
-      Promise.resolve(new Map([['a', [intro(30, 90)]]])),
-    );
+    const first = providerNamed('marks', () => Promise.resolve(new Map([['a', [intro(30, 90)]]])));
     const second = providerNamed('fingerprint', () =>
       Promise.resolve(new Map([['a', [intro(40, 100)]]])),
     );
@@ -127,9 +125,7 @@ describe('asking each provider in turn', () => {
   });
 
   it('lets a later provider answer for a kind the first said nothing about', async () => {
-    const first = providerNamed('chapters', () =>
-      Promise.resolve(new Map([['a', [intro(30, 90)]]])),
-    );
+    const first = providerNamed('marks', () => Promise.resolve(new Map([['a', [intro(30, 90)]]])));
     const second = providerNamed('fingerprint', () =>
       Promise.resolve(
         new Map([
@@ -140,7 +136,7 @@ describe('asking each provider in turn', () => {
                 kind: 'credits' as const,
                 startSeconds: 2500,
                 endSeconds: 2600,
-                source: 'chapters' as const,
+                source: 'manual' as const,
               },
             ],
           ],
@@ -166,7 +162,7 @@ describe('asking each provider in turn', () => {
   it('reports a provider that failed and carries on with the next', async () => {
     const problems: string[] = [];
     const broken = providerNamed('fingerprint', () => Promise.reject(new Error('no audio')));
-    const working = providerNamed('chapters', () =>
+    const working = providerNamed('marks', () =>
       Promise.resolve(new Map([['a', [intro(30, 90)]]])),
     );
 
@@ -183,9 +179,7 @@ describe('asking each provider in turn', () => {
   });
 
   it('says whether anything was actually asked, so nothing is marked done for free', async () => {
-    const silent = providerNamed('chapters', () =>
-      Promise.resolve(new Map<string, MediaSegment[]>()),
-    );
+    const silent = providerNamed('marks', () => Promise.resolve(new Map<string, MediaSegment[]>()));
 
     const { wasAsked } = await resolveSegments([silent], [candidate('a')]);
 

@@ -37,7 +37,7 @@ const intro: MediaSegment = {
   kind: 'intro',
   startSeconds: 30,
   endSeconds: 120,
-  source: 'chapters',
+  source: 'fingerprint',
 };
 
 const providerThat = (
@@ -254,7 +254,7 @@ describe('detectLibrarySegments', () => {
     await detectLibrarySegments({
       libraryId: LIBRARY_ID,
       providers: [
-        providerThat(() => new Map([['a', [intro]]]), 'chapters'),
+        providerThat(() => new Map([['a', [intro]]]), 'marks'),
         providerThat(
           () =>
             new Map([
