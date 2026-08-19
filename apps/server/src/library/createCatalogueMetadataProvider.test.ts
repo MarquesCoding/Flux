@@ -976,3 +976,194 @@ describe('matching a library that is not named in Latin', () => {
     expect(found).toBeNull();
   });
 });
+
+describe('describing an episode rather than a film', () => {
+  const SERIES_SEARCH = { results: [{ id: 42, name: 'Severance', first_air_date: '2022-02-18' }] };
+
+  const SERIES_DETAIL = {
+    id: 42,
+    name: 'Severance',
+    overview: 'Employees have their memories divided.',
+    first_air_date: '2022-02-18',
+    poster_path: '/series-poster.jpg',
+    backdrop_path: '/series-backdrop.jpg',
+    vote_average: 8.7,
+    genres: [{ name: 'Drama' }],
+    credits: {
+      cast: [{ id: 7, name: 'Adam Scott', character: 'Mark', profile_path: '/adam.jpg' }],
+    },
+  };
+
+  const anEpisodeOf = (episodeBody: JsonValue) =>
+    provider({
+      '/search/tv': SERIES_SEARCH,
+      '/tv/42/season/1/episode/2': episodeBody,
+      '/tv/42': SERIES_DETAIL,
+    });
+
+  const theEpisode = {
+    seriesTitle: 'Severance',
+    seasonNumber: 1,
+    episodeNumber: 2,
+  };
+
+  it('takes the episode title from the catalogue, and keeps the series title beside it', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop', overview: 'Mark meets Helly.' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found).toMatchObject({ title: 'Half Loop', seriesTitle: 'Severance' });
+  });
+
+  it('prefers what the episode says over what the series says', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop', overview: 'Mark meets Helly.' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found).toMatchObject({ overview: 'Mark meets Helly.' });
+  });
+
+  it('falls back to what the series says where the episode says nothing', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop', overview: '' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found).toMatchObject({ overview: 'Employees have their memories divided.' });
+  });
+
+  it('keeps the title the file already carried where the catalogue names no episode', async () => {
+    const { instance } = anEpisodeOf({ overview: '' });
+
+    const found = await instance.describe(
+      facts('/media/Severance S01E02.mkv', { ...theEpisode, episodeTitle: 'Half Loop' }),
+    );
+
+    expect(found).toMatchObject({ title: 'Half Loop' });
+  });
+
+  it('falls back to the series name where nothing names the episode at all', async () => {
+    const { instance } = anEpisodeOf({ overview: '' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found).toMatchObject({ title: 'Severance' });
+  });
+
+  it('uses the episode still as the backdrop where there is one', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop', still_path: '/still.jpg' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found?.backdropUrl).toContain('/still.jpg');
+  });
+
+  it('falls back to the series backdrop where the episode has no still', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found?.backdropUrl).toContain('/series-backdrop.jpg');
+  });
+
+  it('records who was in it, with the identifier the catalogue gave', async () => {
+    const { instance } = anEpisodeOf({ name: 'Half Loop' });
+
+    const found = await instance.describe(facts('/media/Severance S01E02.mkv', theEpisode));
+
+    expect(found?.cast?.[0]).toMatchObject({ personId: 7, name: 'Adam Scott', role: 'Mark' });
+  });
+
+  it('asks about the first season where the file does not say which', async () => {
+    const { instance, calls } = provider({
+      '/search/tv': SERIES_SEARCH,
+      '/tv/42/season/1/episode/2': { name: 'Half Loop' },
+      '/tv/42': SERIES_DETAIL,
+    });
+
+    await instance.describe(
+      facts('/media/Severance E02.mkv', {
+        seriesTitle: 'Severance',
+        seasonNumber: null,
+        episodeNumber: 2,
+      }),
+    );
+
+    expect(calls.some((url) => url.includes('/season/1/episode/2'))).toBe(true);
+  });
+});
+
+describe('reading a person from the catalogue', () => {
+  const SOMEBODY = {
+    id: 7,
+    name: 'Amy Adams',
+    profile_path: '/amy.jpg',
+    biography: 'An actor.',
+    birthday: '1974-08-20',
+    place_of_birth: 'Vicenza, Italy',
+  };
+
+  it('reads who they are, and where the catalogue has a picture of them', async () => {
+    const { instance } = provider({ '/person/7': SOMEBODY });
+
+    const found = await instance.readPerson?.(7);
+
+    expect(found).toMatchObject({
+      id: 7,
+      name: 'Amy Adams',
+      biography: 'An actor.',
+      bornOn: '1974-08-20',
+      bornIn: 'Vicenza, Italy',
+    });
+    expect(found?.portraitUrl).toContain('/amy.jpg');
+  });
+
+  it('reports an empty life story as none at all, rather than as an empty one', async () => {
+    const { instance } = provider({ '/person/7': { ...SOMEBODY, biography: '' } });
+
+    await expect(instance.readPerson?.(7)).resolves.toMatchObject({ biography: null });
+  });
+
+  it('reports what the catalogue does not know as unknown', async () => {
+    const { instance } = provider({
+      '/person/7': { id: 7, name: 'Amy Adams', profile_path: null },
+    });
+
+    await expect(instance.readPerson?.(7)).resolves.toMatchObject({
+      biography: null,
+      bornOn: null,
+      bornIn: null,
+    });
+  });
+
+  it('answers with nothing where no catalogue key has been set', async () => {
+    const { instance } = provider({ '/person/7': SOMEBODY }, { key: null });
+
+    await expect(instance.readPerson?.(7)).resolves.toBeNull();
+  });
+
+  it('answers with nothing where the key is blank', async () => {
+    const { instance } = provider({ '/person/7': SOMEBODY }, { key: '' });
+
+    await expect(instance.readPerson?.(7)).resolves.toBeNull();
+  });
+
+  it('answers with nothing rather than throwing when the catalogue says something else', async () => {
+    const { instance } = provider({ '/person/7': { nonsense: true } });
+
+    await expect(instance.readPerson?.(7)).resolves.toBeNull();
+  });
+});
+
+describe('searching the catalogue by hand', () => {
+  it('finds nothing where no key has been set', async () => {
+    const { instance } = provider({ '/search/movie': SEARCH }, { key: null });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+  });
+
+  it('finds nothing rather than throwing where the answer is not a result list', async () => {
+    const { instance } = provider({ '/search/movie': { results: 'not a list' } });
+
+    await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+  });
+});

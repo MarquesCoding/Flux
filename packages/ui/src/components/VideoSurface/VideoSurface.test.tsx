@@ -68,6 +68,79 @@ describe('VideoSurface', () => {
     expect(onPlayingChange).toHaveBeenNthCalledWith(2, false);
   });
 
+  it('reports the duration once the browser has worked it out', () => {
+    const onDurationChange = vi.fn();
+
+    render(
+      <VideoSurface
+        label="Arrival"
+        videoRef={createRef<HTMLVideoElement>()}
+        onDurationChange={onDurationChange}
+      />,
+    );
+
+    fireEvent.durationChange(screen.getByLabelText('Arrival'));
+
+    expect(onDurationChange).toHaveBeenCalled();
+  });
+
+  it('says playback has stopped when it reaches the end, as well as that it ended', () => {
+    const onPlayingChange = vi.fn();
+    const onEnded = vi.fn();
+
+    render(
+      <VideoSurface
+        label="Arrival"
+        videoRef={createRef<HTMLVideoElement>()}
+        onPlayingChange={onPlayingChange}
+        onEnded={onEnded}
+      />,
+    );
+
+    fireEvent.ended(screen.getByLabelText('Arrival'));
+
+    expect(onPlayingChange).toHaveBeenCalledWith(false);
+    expect(onEnded).toHaveBeenCalledOnce();
+  });
+
+  it.each(['waiting', 'seeking', 'stalled'] as const)(
+    'reports buffering while it is %s',
+    (moment) => {
+      const onBufferingChange = vi.fn();
+
+      render(
+        <VideoSurface
+          label="Arrival"
+          videoRef={createRef<HTMLVideoElement>()}
+          onBufferingChange={onBufferingChange}
+        />,
+      );
+
+      fireEvent[moment](screen.getByLabelText('Arrival'));
+
+      expect(onBufferingChange).toHaveBeenCalledWith(true);
+    },
+  );
+
+  it.each(['playing', 'canPlay', 'seeked'] as const)(
+    'reports buffering over once it can play again, on %s',
+    (moment) => {
+      const onBufferingChange = vi.fn();
+
+      render(
+        <VideoSurface
+          label="Arrival"
+          videoRef={createRef<HTMLVideoElement>()}
+          onBufferingChange={onBufferingChange}
+        />,
+      );
+
+      fireEvent[moment](screen.getByLabelText('Arrival'));
+
+      expect(onBufferingChange).toHaveBeenCalledWith(false);
+    },
+  );
+
   it('accepts a poster image', () => {
     render(
       <VideoSurface

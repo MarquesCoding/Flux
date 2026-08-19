@@ -298,3 +298,53 @@ describe('when the media service has gone away', () => {
     ).resolves.toBeDefined();
   });
 });
+
+describe('when too little can be listened to', () => {
+  it('gives up where too few episodes could be fingerprinted at all', async () => {
+    const answers = season({ episodes: 3 });
+    const onProblem = vi.fn();
+
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat((path) => {
+        if (path.endsWith('2.mkv') || path.endsWith('3.mkv')) {
+          throw new Error('That file has no audio to fingerprint');
+        }
+
+        return answers(path);
+      }),
+      onProblem,
+    });
+
+    const found = await provider.detect([candidate(1), candidate(2), candidate(3)]);
+
+    expect(found.size).toBe(0);
+    expect(onProblem).toHaveBeenCalledTimes(2);
+  });
+
+  it('says nothing about an episode that matched only one of its neighbours', async () => {
+    const shared = distinct(1, Math.round(60 * FPS));
+
+    const provider = createFingerprintSegmentProvider({
+      transcoder: transcoderThat((path) => {
+        const index = Number(path.slice(-5, -4));
+
+        return {
+          framesPerSecond: FPS,
+          startSeconds: 0,
+          hashes:
+            index === 3
+              ? distinct(500, Math.round(120 * FPS))
+              : [
+                  ...distinct(100 + index, index * Math.round(5 * FPS)),
+                  ...shared,
+                  ...distinct(200 + index, 2000),
+                ],
+        };
+      }),
+    });
+
+    const found = await provider.detect([candidate(1), candidate(2), candidate(3)]);
+
+    expect(found.has('media-3')).toBe(false);
+  });
+});

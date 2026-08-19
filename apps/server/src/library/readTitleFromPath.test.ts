@@ -80,3 +80,19 @@ describe('readTitleFromPath', () => {
     expect(readTitleFromPath('/media/2019/films/Parasite (2019).mkv').title).toBe('Parasite');
   });
 });
+
+describe('a name with no extension to drop', () => {
+  it('keeps the whole name where there is no dot in it', () => {
+    expect(readTitleFromPath('/media/Arrival').title).toBe('Arrival');
+  });
+
+  it('leaves a leading dot alone rather than emptying the name', () => {
+    expect(readTitleFromPath('/media/.Arrival').title).not.toBe('');
+  });
+});
+
+describe('a file with no extension at all', () => {
+  it('is not something to play', () => {
+    expect(isMediaFile('Arrival')).toBe(false);
+  });
+});
