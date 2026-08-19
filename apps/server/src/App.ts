@@ -6,6 +6,7 @@ import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
 import type { FluxAuth } from '@FluxServer/auth/Auth';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { allowCrossOriginClients } from '@FluxServer/auth/allowCrossOriginClients';
 import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
 import { splitPersonCredits } from '@FluxServer/library/splitPersonCredits';
 import type { LibraryService } from '@FluxServer/library/LibraryService';
@@ -452,6 +453,13 @@ const createApp = ({
     context.res.headers.set('Referrer-Policy', 'no-referrer');
     context.res.headers.set('X-Robots-Tag', 'noindex, nofollow');
   });
+
+  app.use(
+    '/api/*',
+    allowCrossOriginClients({
+      trustedOrigins: async () => (await settings.read()).trustedOrigins,
+    }),
+  );
 
   app.use(
     '/api/*',

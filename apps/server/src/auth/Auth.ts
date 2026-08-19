@@ -12,6 +12,7 @@ import {
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
 import { ownOrigins } from '@FluxServer/env/ownOrigins';
+import { DESKTOP_ORIGINS } from '@FluxServer/auth/originIsAllowed';
 import type { Env } from '@FluxServer/env/Env';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 
@@ -56,7 +57,7 @@ const createAuth = ({
       const stored = (await settings.read()).trustedOrigins;
       const configured = [...new Set([...env.TRUSTED_ORIGINS, ...stored])];
 
-      return [...configured, ...ownOrigins(configured, env.PORT)];
+      return [...configured, ...ownOrigins(configured, env.PORT), ...DESKTOP_ORIGINS];
     },
     emailAndPassword: {
       enabled: true,

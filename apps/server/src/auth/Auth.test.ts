@@ -62,6 +62,16 @@ describe('createAuth', () => {
       expect(response.status).toBe(200);
     });
 
+    it('trusts the desktop client, which nobody should have to configure', async () => {
+      const { auth, cookie } = await withStaleSettings();
+
+      const response = await auth.handler(
+        post('/api/auth/sign-out', {}, { origin: 'tauri://localhost', cookie }),
+      );
+
+      expect(response.status).toBe(200);
+    });
+
     it('still refuses an origin nobody named, so reading the environment is not a way in', async () => {
       const { auth, cookie } = await withStaleSettings();
 
