@@ -111,7 +111,7 @@ const AppShell = ({
   const [isFilmPlaying, setIsFilmPlaying] = useState(false);
 
   useKonamiCode(() => {
-    if (prefersReducedMotion !== true) {
+    if (section === 'home' && prefersReducedMotion !== true) {
       setIsFilmPlaying(true);
     }
   });
@@ -127,7 +127,7 @@ const AppShell = ({
   }, [section]);
 
   useEffect(() => {
-    if (section === 'home' || isFilmPlaying) {
+    if (section === 'home') {
       return;
     }
 
@@ -142,7 +142,7 @@ const AppShell = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [section, onSectionChange, isFilmPlaying]);
+  }, [section, onSectionChange]);
 
   const placesRef = useRef<Record<string, number>>({});
   const leavingRef = useRef(section);

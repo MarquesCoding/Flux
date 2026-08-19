@@ -183,7 +183,7 @@ describe('AppShell', () => {
   });
 
   it('leaves somebody searching for it alone, however they spell what they searched for', () => {
-    const { view } = draw({ section: 'search' });
+    const { view } = draw();
     const field = document.createElement('input');
 
     document.body.append(field);
@@ -192,6 +192,14 @@ describe('AppShell', () => {
     expect(filmOf(view.container)).not.toBeInTheDocument();
 
     field.remove();
+  });
+
+  it('keeps the code to the home page, since that is the only page with dots to play it on', () => {
+    const { view } = draw({ section: 'search' });
+
+    enterTheCode();
+
+    expect(filmOf(view.container)).not.toBeInTheDocument();
   });
 
   it('does not play it at all for somebody who asked for less motion', () => {
@@ -236,8 +244,8 @@ describe('AppShell', () => {
     });
   });
 
-  it('leaves Escape to the film rather than navigating out from under it', async () => {
-    const { props, view } = draw({ section: 'search' });
+  it('ends the film on Escape', async () => {
+    const { view } = draw();
 
     enterTheCode();
 
@@ -248,8 +256,6 @@ describe('AppShell', () => {
     act(() => {
       window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
     });
-
-    expect(props.onSectionChange).not.toHaveBeenCalled();
 
     await waitFor(() => {
       expect(filmOf(view.container)).not.toBeInTheDocument();
