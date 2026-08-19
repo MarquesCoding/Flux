@@ -126,6 +126,7 @@ const harness = (
     capabilities: () =>
       Promise.resolve({
         ffmpegVersion: 'test',
+        probeVersion: 1,
         ffmpegSupported: true,
         encoders: [],
         hardwareAccels: [],
@@ -283,6 +284,7 @@ const profile = (overrides: Partial<DeviceProfile> = {}): DeviceProfile => ({
 
 const CAPABILITIES = {
   ffmpegVersion: 'ffmpeg 9.0',
+  probeVersion: 1,
   ffmpegSupported: true,
   encoders: [{ codec: 'h264', encoder: 'libx264', accel: 'none', verified: true }],
   hardwareAccels: [],

@@ -175,6 +175,13 @@ pub fn summarise_failure(stderr: &str, fallback: &str) -> String {
 #[serde(rename_all = "camelCase")]
 pub struct Capabilities {
     pub ffmpeg_version: String,
+    /// What this build decides about a file when it probes it.
+    ///
+    /// Reported here because the rules are the transcoder's, so the number that
+    /// tracks them has to be too. The library stores it beside each row and
+    /// probes again wherever it does not match. See [`crate::probe::PROBE_VERSION`].
+    #[serde(default)]
+    pub probe_version: u32,
     /// Whether that version is one Flux will vouch for.
     ///
     /// Reported rather than enforced. An older build mostly works, and refusing
@@ -707,6 +714,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
     Capabilities {
         ffmpeg_supported: meets_minimum(&version),
         ffmpeg_version: version,
+        probe_version: crate::probe::PROBE_VERSION,
         encoders,
         hardware_accels,
         tone_mapping: select_tone_mapping(&filters),
@@ -1092,6 +1100,18 @@ mod tests {
         }
     }
 
+    #[tokio::test]
+    async fn reports_which_rules_it_probes_by() {
+        let found = super::detect_capabilities("ffmpeg", "").await;
+
+        assert_eq!(
+            found.probe_version,
+            crate::probe::PROBE_VERSION,
+            "the library stamps rows with this and reprobes where it moves, so a build that \
+reported anything else would either reprobe forever or never"
+        );
+    }
+
     #[test]
     fn treats_a_banner_it_cannot_read_as_supported() {
         assert!(
@@ -1103,6 +1123,7 @@ mod tests {
     fn capabilities(encoders: Vec<VerifiedEncoder>) -> Capabilities {
         Capabilities {
             ffmpeg_version: "test".to_owned(),
+            probe_version: crate::probe::PROBE_VERSION,
             ffmpeg_supported: true,
             encoders,
             hardware_accels: Vec::new(),

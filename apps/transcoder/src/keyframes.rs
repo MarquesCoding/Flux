@@ -261,6 +261,13 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 /// first. A tail too short to stand alone joins the group before it rather
 /// than being offered as a stub.
 ///
+/// `ceiling` is what a group must not grow past, and it is the one that keeps
+/// a request a size a browser will take. A group closes rather than admit a
+/// segment that would carry it over, so the only thing that exceeds the
+/// ceiling is a single segment already larger than it, which cannot be
+/// divided. Without it `minimum` alone only says when to stop growing, and the
+/// segment that crossed the line can carry a group half as far again past it.
+///
 /// Grouping is decided from the lengths alone, so it holds wherever a run
 /// began — which is the property the every-keyframe cut was bought with, and
 /// this does not spend it.
@@ -268,26 +275,35 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
 /// Returns one count per offered segment. Most are one, and a group of one is
 /// served exactly as it always was.
 #[must_use]
-pub fn segment_groups(lengths: &[f64], minimum: f64) -> Vec<u32> {
+pub fn segment_groups(lengths: &[f64], minimum: f64, ceiling: f64) -> Vec<u32> {
     let mut groups: Vec<u32> = Vec::new();
+    let mut closed: Vec<f64> = Vec::new();
     let mut taken = 0_u32;
     let mut held = 0.0_f64;
 
     for length in lengths {
+        if taken > 0 && held + *length > ceiling {
+            groups.push(taken);
+            closed.push(held);
+            taken = 0;
+            held = 0.0;
+        }
+
         taken += 1;
         held += *length;
 
         if held >= minimum {
             groups.push(taken);
+            closed.push(held);
             taken = 0;
             held = 0.0;
         }
     }
 
     if taken > 0 {
-        match groups.last_mut() {
-            Some(last) => *last += taken,
-            None => groups.push(taken),
+        match (groups.last_mut(), closed.last()) {
+            (Some(last), Some(before)) if before + held <= ceiling => *last += taken,
+            _ => groups.push(taken),
         }
     }
 
@@ -513,7 +529,7 @@ mod tests {
     #[test]
     fn gathers_segments_too_short_to_be_worth_a_request() {
         let lengths = [3.5, 0.083, 3.4, 3.5];
-        let groups = segment_groups(&lengths, 1.0);
+        let groups = segment_groups(&lengths, 1.0, f64::INFINITY);
 
         assert_eq!(groups, vec![1, 2, 1]);
         assert_eq!(grouped_lengths(&lengths, &groups), vec![3.5, 3.483, 3.5]);
@@ -523,13 +539,13 @@ mod tests {
     fn leaves_segments_that_are_already_long_enough_alone() {
         let lengths = [4.0, 3.5, 4.0];
 
-        assert_eq!(segment_groups(&lengths, 1.0), vec![1, 1, 1]);
+        assert_eq!(segment_groups(&lengths, 1.0, f64::INFINITY), vec![1, 1, 1]);
     }
 
     /// A run of short ones gathers into one rather than into pairs.
     #[test]
     fn gathers_a_run_of_short_segments_until_it_is_worth_sending() {
-        let groups = segment_groups(&[0.1, 0.1, 0.1, 0.1, 4.0], 0.3);
+        let groups = segment_groups(&[0.1, 0.1, 0.1, 0.1, 4.0], 0.3, f64::INFINITY);
 
         assert_eq!(groups, vec![3, 2]);
     }
@@ -537,7 +553,7 @@ mod tests {
     /// The tail joins what came before it rather than being offered as a stub.
     #[test]
     fn gives_a_final_scrap_to_the_segment_before_it() {
-        let groups = segment_groups(&[4.0, 4.0, 0.2], 1.0);
+        let groups = segment_groups(&[4.0, 4.0, 0.2], 1.0, f64::INFINITY);
 
         assert_eq!(groups, vec![1, 2]);
         assert_eq!(grouped_lengths(&[4.0, 4.0, 0.2], &groups), vec![4.0, 4.2]);
@@ -546,9 +562,37 @@ mod tests {
     /// A film shorter than one segment is still a film.
     #[test]
     fn offers_a_single_short_film_as_itself() {
-        assert_eq!(segment_groups(&[1.5], 1.0), vec![1]);
-        assert_eq!(segment_groups(&[0.4], 1.0), vec![1]);
-        assert_eq!(segment_groups(&[], 1.0), Vec::<u32>::new());
+        assert_eq!(segment_groups(&[1.5], 1.0, f64::INFINITY), vec![1]);
+        assert_eq!(segment_groups(&[0.4], 1.0, f64::INFINITY), vec![1]);
+        assert_eq!(segment_groups(&[], 1.0, f64::INFINITY), Vec::<u32>::new());
+    }
+
+    #[test]
+    fn closes_a_group_rather_than_letting_it_grow_past_the_ceiling() {
+        assert_eq!(
+            segment_groups(&[2.0, 2.0, 2.0], 4.0, 3.0),
+            vec![1, 1, 1],
+            "two of them come to four, which is over the three allowed"
+        );
+    }
+
+    #[test]
+    fn gathers_what_fits_under_the_ceiling_on_the_way_to_the_minimum() {
+        assert_eq!(segment_groups(&[1.0, 1.0, 1.0, 1.0], 4.0, 2.5), vec![2, 2]);
+    }
+
+    #[test]
+    fn leaves_a_tail_alone_that_would_take_the_group_before_it_over() {
+        assert_eq!(
+            segment_groups(&[3.0, 1.0], 3.0, 3.0),
+            vec![1, 1],
+            "a stub is a worse offer than a request too large is a fault"
+        );
+    }
+
+    #[test]
+    fn offers_a_segment_too_large_to_divide_on_its_own() {
+        assert_eq!(segment_groups(&[10.0, 1.0], 4.0, 3.0), vec![1, 1]);
     }
 
     #[test]
@@ -565,7 +609,7 @@ mod tests {
     #[test]
     fn offers_every_second_the_muxer_produced() {
         let lengths = [3.5, 0.083, 0.125, 3.4, 2.0, 0.2];
-        let groups = segment_groups(&lengths, 1.0);
+        let groups = segment_groups(&lengths, 1.0, f64::INFINITY);
 
         let offered: f64 = grouped_lengths(&lengths, &groups).iter().sum();
 

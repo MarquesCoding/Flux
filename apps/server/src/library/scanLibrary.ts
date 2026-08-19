@@ -23,6 +23,7 @@ type StoredItem = {
   videoRangeBase: string | null;
   canCopySegments: boolean | null;
   videoFrameRate: number | null;
+  probeVersion: number | null;
 };
 
 type MediaRow = {
@@ -33,6 +34,7 @@ type MediaRow = {
   sizeBytes: number;
   modifiedAtMs: number;
   probe: MediaProbe;
+  probeVersion: number | null;
   metadata: Metadata;
   episode: EpisodeNumbering;
 };
@@ -78,13 +80,16 @@ type ScanPhase = 'probing';
  *
  * @param found - Every file on disk now.
  * @param stored - What the database holds about them.
- * @param force - Whether to probe everything regardless, which is what picks up a change in how
- *   Flux reads files rather than a change in the files.
+ * @param probeVersion - Which version of the probing rules this build applies, so a row worked out
+ *   under an older one is worked out again. Nothing to compare against where it is not known, since
+ *   a transcoder that could not be asked is a reason to leave the library alone rather than to
+ *   probe all of it.
  * @returns The files to probe.
  */
 const selectChanged = (
   found: ScannedFile[],
   stored: StoredItem[],
+  probeVersion: number | null = null,
 ): { changed: ScannedFile[]; missing: string[] } => {
   const storedByPath = new Map(stored.map((item) => [item.path, item]));
   const foundPaths = new Set(found.map((file) => file.path));
@@ -99,7 +104,8 @@ const selectChanged = (
       existing.videoBitDepth === null ||
       existing.videoRangeBase === null ||
       existing.canCopySegments === null ||
-      existing.videoFrameRate === null
+      existing.videoFrameRate === null ||
+      (probeVersion !== null && existing.probeVersion !== probeVersion)
     );
   });
 
@@ -117,6 +123,24 @@ const selectChanged = (
  *   once, and where to report progress and problems.
  * @returns What the scan changed, counted.
  */
+/**
+ * Asks the transcoder which version of its probing rules this build applies.
+ *
+ * Answers nothing where it cannot be reached, which leaves every stored row alone. The alternative
+ * — treating an unreachable transcoder as a version mismatch — would reprobe an entire library
+ * because a container was restarting.
+ *
+ * @param transcoder - The transcoder to ask.
+ * @returns The version, or nothing if it could not be had.
+ */
+const readProbeVersion = async (transcoder: Transcoder): Promise<number | null> => {
+  try {
+    return (await transcoder.capabilities()).probeVersion;
+  } catch {
+    return null;
+  }
+};
+
 const scanLibrary = async ({
   libraryId,
   root,
@@ -132,12 +156,13 @@ const scanLibrary = async ({
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
   const stored = await store.listStored(libraryId);
+  const probeVersion = await readProbeVersion(transcoder);
 
   const bareNumbered = groupBareNumberedEpisodes(found.map((file) => file.path));
 
   const seen = force
-    ? { changed: found, missing: selectChanged(found, stored).missing }
-    : selectChanged(found, stored);
+    ? { changed: found, missing: selectChanged(found, stored, probeVersion).missing }
+    : selectChanged(found, stored, probeVersion);
   const { changed } = seen;
 
   const hasVanished = found.length === 0 && stored.length > 0;
@@ -224,6 +249,7 @@ const scanLibrary = async ({
         sizeBytes: file.sizeBytes,
         modifiedAtMs: file.modifiedAtMs,
         probe,
+        probeVersion,
         metadata,
         episode,
       });

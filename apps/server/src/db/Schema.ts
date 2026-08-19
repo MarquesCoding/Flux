@@ -423,6 +423,7 @@ const mediaItem = pgTable(
     videoRangeBase: text('videoRangeBase'),
     videoBitDepth: integer('videoBitDepth'),
     canCopySegments: boolean('canCopySegments'),
+    probeVersion: integer('probeVersion'),
     videoLevel: integer('videoLevel'),
     videoFrameRate: real('videoFrameRate'),
     videoIsInterlaced: boolean('videoIsInterlaced'),
