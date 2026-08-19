@@ -1,5 +1,6 @@
 import { PgBoss } from 'pg-boss';
 import type { Job } from 'pg-boss';
+import { scheduleSendOptions } from './scheduleSendOptions';
 import type { JobProgress, JobQueue, JobState } from './JobQueue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
@@ -186,7 +187,7 @@ const createJobQueue = async ({
     },
 
     setSchedule: async (queueName, key, cron, timezone) => {
-      await boss.schedule(queueName, cron, null, { key, tz: timezone });
+      await boss.schedule(queueName, cron, null, scheduleSendOptions(queueName, key, timezone));
     },
 
     clearSchedule: async (queueName, key) => {

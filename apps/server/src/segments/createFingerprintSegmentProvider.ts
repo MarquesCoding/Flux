@@ -33,7 +33,7 @@ const createFingerprintSegmentProvider = ({
 }: CreateFingerprintSegmentProviderOptions): SegmentProvider => ({
   name: 'fingerprint',
 
-  detect: async (group: SegmentCandidate[], onItemDone?: () => void) => {
+  detect: async (group: SegmentCandidate[], onItemDone?: () => void, owner?: string) => {
     const found = new Map<string, MediaSegment[]>();
 
     if (group.length < MIN_EPISODES) {
@@ -52,6 +52,7 @@ const createFingerprintSegmentProvider = ({
           inputPath: item.path,
           startSeconds: 0,
           durationSeconds: Math.min(WINDOW_SECONDS, Math.floor(item.durationSeconds)),
+          ...(owner === undefined ? {} : { owner }),
         });
 
         return {

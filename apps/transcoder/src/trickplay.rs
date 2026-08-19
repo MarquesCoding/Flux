@@ -70,6 +70,13 @@ pub struct TrickplayRequest {
     /// pressed play should be watching it, not waiting on seek previews.
     #[serde(default = "waits_by_default")]
     pub wait: bool,
+    /// Which of the server's jobs asked for this, where one did.
+    ///
+    /// Carried only so the queue can say which scan a piece of work belongs
+    /// to. A player asking for its own thumbnails is nobody's, so this is
+    /// absent rather than empty.
+    #[serde(default)]
+    pub owner: Option<String>,
 }
 
 /// What a caller that says nothing about waiting means.
@@ -87,6 +94,7 @@ impl Default for TrickplayRequest {
             columns: 10,
             rows: 10,
             wait: true,
+            owner: None,
         }
     }
 }
@@ -663,6 +671,7 @@ otherwise start a second one"
             columns: 2,
             rows: 2,
             wait: true,
+            owner: None,
         }
     }
 

@@ -10,6 +10,7 @@ type GroupedCandidate = SegmentCandidate & {
 
 type DetectLibrarySegmentsOptions = {
   libraryId: string;
+  owner?: string;
   providers: SegmentProvider[];
   segments: SegmentService;
   listCandidates: (libraryId: string) => Promise<GroupedCandidate[]>;
@@ -53,6 +54,7 @@ const groupBySeason = (candidates: GroupedCandidate[]): Map<string, GroupedCandi
  */
 const detectLibrarySegments = async ({
   libraryId,
+  owner,
   providers,
   segments,
   listCandidates,
@@ -77,10 +79,16 @@ const detectLibrarySegments = async ({
 
     const baseline = processed;
 
-    const { segments: found, wasAsked } = await resolveSegments(providers, group, onProblem, () => {
-      processed += 1;
-      onProgress?.(Math.min(processed, baseline + group.length), total);
-    });
+    const { segments: found, wasAsked } = await resolveSegments(
+      providers,
+      group,
+      onProblem,
+      () => {
+        processed += 1;
+        onProgress?.(Math.min(processed, baseline + group.length), total);
+      },
+      owner,
+    );
 
     for (const [mediaId, detected] of found) {
       await segments.replace(mediaId, detected);

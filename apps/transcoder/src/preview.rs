@@ -134,6 +134,13 @@ pub struct PreviewRequest {
     /// Absent leaves the choice to ffmpeg, exactly as before this existed.
     #[serde(default)]
     pub audio_stream_index: Option<u32>,
+    /// Which of the server's jobs asked for this, where one did.
+    ///
+    /// Carried only so the queue can say which scan a piece of work belongs
+    /// to. A player asking for its own thumbnails is nobody's, so this is
+    /// absent rather than empty.
+    #[serde(default)]
+    pub owner: Option<String>,
 }
 
 const fn default_seconds() -> u32 {
@@ -533,6 +540,7 @@ mod tests {
             width: 1920,
             wait: false,
             audio_stream_index: None,
+            owner: None,
         }
     }
 
