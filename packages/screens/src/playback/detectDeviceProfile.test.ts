@@ -203,3 +203,84 @@ describe('the ceilings a browser cannot be asked about', () => {
     expect(build(() => true, { maxBitrateKbps: 6000 }).maxBitrateKbps).toBe(6000);
   });
 });
+
+describe('how many channels the profile claims', () => {
+  it('claims what the output device accepts rather than assuming stereo', () => {
+    expect(build(supporting('avc1', 'mp4a'), { maxAudioChannels: 6 }).maxAudioChannels).toBe(6);
+  });
+
+  it('claims stereo where nothing said otherwise', () => {
+    expect(build(supporting('avc1', 'mp4a')).maxAudioChannels).toBe(2);
+  });
+
+  it('never claims fewer than two, so a device answering nonsense is no worse off', () => {
+    expect(build(supporting('avc1', 'mp4a'), { maxAudioChannels: 0 }).maxAudioChannels).toBe(2);
+    expect(build(supporting('avc1', 'mp4a'), { maxAudioChannels: 1 }).maxAudioChannels).toBe(2);
+  });
+
+  it('claims stereo where the number it was handed is not a number at all', () => {
+    expect(
+      build(supporting('avc1', 'mp4a'), { maxAudioChannels: Number.NaN }).maxAudioChannels,
+    ).toBe(2);
+  });
+
+  it('claims a whole number of channels, since half a channel is not a thing', () => {
+    expect(build(supporting('avc1', 'mp4a'), { maxAudioChannels: 7.5 }).maxAudioChannels).toBe(7);
+  });
+});
+
+describe('asking the browser how many channels the output takes', () => {
+  const anOutputAccepting = (maxChannelCount: number) => {
+    const close = vi.fn(() => Promise.resolve());
+
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        destination = { maxChannelCount };
+        close = close;
+      },
+    );
+
+    return { close };
+  };
+
+  it('reports what the device says it takes', () => {
+    anOutputAccepting(8);
+
+    expect(detectFromBrowser().maxAudioChannels).toBe(8);
+  });
+
+  it('lets go of the context it opened to ask', () => {
+    const { close } = anOutputAccepting(6);
+
+    detectFromBrowser();
+
+    expect(close).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to stereo on a browser with no audio context at all', () => {
+    vi.stubGlobal('AudioContext', undefined);
+
+    expect(detectFromBrowser().maxAudioChannels).toBe(2);
+  });
+
+  it('falls back to stereo rather than throwing where opening one fails', () => {
+    vi.stubGlobal(
+      'AudioContext',
+      class {
+        constructor() {
+          throw new Error('no audio device');
+        }
+      },
+    );
+
+    expect(() => detectFromBrowser()).not.toThrow();
+    expect(detectFromBrowser().maxAudioChannels).toBe(2);
+  });
+
+  it('falls back to stereo where the device answers with nothing usable', () => {
+    anOutputAccepting(Number.NaN);
+
+    expect(detectFromBrowser().maxAudioChannels).toBe(2);
+  });
+});

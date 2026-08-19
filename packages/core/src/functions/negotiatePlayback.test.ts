@@ -410,6 +410,33 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
   });
 
+  it('passes a surround track through to a client with the channels for it', () => {
+    const surround = {
+      ...media,
+      audioStreams: [
+        { index: 1, codec: 'aac', channels: 6, language: 'eng', isDefault: true, isAtmos: false },
+      ],
+    };
+
+    const plan = negotiatePlayback(surround, { ...profile, maxAudioChannels: 6 });
+
+    expect(plan.audio).toMatchObject({ kind: 'passthrough' });
+  });
+
+  it('downmixes that same track for a client that only takes two', () => {
+    const surround = {
+      ...media,
+      audioStreams: [
+        { index: 1, codec: 'aac', channels: 6, language: 'eng', isDefault: true, isAtmos: false },
+      ],
+    };
+
+    const plan = negotiatePlayback(surround, { ...profile, maxAudioChannels: 2 });
+
+    expect(plan.audio).toMatchObject({ kind: 'transcode', channels: 2 });
+    expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
+  });
+
   it('passes a picture larger than the screen through, rather than re-encoding it to fit', () => {
     const hd: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
 
