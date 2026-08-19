@@ -12,10 +12,17 @@ import { openRealtimeSocket } from '@FluxDesktop/realtime/openRealtimeSocket';
  * Installed before the address is known rather than after. The store is what holds the address, so
  * something has to be able to read it before there is anything to read, and `whereTheServerIs`
  * answers with nothing until somebody has said.
+ *
+ * Waits for what is on disk first. Everything the application reads afterwards is answered without
+ * waiting, so the one moment that can afford to wait is this one, before anything has been drawn.
  */
-const installDesktopPlatform = (): void => {
+const installDesktopPlatform = async (): Promise<void> => {
+  const store = theDesktopsStore();
+
+  await store.hydrate();
+
   installPlatform({
-    store: theDesktopsStore(),
+    store,
     describeThisClient: () => describeThisDesktop(navigator.userAgent),
     thisClientId: thisWindowsId,
     whereTheServerIs: () => serverAddress() ?? '',

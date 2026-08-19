@@ -10,5 +10,7 @@
 /// Returns the error Tauri raised where the window could not be built or the event loop could not
 /// be started, so the caller decides what to say rather than this deciding to panic.
 pub fn run() -> Result<(), tauri::Error> {
-    tauri::Builder::default().run(tauri::generate_context!())
+    tauri::Builder::default()
+        .plugin(tauri_plugin_store::Builder::new().build())
+        .run(tauri::generate_context!())
 }

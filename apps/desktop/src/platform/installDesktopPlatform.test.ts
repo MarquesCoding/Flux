@@ -1,11 +1,30 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetPlatform, platformInUse } from '@FluxClient/platform/installPlatform';
 import { rememberServerAddress } from '@FluxClient/session/serverAddress';
 import { installDesktopPlatform } from './installDesktopPlatform';
 
+const onDisk = new Map<string, string>();
+
+vi.mock('@tauri-apps/plugin-store', () => ({
+  load: () =>
+    Promise.resolve({
+      entries: () => Promise.resolve([...onDisk.entries()]),
+      set: (key: string, value: string) => {
+        onDisk.set(key, value);
+
+        return Promise.resolve();
+      },
+      delete: (key: string) => {
+        onDisk.delete(key);
+
+        return Promise.resolve();
+      },
+    }),
+}));
+
 beforeEach(() => {
   forgetPlatform();
-  window.localStorage.clear();
+  onDisk.clear();
 });
 
 afterEach(() => {
@@ -13,38 +32,41 @@ afterEach(() => {
 });
 
 describe('installDesktopPlatform', () => {
-  it('leaves the application able to say what it is running on', () => {
+  it('leaves the application able to say what it is running on', async () => {
     expect(() => platformInUse()).toThrow();
 
-    installDesktopPlatform();
+    await installDesktopPlatform();
 
     expect(() => platformInUse()).not.toThrow();
   });
 
-  it('says it watches nowhere until somebody has said where', () => {
-    installDesktopPlatform();
+  it('says it watches nowhere until somebody has said where', async () => {
+    await installDesktopPlatform();
 
     expect(platformInUse().whereTheServerIs()).toBe('');
   });
 
-  it('watches the server it was told about, which outlives the window', () => {
-    installDesktopPlatform();
+  it('watches the server it was told about', async () => {
+    await installDesktopPlatform();
 
     rememberServerAddress('https://flux.example.com');
 
     expect(platformInUse().whereTheServerIs()).toBe('https://flux.example.com');
   });
 
-  it('keeps what belongs to the machine where a machine keeps things', () => {
-    installDesktopPlatform();
 
-    platformInUse().store.write('the-theme', 'dark');
+  it('reads what the file already held, so somebody is asked once rather than at every launch', async () => {
+    onDisk.set('flux.server.address', 'https://flux.example.com');
 
-    expect(window.localStorage.getItem('the-theme')).toBe('dark');
+    await installDesktopPlatform();
+
+    expect(platformInUse().whereTheServerIs()).toBe('https://flux.example.com');
   });
 
-  it('is the same running client however often it is asked', () => {
-    installDesktopPlatform();
+
+
+  it('is the same running client however often it is asked', async () => {
+    await installDesktopPlatform();
 
     expect(platformInUse().thisClientId()).toBe(platformInUse().thisClientId());
   });
