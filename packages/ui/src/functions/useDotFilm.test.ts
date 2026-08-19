@@ -71,22 +71,32 @@ describe('useDotFilm', () => {
     expect(lifts.some((lift) => lift > 0)).toBe(true);
   });
 
-  it('ends on any key at all, not only the one somebody guesses', async () => {
+  it('ends on Escape', async () => {
     const onEnd = vi.fn();
 
     await playing(onEnd);
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
     expect(onEnd).toHaveBeenCalled();
   });
 
-  it('ends on a tap, so a phone is not stuck with it', async () => {
+  it('sits through any other key, so a stray press does not cut the film short', async () => {
+    const onEnd = vi.fn();
+
+    await playing(onEnd);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
+
+    expect(onEnd).not.toHaveBeenCalled();
+  });
+
+  it('sits through a tap, which is what the way out on screen is for', async () => {
     const onEnd = vi.fn();
 
     await playing(onEnd);
     window.dispatchEvent(new Event('pointerdown'));
 
-    expect(onEnd).toHaveBeenCalled();
+    expect(onEnd).not.toHaveBeenCalled();
   });
 
   it('ends itself when the film runs out', async () => {
@@ -117,7 +127,7 @@ describe('useDotFilm', () => {
     const view = await playing(onEnd);
 
     view.rerender({ isPlaying: false });
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
     expect(onEnd).not.toHaveBeenCalled();
   });
@@ -131,7 +141,7 @@ describe('useDotFilm', () => {
 
     await fetched(() => view.result.current);
     view.rerender({ onEnd: second });
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
 
     expect(first).not.toHaveBeenCalled();
     expect(second).toHaveBeenCalled();

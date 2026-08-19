@@ -5,6 +5,7 @@ import {
   FilmRoll01Icon,
   FireIcon,
   Home01Icon,
+  Cancel01Icon,
   Notification01Icon,
   Search01Icon,
   Settings01Icon,
@@ -12,8 +13,9 @@ import {
   UserCircleIcon,
 } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
+import { Button } from '@FluxUI/Button';
 import { NavDock } from '@FluxUI/NavDock';
 import { MoodBackground } from '@FluxUI/MoodBackground';
 import { useDotFilm } from '@FluxUI/useDotFilm';
@@ -270,6 +272,26 @@ const AppShell = ({
   return (
     <div className="flux-docked relative min-h-screen text-text">
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} film={film} />
+
+      <AnimatePresence>
+        {isFilmPlaying ? (
+          <motion.div
+            key="leave-film"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: prefersReducedMotion === true ? 0 : FADING,
+              ease: 'easeInOut',
+            }}
+            className="fixed top-4 right-4 z-50"
+          >
+            <Button isIconOnly variant="overlay" label="Stop the film" onClick={endFilm}>
+              <Icon of={Cancel01Icon} size={20} />
+            </Button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
       <motion.div
         animate={{ opacity: isFilmPlaying ? 0 : 1 }}

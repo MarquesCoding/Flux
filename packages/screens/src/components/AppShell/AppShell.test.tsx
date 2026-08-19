@@ -255,4 +255,44 @@ describe('AppShell', () => {
       expect(filmOf(view.container)).not.toBeInTheDocument();
     });
   });
+
+  it('offers a way out on screen, for a phone that has no Escape to press', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    const stop = screen.getByRole('button', { name: 'Stop the film' });
+
+    await userEvent.click(stop);
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps that way out to itself until there is something to get out of', () => {
+    draw();
+
+    expect(screen.queryByRole('button', { name: 'Stop the film' })).not.toBeInTheDocument();
+  });
+
+  it('sits through a key that is not Escape rather than cutting the film short', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    });
+
+    expect(filmOf(view.container)).toBeInTheDocument();
+  });
 });
