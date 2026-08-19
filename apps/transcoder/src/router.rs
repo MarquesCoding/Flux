@@ -989,6 +989,25 @@ async fn start_trickplay(
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
+
+        return match state
+            .trickplay
+            .generate(
+                &config.ffmpeg,
+                &config.cache_root,
+                &request,
+                SheetSource {
+                    width: video.width,
+                    height: video.height,
+                    duration_seconds: probe.duration_seconds,
+                },
+                accel,
+            )
+            .await
+        {
+            Ok(index) => (StatusCode::OK, Json(index)).into_response(),
+            Err(failure) => error(StatusCode::INTERNAL_SERVER_ERROR, &failure.to_string()),
+        };
     }
 
     match state
