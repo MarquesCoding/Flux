@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
-import { readdir, unlink } from 'node:fs/promises';
+import { readdir, readFile, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
@@ -25,6 +25,7 @@ import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import { createAuth } from '@FluxServer/auth/Auth';
 import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
 import { createDatabase } from '@FluxServer/db/Database';
+import { findPendingMigrations } from '@FluxServer/db/findPendingMigrations';
 import {
   user,
   library,
@@ -276,6 +277,46 @@ const log = createLogger({
     realtime.publish('logs', asJsonLog(record), { kind: 'everyone' });
   },
 });
+
+const MIGRATION_JOURNAL = join(import.meta.dirname, '..', 'drizzle', 'meta', '_journal.json');
+
+const AppliedMigrationSchema = z.object({ created_at: z.union([z.string(), z.number()]) });
+
+/**
+ * Says so, loudly, where this database has not run every migration the repository carries.
+ *
+ * A missing column breaks reads of the one table that selects it and nothing else, so the server
+ * comes up, most of the API answers, and the endpoints that do not look like they have a bug of
+ * their own. Saying it once at startup is the difference between that and an evening.
+ */
+const reportPendingMigrations = async (): Promise<void> => {
+  const pending = await findPendingMigrations({
+    readJournal: () => readFile(MIGRATION_JOURNAL, 'utf8'),
+    readAppliedAt: async () => {
+      const applied = await db.execute(sql`select created_at from drizzle.__drizzle_migrations`);
+
+      return applied.rows.map((row) => Number(AppliedMigrationSchema.parse(row).created_at));
+    },
+  });
+
+  if (pending.length === 0) {
+    return;
+  }
+
+  log.error(
+    'server',
+    `This database has not run ${pending.length.toString()} migration${pending.length === 1 ? '' : 's'} the repository carries: ${pending.join(', ')}. Reads of the tables they change will fail until \`pnpm --filter @flux/server db:migrate\` is run.`,
+  );
+};
+
+try {
+  await reportPendingMigrations();
+} catch (problem) {
+  log.warn(
+    'server',
+    `The migrations this database has run could not be read, so nothing is known about whether it is in step: ${problem instanceof Error ? problem.message : 'no reason given'}`,
+  );
+}
 
 const presence = createPresenceService();
 
