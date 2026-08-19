@@ -21,6 +21,7 @@ type TrickplayParams = {
 type GenerateTrickplayOptions = {
   libraryId: string;
   generation: number;
+  owner?: string;
   store: TrickplayStore;
   transcoder: Transcoder;
   trickplay: TrickplayParams;
@@ -80,13 +81,14 @@ const renderSheets = async ({
  * Renders the sheets of thumbnails shown while scrubbing, for the items of a library that have none.
  * Records each item as done as it goes, so a restart resumes rather than beginning again.
  *
- * @param options - The library to work through, the transcoder that renders, and where to report
- *   progress.
+ * @param options - The library to work through, the transcoder that renders, which job asked for
+ *   it, and where to report progress.
  * @returns How many items were rendered.
  */
 const generateTrickplay = async ({
   libraryId,
   generation,
+  owner,
   store,
   transcoder,
   trickplay,
@@ -107,7 +109,13 @@ const generateTrickplay = async ({
 
     const rendered = await renderSheets({
       transcoder,
-      request: { inputPath: item.path, generation, ...trickplay, wait: false },
+      request: {
+        inputPath: item.path,
+        generation,
+        ...trickplay,
+        wait: false,
+        ...(owner === undefined ? {} : { owner }),
+      },
       isCancelled,
     }).catch((error: Error) => {
       onProblem?.(item.path, error.message);

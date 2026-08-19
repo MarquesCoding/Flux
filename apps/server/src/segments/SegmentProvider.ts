@@ -13,6 +13,7 @@ type SegmentProvider = {
   detect: (
     group: SegmentCandidate[],
     onItemDone?: () => void,
+    owner?: string,
   ) => Promise<Map<string, MediaSegment[]>>;
 };
 
@@ -81,6 +82,8 @@ type Detection = {
  * @param group - The items to find segments in, which are compared against each other.
  * @param onProblem - Called with a provider and what went wrong, where one fails.
  * @param onItemDone - Called as each item is finished with, for reporting progress.
+ * @param owner - Which of the server's jobs asked for this, so the work it starts on the media
+ *   service can be read back to the scan that caused it.
  * @returns What was found, by item.
  */
 const resolveSegments = async (
@@ -88,6 +91,7 @@ const resolveSegments = async (
   group: SegmentCandidate[],
   onProblem?: (provider: string, reason: string) => void,
   onItemDone?: () => void,
+  owner?: string,
 ): Promise<Detection> => {
   const resolved = new Map<string, MediaSegment[]>();
   const durations = new Map(group.map((item) => [item.mediaId, item.durationSeconds]));
@@ -97,7 +101,7 @@ const resolveSegments = async (
     let found: Map<string, MediaSegment[]>;
 
     try {
-      found = await provider.detect(group, onItemDone);
+      found = await provider.detect(group, onItemDone, owner);
       answered = true;
     } catch (error) {
       onProblem?.(provider.name, error instanceof Error ? error.message : 'Detection failed.');

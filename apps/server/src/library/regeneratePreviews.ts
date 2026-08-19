@@ -13,6 +13,7 @@ type PreviewStore = {
 type RegeneratePreviewsOptions = {
   libraryId: string;
   generation: number;
+  owner?: string;
   store: PreviewStore;
   transcoder: Transcoder;
   defaultAudioLanguage: string | null;
@@ -34,6 +35,7 @@ type RegeneratePreviewsOptions = {
 const regeneratePreviews = async ({
   libraryId,
   generation,
+  owner,
   store,
   transcoder,
   defaultAudioLanguage,
@@ -56,6 +58,7 @@ const regeneratePreviews = async ({
       .requestPreview({
         ...previewRequestFor(item, generation, defaultAudioLanguage),
         wait: true,
+        ...(owner === undefined ? {} : { owner }),
       })
       .then(() => true)
       .catch((error: Error) => {

@@ -68,6 +68,13 @@ pub struct FingerprintRequest {
     pub start_seconds: u32,
     /// How much to listen to.
     pub duration_seconds: u32,
+    /// Which of the server's jobs asked for this, where one did.
+    ///
+    /// Carried only so the queue can say which scan a piece of work belongs
+    /// to. A player asking for its own thumbnails is nobody's, so this is
+    /// absent rather than empty.
+    #[serde(default)]
+    pub owner: Option<String>,
 }
 
 /// A fingerprint of one stretch of audio.
@@ -328,6 +335,7 @@ mod tests {
             input_path: "/media/episode.mkv".to_owned(),
             start_seconds: 30,
             duration_seconds: 600,
+            owner: None,
         }
     }
 

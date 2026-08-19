@@ -360,6 +360,7 @@ const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
  */
 const runDetectSegments = async (libraryId: string, jobId: string): Promise<void> => {
   const marked = await detectLibrarySegments({
+    owner: jobId,
     libraryId,
     providers: segmentProviders,
     segments: segmentService,
@@ -1299,7 +1300,9 @@ if (seededKinds.length > 0) {
 }
 
 for (const kind of await schedules.sync()) {
-  await jobs.enqueue(scheduleQueueNameFor(kind), {});
+  const queueName = scheduleQueueNameFor(kind);
+
+  await jobs.enqueue(queueName, {}, queueName);
   log.info('server', `schedule: running ${kind} on startup`);
 }
 

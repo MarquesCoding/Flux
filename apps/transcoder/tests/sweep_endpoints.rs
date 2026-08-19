@@ -102,6 +102,7 @@ fn preview_request() -> PreviewRequest {
         width: 1920,
         wait: false,
         audio_stream_index: None,
+        owner: None,
     }
 }
 
@@ -154,6 +155,7 @@ async fn recognises_live_sheets_from_the_request_that_drew_them() {
         columns: 10,
         rows: 10,
         wait: true,
+        owner: None,
     };
 
     artefact(&root, "trickplay", &live.id());
@@ -195,6 +197,7 @@ async fn a_generation_that_moved_on_no_longer_addresses_the_old_sheets() {
         columns: 10,
         rows: 10,
         wait: true,
+        owner: None,
     };
 
     artefact(&root, "trickplay", &before.id());
