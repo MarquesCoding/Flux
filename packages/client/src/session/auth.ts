@@ -18,6 +18,59 @@ type Enrollment = { totpURI: string; backupCodes: string[] };
 
 const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
 
+const PLACEHOLDER_ORIGIN = 'http://flux.invalid';
+
+const onTheServer = (asked: string): string => {
+  const { pathname, search } = new URL(asked, PLACEHOLDER_ORIGIN);
+
+  return serverUrl(`${pathname}${search}`);
+};
+
+/**
+ * Sends what better-auth asked for to the server this client watches, carrying whatever says who it
+ * is and keeping any token that comes back.
+ *
+ * A browser is recognised by its cookie and this adds nothing. A client whose window serves its own
+ * pages cannot be sent that cookie, so it presents the token instead and holds the one every
+ * signing-in response hands back — see ADR-0026.
+ *
+ * The client is built against an origin that does not exist, and every request is moved onto the one
+ * this client actually watches. That is what lets somebody change which server they are watching
+ * without the client being rebuilt, which a desktop client does on the screen it opens with.
+ *
+ * A header the caller already set is left alone, since it knows something this does not.
+ *
+ * @param input - What the library asked for.
+ * @param init - How it asked.
+ * @returns The answer.
+ */
+const askTheServer = async (
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> => {
+  const asked = input instanceof Request ? input.url : String(input);
+  const carried = new Headers(init?.headers ?? (input instanceof Request ? input.headers : {}));
+
+  for (const [name, value] of Object.entries(authorisation())) {
+    if (!carried.has(name)) {
+      carried.set(name, value);
+    }
+  }
+
+  const response =
+    input instanceof Request
+      ? await globalThis.fetch(new Request(onTheServer(asked), input), { headers: carried })
+      : await globalThis.fetch(onTheServer(asked), { ...init, headers: carried });
+
+  const handed = response.headers.get('set-auth-token');
+
+  if (handed !== null) {
+    rememberSessionToken(handed);
+  }
+
+  return response;
+};
+
 /**
  * Builds the one client that speaks to better-auth, which this module holds and nothing else sees.
  *
@@ -44,53 +97,17 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * `credentials: include` of its own accord, so that was an answer to a question nobody had asked,
  * sitting on the one path where a mistake ends a session or fails to.
  *
+ * The `baseURL` is an address that resolves nowhere, because there is no address to give: a browser
+ * is answered by the page it was served, a desktop client by whichever Flux somebody named, and
+ * neither is known when the client is built. The library needs one to join a path to, so it is given
+ * a placeholder and `askTheServer` puts the path on the real server as it goes. A request that
+ * escapes that rewrite fails to reach anything rather than reaching somewhere wrong.
+ *
  * @returns The client.
  */
-const onTheServer = (asked: string): string => {
-  const { pathname, search } = new URL(asked, 'http://placeholder.invalid');
-
-  return serverUrl(`${pathname}${search}`);
-};
-
-/**
- * Sends what better-auth asked for to the server this client watches, carrying whatever says who it
- * is and keeping any token that comes back.
- *
- * A browser is recognised by its cookie and this adds nothing. A client whose window serves its own
- * pages cannot be sent that cookie, so it presents the token instead and holds the one every
- * signing-in response hands back — see ADR-0026.
- *
- * @param input - What the library asked for.
- * @param init - How it asked.
- * @returns The answer.
- */
-const askTheServer = async (
-  input: string | URL | Request,
-  init?: RequestInit,
-): Promise<Response> => {
-  const asked = input instanceof Request ? input.url : String(input);
-  const carried = new Headers(init?.headers ?? (input instanceof Request ? input.headers : {}));
-
-  for (const [name, value] of Object.entries(authorisation())) {
-    carried.set(name, value);
-  }
-
-  const response =
-    input instanceof Request
-      ? await globalThis.fetch(new Request(onTheServer(asked), input), { headers: carried })
-      : await globalThis.fetch(onTheServer(asked), { ...init, headers: carried });
-
-  const handed = response.headers.get('set-auth-token');
-
-  if (handed !== null) {
-    rememberSessionToken(handed);
-  }
-
-  return response;
-};
-
 const buildClient = () =>
   createAuthClient({
+    baseURL: PLACEHOLDER_ORIGIN,
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: askTheServer },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],
