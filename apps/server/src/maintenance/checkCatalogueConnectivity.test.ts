@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { checkCatalogueConnectivity } from './checkCatalogueConnectivity';
 describe('checkCatalogueConnectivity', () => {
   it('is unreachable when no key is configured', async () => {
@@ -65,5 +65,49 @@ describe('checkCatalogueConnectivity', () => {
     });
 
     expect(reachable).toBe(false);
+  });
+});
+
+describe('reaching the catalogue over the network itself', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('asks the catalogue directly where nothing else was supplied to ask with', async () => {
+    const asked: { url: string; init?: object }[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: object) => {
+        asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+        return Promise.resolve({ ok: true, status: 200 });
+      }),
+    );
+
+    await expect(
+      checkCatalogueConnectivity({ readApiKey: () => Promise.resolve('a-key') }),
+    ).resolves.toBe(true);
+
+    expect(asked[0]?.url).toContain('api_key=a-key');
+  });
+
+  it('carries the bearer token as a header where the key is one', async () => {
+    const asked: { url: string; init?: { headers?: Record<string, string> } }[] = [];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn((url: string, init?: { headers?: Record<string, string> }) => {
+        asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+        return Promise.resolve({ ok: true, status: 200 });
+      }),
+    );
+
+    await checkCatalogueConnectivity({
+      readApiKey: () => Promise.resolve(`eyJ${'a'.repeat(40)}.${'b'.repeat(40)}.${'c'.repeat(40)}`),
+    });
+
+    expect(asked[0]?.init?.headers).toBeDefined();
   });
 });

@@ -145,3 +145,30 @@ describe('pickAnything', () => {
     await expect(pickAnything()).resolves.toMatchObject({ item: { id: 'a' } });
   });
 });
+
+describe('pickAnything, when a library will not answer', () => {
+  it('offers nothing from a programmes library whose shows cannot be read', async () => {
+    fetchLibraries.mockResolvedValue([{ id: 'shows-1', kind: 'shows' }]);
+    fetchShows.mockRejectedValue(new Error('offline'));
+
+    await expect(pickAnything()).resolves.toBeNull();
+  });
+
+  it('offers nothing from a films library whose items cannot be counted', async () => {
+    fetchLibraries.mockResolvedValue([{ id: 'library-1', kind: 'movies' }]);
+    fetchLibraryItems.mockRejectedValue(new Error('offline'));
+
+    await expect(pickAnything()).resolves.toBeNull();
+  });
+
+  it('still offers what the libraries that did answer are holding', async () => {
+    fetchLibraries.mockResolvedValue([
+      { id: 'shows-1', kind: 'shows' },
+      { id: 'library-1', kind: 'movies' },
+    ]);
+    fetchShows.mockRejectedValue(new Error('offline'));
+    fetchLibraryItems.mockResolvedValue({ items: [item('arrival')], total: 1 });
+
+    await expect(pickAnything()).resolves.toEqual({ kind: 'item', item: item('arrival') });
+  });
+});

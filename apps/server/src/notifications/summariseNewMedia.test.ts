@@ -76,6 +76,13 @@ describe('summariseNewMedia', () => {
     expect(summary?.body).toContain('Heat');
   });
 
+  it('speaks of several films in the plural', () => {
+    const summary = summariseNewMedia([film('f1', 'Heat'), film('f2', 'Sicario')]);
+
+    expect(summary?.body).toContain('2 films');
+    expect(summary?.body).toContain('Heat and Sicario');
+  });
+
   it('points at the one film it is about', () => {
     expect(summariseNewMedia([film('f1', 'Heat')])?.link).toBe('/?inspecting=f1');
   });

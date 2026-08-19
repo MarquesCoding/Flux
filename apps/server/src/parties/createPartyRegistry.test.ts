@@ -623,3 +623,73 @@ describe('asking somebody along', () => {
     expect(asking.kind === 'may' ? asking.byName : '').toBe('Dan');
   });
 });
+
+describe('asking a party that is not there, or asking as somebody who is not in it', () => {
+  const REFUSALS = ['setRole', 'remove', 'askToJoin', 'setPassword', 'loosen'] as const;
+
+  const call = (
+    registry: ReturnType<typeof createWorld>,
+    name: (typeof REFUSALS)[number],
+    partyId: string,
+    by: string,
+  ) => {
+    switch (name) {
+      case 'setRole':
+        return registry.setRole(partyId, by, 'someone-else', 'host');
+      case 'remove':
+        return registry.remove(partyId, by, 'someone-else');
+      case 'askToJoin':
+        return registry.askToJoin(partyId, by);
+      case 'setPassword':
+        return registry.setPassword(partyId, by, 'a-password');
+      case 'loosen':
+        return registry.loosen(partyId, by, { everyoneMaySeek: true });
+    }
+  };
+
+  it.each(REFUSALS)('refuses %s where no such party is held', (name) => {
+    const registry = createWorld();
+
+    openWith(registry);
+
+    expect(call(registry, name, 'nothing-like-it', 'host')).toMatchObject({ kind: 'refused' });
+  });
+
+  it.each(REFUSALS)('refuses %s from somebody who is not in the party', (name) => {
+    const registry = createWorld();
+    const party = openWith(registry);
+
+    expect(call(registry, name, party.id, 'a-stranger')).toMatchObject({ kind: 'refused' });
+  });
+});
+
+describe('removing somebody from a party', () => {
+  it('takes them out and leaves the rest of the party standing', () => {
+    const registry = createWorld();
+    const party = openWith(registry);
+
+    registry.join({ partyId: party.id, ...someone('guest', 'Sam') });
+
+    const gone = registry.remove(party.id, 'host', 'guest');
+
+    expect(gone).toMatchObject({ kind: 'removed', connectionId: 'guest' });
+    expect(registry.find(party.id)?.members).toHaveLength(1);
+  });
+
+  it('refuses to remove somebody who is not in the party', () => {
+    const registry = createWorld();
+    const party = openWith(registry);
+
+    expect(registry.remove(party.id, 'host', 'nobody')).toMatchObject({ kind: 'refused' });
+  });
+});
+
+describe('finding a party', () => {
+  it('answers with nothing for an identifier nobody holds', () => {
+    expect(createWorld().find('nothing-like-it')).toBeNull();
+  });
+
+  it('answers with nothing about a connection that is in no party', () => {
+    expect(createWorld().partyOf('a-stranger')).toBeNull();
+  });
+});

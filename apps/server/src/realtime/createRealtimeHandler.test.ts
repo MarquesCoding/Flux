@@ -8,6 +8,7 @@ import type { PresenceBinding, PresenceControl } from './createRealtimeHandler';
 import type { Schedule } from './createCoalescer';
 import type { FromServer } from '@FluxContracts/schemas/Realtime';
 import type { Permission } from '@FluxContracts/schemas/Permission';
+import { createPartyRegistry } from '@FluxServer/parties/createPartyRegistry';
 
 const createWorld = (granted: Permission[] = []) => {
   const due: (() => void)[] = [];
@@ -291,6 +292,23 @@ describe('createRealtimeHandler', () => {
     });
   });
 
+  it('carries a note somebody sent to that tab, with what it said', async () => {
+    const world = createWorld();
+    const session = world.handler.open({ accountId: 'me', profileId: null }, world.socket);
+
+    await session.receive(
+      JSON.stringify({ kind: 'identify', profileId: null, clientId: 'tab-one' }),
+    );
+    world.announce({ kind: 'message', text: 'Tea is ready' });
+
+    const event = world.read().find((message) => message.kind === 'event');
+
+    expect(event?.kind === 'event' ? event.payload : null).toStrictEqual({
+      kind: 'message',
+      text: 'Tea is ready',
+    });
+  });
+
   it('carries a resume, which has no reason to give', async () => {
     const world = createWorld();
     const session = world.handler.open({ accountId: 'me', profileId: null }, world.socket);
@@ -312,5 +330,146 @@ describe('createRealtimeHandler', () => {
     await session.receive(JSON.stringify({ kind: 'subscribe', topics: ['logs'] }));
 
     expect(world.registry.topicsOf(session.id)).toStrictEqual(['logs']);
+  });
+});
+
+describe('a connection that is part of a watch party', () => {
+  const withAParty = () => {
+    const registry = createRealtimeRegistry({
+      entitlements: createEntitlements({
+        resolve: () => Promise.resolve(new Set<Permission>()),
+        now: () => 0,
+        ttlMs: 0,
+      }),
+      now: () => 1000,
+      schedule: (run) => {
+        run();
+
+        return () => {};
+      },
+      windowMs: 50,
+    });
+
+    const parties = createPartyRegistry(() => 'party-1');
+    const told: string[][] = [];
+
+    const handler = createRealtimeHandler({
+      registry,
+      now: () => 1000,
+      presence: {
+        connect: () => {},
+        disconnect: () => {},
+        nameOf: () => Promise.resolve('Sam'),
+      },
+      newId: () => 'connection-1',
+      party: {
+        registry: parties,
+        tell: (connectionIds) => told.push([...connectionIds]),
+      },
+    });
+
+    const sent: string[] = [];
+
+    return {
+      parties,
+      told,
+      session: handler.open(
+        { accountId: 'me', profileId: null },
+        { send: (raw) => sent.push(raw) },
+      ),
+      read: (): FromServer[] =>
+        sent.map((raw) => FromServerSchema.parse(JsonValueSchema.parse(JSON.parse(raw)))),
+    };
+  };
+
+  it('answers a clock question with the time here, so a party can agree on one', async () => {
+    const world = withAParty();
+
+    await world.session.receive(JSON.stringify({ kind: 'clockAsk', sentAtMs: 40 }));
+
+    expect(world.read().map((one) => one.kind)).toContain('clockTell');
+  });
+
+  it('carries the moment the asker sent, so they can measure the round trip', async () => {
+    const world = withAParty();
+
+    await world.session.receive(JSON.stringify({ kind: 'clockAsk', sentAtMs: 40 }));
+
+    const told = world.read().find((one) => one.kind === 'clockTell');
+
+    expect(told).toMatchObject({ sentAtMs: 40, serverAtMs: 1000 });
+  });
+
+  it('opens a party when asked to, under the name the presence service gives', async () => {
+    const world = withAParty();
+
+    await world.session.receive(JSON.stringify({ kind: 'partyOpen', mediaId: 'a-film' }));
+
+    expect(world.parties.count()).toBe(1);
+  });
+
+  it('takes somebody out of their party when the connection closes', async () => {
+    const world = withAParty();
+
+    await world.session.receive(JSON.stringify({ kind: 'partyOpen', mediaId: 'a-film' }));
+
+    expect(world.parties.count()).toBe(1);
+
+    world.session.close();
+
+    expect(world.parties.count()).toBe(0);
+  });
+
+  it('ignores a message of a kind it does not know', async () => {
+    const world = withAParty();
+
+    await world.session.receive(JSON.stringify({ kind: 'somethingElse' }));
+
+    expect(world.read().filter((one) => one.kind !== 'welcome')).toEqual([]);
+  });
+});
+
+describe('naming somebody in a party', () => {
+  it('asks who they are once rather than on every message they send', async () => {
+    const asked: string[] = [];
+    const registry = createRealtimeRegistry({
+      entitlements: createEntitlements({
+        resolve: () => Promise.resolve(new Set<Permission>()),
+        now: () => 0,
+        ttlMs: 0,
+      }),
+      now: () => 1000,
+      schedule: (run) => {
+        run();
+
+        return () => {};
+      },
+      windowMs: 50,
+    });
+
+    const parties = createPartyRegistry(() => 'party-1');
+
+    const handler = createRealtimeHandler({
+      registry,
+      now: () => 1000,
+      presence: {
+        connect: () => {},
+        disconnect: () => {},
+        nameOf: (accountId) => {
+          asked.push(accountId);
+
+          return Promise.resolve('Sam');
+        },
+      },
+      newId: () => 'connection-1',
+      party: { registry: parties, tell: () => {} },
+    });
+
+    const session = handler.open({ accountId: 'me', profileId: null }, { send: () => {} });
+
+    await session.receive(JSON.stringify({ kind: 'partyOpen', mediaId: 'a-film' }));
+    await session.receive(JSON.stringify({ kind: 'partyLoosen', everyoneMaySeek: true }));
+
+    expect(asked).toEqual(['me']);
   });
 });

@@ -66,6 +66,46 @@ describe('formatWebhookBody', () => {
     expect(written.body).not.toContain('()');
   });
 
+  it('names the subject of a job that finished, as well as one that failed', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'job.completed',
+      data: { kind: 'library.scan', jobId: 'job-3', subject: 'library-1' },
+    });
+
+    expect(written.body).toContain('(library-1)');
+  });
+
+  it('says nothing about a subject for a failure that had none', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'job.failed',
+      data: { kind: 'server.cleanupSessions', jobId: 'job-4', subject: null, reason: 'no space' },
+    });
+
+    expect(written.body).toContain('no space');
+    expect(written.body).not.toContain('()');
+  });
+
+  it('counts files it could not read, and says nothing of them when there were none', () => {
+    const scanned = (failed: number) =>
+      formatWebhookBody('ntfy', {
+        ...anEnvelope,
+        event: 'library.scanned',
+        data: {
+          libraryId: 'library-1',
+          libraryName: 'Films',
+          added: 2,
+          updated: 1,
+          removed: 0,
+          failed,
+        },
+      }).body;
+
+    expect(scanned(3)).toContain('3 unreadable');
+    expect(scanned(0)).not.toContain('unreadable');
+  });
+
   it('writes a test as reassurance rather than as an alarm', () => {
     const written = formatWebhookBody('ntfy', { ...anEnvelope, event: 'webhook.test', data: {} });
 

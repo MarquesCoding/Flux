@@ -177,4 +177,10 @@ describe('removeProfile', () => {
 
     await expect(removeProfile('abc')).resolves.toBe(false);
   });
+
+  it('reports failure rather than throwing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(removeProfile('abc')).resolves.toBe(false);
+  });
 });
