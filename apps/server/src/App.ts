@@ -321,6 +321,7 @@ type StorageCount = {
 type CreateAppOptions = {
   auth: FluxAuth;
   settings: SettingsStore;
+  trustedOrigins?: () => Promise<readonly string[]>;
   countUsers: () => Promise<number>;
   promoteToAdmin: (email: string) => Promise<void>;
   library: LibraryService;
@@ -398,6 +399,7 @@ type CreateAppOptions = {
 const createApp = ({
   auth,
   settings,
+  trustedOrigins,
   countUsers,
   promoteToAdmin,
   library,
@@ -457,7 +459,7 @@ const createApp = ({
   app.use(
     '/api/*',
     allowCrossOriginClients({
-      trustedOrigins: async () => (await settings.read()).trustedOrigins,
+      trustedOrigins: trustedOrigins ?? (async () => (await settings.read()).trustedOrigins),
     }),
   );
 
