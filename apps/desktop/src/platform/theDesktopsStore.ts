@@ -14,19 +14,24 @@ import type { DeviceStore } from '@FluxClient/platform/Platform.types';
  * preference is read while something is being drawn, and nothing sensible can be drawn around a
  * promise. A write goes to the copy at once and to the file behind it.
  *
+ * The copy is taken again here rather than used where it lies. What the preload script hands over is
+ * frozen — a context bridge freezes everything it exposes, which is the point of it — so writing to
+ * it throws, and the first thing anybody does in this client is say where their server is.
+ *
  * @returns The store.
  */
 const theDesktopsStore = (): DeviceStore => {
   const { preferences } = window.flux;
+  const held = new Map(Object.entries(preferences.held));
 
   return {
-    read: (key) => preferences.held[key] ?? null,
+    read: (key) => held.get(key) ?? null,
     write: (key, value) => {
-      preferences.held[key] = value;
+      held.set(key, value);
       preferences.write(key, value);
     },
     forget: (key) => {
-      delete preferences.held[key];
+      held.delete(key);
       preferences.forget(key);
     },
   };

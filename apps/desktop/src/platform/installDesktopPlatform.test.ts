@@ -7,7 +7,7 @@ const onDisk = new Map<string, string>();
 
 const aBridge = () => ({
   preferences: {
-    held: Object.fromEntries(onDisk),
+    held: Object.freeze(Object.fromEntries(onDisk)),
     write: (key: string, value: string) => {
       onDisk.set(key, value);
     },
