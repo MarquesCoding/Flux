@@ -5,6 +5,8 @@ import { letTheBrowserSendThemBack } from '@FluxDesktop/main/letTheBrowserSendTh
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 import { theDesktopsAuth } from '@FluxDesktop/main/theDesktopsAuth';
+import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { pointSignInAt } from '@FluxDesktop/main/whereToSignIn';
 
 let theWindow: BrowserWindow | null = null;
 
@@ -15,7 +17,10 @@ letTheBrowserSendThemBack(auth, () => theWindow);
 const start = async (): Promise<void> => {
   await app.whenReady();
 
-  answerAboutPreferences();
+  pointSignInAt(theServerAddress());
+  answerAboutPreferences(() => {
+    pointSignInAt(theServerAddress());
+  });
   carryTheSession(auth);
 
   theWindow = openTheWindow();

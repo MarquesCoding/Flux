@@ -11,8 +11,11 @@ import { FORGET_ONE, READ_EVERYTHING, WRITE_ONE } from '@FluxDesktop/main/prefer
  * waits on it.
  *
  * Only strings pass, and only ones the window names. Nothing here evaluates what it is handed.
+ *
+ * @param afterWrite - Told whenever the window changes something, for whatever in this process is
+ * holding a copy that would otherwise go stale.
  */
-const answerAboutPreferences = (): void => {
+const answerAboutPreferences = (afterWrite: () => void): void => {
   const file = thePreferenceFile();
 
   ipcMain.on(READ_EVERYTHING, (event) => {
@@ -22,12 +25,14 @@ const answerAboutPreferences = (): void => {
   ipcMain.on(WRITE_ONE, (_event, key: string, value: string) => {
     if (typeof key === 'string' && typeof value === 'string') {
       file.write(key, value);
+      afterWrite();
     }
   });
 
   ipcMain.on(FORGET_ONE, (_event, key: string) => {
     if (typeof key === 'string') {
       file.forget(key);
+      afterWrite();
     }
   });
 };

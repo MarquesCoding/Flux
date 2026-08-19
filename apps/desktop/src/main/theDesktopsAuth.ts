@@ -4,6 +4,7 @@ import { storage } from '@better-auth/electron/storage';
 import { onTheServer, PLACEHOLDER_ORIGIN } from '@FluxCore/functions/onTheServer';
 import { DESKTOP_SCHEME } from '@FluxCore/functions/desktopScheme';
 import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { whereToSignIn } from '@FluxDesktop/main/whereToSignIn';
 
 const askTheServer = (input: string | URL | Request, init?: RequestInit): Promise<Response> => {
   const asked = input instanceof Request ? input.url : String(input);
@@ -18,10 +19,11 @@ const askTheServer = (input: string | URL | Request, init?: RequestInit): Promis
  * and a second factor and a passkey work as they always have. What comes back to this process is an
  * authorization code, exchanged here for a session that lives here. The window never sees it.
  *
- * The address is read at the moment it is needed rather than baked in, because nobody has said where
- * their Flux is the first time this runs. `signInURL` is a property that answers rather than a
- * string that was set, and every request has its path lifted onto whatever address is current — the
- * same trick the window plays, for the same reason.
+ * Nobody has said where their Flux is the first time this runs, and the library copies its options
+ * when it is built, so an address read here is the address it keeps forever. `signInURL` is
+ * therefore an object that is changed in place rather than a string that was read, and every request
+ * has its path lifted onto whatever address is current — the same trick the window plays, for the
+ * same reason.
  *
  * @returns The client.
  */
@@ -32,9 +34,7 @@ const theDesktopsAuth = () =>
     fetchOptions: { customFetchImpl: askTheServer },
     plugins: [
       electronClient({
-        get signInURL(): string {
-          return `${theServerAddress()}/`;
-        },
+        signInURL: whereToSignIn(),
         protocol: DESKTOP_SCHEME,
         storage: storage(),
       }),
