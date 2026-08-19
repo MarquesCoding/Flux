@@ -246,13 +246,21 @@ const renamePasskey = async (id: string, name: string): Promise<boolean> => {
  * Starts enrolling a second factor, which the password is needed for: turning it on is a change to
  * how this account is protected, and a borrowed session should not be able to make it.
  *
+ * The server may answer that it enrolled a code sent by mail instead, which this account is not set
+ * up for and Flux does not offer. There is nothing to show for that, so it is treated as nothing
+ * rather than half a screen with no secret on it.
+ *
  * @param password - The account's password.
  * @returns The secret to enrol against and the backup codes, or nothing where the password was wrong.
  */
 const enableTwoFactor = async (password: string): Promise<Enrollment | null> => {
   const { data, error } = await client.twoFactor.enable({ password });
 
-  return error === null ? { totpURI: data.totpURI, backupCodes: data.backupCodes } : null;
+  if (error !== null || data.method !== 'totp') {
+    return null;
+  }
+
+  return { totpURI: data.totpURI, backupCodes: data.backupCodes };
 };
 
 /**

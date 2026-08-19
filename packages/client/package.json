@@ -9,11 +9,11 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/passkey": "^1.3.4",
+    "@better-auth/passkey": "^1.7.1",
     "@flux/contracts": "workspace:*",
     "@flux/core": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
-    "better-auth": "^1.6.26",
+    "better-auth": "^1.7.1",
     "zod": "^3.24.1"
   },
   "devDependencies": {
