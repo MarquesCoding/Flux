@@ -3,9 +3,9 @@ import { describeThisDesktop } from './describeThisDesktop';
 
 describe('describeThisDesktop', () => {
   it('names the machine rather than the WebView nobody chose', () => {
-    expect(describeThisDesktop('Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/605.1.15')).toBe(
-      'Flux on macOS',
-    );
+    expect(
+      describeThisDesktop('Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/605.1.15'),
+    ).toBe('Flux on macOS');
   });
 
   it('recognises Windows', () => {

@@ -13,8 +13,7 @@ const PATH = '/api/realtime';
  * @param address - Where this client was told its Flux is.
  * @returns The socket address.
  */
-const socketAddressOf = (address: string): string =>
-  `${address.replace(/^http/, 'ws')}${PATH}`;
+const socketAddressOf = (address: string): string => `${address.replace(/^http/, 'ws')}${PATH}`;
 
 /**
  * Opens the real socket, against the server this client was told to watch.
