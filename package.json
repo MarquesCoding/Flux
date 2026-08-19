@@ -53,5 +53,12 @@
     "*.rs": [
       "rustfmt --edition 2021"
     ]
+  },
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "electron",
+      "electron-winstaller",
+      "esbuild"
+    ]
   }
 }
