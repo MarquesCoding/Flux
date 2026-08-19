@@ -1,5 +1,7 @@
 import Conf from 'conf';
 
+let opened: Conf<Record<string, string>> | null = null;
+
 type PreferenceFile = {
   all: () => Record<string, string>;
   write: (key: string, value: string) => void;
@@ -15,13 +17,16 @@ type PreferenceFile = {
  * from a file once it is built, so anything kept in one is invisible to the other. Somebody would
  * say where their Flux is, build the application, and be asked all over again.
  *
+ * Opened once. Every request leaving this client asks where the server is, and opening the file to
+ * answer would mean reading and parsing it from disk for every image, every subtitle and every
+ * segment of everything anybody watches.
+ *
  * @returns The file, as three things the rest of the process can do to it.
  */
 const thePreferenceFile = (): PreferenceFile => {
-  const held = new Conf<Record<string, string>>({
-    projectName: 'flux',
-    configName: 'preferences',
-  });
+  opened ??= new Conf<Record<string, string>>({ projectName: 'flux', configName: 'preferences' });
+
+  const held = opened;
 
   return {
     all: () => {

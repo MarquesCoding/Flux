@@ -12,19 +12,29 @@ type Held = { getCookie: () => string };
  * segment of everything anybody watches. Out here there is no such distinction: a request is a
  * request on its way out, and this is the only place that sees all of them.
  *
+ * Every path through here answers, including the ones that went wrong. Electron holds a request open
+ * until this callback replies, so a throw on the way to signing one request does not fail that
+ * request — it hangs it, and every other, for as long as the application runs. A window where
+ * nothing at all happens and nothing is reported is the worst way for this to break, and it is the
+ * cheapest to prevent: a request that could not be signed still goes, and either the server refuses
+ * it or nobody needed the session for it.
+ *
  * @param held - Whatever is holding the session, asked afresh each time rather than read once.
  */
 const carryTheSession = (held: Held): void => {
   session.defaultSession.webRequest.onBeforeSendHeaders((details, respond) => {
-    const carried = cookieForRequest(details.url, theServerAddress(), held.getCookie());
+    try {
+      const carried = cookieForRequest(details.url, theServerAddress(), held.getCookie());
 
-    if (carried === null) {
+      respond({
+        requestHeaders:
+          carried === null
+            ? details.requestHeaders
+            : { ...details.requestHeaders, Cookie: carried },
+      });
+    } catch {
       respond({ requestHeaders: details.requestHeaders });
-
-      return;
     }
-
-    respond({ requestHeaders: { ...details.requestHeaders, Cookie: carried } });
   });
 };
 
