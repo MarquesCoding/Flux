@@ -5,17 +5,21 @@ import {
   FilmRoll01Icon,
   FireIcon,
   Home01Icon,
+  Cancel01Icon,
   Notification01Icon,
   Search01Icon,
   Settings01Icon,
   Tv01Icon,
   UserCircleIcon,
 } from '@hugeicons/core-free-icons';
-import { useEffect, useRef } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
+import { Button } from '@FluxUI/Button';
 import { NavDock } from '@FluxUI/NavDock';
 import { MoodBackground } from '@FluxUI/MoodBackground';
+import { useDotFilm } from '@FluxUI/useDotFilm';
+import { useKonamiCode } from '@FluxUI/useKonamiCode';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
@@ -23,6 +27,8 @@ import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
 import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
+
+const FADING = 1.2;
 
 const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
@@ -102,6 +108,23 @@ const AppShell = ({
   notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
+  const [isFilmPlaying, setIsFilmPlaying] = useState(false);
+
+  useKonamiCode(() => {
+    if (section === 'home' && prefersReducedMotion !== true) {
+      setIsFilmPlaying(true);
+    }
+  });
+
+  const endFilm = useCallback(() => {
+    setIsFilmPlaying(false);
+  }, []);
+
+  const film = useDotFilm(isFilmPlaying, endFilm);
+
+  useEffect(() => {
+    setIsFilmPlaying(false);
+  }, [section]);
 
   useEffect(() => {
     if (section === 'home') {
@@ -248,35 +271,61 @@ const AppShell = ({
 
   return (
     <div className="flux-docked relative min-h-screen text-text">
-      <MoodBackground lights={moodLights} hasGrid={section === 'home'} />
+      <MoodBackground lights={moodLights} hasGrid={section === 'home'} film={film} />
 
-      <NavDock
-        items={items}
-        selectedId={section}
-        actions={actions}
-        onSelect={(id) => {
-          const chosen = BROWSE_SECTIONS.find((candidate) => candidate === id);
+      <AnimatePresence>
+        {isFilmPlaying ? (
+          <motion.div
+            key="leave-film"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{
+              duration: prefersReducedMotion === true ? 0 : FADING,
+              ease: 'easeInOut',
+            }}
+            className="fixed top-4 right-4 z-50"
+          >
+            <Button isIconOnly variant="overlay" label="Stop the film" onClick={endFilm}>
+              <Icon of={Cancel01Icon} size={20} />
+            </Button>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
 
-          if (chosen !== undefined) {
-            onSectionChange(chosen);
-          }
-        }}
-      />
-
-      <motion.main
-        key={section}
-        variants={staggerVariants}
-        initial="hidden"
-        animate="shown"
-        className="min-h-screen pb-28"
+      <motion.div
+        animate={{ opacity: isFilmPlaying ? 0 : 1 }}
+        transition={{ duration: prefersReducedMotion === true ? 0 : FADING, ease: 'easeInOut' }}
+        className={isFilmPlaying ? 'pointer-events-none' : undefined}
       >
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion, 'heavy')}
+        <NavDock
+          items={items}
+          selectedId={section}
+          actions={actions}
+          onSelect={(id) => {
+            const chosen = BROWSE_SECTIONS.find((candidate) => candidate === id);
+
+            if (chosen !== undefined) {
+              onSectionChange(chosen);
+            }
+          }}
+        />
+
+        <motion.main
+          key={section}
+          variants={staggerVariants}
+          initial="hidden"
+          animate="shown"
+          className="min-h-screen pb-28"
         >
-          {children}
-        </motion.div>
-      </motion.main>
+          <motion.div
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion, 'heavy')}
+          >
+            {children}
+          </motion.div>
+        </motion.main>
+      </motion.div>
     </div>
   );
 };

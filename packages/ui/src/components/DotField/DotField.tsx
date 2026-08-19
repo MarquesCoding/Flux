@@ -15,6 +15,14 @@ const RESTING = 0.18;
 
 const LIT = 0.42;
 
+const FILM_LIT = 0.98;
+
+const DOT = 1.2;
+
+const GROWTH = 1.1;
+
+const FILM_GROWTH = 1.8;
+
 const WINDOW = 0.12;
 
 const FADE_BY = 0.92;
@@ -43,15 +51,21 @@ const brightnessAt = (phase: number): number => {
  * else on it yet — sign-in, setup, an empty library. Movement rather than a static pattern, so a
  * screen that is waiting looks alive rather than stalled.
  *
+ * Given a frame source it stops rippling and becomes a display instead, asking that source how lit
+ * every dot is and drawing the answer. Everything below that — the layout, the resize handling, the
+ * buckets it draws in — is the same either way.
+ *
  * @param spacing - How far apart the dots sit, in pixels.
  * @param sources - How many ripples run at once.
  * @param seconds - How long one ripple takes to cross.
+ * @param frame - Where to read the picture from, if it is showing one rather than rippling.
  * @param className - Extra classes for the caller's own layout.
  */
 const DotField = ({
   spacing = SPACING,
   sources = SOURCES,
   seconds = SECONDS,
+  frame,
   className,
 }: DotFieldProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -70,11 +84,17 @@ const DotField = ({
       return;
     }
 
-    let frame = 0;
+    const showing = frame !== undefined;
+    const brightest = showing ? FILM_LIT : LIT;
+
+    let request = 0;
     let xs = new Float32Array(0);
     let ys = new Float32Array(0);
     let delays: Float32Array[] = [];
     let fades = new Float32Array(0);
+    let lifts = new Float32Array(0);
+    let columns = 0;
+    let rows = 0;
     let width = 0;
     let height = 0;
 
@@ -92,13 +112,15 @@ const DotField = ({
       canvas.height = Math.floor(height * ratio);
       context.setTransform(ratio, 0, 0, ratio, 0, 0);
 
-      const columns = Math.ceil(width / spacing) + 1;
-      const rows = Math.ceil(height / spacing) + 1;
+      columns = Math.ceil(width / spacing) + 1;
+      rows = Math.ceil(height / spacing) + 1;
+
       const count = columns * rows;
 
       xs = new Float32Array(count);
       ys = new Float32Array(count);
       fades = new Float32Array(count);
+      lifts = new Float32Array(count);
       delays = Array.from({ length: Math.max(sources, 1) }, () => new Float32Array(count));
 
       const origins = delays.map(() => ({
@@ -129,6 +151,28 @@ const DotField = ({
 
     const buckets: number[][] = Array.from({ length: LEVELS }, () => []);
 
+    /**
+     * How lit one dot is from the ripples running through the field.
+     *
+     * @param index - Which dot this is.
+     * @param elapsed - How long the field has been running, in seconds.
+     * @returns How lit it is, from nothing to one.
+     */
+    const rippleAt = (index: number, elapsed: number): number => {
+      let lift = 0;
+
+      for (const row of delays) {
+        const delay = row[index] ?? 0;
+        const phase = ((elapsed - delay) / seconds) % 1;
+
+        if (phase >= 0) {
+          lift = Math.max(lift, brightnessAt(phase));
+        }
+      }
+
+      return lift;
+    };
+
     const draw = (elapsed: number) => {
       context.clearRect(0, 0, width, height);
 
@@ -136,26 +180,20 @@ const DotField = ({
         bucket.length = 0;
       }
 
+      if (frame !== undefined) {
+        frame(lifts, columns, rows, elapsed);
+      }
+
       for (let index = 0; index < xs.length; index += 1) {
-        const fade = fades[index] ?? 0;
+        const fade = showing ? 1 : (fades[index] ?? 0);
 
         if (fade <= 0) {
           continue;
         }
 
-        let lift = 0;
-
-        for (const row of delays) {
-          const delay = row[index] ?? 0;
-          const phase = ((elapsed - delay) / seconds) % 1;
-
-          if (phase >= 0) {
-            lift = Math.max(lift, brightnessAt(phase));
-          }
-        }
-
-        const alpha = (RESTING + (LIT - RESTING) * lift) * fade;
-        const level = Math.min(LEVELS - 1, Math.floor((alpha / LIT) * LEVELS));
+        const lift = showing ? (lifts[index] ?? 0) : rippleAt(index, elapsed);
+        const alpha = (RESTING + (brightest - RESTING) * lift) * fade;
+        const level = Math.min(LEVELS - 1, Math.floor((alpha / brightest) * LEVELS));
 
         buckets[level]?.push(index);
       }
@@ -165,8 +203,8 @@ const DotField = ({
           continue;
         }
 
-        const alpha = ((level + 0.5) / LEVELS) * LIT;
-        const size = 1.2 + (level / LEVELS) * 1.1;
+        const alpha = ((level + 0.5) / LEVELS) * brightest;
+        const size = DOT + (level / LEVELS) * (showing ? FILM_GROWTH : GROWTH);
 
         context.globalAlpha = alpha;
         context.fillStyle = ink;
@@ -183,7 +221,7 @@ const DotField = ({
 
     const tick = (now: number) => {
       draw((now - started) / 1000);
-      frame = requestAnimationFrame(tick);
+      request = requestAnimationFrame(tick);
     };
 
     lay();
@@ -191,7 +229,7 @@ const DotField = ({
     if (prefersReducedMotion === true) {
       draw(0);
     } else {
-      frame = requestAnimationFrame(tick);
+      request = requestAnimationFrame(tick);
     }
 
     const observer = new ResizeObserver(() => {
@@ -205,10 +243,10 @@ const DotField = ({
     observer.observe(canvas);
 
     return () => {
-      cancelAnimationFrame(frame);
+      cancelAnimationFrame(request);
       observer.disconnect();
     };
-  }, [spacing, sources, seconds, prefersReducedMotion]);
+  }, [spacing, sources, seconds, frame, prefersReducedMotion]);
 
   return (
     <canvas

@@ -101,4 +101,28 @@ describe('MoodBackground', () => {
 
     expect(blooms(container)[0]?.className).not.toContain('flux-bloom--drift');
   });
+
+  it('hands a film to the grid it already draws rather than laying a second one over it', () => {
+    const { container } = render(<MoodBackground hasGrid film={() => undefined} />);
+
+    expect(container.querySelectorAll('canvas')).toHaveLength(1);
+  });
+
+  it('brings the grid out for a film even where there was no grid before', () => {
+    const { container } = render(<MoodBackground film={() => undefined} />);
+
+    expect(container.querySelector('canvas')).toBeInTheDocument();
+  });
+
+  it('holds the film to the window rather than to the top of a page being scrolled', () => {
+    const { container } = render(<MoodBackground film={() => undefined} />);
+
+    expect(container.firstElementChild?.className).toContain('fixed');
+  });
+
+  it('stays where it was put when there is no film', () => {
+    const { container } = render(<MoodBackground hasGrid />);
+
+    expect(container.firstElementChild?.className).not.toContain('fixed');
+  });
 });
