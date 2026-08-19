@@ -11,11 +11,13 @@ import {
   Tv01Icon,
   UserCircleIcon,
 } from '@hugeicons/core-free-icons';
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { NavDock } from '@FluxUI/NavDock';
 import { MoodBackground } from '@FluxUI/MoodBackground';
+import { DotFilm } from '@FluxUI/DotFilm';
+import { useKonamiCode } from '@FluxUI/useKonamiCode';
 import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
@@ -102,9 +104,24 @@ const AppShell = ({
   notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
+  const [isFilmPlaying, setIsFilmPlaying] = useState(false);
+
+  useKonamiCode(() => {
+    if (prefersReducedMotion !== true) {
+      setIsFilmPlaying(true);
+    }
+  });
+
+  const endFilm = useCallback(() => {
+    setIsFilmPlaying(false);
+  }, []);
 
   useEffect(() => {
-    if (section === 'home') {
+    setIsFilmPlaying(false);
+  }, [section]);
+
+  useEffect(() => {
+    if (section === 'home' || isFilmPlaying) {
       return;
     }
 
@@ -119,7 +136,7 @@ const AppShell = ({
     return () => {
       window.removeEventListener('keydown', onKeyDown);
     };
-  }, [section, onSectionChange]);
+  }, [section, onSectionChange, isFilmPlaying]);
 
   const placesRef = useRef<Record<string, number>>({});
   const leavingRef = useRef(section);
@@ -249,6 +266,8 @@ const AppShell = ({
   return (
     <div className="flux-docked relative min-h-screen text-text">
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} />
+
+      <DotFilm isPlaying={isFilmPlaying} onEnd={endFilm} />
 
       <NavDock
         items={items}
