@@ -64,6 +64,48 @@ better-auth returns it on any response that sets the session cookie, in a
 in, signing up and refreshing all produce one. The client reads that header, keeps
 it, and sends it back on every request until it stops working.
 
+### The socket is the one place a header will not go
+
+A header on every request settles every request. It does not settle the one
+connection, and that turned out to be a hole in this decision rather than in the
+implementation of it —
+[FLUX-161](https://linear.app/flux-streaming/issue/FLUX-161/featclient-the-realtime-socket-has-no-way-to-say-who-it-is-without-a).
+
+A browser `WebSocket` constructor takes an address and a subprotocol list. There
+is no API for a header on the upgrade, in any browser, and a WebView is a browser.
+So the credential that works everywhere else cannot reach `/api/realtime`, the
+upgrade is refused, and by
+[ADR-0017](0017-realtime-one-socket-two-feeds.md) that one connection is
+everything live: progress between devices, presence, the admin monitor, watch
+parties, notifications. All of it absent, and the rest of the client looking fine.
+
+**The token rides in the query string, and the server turns it back into the
+header its session lookup already reads.** One line on each side. The lookup, the
+guards and the feeds are untouched, exactly as with a request. A connection that
+already carries an `authorization` header is left alone, so this can only add a
+claim and never replace one.
+
+The cost is a session-length credential in a URL, which is where proxies and
+access logs write things down. That is real, and it is bounded: it is on one path,
+to one server that the operator runs, and the operator running Flux is the person
+whose logs those are. A browser client sends no token at all here — it has a
+cookie, which the upgrade carries by itself.
+
+**A single-use ticket was the better-looking answer and was not taken.** The
+client would ask an authenticated endpoint for a short-lived token and open the
+socket with that, keeping the long-lived one out of the URL. It costs an endpoint,
+a store of outstanding tickets with expiry, a round trip before every connect, and
+a reconnect path that has to fetch a fresh ticket before it can retry — the socket
+reconnects, so that last one is not a detail. It is the right shape for a service
+whose logs somebody else keeps. It can be built later without changing anything
+the client shows, and the honest reason it is not being built now is that it buys
+a smaller thing than it costs.
+
+**A first message carrying the token** was the other candidate, and it means the
+server holds unauthenticated connections open while it waits for one. That is a
+thing to be careful about on a public endpoint, and being careful about it is more
+code than either of the others.
+
 ## Consequences
 
 ### What this gets us
@@ -91,6 +133,10 @@ at the same chokepoints `serverUrl` is, rather than per call.
 
 **Sign-out has to reach both.** Clearing a cookie the client cannot see does not
 clear a token the client is holding.
+
+**A credential in a URL, on one path.** Named above, and worth counting here: it
+is the one place this decision puts a token somewhere it can be written down by
+something other than the client.
 
 ### What this forecloses
 
@@ -120,6 +166,9 @@ Discards the offline case, makes the client useless when the server is
 unreachable, and is most of the way back to a browser.
 
 ## Revisit when
+
+Flux is deployed behind a proxy whose access logs somebody else keeps, at which
+point the ticket described above stops being a trade and becomes the answer.
 
 Tauri or WKWebView offers a first-party cookie store scoped to a configured
 origin, which would make the cookie workable and this unnecessary.
