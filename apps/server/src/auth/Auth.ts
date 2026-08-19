@@ -101,7 +101,7 @@ const createAuth = ({
       twoFactor({ issuer: FLUX_APP_NAME }),
       passkey({ rpName: FLUX_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
-      bearer(),
+      bearer({ requireSignature: true }),
       jwt(),
       apiKey({ enableSessionForAPIKeys: true }),
       admin(),

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { rememberServerAddress } from '@FluxClient/session/serverAddress';
+import { rememberServerAddress, serverAddress } from '@FluxClient/session/serverAddress';
 import { rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { openRealtimeSocket, socketAddressOf } from './openRealtimeSocket';
 import type { Handlers } from '@FluxClient/realtime/createRealtimeClient';
@@ -67,7 +67,7 @@ beforeEach(() => {
     store: inMemory(),
     describeThisClient: () => 'Flux on a desktop',
     thisClientId: () => 'a-window',
-    whereTheServerIs: () => '',
+    whereTheServerIs: () => serverAddress() ?? '',
     openSocket: openRealtimeSocket,
   });
 });

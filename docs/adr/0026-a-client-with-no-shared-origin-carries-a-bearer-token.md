@@ -140,6 +140,29 @@ nothing in return. The client sends and stores the header only where
 `whereTheServerIs` answers with something, which is exactly the condition this ADR
 is about.
 
+### A browser holding a token is not untidy, it is broken
+
+This decision said a browser does not authenticate by token. The code did not
+enforce it: `set-auth-token` is set on any response that sets the session cookie,
+the server cannot tell who is asking, and the client kept whatever it was handed.
+
+That is worse than redundant. `bearer` reads a token by writing it over the
+session cookie on the request — `setRequestCookie`, not a fallback — so a browser
+presenting a token whose session has since gone loses the cookie that was working.
+Every endpoint answers 401 while the page still believes somebody is signed in.
+Measured in Chrome against a live session: `Authorization: Bearer` with a value
+nobody issued turns a 200 into a 401.
+
+Worse still, a value nobody issued is enough. Given a token with no `.` in it,
+`bearer` signs it with the server's own secret and then verifies that signature,
+which of course passes. Any junk in that header costs a browser its session.
+
+So two things, both narrow. The client answers a browser with no token whatever is
+in store, and drops one it finds there, so a browser already stuck comes right on
+its own. And the server takes `requireSignature: true`, which refuses the branch
+that signs its own input. Flux's tokens are session cookie values and carry a
+signature already, so nothing legitimate changes.
+
 ## Consequences
 
 ### What this gets us

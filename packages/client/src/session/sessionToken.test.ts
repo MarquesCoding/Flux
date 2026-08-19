@@ -4,8 +4,13 @@ import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import { authorisation, rememberSessionToken, sessionToken } from './sessionToken';
 
 beforeEach(() => {
-  installPlatform(aFakePlatform());
+  installPlatform({ ...aFakePlatform(), whereTheServerIs: () => 'https://flux.example.com' });
 });
+
+const aBrowser = (): void => {
+  forgetPlatform();
+  installPlatform(aFakePlatform());
+};
 
 afterEach(() => {
   forgetPlatform();
@@ -48,7 +53,7 @@ describe('the token a client holds', () => {
 });
 
 describe('what a request carries to be recognised', () => {
-  it('carries nothing in a browser, whose cookie says who it is', () => {
+  it('carries nothing where no token has been handed out', () => {
     expect(authorisation()).toEqual({});
   });
 
@@ -62,5 +67,36 @@ describe('what a request carries to be recognised', () => {
     rememberSessionToken('');
 
     expect(authorisation()).toEqual({});
+  });
+});
+
+describe('a browser, which has a cookie and must not have a token', () => {
+  it('never holds one, however often the server hands it one', () => {
+    aBrowser();
+
+    rememberSessionToken('a-session-token');
+
+    expect(sessionToken()).toBeNull();
+  });
+
+  it('carries none, since better-auth would write it over the cookie that was working', () => {
+    aBrowser();
+
+    rememberSessionToken('a-session-token');
+
+    expect(authorisation()).toEqual({});
+  });
+
+  it('lets go of one it was already holding, so a browser stuck on 401 comes right by itself', () => {
+    const { store } = aFakePlatform();
+
+    store.write('flux.session.token', 'from-before');
+
+    forgetPlatform();
+    installPlatform({ ...aFakePlatform(), store });
+
+    rememberSessionToken('a-session-token');
+
+    expect(store.read('flux.session.token')).toBeNull();
   });
 });

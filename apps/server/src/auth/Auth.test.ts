@@ -305,6 +305,20 @@ describe('createAuth', () => {
   });
 });
 
+describe('a bearer token nobody signed', () => {
+  it('is ignored, rather than costing a browser the cookie that was working', async () => {
+    const { auth } = createMemoryAuth();
+    const signedUp = await auth.handler(post('/api/auth/sign-up/email', credentials));
+    const cookie = signedUp.headers.getSetCookie()[0]?.split(';')[0] ?? '';
+
+    const session = await auth.api.getSession({
+      headers: new Headers({ cookie, authorization: 'Bearer not-a-real-token' }),
+    });
+
+    expect(session?.user.email).toBe(credentials.email);
+  });
+});
+
 describe('a client that cannot hold a cookie', () => {
   /**
    * Signs an account up, turns two-factor on the way somebody would, and answers with what is needed
