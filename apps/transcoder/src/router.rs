@@ -950,6 +950,11 @@ async fn start_trickplay(
         if !is_complete(&config.cache_root, &id).await {
             let tile_height = tile_height_for(request.tile_width, video.width, video.height);
             let pending = pending_index(&request, tile_height);
+
+            if !state.trickplay.claim(&id).await {
+                return (StatusCode::ACCEPTED, Json(pending)).into_response();
+            }
+
             let trickplay = state.trickplay.clone();
             let ffmpeg = config.ffmpeg.clone();
             let cache_root = config.cache_root.clone();
@@ -958,6 +963,7 @@ async fn start_trickplay(
 
             let queue = state.queue.clone();
             let subject = name_of(&path);
+            let claimed = id.clone();
 
             tokio::spawn(async move {
                 let _ = queue
@@ -977,6 +983,8 @@ async fn start_trickplay(
                         ),
                     )
                     .await;
+
+                trickplay.give_up(&claimed).await;
             });
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();

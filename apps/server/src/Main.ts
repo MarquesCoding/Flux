@@ -53,7 +53,6 @@ import { createDatabaseRatingService } from '@FluxServer/ratings/createDatabaseR
 import { createDatabaseShareService } from '@FluxServer/sharing/createDatabaseShareService';
 import { createShareSessions } from '@FluxServer/sharing/createShareSessions';
 import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService';
-import { createChapterSegmentProvider } from '@FluxServer/segments/createChapterSegmentProvider';
 import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
 import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
@@ -1001,7 +1000,6 @@ const subtitleService = createLayeredSubtitleService([
 const segmentService = createDatabaseSegmentService(db);
 
 const segmentProviders = [
-  createChapterSegmentProvider(),
   createFingerprintSegmentProvider({
     transcoder,
     atOnce: env.MEDIA_JOBS,

@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateTrickplay } from './generateTrickplay';
 import type { TrickplayParams, TrickplayStore } from './generateTrickplay';
 import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
@@ -59,7 +59,7 @@ const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Trans
 });
 
 const harness = (items: { path: string }[]) => {
-  const trickplayRequests: { inputPath: string }[] = [];
+  const trickplayRequests: Parameters<Transcoder['requestTrickplay']>[0][] = [];
   const completed: string[] = [];
   const withIds = items.map((item, index) => ({ id: `item-${index.toString()}`, ...item }));
 
@@ -80,6 +80,10 @@ const harness = (items: { path: string }[]) => {
 
   return { store, transcoder, trickplayRequests, completed };
 };
+
+afterEach(() => {
+  vi.useRealTimers();
+});
 
 describe('generateTrickplay', () => {
   it('marks an item done once its sheet has been rendered', async () => {
@@ -216,5 +220,122 @@ describe('generateTrickplay', () => {
     });
 
     expect(problems).toEqual(['/media/a.mkv: ffmpeg failed']);
+  });
+
+  it('asks the media service to render in the background rather than holding a request open', async () => {
+    const { store, transcoder, trickplayRequests } = harness([{ path: '/media/a.mkv' }]);
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    expect(trickplayRequests.every((request) => request.wait === false)).toBe(true);
+  });
+
+  it('asks again until the sheets are ready, and only then marks the item done', async () => {
+    vi.useFakeTimers();
+
+    const asked: Parameters<Transcoder['requestTrickplay']>[0][] = [];
+    const store: TrickplayStore = {
+      listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+      markComplete: () => Promise.resolve(),
+    };
+    const completed: string[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve({ ...TRICKPLAY_INDEX, isReady: asked.length >= 3 });
+    });
+
+    const running = generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        ...store,
+        markComplete: (id) => {
+          completed.push(id);
+
+          return Promise.resolve();
+        },
+      },
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    await vi.advanceTimersByTimeAsync(20_000);
+    await running;
+
+    expect(asked).toHaveLength(3);
+    expect(completed).toEqual(['item-0']);
+  });
+
+  it('stops asking when the scan is stopped, and leaves the item outstanding', async () => {
+    vi.useFakeTimers();
+
+    const completed: string[] = [];
+    let asks = 0;
+    const transcoder = stubTranscoder(() => {
+      asks += 1;
+
+      return Promise.resolve({ ...TRICKPLAY_INDEX, isReady: false });
+    });
+
+    const running = generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+        markComplete: (id) => {
+          completed.push(id);
+
+          return Promise.resolve();
+        },
+      },
+      transcoder,
+      trickplay: PARAMS,
+      isCancelled: () => asks >= 2,
+    });
+
+    await vi.advanceTimersByTimeAsync(30_000);
+    await running;
+
+    expect(completed).toEqual([]);
+    expect(asks).toBeLessThan(5);
+  });
+
+  it('gives up on a render that never finishes rather than asking forever', async () => {
+    vi.useFakeTimers();
+
+    const problems: string[] = [];
+    const completed: string[] = [];
+    const transcoder = stubTranscoder(() =>
+      Promise.resolve({ ...TRICKPLAY_INDEX, isReady: false }),
+    );
+
+    const running = generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+        markComplete: (id) => {
+          completed.push(id);
+
+          return Promise.resolve();
+        },
+      },
+      transcoder,
+      trickplay: PARAMS,
+      onProblem: (_path, reason) => problems.push(reason),
+    });
+
+    await vi.advanceTimersByTimeAsync(31 * 60 * 1_000);
+    await running;
+
+    expect(completed).toEqual([]);
+    expect(problems.join(' ')).toContain('still being drawn');
   });
 });

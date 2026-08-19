@@ -4,7 +4,7 @@ const SEGMENT_KINDS = ['intro', 'recap', 'credits', 'preview'] as const;
 
 const SegmentKindSchema = z.enum(SEGMENT_KINDS);
 
-const SEGMENT_SOURCES = ['chapters', 'fingerprint', 'manual'] as const;
+const SEGMENT_SOURCES = ['fingerprint', 'manual'] as const;
 
 const SegmentSourceSchema = z.enum(SEGMENT_SOURCES);
 

@@ -403,6 +403,39 @@ impl TrickplayRegistry {
         Arc::clone(in_flight.entry(id.to_owned()).or_default())
     }
 
+    /// Takes this set of thumbnails to render, unless something already has.
+    ///
+    /// A caller that means to render in the background has to say so before it
+    /// spawns anything, because the work sits in a queue before it begins and
+    /// nothing is marked as under way until it does. Without this, every ask
+    /// while a long render was still queued started another one: a 4K remux
+    /// asked about every five seconds gathered fourteen jobs for one film.
+    ///
+    /// The caller that is told yes owns the release, which [`Self::generate`]
+    /// does when it finishes.
+    ///
+    pub async fn claim(&self, id: &str) -> bool {
+        let mut in_flight = self.in_flight.lock().await;
+
+        if in_flight.contains_key(id) {
+            return false;
+        }
+
+        in_flight.insert(id.to_owned(), Arc::default());
+
+        true
+    }
+
+    /// Lets go of a claim whose work never ran.
+    ///
+    /// [`Self::generate`] releases its own claim when it finishes, so this is
+    /// only reached where the work was dropped before it began — a queue shut
+    /// down mid-render, say. Without it the claim would outlive the process's
+    /// interest in it and that film could never be asked for again.
+    pub async fn give_up(&self, id: &str) {
+        self.release(id).await;
+    }
+
     async fn release(&self, id: &str) {
         let mut in_flight = self.in_flight.lock().await;
 
@@ -588,9 +621,38 @@ pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
 mod tests {
     use super::{
         build_index, format_timestamp, sheet_arguments, thumbnail_count, tile_height_for,
-        TrickplayRequest,
+        TrickplayRegistry, TrickplayRequest,
     };
     use std::path::Path;
+
+    #[tokio::test]
+    async fn takes_a_set_of_thumbnails_only_once() {
+        let registry = TrickplayRegistry::new();
+
+        assert!(registry.claim("one").await, "nothing else held it");
+        assert!(
+            !registry.claim("one").await,
+            "a render sits in a queue before it begins, so asking again while it waits would \
+otherwise start a second one"
+        );
+        assert!(
+            registry.claim("another").await,
+            "a different film is its own work"
+        );
+    }
+
+    #[tokio::test]
+    async fn lets_go_of_a_claim_whose_work_never_ran() {
+        let registry = TrickplayRegistry::new();
+
+        assert!(registry.claim("one").await);
+        registry.give_up("one").await;
+
+        assert!(
+            registry.claim("one").await,
+            "a claim that outlived its work would leave that film unable to be asked for again"
+        );
+    }
 
     fn request() -> TrickplayRequest {
         TrickplayRequest {
