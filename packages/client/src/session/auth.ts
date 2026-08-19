@@ -4,6 +4,8 @@ import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServ
 import { forgetAuthCookies } from '@FluxClient/session/authCookies';
 import { rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
+import { electronProxyClient } from '@better-auth/electron/proxy';
+import { DESKTOP_SCHEME } from '@FluxCore/functions/desktopScheme';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
 import type { SessionUser } from '@FluxContracts/schemas/Session';
@@ -36,6 +38,13 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * The plugins are the ones the server mounts and this application calls: `admin` for the role on a
  * user, `twoFactor`, and `passkey`.
  *
+ * `electronProxy` is there for a browser rather than for the desktop client, which is not the
+ * confusion it sounds like. A desktop client signs somebody in by opening this application in their
+ * real browser, where a cookie is a cookie and a second factor and a passkey both work as they
+ * always have. This plugin is what lets that page hand the result back: it watches for the code the
+ * server leaves and sends the browser to `app.flux.desktop:/`, where the window is waiting. A
+ * browser nobody sent there sees nothing of it.
+ *
  * Its `fetch` is handed over rather than left to be found, for two reasons and no others: the
  * library reads the global once when the client is built, which is before a test has had a chance
  * to stand in for it, and it asks with a `URL` where a caller may be expecting a string.
@@ -58,7 +67,12 @@ const buildClient = () =>
     baseURL: PLACEHOLDER_ORIGIN,
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: askTheServer },
-    plugins: [adminClient(), twoFactorClient(), passkeyClient()],
+    plugins: [
+      adminClient(),
+      twoFactorClient(),
+      passkeyClient(),
+      electronProxyClient({ protocol: DESKTOP_SCHEME }),
+    ],
   });
 
 const client = buildClient();

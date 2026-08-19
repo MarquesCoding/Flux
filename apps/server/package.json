@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@better-auth/api-key": "^1.7.1",
+    "@better-auth/electron": "1.7.1",
     "@better-auth/passkey": "^1.7.1",
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.3",

@@ -77,7 +77,7 @@ describe('createAuth', () => {
       const { auth, cookie } = await withStaleSettings();
 
       const response = await auth.handler(
-        post('/api/auth/sign-out', {}, { origin: 'tauri://localhost', cookie }),
+        post('/api/auth/sign-out', {}, { origin: 'app.flux.desktop:/', cookie }),
       );
 
       expect(response.status).toBe(200);

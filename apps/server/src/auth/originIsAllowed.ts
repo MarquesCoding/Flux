@@ -1,4 +1,4 @@
-const DESKTOP_ORIGINS = ['tauri://localhost', 'http://tauri.localhost'];
+import { DESKTOP_ORIGINS } from '@FluxCore/functions/desktopScheme';
 
 /**
  * Whether a client at this origin may read what the server answers.
@@ -7,8 +7,8 @@ const DESKTOP_ORIGINS = ['tauri://localhost', 'http://tauri.localhost'];
  * of its own, and the only ones that may read a reply are the ones an operator named — the same
  * list better-auth is given, so a deployment configures where it may be reached from once.
  *
- * The desktop client's own origins are always allowed. They are not a website: nothing can navigate
- * to `tauri://localhost`, so allowing it grants no page on the internet anything it did not have.
+ * The desktop client's own scheme is always allowed. It is not a website: nothing on the internet can
+ * navigate to `app.flux.desktop:/`, so allowing it grants no page anything it did not have.
  *
  * @param origin - What the request said it came from, or nothing where it said nothing.
  * @param trusted - The origins this deployment has been configured to answer.
@@ -24,4 +24,4 @@ const originIsAllowed = (origin: string | undefined, trusted: readonly string[])
   return allowed.includes(origin.replace(/\/+$/, '')) ? origin : null;
 };
 
-export { DESKTOP_ORIGINS, originIsAllowed };
+export { originIsAllowed };

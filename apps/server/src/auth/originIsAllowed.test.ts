@@ -15,8 +15,7 @@ describe('originIsAllowed', () => {
   });
 
   it('always allows the desktop client, which is not a website anybody can navigate to', () => {
-    expect(originIsAllowed('tauri://localhost', [])).toBe('tauri://localhost');
-    expect(originIsAllowed('http://tauri.localhost', [])).toBe('http://tauri.localhost');
+    expect(originIsAllowed('app.flux.desktop:/', [])).toBe('app.flux.desktop:/');
   });
 
   it('says nothing where the request named no origin, which is a same-origin request', () => {

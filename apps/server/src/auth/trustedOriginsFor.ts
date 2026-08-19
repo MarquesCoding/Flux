@@ -1,5 +1,5 @@
 import { ownOrigins } from '@FluxServer/env/ownOrigins';
-import { DESKTOP_ORIGINS } from '@FluxServer/auth/originIsAllowed';
+import { DESKTOP_ORIGINS } from '@FluxCore/functions/desktopScheme';
 type TrustedOriginsOptions = {
   configured: readonly string[];
   port: number;

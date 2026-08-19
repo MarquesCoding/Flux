@@ -44,7 +44,7 @@ describe('trustedOriginsFor', () => {
       settings: settingsSaying([]),
     })();
 
-    expect(origins).toContain('tauri://localhost');
+    expect(origins).toContain('app.flux.desktop:/');
   });
 
   it('reads the settings afresh, so an addition is obeyed without a restart', async () => {
