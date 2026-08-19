@@ -30,8 +30,6 @@ const EASE = 0.03;
 
 const PARALLAX = 0.34;
 
-const FILM_SPACING = 10;
-
 /**
  * Writes one light as the CSS gradient that paints it, at the position and colour it was given.
  *
@@ -79,7 +77,7 @@ const MoodBackground = ({
 
   filmRef.current = isShowingFilm;
 
-  const gridProps: DotFieldProps = film === null ? {} : { spacing: FILM_SPACING, frame: film };
+  const gridProps: DotFieldProps = film === null ? {} : { frame: film };
 
   wantedRef.current = lit;
 

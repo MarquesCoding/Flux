@@ -15,9 +15,13 @@ const RESTING = 0.18;
 
 const LIT = 0.42;
 
-const FILM_RESTING = 0.05;
-
 const FILM_LIT = 0.98;
+
+const DOT = 1.2;
+
+const GROWTH = 1.1;
+
+const FILM_GROWTH = 1.8;
 
 const WINDOW = 0.12;
 
@@ -81,7 +85,6 @@ const DotField = ({
     }
 
     const showing = frame !== undefined;
-    const resting = showing ? FILM_RESTING : RESTING;
     const brightest = showing ? FILM_LIT : LIT;
 
     let request = 0;
@@ -189,7 +192,7 @@ const DotField = ({
         }
 
         const lift = showing ? (lifts[index] ?? 0) : rippleAt(index, elapsed);
-        const alpha = (resting + (brightest - resting) * lift) * fade;
+        const alpha = (RESTING + (brightest - RESTING) * lift) * fade;
         const level = Math.min(LEVELS - 1, Math.floor((alpha / brightest) * LEVELS));
 
         buckets[level]?.push(index);
@@ -201,7 +204,7 @@ const DotField = ({
         }
 
         const alpha = ((level + 0.5) / LEVELS) * brightest;
-        const size = showing ? 1 + (level / LEVELS) * spacing * 0.55 : 1.2 + (level / LEVELS) * 1.1;
+        const size = DOT + (level / LEVELS) * (showing ? FILM_GROWTH : GROWTH);
 
         context.globalAlpha = alpha;
         context.fillStyle = ink;
