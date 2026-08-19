@@ -59,8 +59,8 @@ describe('runScanPhases', () => {
       'scan',
       'fetchLogos',
       'regeneratePreviews',
-      'regenerateTrickplay',
       'detectSegments',
+      'regenerateTrickplay',
     ]);
   });
 
@@ -151,5 +151,17 @@ describe('runScanPhases', () => {
     });
 
     expect(ran).toEqual(['scan', 'fetchLogos']);
+  });
+
+  it('finds the intros before it spends a minute a film drawing thumbnails', async () => {
+    const ran: string[] = [];
+
+    await runScanPhases({
+      work: spying(ran),
+      isCancelled: () => false,
+      onScanned: () => Promise.resolve(),
+    });
+
+    expect(ran.indexOf('detectSegments')).toBeLessThan(ran.indexOf('regenerateTrickplay'));
   });
 });

@@ -18,8 +18,8 @@ const PHASES = [
   'scan',
   'fetchLogos',
   'regeneratePreviews',
-  'regenerateTrickplay',
   'detectSegments',
+  'regenerateTrickplay',
 ] as const;
 
 /**
@@ -32,6 +32,11 @@ const PHASES = [
  * Lettering comes before the two render phases because it is metadata rather than a render, it is
  * cheap beside a preview, and a scan is usually being watched — a page shows the right thing sooner
  * for the ordering costing nothing.
+ *
+ * Intros are found before the scrub thumbnails are drawn, because thumbnails are much the longest
+ * phase and an intro is what a viewer meets first. Drawing a feature film's sheets takes a minute
+ * each; putting them last means the skip is offered while they are still being made rather than
+ * after.
  *
  * Cancellation is checked between phases rather than within them, so a cancelled scan stops at the
  * next boundary instead of abandoning a render half-written.
