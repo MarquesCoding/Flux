@@ -1,3 +1,4 @@
+import { wait } from '@FluxCore/functions/wait';
 import { z } from 'zod';
 import { CAST_STORED } from '@FluxContracts/schemas/Person';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
@@ -33,15 +34,6 @@ const BACKOFF_MILLISECONDS = 500;
  * @returns Whether the request is worth repeating.
  */
 const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
-
-/**
- * Waits, for backing off between attempts at a catalogue that has asked to be left alone for a
- * moment.
- *
- * @param milliseconds - How long to wait.
- */
-const wait = (milliseconds: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, milliseconds));
 
 const PersonResponseSchema = z.object({
   id: z.number().int().positive(),
