@@ -224,3 +224,27 @@ describe('two programmes that share a title', () => {
     expect(groupIntoShows(unscanned)).toHaveLength(1);
   });
 });
+
+describe('buildShowDetail', () => {
+  it('answers with nothing for a programme no item belongs to', () => {
+    expect(buildShowDetail([episode()], 'nothing-like-it')).toBeNull();
+  });
+
+  it('answers with nothing where the episodes carry no series title to stand for', () => {
+    const nameless = [episode({ seriesTitle: null, seriesId: 'series-1' })];
+
+    expect(buildShowDetail(nameless, 'series-1')).toBeNull();
+  });
+
+  it('puts a season nobody numbered after the ones somebody did', () => {
+    const items = [
+      episode({ id: identified(1), seasonNumber: null, episodeNumber: 1 }),
+      episode({ id: identified(2), seasonNumber: 2, episodeNumber: 1 }),
+      episode({ id: identified(3), seasonNumber: 1, episodeNumber: 1 }),
+    ];
+
+    const built = buildShowDetail(items, groupIntoShows(items)[0]?.id ?? '');
+
+    expect(built?.seasons.map((one) => one.seasonNumber)).toEqual([1, 2, null]);
+  });
+});

@@ -10,6 +10,8 @@ import {
   regenerateLibraryPreviews,
   correctMatch,
   forgetCorrection,
+  fetchMediaDetail,
+  rebuildArtefacts,
 } from './fetchLibrary';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
@@ -513,5 +515,92 @@ describe('when the server refuses to add or change a library', () => {
     fetchMock.mockResolvedValue({ ok: false, status: 500, json: () => Promise.resolve(null) });
 
     await expect(updateLibrary(library.id, { defaultAudioLanguage: null })).rejects.toThrow('500');
+  });
+});
+
+describe('when a refusal is not even JSON', () => {
+  const unreadable = () => {
+    fetchMock.mockResolvedValue({
+      ok: false,
+      status: 502,
+      json: () => Promise.reject(new Error('not json')),
+    });
+  };
+
+  it('raises the status rather than the parse failure, when adding a library', async () => {
+    unreadable();
+
+    await expect(createLibrary({ name: 'Films', kind: 'movies', path: '/media' })).rejects.toThrow(
+      '502',
+    );
+  });
+
+  it('raises the status rather than the parse failure, when changing one', async () => {
+    unreadable();
+
+    await expect(updateLibrary(library.id, { defaultAudioLanguage: null })).rejects.toThrow('502');
+  });
+
+  it('reports the status when a correction cannot be read', async () => {
+    unreadable();
+
+    await expect(correctMatch(library.id, 'tt0001')).resolves.toEqual({
+      problem: 'The server answered 502.',
+    });
+  });
+
+  it('answers with nothing when a forgotten correction cannot be read', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.reject(new Error('not json')),
+    });
+
+    await expect(forgetCorrection('media-1')).resolves.toBeNull();
+  });
+});
+
+describe('fetchMediaDetail', () => {
+  it('answers with nothing rather than throwing, so it cannot stop playback', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    await expect(fetchMediaDetail('media-1')).resolves.toBeNull();
+  });
+});
+
+describe('rebuildArtefacts', () => {
+  it('reports what there was to throw away', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.resolve({ preview: true, trickplay: false }),
+    });
+
+    await expect(rebuildArtefacts('media-1')).resolves.toEqual({
+      preview: true,
+      trickplay: false,
+    });
+  });
+
+  it('answers with nothing when the server refuses', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve(null) });
+
+    await expect(rebuildArtefacts('media-1')).resolves.toBeNull();
+  });
+
+  it('answers with nothing rather than throwing when the server cannot be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(rebuildArtefacts('media-1')).resolves.toBeNull();
+  });
+
+  it('answers with nothing when the answer is not what it asked for', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () => Promise.reject(new Error('not json')),
+    });
+
+    await expect(rebuildArtefacts('media-1')).resolves.toBeNull();
   });
 });

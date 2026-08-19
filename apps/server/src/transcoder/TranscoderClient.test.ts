@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { readSocketPath, createTranscoderClient } from './TranscoderClient';
 
@@ -466,5 +466,95 @@ describe('reclaiming what nothing addresses any more', () => {
     const { client } = scripted({ body: { nope: true } });
 
     await expect(client.measureCache()).resolves.toBeNull();
+  });
+});
+
+describe('reading a file the media service is still writing', () => {
+  const streaming = (options: {
+    ok?: boolean;
+    status?: number;
+    contentType?: string | null;
+    body?: ReadableStream | null;
+  }) => {
+    const asked: { url: string; init?: { headers?: Record<string, string> } }[] = [];
+
+    const streamFetch = vi.fn((url: string, init?: { headers?: Record<string, string> }) => {
+      asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+      return Promise.resolve({
+        ok: options.ok ?? true,
+        status: options.status ?? 200,
+        headers: {
+          get: (name: string) => (name === 'content-type' ? (options.contentType ?? null) : null),
+        },
+        body: options.body === undefined ? new ReadableStream() : options.body,
+      });
+    });
+
+    vi.stubGlobal('fetch', streamFetch);
+
+    return { asked };
+  };
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  const client = () => createTranscoderClient({ baseUrl: 'http://127.0.0.1:8477' });
+
+  it('asks for only the stretch a player wanted', async () => {
+    const { asked } = streaming({ contentType: 'video/mp4' });
+
+    await client().readFile('/media/Arrival.mkv', 'bytes=0-1023');
+
+    expect(asked[0]?.init?.headers).toMatchObject({ range: 'bytes=0-1023' });
+  });
+
+  it('asks for the whole file where no stretch was named', async () => {
+    const { asked } = streaming({ contentType: 'video/mp4' });
+
+    await client().readFile('/media/Arrival.mkv', null);
+
+    expect(asked[0]?.init?.headers).toBeUndefined();
+  });
+
+  it('carries what the media service said the file is', async () => {
+    streaming({ contentType: 'video/mp4' });
+
+    await expect(client().readFile('/media/Arrival.mkv', null)).resolves.toMatchObject({
+      contentType: 'video/mp4',
+    });
+  });
+
+  it('falls back to a sensible type where the media service named none', async () => {
+    streaming({ contentType: null });
+
+    await expect(client().readFile('/media/Arrival.mkv', null)).resolves.toMatchObject({
+      contentType: 'application/octet-stream',
+    });
+  });
+
+  it('answers with nothing where the media service refused', async () => {
+    streaming({ ok: false, status: 404 });
+
+    await expect(client().readFile('/media/Arrival.mkv', null)).resolves.toBeNull();
+  });
+
+  it('answers with nothing where there is no body to read', async () => {
+    streaming({ body: null });
+
+    await expect(client().readFile('/media/Arrival.mkv', null)).resolves.toBeNull();
+  });
+
+  it('hands back the monitor stream while it is open', async () => {
+    streaming({});
+
+    await expect(client().openMonitorStream()).resolves.not.toBeNull();
+  });
+
+  it('answers with nothing where the monitor stream cannot be opened', async () => {
+    streaming({ ok: false, status: 503 });
+
+    await expect(client().openMonitorStream()).resolves.toBeNull();
   });
 });

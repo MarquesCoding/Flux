@@ -4,6 +4,7 @@ import {
   subtitleTrackUrl,
   defaultTrackId,
   trackForLanguage,
+  previewTrack,
   SUBTITLES_OFF,
 } from './fetchSubtitles';
 import type { SubtitleTrack } from './fetchSubtitles';
@@ -127,5 +128,33 @@ describe('trackForLanguage', () => {
 
   it('answers with nothing for a file that carries no subtitles', () => {
     expect(trackForLanguage([], 'en')).toBeNull();
+  });
+});
+
+describe('previewTrack', () => {
+  it('prefers a track in the language being spoken', () => {
+    const french = track({ id: 'fr', language: 'fr', label: 'French' });
+
+    expect(previewTrack([french, track()], 'en')?.id).toBe('en');
+  });
+
+  it('matches on the language rather than on the region it was written for', () => {
+    const brazilian = track({ id: 'pt-BR', language: 'pt-BR', label: 'Portuguese' });
+
+    expect(previewTrack([track(), brazilian], 'pt-PT')?.id).toBe('pt-BR');
+  });
+
+  it('falls back to the first track rather than showing none', () => {
+    const french = track({ id: 'fr', language: 'fr', label: 'French' });
+
+    expect(previewTrack([french], 'de')?.id).toBe('fr');
+  });
+
+  it('burns nothing in where there are no tracks at all', () => {
+    expect(previewTrack([], 'en')).toBeNull();
+  });
+
+  it('copes with a track that says no language', () => {
+    expect(previewTrack([track({ id: 'unknown', language: null })], 'en')?.id).toBe('unknown');
   });
 });
