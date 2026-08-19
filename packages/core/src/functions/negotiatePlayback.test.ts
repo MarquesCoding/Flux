@@ -401,13 +401,12 @@ describe('negotiatePlayback', () => {
     expect(plan.audio).toMatchObject({ kind: 'transcode', codec: 'aac' });
   });
 
-  it('downmixes to the client channel limit', () => {
+  it('leaves the channels alone where the client can decode the track itself', () => {
     const stereoOnly: DeviceProfile = { ...profile, maxAudioChannels: 2 };
 
     const plan = negotiatePlayback(media, stereoOnly);
 
-    expect(plan.audio).toMatchObject({ kind: 'transcode', channels: 2 });
-    expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
+    expect(plan.audio.kind).toBe('passthrough');
   });
 
   it('passes a surround track through to a client with the channels for it', () => {
@@ -423,7 +422,7 @@ describe('negotiatePlayback', () => {
     expect(plan.audio).toMatchObject({ kind: 'passthrough' });
   });
 
-  it('downmixes that same track for a client that only takes two', () => {
+  it('passes that same track to a client whose output only takes two, which folds it down itself', () => {
     const surround = {
       ...media,
       audioStreams: [
@@ -433,8 +432,35 @@ describe('negotiatePlayback', () => {
 
     const plan = negotiatePlayback(surround, { ...profile, maxAudioChannels: 2 });
 
-    expect(plan.audio).toMatchObject({ kind: 'transcode', channels: 2 });
-    expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
+    expect(plan.audio.kind).toBe('passthrough');
+  });
+
+  it('still encodes to the channels a client has, once something else has forced an encode', () => {
+    const surround = {
+      ...media,
+      audioStreams: [
+        {
+          index: 1,
+          codec: 'truehd',
+          channels: 6,
+          language: 'eng',
+          isDefault: true,
+          isAtmos: false,
+        },
+      ],
+    };
+
+    const noTrueHd: DeviceProfile = {
+      ...profile,
+      maxAudioChannels: 2,
+      directPlayProfiles: [
+        { container: 'mkv', videoCodecs: ['hevc', 'h264'], audioCodecs: ['aac'] },
+      ],
+    };
+
+    const plan = negotiatePlayback(surround, noTrueHd);
+
+    expect(plan.audio).toMatchObject({ kind: 'transcode', codec: 'aac', channels: 2 });
   });
 
   it('passes a picture larger than the screen through, rather than re-encoding it to fit', () => {
