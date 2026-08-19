@@ -539,6 +539,7 @@ mod tests {
     fn capabilities_with(encoder: &str, accel: HardwareAccel) -> Capabilities {
         Capabilities {
             ffmpeg_version: "8.1.2".to_owned(),
+            probe_version: crate::probe::PROBE_VERSION,
             ffmpeg_supported: true,
             encoders: vec![VerifiedEncoder {
                 codec: "h264".to_owned(),

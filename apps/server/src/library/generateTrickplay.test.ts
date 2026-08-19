@@ -44,6 +44,7 @@ const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Trans
   capabilities: () =>
     Promise.resolve({
       ffmpegVersion: 'test',
+      probeVersion: 1,
       ffmpegSupported: true,
       encoders: [],
       hardwareAccels: [],

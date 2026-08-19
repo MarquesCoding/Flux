@@ -85,6 +85,7 @@ const SessionResponseSchema = z.object({
 
 const CapabilitiesSchema = z.object({
   ffmpegVersion: z.string(),
+  probeVersion: z.number().int().nonnegative().default(0),
   ffmpegSupported: z.boolean().default(true),
   encoders: z.array(
     z.object({

@@ -28,6 +28,7 @@ describe('what the transcoder says it can do', () => {
 
   const REPORTED = {
     ffmpegVersion: 'ffmpeg version 9.0',
+    probeVersion: 1,
     encoders: [],
     hardwareAccels: [],
     toneMapping: 'zscale',
@@ -51,6 +52,7 @@ describe('what the transcoder says it can do', () => {
   it('assumes a transcoder that says nothing about tone mapping cannot do it', async () => {
     const capabilities = await answering({
       ffmpegVersion: 'ffmpeg version 9.0',
+      probeVersion: 1,
       encoders: [],
       hardwareAccels: [],
     }).capabilities();
