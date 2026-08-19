@@ -360,6 +360,7 @@ const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
  */
 const runDetectSegments = async (libraryId: string, jobId: string): Promise<void> => {
   const marked = await detectLibrarySegments({
+    owner: jobId,
     libraryId,
     providers: segmentProviders,
     segments: segmentService,

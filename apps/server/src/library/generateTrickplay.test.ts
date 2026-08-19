@@ -338,4 +338,33 @@ describe('generateTrickplay', () => {
     expect(completed).toEqual([]);
     expect(problems.join(' ')).toContain('still being drawn');
   });
+
+  it('says which job asked for the sheets, so the media service can name the scan', async () => {
+    const { store, transcoder, trickplayRequests } = harness([{ path: '/media/a.mkv' }]);
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      owner: 'scan-42',
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    expect(trickplayRequests.every((request) => request.owner === 'scan-42')).toBe(true);
+  });
+
+  it('asks for nobody where no job asked, which is a player fetching its own', async () => {
+    const { store, transcoder, trickplayRequests } = harness([{ path: '/media/a.mkv' }]);
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    expect(trickplayRequests.every((request) => request.owner === undefined)).toBe(true);
+  });
 });

@@ -200,4 +200,20 @@ describe('asking each provider in turn', () => {
 
     expect(given).toBe(onItemDone);
   });
+
+  it('tells a provider which job asked, so its work can be read back to the scan', async () => {
+    const seen: (string | undefined)[] = [];
+    const provider = {
+      name: 'fingerprint',
+      detect: (_group: SegmentCandidate[], _onItemDone?: () => void, owner?: string) => {
+        seen.push(owner);
+
+        return Promise.resolve(new Map<string, MediaSegment[]>());
+      },
+    };
+
+    await resolveSegments([provider], [candidate('a')], undefined, undefined, 'scan-42');
+
+    expect(seen).toEqual(['scan-42']);
+  });
 });

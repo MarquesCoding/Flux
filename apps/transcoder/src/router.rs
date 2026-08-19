@@ -717,12 +717,14 @@ async fn start_preview(
         let cache_root = config.cache_root.clone();
         let found = capabilities.clone();
         let previews = state.previews.clone();
+        let owner = request.owner.clone();
 
         tokio::spawn(async move {
             let _ = queue
                 .run(
                     "preview",
                     &subject,
+                    owner.as_deref(),
                     previews.generate(&ffmpeg, &cache_root, &queued, range, &found, duration),
                 )
                 .await;
@@ -744,6 +746,7 @@ async fn start_preview(
         .run(
             "preview",
             &name_of(&path),
+            request.owner.as_deref(),
             state.previews.generate(
                 &config.ffmpeg,
                 &config.cache_root,
@@ -916,6 +919,42 @@ async fn start_subtitle(
 ///
 /// Answers with the index rather than the images: the player fetches sheets
 /// only for the part of the timeline the viewer actually hovers over.
+/// Draws a set of thumbnails on the queue, for a caller that is not waiting.
+///
+/// The claim is already taken by the caller, and is given up here whatever
+/// becomes of the work — including where the queue drops it before it runs,
+/// which would otherwise leave that film unable to be asked for again.
+fn draw_in_the_background(
+    state: &AppState,
+    request: &TrickplayRequest,
+    path: &Path,
+    source: SheetSource,
+    accel: Option<&'static str>,
+    claimed: String,
+) {
+    let config = state.registry.config();
+    let trickplay = state.trickplay.clone();
+    let queue = state.queue.clone();
+    let ffmpeg = config.ffmpeg.clone();
+    let cache_root = config.cache_root.clone();
+    let queued = request.clone();
+    let owner = request.owner.clone();
+    let subject = name_of(path);
+
+    tokio::spawn(async move {
+        let _ = queue
+            .run(
+                "thumbnails",
+                &subject,
+                owner.as_deref(),
+                trickplay.generate(&ffmpeg, &cache_root, &queued, source, accel),
+            )
+            .await;
+
+        trickplay.give_up(&claimed).await;
+    });
+}
+
 async fn start_trickplay(
     State(state): State<AppState>,
     Json(request): Json<TrickplayRequest>,
@@ -944,6 +983,12 @@ async fn start_trickplay(
         .best_encoder("h264")
         .and_then(|found| found.accel.ffmpeg_flag());
 
+    let source = SheetSource {
+        width: video.width,
+        height: video.height,
+        duration_seconds: probe.duration_seconds,
+    };
+
     if !request.wait {
         let id = request.id();
 
@@ -955,54 +1000,14 @@ async fn start_trickplay(
                 return (StatusCode::ACCEPTED, Json(pending)).into_response();
             }
 
-            let trickplay = state.trickplay.clone();
-            let ffmpeg = config.ffmpeg.clone();
-            let cache_root = config.cache_root.clone();
-            let queued = request.clone();
-            let (width, height, duration) = (video.width, video.height, probe.duration_seconds);
-
-            let queue = state.queue.clone();
-            let subject = name_of(&path);
-            let claimed = id.clone();
-
-            tokio::spawn(async move {
-                let _ = queue
-                    .run(
-                        "thumbnails",
-                        &subject,
-                        trickplay.generate(
-                            &ffmpeg,
-                            &cache_root,
-                            &queued,
-                            SheetSource {
-                                width,
-                                height,
-                                duration_seconds: duration,
-                            },
-                            accel,
-                        ),
-                    )
-                    .await;
-
-                trickplay.give_up(&claimed).await;
-            });
+            draw_in_the_background(&state, &request, &path, source, accel, id);
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
 
         return match state
             .trickplay
-            .generate(
-                &config.ffmpeg,
-                &config.cache_root,
-                &request,
-                SheetSource {
-                    width: video.width,
-                    height: video.height,
-                    duration_seconds: probe.duration_seconds,
-                },
-                accel,
-            )
+            .generate(&config.ffmpeg, &config.cache_root, &request, source, accel)
             .await
         {
             Ok(index) => (StatusCode::OK, Json(index)).into_response(),
@@ -1015,17 +1020,10 @@ async fn start_trickplay(
         .run(
             "thumbnails",
             &name_of(&path),
-            state.trickplay.generate(
-                &config.ffmpeg,
-                &config.cache_root,
-                &request,
-                SheetSource {
-                    width: video.width,
-                    height: video.height,
-                    duration_seconds: probe.duration_seconds,
-                },
-                accel,
-            ),
+            request.owner.as_deref(),
+            state
+                .trickplay
+                .generate(&config.ffmpeg, &config.cache_root, &request, source, accel),
         )
         .await
     {
@@ -1070,6 +1068,7 @@ async fn start_fingerprint(
         .run(
             "fingerprint",
             &name_of(&PathBuf::from(&request.input_path)),
+            request.owner.as_deref(),
             fingerprint(&state.registry.config().ffmpeg, &request),
         )
         .await

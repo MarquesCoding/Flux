@@ -53,6 +53,14 @@ pub struct Job {
     pub finished_at_ms: Option<u64>,
     /// Why it failed, when it did.
     pub detail: Option<String>,
+    /// Which of the server's jobs asked for this, where one did.
+    ///
+    /// The queue is otherwise flat: a job per file per artefact, with nothing
+    /// saying which scan set it going. Reading a run of thumbnails back to the
+    /// rebuild that caused them meant lining timestamps up by eye. A player
+    /// asking for its own thumbnails belongs to nobody, which is why this is
+    /// optional rather than empty.
+    pub owner: Option<String>,
 }
 
 impl Job {
@@ -194,7 +202,13 @@ impl WorkQueue {
     /// Whatever the work itself failed with, unchanged. The failure is written
     /// into the job's history on the way past: the queue observes, it does not
     /// swallow.
-    pub async fn run<T, E, F>(&self, kind: &str, subject: &str, work: F) -> Result<T, E>
+    pub async fn run<T, E, F>(
+        &self,
+        kind: &str,
+        subject: &str,
+        owner: Option<&str>,
+        work: F,
+    ) -> Result<T, E>
     where
         F: Future<Output = Result<T, E>>,
         E: Display,
@@ -210,6 +224,7 @@ impl WorkQueue {
             started_at_ms: None,
             finished_at_ms: None,
             detail: None,
+            owner: owner.map(str::to_owned),
         })
         .await;
 
@@ -280,11 +295,42 @@ mod tests {
     use std::time::Duration;
 
     #[tokio::test]
+    async fn says_which_job_asked_for_a_piece_of_work() {
+        let queue = WorkQueue::new(2);
+
+        let _: Result<u8, String> = queue
+            .run("thumbnails", "film.mkv", Some("scan-42"), async { Ok(1) })
+            .await;
+        let _: Result<u8, String> = queue
+            .run("thumbnails", "other.mkv", None, async { Ok(1) })
+            .await;
+
+        let owners: Vec<Option<String>> = queue
+            .snapshot()
+            .await
+            .jobs
+            .iter()
+            .map(|job| job.owner.clone())
+            .collect();
+
+        assert!(
+            owners.contains(&Some("scan-42".to_owned())),
+            "reading a run of thumbnails back to the scan that caused them otherwise means lining \
+timestamps up by eye"
+        );
+        assert!(
+            owners.contains(&None),
+            "a player asking for its own thumbnails belongs to nobody"
+        );
+    }
+
+    #[tokio::test]
     async fn records_work_that_succeeded() {
         let queue = WorkQueue::new(1);
 
-        let outcome: Result<u8, String> =
-            queue.run("thumbnails", "film.mkv", async { Ok(7) }).await;
+        let outcome: Result<u8, String> = queue
+            .run("thumbnails", "film.mkv", None, async { Ok(7) })
+            .await;
 
         assert_eq!(outcome, Ok(7));
 
@@ -300,7 +346,7 @@ mod tests {
         let queue = WorkQueue::new(1);
 
         let outcome: Result<(), String> = queue
-            .run("thumbnails", "film.mkv", async {
+            .run("thumbnails", "film.mkv", None, async {
                 Err("no such file".to_owned())
             })
             .await;
@@ -321,7 +367,7 @@ mod tests {
 
         let one = tokio::spawn(async move {
             first
-                .run("thumbnails", "a.mkv", async {
+                .run("thumbnails", "a.mkv", None, async {
                     tokio::time::sleep(Duration::from_millis(60)).await;
 
                     Ok::<(), String>(())
@@ -333,7 +379,7 @@ mod tests {
 
         let two = tokio::spawn(async move {
             second
-                .run("thumbnails", "b.mkv", async { Ok::<(), String>(()) })
+                .run("thumbnails", "b.mkv", None, async { Ok::<(), String>(()) })
                 .await
         });
 
@@ -356,7 +402,9 @@ mod tests {
     async fn counts_what_is_waiting_and_what_is_running() {
         let queue = WorkQueue::new(2);
 
-        let outcome: Result<(), String> = queue.run("trickplay", "a.mkv", async { Ok(()) }).await;
+        let outcome: Result<(), String> = queue
+            .run("trickplay", "a.mkv", None, async { Ok(()) })
+            .await;
 
         assert!(outcome.is_ok());
 
@@ -382,6 +430,7 @@ mod tests {
                 .run(
                     "thumbnails",
                     "film.mkv",
+                    None,
                     std::future::pending::<Result<u8, String>>(),
                 )
                 .await;

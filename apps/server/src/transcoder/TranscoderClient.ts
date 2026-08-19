@@ -177,6 +177,7 @@ type FingerprintRequest = {
   inputPath: string;
   startSeconds: number;
   durationSeconds: number;
+  owner?: string;
 };
 type TrickplayIndex = z.infer<typeof TrickplayIndexSchema>;
 
@@ -188,6 +189,7 @@ type TrickplayRequest = {
   columns: number;
   rows: number;
   wait?: boolean;
+  owner?: string;
 };
 type SessionResponse = z.infer<typeof SessionResponseSchema>;
 type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>;
@@ -234,6 +236,7 @@ type Transcoder = {
     generation: number;
     wait?: boolean;
     audioStreamIndex?: number;
+    owner?: string;
   }) => Promise<{ id: string; url: string; isReady: boolean }>;
   readPreviewFile: (
     id: string,
