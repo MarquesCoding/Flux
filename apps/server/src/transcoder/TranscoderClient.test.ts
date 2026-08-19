@@ -213,6 +213,16 @@ const scripted = (
         arrayBuffer: () => Promise.resolve(answer.bytes ?? new ArrayBuffer(8)),
       });
     },
+    streamFetchImpl: (url, init) => {
+      asked.push({ url, ...(init === undefined ? {} : { init }) });
+
+      return Promise.resolve({
+        ok: answer.ok ?? true,
+        status: answer.status ?? 200,
+        headers: { get: (name: string) => answer.headers?.[name] ?? null },
+        body: (answer.ok ?? true) ? new Blob([new Uint8Array(8)]).stream() : null,
+      });
+    },
   });
 
   return { client, asked };
@@ -262,6 +272,14 @@ describe('every question the client asks the media service', () => {
     const file = await client.readSessionFile('session-1', 'segment-0.ts');
 
     expect(file).toMatchObject({ contentType: 'video/mp2t' });
+  });
+
+  it('hands a segment back as it arrives rather than holding the whole of it', async () => {
+    const { client } = scripted({ headers: { 'content-type': 'video/mp2t' } });
+
+    const file = await client.readSessionFile('session-1', 'segment-0.ts');
+
+    expect(file?.body).toBeInstanceOf(ReadableStream);
   });
 
   it('has nothing for a session file the service does not have', async () => {

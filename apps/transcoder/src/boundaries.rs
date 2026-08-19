@@ -15,8 +15,8 @@ use std::path::Path;
 use serde::{Deserialize, Serialize};
 
 use crate::keyframes::{
-    cut_interval, longest_segment, read_keyframes, safe_segment_lengths, segment_lengths, Cut,
-    Keyframes,
+    cut_interval, grouped_lengths, longest_segment, read_keyframes, segment_groups,
+    segment_lengths, Keyframes,
 };
 use crate::monitor::{record, LogLevel};
 use crate::playlist::build_vod_playlist;
@@ -26,6 +26,15 @@ use crate::transcode_plan::{SessionSpec, VideoAction, MANIFEST_NAME};
 /// The segment boundaries, cached beside the segments they describe.
 pub const LENGTHS_NAME: &str = "lengths.json";
 
+/// The shortest segment worth offering a player as a request of its own.
+///
+/// Not the length asked for, which is a different question: a segment of three
+/// and a half seconds where four were wanted is the ordinary result of cutting
+/// on a source's own keyframes and there is nothing wrong with it. This is the
+/// point below which a segment costs a whole round trip for a scrap of film,
+/// and is better sent along with its neighbour.
+const SHORTEST_OFFERED_SEGMENT: f64 = 1.0;
+
 /// What this version of Flux writes into a plan's directory.
 ///
 /// Bumped whenever the segments themselves change shape — a different
@@ -33,7 +42,7 @@ pub const LENGTHS_NAME: &str = "lengths.json";
 /// written by an older Flux describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 5;
+const LAYOUT: u32 = 6;
 
 /// The longest segment a copied stream may produce before copying is refused.
 ///
@@ -51,31 +60,36 @@ const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
 
 /// Whether a source's own keyframes can yield segments a player will take.
 ///
-/// Two ways they cannot. Some are places a decoder cannot start, because the
-/// segment they open carries pictures shown before them that reference the GOP
-/// before that. Passing those over is correct but merges their GOPs into the
-/// segment before, and where they run consecutively that produces segments far
-/// longer than anything can be asked to fetch and append in one piece.
-///
-/// The other way is simply keyframes that are far apart to begin with. This
+/// One way they cannot: keyframes so far apart that the segments between them
+/// are more than anything can be asked to fetch and append in one piece. This
 /// used to answer yes to any source whose cuts were all safe, without looking
 /// at what they produced — so a closed GOP with keyframes a minute apart was
-/// copied into minute-long segments, which is the size the limit exists to
-/// prevent whatever put it there. The length is now checked on both paths.
-/// Found by a fixture whose container declared a duration of ninety-nine days.
+/// copied into minute-long segments. Found by a fixture whose container
+/// declared a duration of ninety-nine days.
+///
+/// It used to refuse a second thing as well: a keyframe carrying pictures shown
+/// before it, which a decoder cannot start at on its own. Those were passed
+/// over, merging their GOPs into the segment before, and where they ran
+/// consecutively the result was segments long enough to fail the length test —
+/// so an open-GOP film was encoded in full rather than copied at all. Measured
+/// on the Bluray remux that rule was written against: 154 such keyframes, and
+/// avoiding them made segments of up to 131.8s.
+///
+/// That refusal was wrong, and the measurements are worth keeping. A segment
+/// only has to be decodable on its own where a decoder starts cold at it, and
+/// in fragmented MP4 it does not: the fragments go into one buffer and the
+/// decoder runs through them, and a seek still has the fragment before to hand.
+/// Both paths were tested against that film with segments deliberately opened on
+/// 15 of those keyframes — sequential play lost no frames, and ten seeks landed
+/// on frames matching a correct decode of the same instant, worst 7.3 through
+/// Chromium and 12.8 through Safari's own HLS, against 70 for unrelated footage.
 ///
 /// Asked by the media service before it starts a session, and by the library
 /// scan through the probe, so that both reach the same answer from the same
-/// rule. See FLUX-125.
+/// rule. See FLUX-125 and FLUX-145.
 #[must_use]
 pub fn can_copy_segments(keyframes: &Keyframes, cut_seconds: f64) -> bool {
-    let lengths = if keyframes.cuts.iter().copied().all(Cut::is_safe) {
-        segment_lengths(keyframes, cut_seconds)
-    } else {
-        safe_segment_lengths(keyframes, cut_seconds)
-    };
-
-    longest_segment(&lengths) <= LONGEST_COPYABLE_SEGMENT
+    longest_segment(&segment_lengths(keyframes, cut_seconds)) <= LONGEST_COPYABLE_SEGMENT
 }
 
 /// Where a plan's segments fall, and what the muxer has to be asked for to
@@ -108,6 +122,15 @@ pub struct Boundaries {
     /// the segments far too long. The lengths then describe an encode, because
     /// that is the only way the film plays.
     pub can_copy: bool,
+    /// How many of the lengths above make up each segment the playlist offers.
+    ///
+    /// One apiece for everything but a copied source whose keyframes crowd
+    /// together, where a few of the muxer's segments are too short to be worth
+    /// a request of their own and are offered together instead. Empty for
+    /// boundaries written before Flux grouped anything, which are read as one
+    /// apiece.
+    #[serde(default)]
+    pub groups: Vec<u32>,
 }
 
 impl Boundaries {
@@ -115,6 +138,38 @@ impl Boundaries {
     #[must_use]
     pub fn is_empty(&self) -> bool {
         self.lengths.is_empty()
+    }
+
+    /// How many of the muxer's segments make up each one the playlist offers.
+    ///
+    /// One apiece for boundaries cached before Flux grouped anything, which
+    /// carry none and describe a playlist that offered every segment alone.
+    ///
+    /// The counts are checked against the segments they claim to cover rather
+    /// than trusted. Comparing how many groups there are against how many
+    /// segments there are is the wrong question and was asked here first: the
+    /// two are equal only when nothing was gathered, so grouping was thrown
+    /// away in exactly the case it had done some work. What has to match is the
+    /// total.
+    #[must_use]
+    pub fn grouping(&self) -> Vec<u32> {
+        let covered: usize = self
+            .groups
+            .iter()
+            .map(|count| usize::try_from(*count).unwrap_or(usize::MAX))
+            .sum();
+
+        if !self.groups.is_empty() && covered == self.lengths.len() {
+            return self.groups.clone();
+        }
+
+        vec![1; self.lengths.len()]
+    }
+
+    /// The length of each segment the playlist offers.
+    #[must_use]
+    pub fn offered_lengths(&self) -> Vec<f64> {
+        grouped_lengths(&self.lengths, &self.grouping())
     }
 
     /// Nothing, for a source that could not be read.
@@ -126,6 +181,7 @@ impl Boundaries {
             cut_seconds: 0.0,
             seeks_forward: false,
             can_copy: true,
+            groups: Vec::new(),
         }
     }
 }
@@ -197,12 +253,17 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
 
     let seeks_forward = seeks_forward(probe.container);
 
-    let equal = |can_copy: bool| Boundaries {
-        layout: LAYOUT,
-        lengths: equal_lengths(probe.duration_seconds, spec.segment_seconds),
-        cut_seconds: wanted,
-        seeks_forward,
-        can_copy,
+    let equal = |can_copy: bool| {
+        let lengths = equal_lengths(probe.duration_seconds, spec.segment_seconds);
+
+        Boundaries {
+            layout: LAYOUT,
+            groups: vec![1; lengths.len()],
+            lengths,
+            cut_seconds: wanted,
+            seeks_forward,
+            can_copy,
+        }
     };
 
     if matches!(spec.video, VideoAction::Encode { .. }) {
@@ -213,41 +274,30 @@ async fn compute_boundaries(ffprobe: &str, spec: &SessionSpec) -> Boundaries {
         Ok(keyframes) => {
             let cut_seconds = cut_interval(&keyframes, wanted);
             let unsafe_cuts = keyframes.cuts.iter().filter(|cut| !cut.is_safe()).count();
+            let lengths = segment_lengths(&keyframes, cut_seconds);
 
-            if unsafe_cuts == 0 {
-                return Boundaries {
-                    layout: LAYOUT,
-                    lengths: segment_lengths(&keyframes, cut_seconds),
-                    cut_seconds,
-                    seeks_forward,
-                    can_copy: true,
-                };
+            if unsafe_cuts > 0 {
+                record(
+                    LogLevel::Info,
+                    "transcode",
+                    &format!(
+                        "{} opens {unsafe_cuts} of its segments on a keyframe with leading \
+pictures, which is copied anyway",
+                        spec.input_path
+                    ),
+                );
             }
 
-            if can_copy_segments(&keyframes, cut_seconds) {
-                return Boundaries {
-                    layout: LAYOUT,
-                    lengths: safe_segment_lengths(&keyframes, cut_seconds),
-                    cut_seconds,
-                    seeks_forward,
-                    can_copy: true,
-                };
+            Boundaries {
+                layout: LAYOUT,
+                groups: segment_groups(&lengths, SHORTEST_OFFERED_SEGMENT),
+                lengths,
+                cut_seconds,
+                seeks_forward,
+                can_copy: true,
             }
-
-            let longest = longest_segment(&safe_segment_lengths(&keyframes, cut_seconds));
-
-            record(
-                LogLevel::Info,
-                "transcode",
-                &format!(
-                    "{} has {unsafe_cuts} keyframes a decoder cannot start at, and avoiding \
-them makes segments up to {longest:.1}s, so it will be encoded rather than copied",
-                    spec.input_path
-                ),
-            );
-
-            equal(false)
         }
+
         Err(failure) => {
             record(
                 LogLevel::Warn,
@@ -319,7 +369,7 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
     let _ = tokio::fs::write(
         directory.join(MANIFEST_NAME),
-        build_vod_playlist(&found.lengths, spec.container),
+        build_vod_playlist(&found.offered_lengths(), spec.container),
     )
     .await;
 
@@ -328,8 +378,47 @@ pub async fn ensure_boundaries(ffprobe: &str, directory: &Path, spec: &SessionSp
 
 #[cfg(test)]
 mod tests {
-    use super::{can_copy_segments, equal_lengths};
+    use super::{can_copy_segments, equal_lengths, Boundaries, LAYOUT};
     use crate::keyframes::{Cut, Keyframes};
+
+    fn grouped(lengths: Vec<f64>, groups: Vec<u32>) -> Boundaries {
+        Boundaries {
+            layout: LAYOUT,
+            lengths,
+            cut_seconds: 0.0747,
+            seeks_forward: false,
+            can_copy: true,
+            groups,
+        }
+    }
+
+    /// The case the first attempt threw away, which was every case that mattered.
+    ///
+    /// Grouping is only ever recorded when it gathered something, so there are
+    /// always fewer groups than segments. Reading it back has to survive that.
+    #[test]
+    fn keeps_a_grouping_that_gathered_something() {
+        let found = grouped(vec![3.5, 0.083, 3.4], vec![1, 2]);
+
+        assert_eq!(found.grouping(), vec![1, 2]);
+        assert_eq!(found.offered_lengths(), vec![3.5, 3.483]);
+    }
+
+    #[test]
+    fn offers_every_segment_alone_where_nothing_was_grouped() {
+        let found = grouped(vec![4.0, 4.0], Vec::new());
+
+        assert_eq!(found.grouping(), vec![1, 1]);
+        assert_eq!(found.offered_lengths(), vec![4.0, 4.0]);
+    }
+
+    /// A grouping that does not add up describes segments that are not there.
+    #[test]
+    fn refuses_a_grouping_that_does_not_cover_the_film() {
+        let found = grouped(vec![4.0, 4.0, 4.0], vec![1, 1]);
+
+        assert_eq!(found.grouping(), vec![1, 1, 1]);
+    }
 
     fn every(seconds: f64, count: u32, duration: f64) -> Keyframes {
         Keyframes {
@@ -359,6 +448,28 @@ mod tests {
     /// This answered yes to any source whose cuts were all safe, without
     /// looking at what they produced, so a closed GOP with keyframes a minute
     /// apart was copied into minute-long segments — the size the limit exists
+    /// An open GOP is no longer a reason to encode a whole film.
+    ///
+    /// A keyframe carrying pictures shown before it cannot be started at cold,
+    /// and every one of these is. It is still copied: in fragmented MP4 the
+    /// fragments go into one buffer and the decoder runs through them, and a
+    /// seek has the fragment before it to hand. Measured on the film this rule
+    /// was written against — sequential play lost no frames with 15 of 24
+    /// segments opened on such a keyframe, and ten seeks onto them landed on
+    /// frames matching a correct decode, through Chromium and through Safari's
+    /// own HLS alike. See FLUX-145.
+    #[test]
+    fn copies_a_source_whose_keyframes_carry_leading_pictures() {
+        let mut open_gop = every(4.0, 15, 60.0);
+
+        for cut in &mut open_gop.cuts {
+            cut.starts_at_seconds = cut.at_seconds - 0.25;
+        }
+
+        assert!(open_gop.cuts.iter().all(|cut| !cut.is_safe()));
+        assert!(can_copy_segments(&open_gop, 4.0));
+    }
+
     /// to prevent, whatever put it there. See FLUX-132.
     #[test]
     fn refuses_a_source_whose_safe_keyframes_are_still_too_far_apart() {

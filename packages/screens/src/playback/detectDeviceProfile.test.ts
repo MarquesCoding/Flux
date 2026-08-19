@@ -193,3 +193,13 @@ describe('detectDeviceProfile', () => {
     });
   });
 });
+
+describe('the ceilings a browser cannot be asked about', () => {
+  it('states no bitrate, rather than inventing one the browser never reported', () => {
+    expect(build(() => true).maxBitrateKbps).toBeUndefined();
+  });
+
+  it('states one where a caller genuinely knows of a limit', () => {
+    expect(build(() => true, { maxBitrateKbps: 6000 }).maxBitrateKbps).toBe(6000);
+  });
+});

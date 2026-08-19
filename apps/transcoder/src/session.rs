@@ -216,6 +216,7 @@ pub struct Session {
     holders: usize,
     /// Where every segment of this film begins and ends.
     lengths: Arc<Vec<f64>>,
+    groups: Arc<Vec<u32>>,
     seeks_forward: bool,
     /// The segment most recently asked for.
     ///
@@ -741,6 +742,7 @@ impl SessionRegistry {
             reached: Arc::new(AtomicU64::new(0)),
             woken: Arc::new(Notify::new()),
             holders: 1,
+            groups: Arc::new(boundaries.grouping()),
             lengths: Arc::new(boundaries.lengths),
             seeks_forward: boundaries.seeks_forward,
             last_wanted: 0,
@@ -827,6 +829,7 @@ impl SessionRegistry {
             segment_seconds: session.spec.segment_seconds,
             container: session.spec.container,
             lengths: Arc::clone(&session.lengths),
+            groups: Arc::clone(&session.groups),
             running_from: session.running_from,
         })
     }
@@ -1039,6 +1042,7 @@ pub struct SegmentView {
     segment_seconds: u32,
     container: SegmentContainer,
     lengths: Arc<Vec<f64>>,
+    groups: Arc<Vec<u32>>,
     running_from: Option<u64>,
 }
 
@@ -1047,6 +1051,21 @@ impl SegmentView {
     #[must_use]
     pub fn segments(&self) -> usize {
         self.lengths.len()
+    }
+
+    /// What the muxer calls its own segment at this index.
+    #[must_use]
+    pub fn segment_name(&self, index: u64) -> String {
+        crate::playlist::segment_name(index_of(index), self.container)
+    }
+
+    /// Which of the muxer's segments the playlist's `offered` one is made of.
+    ///
+    /// Both ends inclusive, and the same number twice where a segment stands
+    /// on its own — which is almost all of them.
+    #[must_use]
+    pub fn span_of(&self, offered: u64) -> Option<(u64, u64)> {
+        crate::keyframes::group_span(&self.groups, usize::try_from(offered).ok()?)
     }
 
     /// Where the live run is, if one is running.

@@ -470,6 +470,23 @@ describe('what a guest may reach', () => {
     expect(response.status).toBe(200);
   });
 
+  it('tells a client never to keep a segment, since the same address can answer differently', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+    const made = await shared(app, cookie);
+    const { jar } = await opened(app, made.token);
+
+    const sessionId = await playing(app, jar);
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(sessionId)}/index.m3u8`,
+      { headers: { cookie: jar, origin: BASE } },
+    );
+
+    expect(response.headers.get('cache-control')).toBe('no-store');
+  });
+
   it('never reaches a session belonging to somebody else’s link', async () => {
     const built = build();
     const { app } = built;

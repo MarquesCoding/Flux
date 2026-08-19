@@ -81,12 +81,16 @@ const anything = (): Transcoder => ({
   capabilities: () => Promise.resolve(CAPABILITIES),
 });
 
-const harness = (defaultAudioLanguage: string | null, encodesVideo = false) => {
+const harness = (
+  defaultAudioLanguage: string | null,
+  encodesVideo = false,
+  played: MediaItem = bilingual,
+) => {
   const media: MediaLookup = {
     findForPlayback: (mediaId) =>
       Promise.resolve(
         mediaId === MEDIA_ID
-          ? { item: bilingual, path: '/media/arrival.mkv', defaultAudioLanguage, generation: 0 }
+          ? { item: played, path: '/media/arrival.mkv', defaultAudioLanguage, generation: 0 }
           : null,
       ),
   };
@@ -175,15 +179,23 @@ describe('createPlaybackService', () => {
   });
 
   it('direct plays when no language is forced', async () => {
-    const { service } = harness(null);
+    const { service } = harness(null, false, { ...bilingual, videoCodec: 'h264' });
 
     const outcome = await service.start(MEDIA_ID, capableProfile, 0);
 
     expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'direct' } } });
   });
 
+  it('sends HEVC through a session, since only a session can mark the tag it needs', async () => {
+    const { service } = harness(null);
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { delivery: { kind: 'hls' } } });
+  });
+
   it('direct plays when the forced language matches the file default', async () => {
-    const { service } = harness('de');
+    const { service } = harness('de', false, { ...bilingual, videoCodec: 'h264' });
 
     const outcome = await service.start(MEDIA_ID, capableProfile, 0);
 

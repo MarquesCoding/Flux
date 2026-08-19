@@ -45,6 +45,8 @@ const profile: DeviceProfile = {
   ],
 };
 
+const unlimited: DeviceProfile = { ...profile, maxBitrateKbps: undefined };
+
 describe('negotiatePlayback', () => {
   it('passes every axis through when the client supports the source', () => {
     const plan = negotiatePlayback(media, profile);
@@ -80,6 +82,74 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.kind).toBe('passthrough');
   });
 
+  it('copies a Dolby Vision source whose base layer is a range the client reads', () => {
+    const profile81 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HDR10' as const,
+    };
+
+    const plan = negotiatePlayback(profile81, profile);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('copies an HDR10+ source to an HDR10 client, which reads the layer underneath it', () => {
+    const plus = { ...media, videoRange: 'HDR10Plus' as const, videoRangeBase: 'HDR10' as const };
+
+    const plan = negotiatePlayback(plus, profile);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('re-encodes a Dolby Vision source with no base layer anything else can read', () => {
+    const profile5 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'DolbyVision' as const,
+    };
+
+    const plan = negotiatePlayback(profile5, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('re-encodes a source read as a range this client still cannot show', () => {
+    const hlgBase = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HLG' as const,
+    };
+
+    const plan = negotiatePlayback(hlgBase, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('re-encodes a Dolby Vision source that predates knowing what is underneath it', () => {
+    const unprobed = { ...media, videoRange: 'DolbyVision' as const };
+
+    const plan = negotiatePlayback(unprobed, profile);
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('VideoRangeNotSupported');
+  });
+
+  it('encodes to the base layer rather than flattening it, where something else forces a transcode', () => {
+    const profile81 = {
+      ...media,
+      videoRange: 'DolbyVision' as const,
+      videoRangeBase: 'HDR10' as const,
+      videoCodec: 'av1',
+    };
+
+    const plan = negotiatePlayback(profile81, profile);
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', range: 'HDR10' });
+  });
+
   it('will not copy a source whose keyframes cannot be cut into playable segments', () => {
     const openGop = { ...media, canCopySegments: false };
 
@@ -113,6 +183,37 @@ describe('negotiatePlayback', () => {
     const plan = negotiatePlayback(eightBit, { ...profile, supportedVideoRanges: ['SDR'] });
 
     expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('sends a heavy source as it is where nothing stated a ceiling to hold it to', () => {
+    const heavy = { ...media, bitrateKbps: 25756 };
+
+    const plan = negotiatePlayback(heavy, unlimited);
+
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('still holds a heavy source to a rung the viewer pinned, ceiling or no ceiling', () => {
+    const heavy = { ...media, bitrateKbps: 25756 };
+
+    const plan = negotiatePlayback(heavy, unlimited, {
+      maxWidth: 3840,
+      maxHeight: 2160,
+      maxVideoBitrateKbps: 8000,
+      maxAudioBitrateKbps: 128,
+    });
+
+    expect(plan.video.kind).toBe('transcode');
+    expect(plan.video.reason.code).toBe('UserForcedTranscode');
+  });
+
+  it('encodes to what the source is worth where nothing capped it', () => {
+    const modest = { ...media, bitrateKbps: 8900, videoCodec: 'av1' as const };
+
+    const plan = negotiatePlayback(modest, { ...unlimited, supportedVideoRanges: ['SDR'] });
+
+    expect(plan.video).toMatchObject({ kind: 'transcode', codec: 'h264' });
+    expect(plan.video.kind === 'transcode' && plan.video.maxBitrateKbps).toBeGreaterThan(8900);
   });
 
   it('preserves a supported HDR range through a bitrate transcode', () => {
@@ -309,12 +410,20 @@ describe('negotiatePlayback', () => {
     expect(plan.audio.reason.code).toBe('AudioChannelsAboveLimit');
   });
 
-  it('transcodes video when the resolution exceeds the client limit', () => {
+  it('passes a picture larger than the screen through, rather than re-encoding it to fit', () => {
     const hd: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
 
     const plan = negotiatePlayback(media, hd);
 
-    expect(plan.video.reason.code).toBe('VideoResolutionAboveLimit');
+    expect(plan.video.kind).toBe('passthrough');
+  });
+
+  it('still refuses a picture the decoder itself cannot take, which is the real limit', () => {
+    const modest: DeviceProfile = { ...profile, maxVideoLevels: { hevc: 120 } };
+
+    const plan = negotiatePlayback({ ...media, videoLevel: 153 }, modest);
+
+    expect(plan.video.reason.code).toBe('VideoLevelNotSupported');
   });
 
   it('passes supported text subtitles through', () => {
@@ -472,12 +581,25 @@ describe('negotiatePlayback', () => {
       expect(plan.video).toMatchObject({ maxWidth: 3840, maxHeight: 2160 });
     });
 
-    it('still sizes the original for the screen, a rung being the deliberate part', () => {
+    it('leaves the original at its own size, a rung being the deliberate part', () => {
       const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
 
       const plan = negotiatePlayback(media, smallScreen, null);
 
-      expect(plan.video).toMatchObject({ maxWidth: 1920, maxHeight: 1080 });
+      expect(plan.video.kind).toBe('passthrough');
+    });
+
+    it('sizes an encode for the screen once a rung has asked for one', () => {
+      const smallScreen: DeviceProfile = { ...profile, maxWidth: 1920, maxHeight: 1080 };
+
+      const plan = negotiatePlayback(media, smallScreen, {
+        maxWidth: 1280,
+        maxHeight: 720,
+        maxVideoBitrateKbps: 3000,
+        maxAudioBitrateKbps: null,
+      });
+
+      expect(plan.video).toMatchObject({ kind: 'transcode', maxWidth: 1280, maxHeight: 720 });
     });
 
     it('leaves audio alone when the clamp does not compress it', () => {

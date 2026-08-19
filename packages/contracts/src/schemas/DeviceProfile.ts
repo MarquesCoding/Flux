@@ -25,7 +25,14 @@ const DeviceProfileSchema = z.object({
   name: z.string().min(1),
   maxWidth: z.number().int().positive(),
   maxHeight: z.number().int().positive(),
-  maxBitrateKbps: z.number().int().positive(),
+  maxBitrateKbps: z
+    .number()
+    .int()
+    .positive()
+    .nullish()
+    .describe(
+      'The most this client can be sent per second, where something actually knows. Absent means unstated, which is the honest answer from a browser \u2014 nothing in it reports the speed of the link it is on, and a number invented on its behalf refuses files it would have played. A viewer who wants a ceiling asks for one by pinning a quality step.',
+    ),
   maxAudioChannels: z.number().int().positive(),
   supportedVideoRanges: z.array(VideoRangeSchema).min(1),
   tenBitVideoCodecs: z

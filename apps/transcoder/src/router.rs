@@ -242,6 +242,75 @@ async fn serve_file(directory: &Path, name: &str, requested: Option<&str>) -> Re
     .await
 }
 
+/// Serves several of the muxer's segments as the one segment a playlist offers.
+///
+/// Fragmented MP4 pieces follow one another as they are, which is what lets a
+/// handful of very short ones be offered as a single segment rather than as a
+/// request each. Sent whole rather than by range: a range over pieces means
+/// nothing to the files underneath, and no player asks for one of a segment it
+/// is about to play from the beginning.
+async fn serve_group(directory: &Path, names: &[String]) -> Response {
+    for name in names {
+        if !is_safe_segment_name(name) {
+            return error(StatusCode::BAD_REQUEST, "Invalid segment name.");
+        }
+    }
+
+    let content_type = names
+        .first()
+        .map_or("application/octet-stream", |name| content_type_for(name));
+
+    let paths: Vec<PathBuf> = names.iter().map(|name| directory.join(name)).collect();
+
+    let mut length = 0_u64;
+
+    for path in &paths {
+        let Ok(metadata) = tokio::fs::metadata(path).await else {
+            return error(StatusCode::NOT_FOUND, "No such segment.");
+        };
+
+        length += metadata.len();
+    }
+
+    let body = Body::from_stream(async_stream::stream! {
+        use tokio::io::AsyncReadExt as _;
+
+        let mut buffer = vec![0_u8; STREAM_CHUNK];
+
+        for path in paths {
+            let mut file = match tokio::fs::File::open(&path).await {
+                Ok(file) => file,
+                Err(problem) => {
+                    yield Err(problem);
+                    break;
+                }
+            };
+
+            loop {
+                match file.read(&mut buffer).await {
+                    Ok(0) => break,
+                    Ok(read) => {
+                        yield Ok::<_, std::io::Error>(
+                            axum::body::Bytes::copy_from_slice(&buffer[..read]),
+                        );
+                    }
+                    Err(problem) => {
+                        yield Err(problem);
+                        break;
+                    }
+                }
+            }
+        }
+    });
+
+    Response::builder()
+        .status(StatusCode::OK)
+        .header(header::CONTENT_TYPE, content_type)
+        .header(header::CONTENT_LENGTH, length)
+        .body(body)
+        .unwrap_or_else(|_| error(StatusCode::INTERNAL_SERVER_ERROR, "Could not send it."))
+}
+
 /// The `Range` header, if the caller sent a readable one.
 fn requested_range(headers: &HeaderMap) -> Option<&str> {
     headers
@@ -537,11 +606,22 @@ async fn session_file(
     };
 
     if let Some(wanted) = segment_number(&name) {
+        let view = state.registry.segment_view(&id).await;
+        let (first, last) = view
+            .as_ref()
+            .and_then(|view| view.span_of(wanted))
+            .unwrap_or((wanted, wanted));
+
         let asked = std::time::Instant::now();
         let is_ready = state
             .registry
-            .await_segment(&id, wanted, SEGMENT_TIMEOUT)
-            .await;
+            .await_segment(&id, first, SEGMENT_TIMEOUT)
+            .await
+            && (last == first
+                || state
+                    .registry
+                    .await_segment(&id, last, SEGMENT_TIMEOUT)
+                    .await);
         let waited = asked.elapsed();
 
         if waited > SLOW_SEGMENT {
@@ -562,9 +642,22 @@ async fn session_file(
             );
         }
 
-        state.registry.reached(&id, &name).await;
+        let names: Vec<String> = match view.as_ref() {
+            Some(view) => (first..=last)
+                .map(|index| view.segment_name(index))
+                .collect(),
+            None => vec![name.clone()],
+        };
 
-        return serve_file(&directory, &name, requested_range(&headers)).await;
+        state
+            .registry
+            .reached(&id, names.first().map_or(name.as_str(), String::as_str))
+            .await;
+
+        return match names.as_slice() {
+            [only] => serve_file(&directory, only, requested_range(&headers)).await,
+            several => serve_group(&directory, several).await,
+        };
     }
 
     serve_file(&directory, &name, requested_range(&headers)).await

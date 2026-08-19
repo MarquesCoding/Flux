@@ -1,4 +1,4 @@
-import type { MediaItem, SubtitleFormat } from '@FluxContracts/schemas/MediaItem';
+import type { MediaItem, SubtitleFormat, VideoRange } from '@FluxContracts/schemas/MediaItem';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
 import type {
   AudioDecision,
@@ -47,16 +47,55 @@ const decideContainer = (media: MediaItem, profile: DeviceProfile): ContainerDec
 };
 
 /**
+ * Which range this file can be delivered in to this client, of the ones it can honestly be read as.
+ *
+ * A file is graded in one range and is sometimes legible as another. Dolby Vision profile 8.1
+ * carries an HDR10 base layer and HDR10+ is HDR10 with per-scene metadata added; in both cases a
+ * player that ignores the extra metadata is not being fooled, it is reading the picture the format
+ * was built to leave for it. Refusing those is how a film that would have played untouched gets
+ * decoded, tone mapped and encoded again on a screen that could have shown the original.
+ *
+ * Profile 5 is the case this exists to keep out. It has no base layer anything else can read, so a
+ * client that cannot decode Dolby Vision is sent something else rather than a green and purple
+ * picture, which is the failure that makes people distrust a server.
+ *
+ * @param media - The file, as the catalogue holds it.
+ * @param profile - What the device says it can play.
+ * @returns The range to send, or nothing where the client can read neither.
+ */
+const rangeFor = (media: MediaItem, profile: DeviceProfile): VideoRange | null => {
+  if (profile.supportedVideoRanges.includes(media.videoRange)) {
+    return media.videoRange;
+  }
+
+  const base = media.videoRangeBase;
+
+  if (base !== null && base !== undefined && profile.supportedVideoRanges.includes(base)) {
+    return base;
+  }
+
+  return null;
+};
+
+/**
  * Decides what to do with the picture: pass it through untouched where the device can play it as it
  * is and it is within any ceiling asked for, or transcode it down to what it can.
  *
- * Bitrate takes the tighter of the two, because that ceiling is about what a network can carry and
- * is not a matter of taste. Resolution does not: a pinned rung wins outright, even above the size
- * of the screen. `profile.maxWidth` is the display's own size, which is a sensible default and a
- * poor veto — 4K into a 1440p panel is downsampled by the display and looks better for it, which is
- * why every streaming service offers the choice rather than hiding it. What the device genuinely
- * cannot decode is enforced elsewhere, through codec support and level limits, so nothing here is
- * holding back a picture the hardware would choke on.
+ * Bitrate takes the tighter of whatever ceilings exist, because that one is about what a network
+ * can carry rather than a matter of taste — but a browser cannot state it and Flux stopped
+ * inventing it on the browser's behalf, so in practice the only ceiling is a rung somebody pinned.
+ * Resolution is not a ceiling at all, for the same reason and more plainly: only a rung somebody
+ * pinned can force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible
+ * thing to encode towards once something else has decided to encode, and a poor reason to decide
+ * it — 4K into a 1440p panel is downsampled by the display and looks better for it than anything
+ * re-encoded to fit would, which is why every streaming service offers the choice rather than
+ * hiding it.
+ *
+ * It used to be a veto, and this comment argued against it while the code below did it anyway: a 4K
+ * film was decoded, scaled and re-encoded so that a panel which cannot show 4K could be sent
+ * something slightly smaller than 4K. What the device genuinely cannot decode is enforced
+ * elsewhere, through codec support and level limits — a level is a real statement about a decoder,
+ * where a panel size is a statement about a piece of glass.
  *
  * Which leaves "original" meaning what a viewer would expect it to: as the file is, sized for the
  * screen in front of them. Asking for a rung is asking for something else on purpose.
@@ -75,10 +114,12 @@ const decideVideo = (
   const targetCodec = fallback === undefined ? 'h264' : fallback.videoCodec;
   const clamp = qualityClamp ?? null;
 
+  const stated = profile.maxBitrateKbps ?? null;
+
   const maxBitrateKbps =
     clamp === null
-      ? profile.maxBitrateKbps
-      : Math.min(profile.maxBitrateKbps, clamp.maxVideoBitrateKbps);
+      ? stated
+      : Math.min(stated ?? clamp.maxVideoBitrateKbps, clamp.maxVideoBitrateKbps);
   const maxWidth = clamp === null ? profile.maxWidth : clamp.maxWidth;
   const maxHeight = clamp === null ? profile.maxHeight : clamp.maxHeight;
 
@@ -101,7 +142,7 @@ const decideVideo = (
   ): VideoDecision => ({
     kind: 'transcode',
     codec: targetCodec,
-    range: profile.supportedVideoRanges.includes(media.videoRange) ? media.videoRange : 'SDR',
+    range: rangeFor(media, profile) ?? 'SDR',
     maxBitrateKbps: encodeBitrateFor({
       sourceBitrateKbps: media.bitrateKbps,
       sourceCodec: media.videoCodec,
@@ -213,15 +254,16 @@ const decideVideo = (
     );
   }
 
-  if (!profile.supportedVideoRanges.includes(media.videoRange)) {
+  if (rangeFor(media, profile) === null) {
     return transcodeTo(
       'VideoRangeNotSupported',
       `Client does not support the ${media.videoRange} video range`,
     );
   }
 
-  if (media.bitrateKbps > maxBitrateKbps) {
-    const forcedByQuality = clamp !== null && clamp.maxVideoBitrateKbps < profile.maxBitrateKbps;
+  if (maxBitrateKbps !== null && media.bitrateKbps > maxBitrateKbps) {
+    const forcedByQuality =
+      clamp !== null && (stated === null || clamp.maxVideoBitrateKbps < stated);
 
     return forcedByQuality
       ? transcodeTo(
@@ -234,19 +276,11 @@ const decideVideo = (
         );
   }
 
-  if (media.width > maxWidth || media.height > maxHeight) {
-    const forcedByQuality =
-      clamp !== null && (clamp.maxWidth < profile.maxWidth || clamp.maxHeight < profile.maxHeight);
-
-    return forcedByQuality
-      ? transcodeTo(
-          'UserForcedTranscode',
-          `Quality step limits resolution to ${maxWidth.toString()}x${maxHeight.toString()}`,
-        )
-      : transcodeTo(
-          'VideoResolutionAboveLimit',
-          `Source resolution ${media.width.toString()}x${media.height.toString()} exceeds the client limit`,
-        );
+  if (clamp !== null && (media.width > clamp.maxWidth || media.height > clamp.maxHeight)) {
+    return transcodeTo(
+      'UserForcedTranscode',
+      `Quality step limits resolution to ${clamp.maxWidth.toString()}x${clamp.maxHeight.toString()}`,
+    );
   }
 
   return {

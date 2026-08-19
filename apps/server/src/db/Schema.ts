@@ -420,6 +420,7 @@ const mediaItem = pgTable(
     bitrateKbps: integer('bitrateKbps'),
     videoCodec: text('videoCodec').notNull(),
     videoRange: text('videoRange').notNull(),
+    videoRangeBase: text('videoRangeBase'),
     videoBitDepth: integer('videoBitDepth'),
     canCopySegments: boolean('canCopySegments'),
     videoLevel: integer('videoLevel'),

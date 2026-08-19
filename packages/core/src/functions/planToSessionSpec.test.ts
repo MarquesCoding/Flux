@@ -78,6 +78,36 @@ describe('planToSessionSpec', () => {
     });
   });
 
+  it('says what the copied stream is, so the media service can mark it', () => {
+    const outcome = planToSessionSpec({
+      plan: directPlay,
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      sourceVideoCodec: 'hevc',
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+      container: 'fmp4',
+    });
+
+    expect(outcome).toMatchObject({ kind: 'ok', spec: { sourceVideoCodec: 'hevc' } });
+  });
+
+  it('says nothing about a stream it is encoding rather than copying', () => {
+    const outcome = planToSessionSpec({
+      plan: { ...directPlay, video: transcodeVideo },
+      inputPath: '/media/film.mkv',
+      sourceRange: 'SDR',
+      sourceVideoCodec: 'hevc',
+      capabilities,
+      startSeconds: 0,
+      segmentSeconds: 4,
+      container: 'fmp4',
+    });
+
+    expect(outcome.kind === 'ok' ? outcome.spec.sourceVideoCodec : 'missing').toBeUndefined();
+  });
+
   it('does not ask for hardware when nothing is being encoded', () => {
     const outcome = build({ ...directPlay, container: { kind: 'remux', target: 'mp4', reason } });
 

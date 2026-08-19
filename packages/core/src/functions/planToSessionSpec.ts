@@ -45,6 +45,7 @@ type SessionSpec = {
       };
   sourceSize?: [number, number];
   container: SegmentContainer;
+  sourceVideoCodec?: string;
 };
 
 type PlanToSessionSpecOptions = {
@@ -60,6 +61,7 @@ type PlanToSessionSpecOptions = {
   segmentSeconds: number;
   audioStreamIndex?: number;
   container: SegmentContainer;
+  sourceVideoCodec?: string;
 };
 
 type SpecOutcome =
@@ -169,6 +171,7 @@ const planToSessionSpec = ({
   imageSubtitleIndexes = [],
   subtitleIndexes = [],
   container,
+  sourceVideoCodec,
 }: PlanToSessionSpecOptions): SpecOutcome => {
   const isImageBased =
     plan.subtitles.kind === 'burnIn' && imageSubtitleIndexes.includes(plan.subtitles.streamIndex);
@@ -209,6 +212,7 @@ const planToSessionSpec = ({
         container,
         subtitles,
         ...(sourceSize === undefined ? {} : { sourceSize }),
+        ...(sourceVideoCodec === undefined ? {} : { sourceVideoCodec }),
         ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
         video: { kind: 'copy' },
         audio:

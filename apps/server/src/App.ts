@@ -259,6 +259,19 @@ const forwardedFileHeaders = (
   return headers;
 };
 
+/**
+ * Tells a client never to keep a session's segments.
+ *
+ * A session is named by a hash of what was asked for, and that hash says nothing about how the
+ * segments were muxed. Change the muxer and the same address answers with different bytes — which
+ * is not a theory: it happened during FLUX-145, where a browser went on playing segments produced
+ * before a fix because it had them already. Sessions are short-lived and their segments are read
+ * once, so there is nothing to gain by keeping them and a stale film to lose.
+ *
+ * @returns The header that stops it being stored at all.
+ */
+const neverKeep = (): Record<string, string> => ({ 'cache-control': 'no-store' });
+
 const SignInBodySchema = z.object({ password: z.string().min(1) });
 
 const SERVER_VERSION = '0.0.0';
@@ -860,7 +873,7 @@ const createApp = ({
       return context.json({ error: 'No such session or segment.' }, 404);
     }
 
-    return context.body(file.body, 200, { 'content-type': file.contentType });
+    return context.body(file.body, 200, forwardedFileHeaders(file, neverKeep()));
   });
 
   app.openapi(directFileRoute, async (context) => {

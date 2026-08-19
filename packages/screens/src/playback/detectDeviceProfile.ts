@@ -64,8 +64,6 @@ const HEVC_LEVEL_PROBES = [
   { level: 90, mimeType: 'video/mp4; codecs="hvc1.1.6.L90.B0"' },
 ] as const;
 
-const DEFAULT_MAX_BITRATE_KBPS = 20_000;
-
 /**
  * The highest codec level this browser admits to decoding, by asking about each in turn.
  *
@@ -114,8 +112,14 @@ const unsupportedAudioProfilesFor = (
  * deinterlacer, so a browser decodes an interlaced stream and then shows the combing, and there is
  * no MIME type that asks the question.
  *
- * Frame rate, reference frames and audio sample rate are deliberately left unstated. None can be
- * asked of a browser, and a guessed ceiling costs a needless transcode on every file above it.
+ * Frame rate, reference frames, audio sample rate and bitrate are deliberately left unstated. None
+ * can be asked of a browser, and a guessed ceiling costs a needless transcode on every file above
+ * it.
+ *
+ * Bitrate was guessed anyway, at twenty megabits, and then reported back as “the client limit” in
+ * the reason a film had been re-encoded — a figure Flux invented and attributed to a browser that
+ * never said it. A viewer who wants less than the file pins a quality step, which is a ceiling
+ * somebody actually chose.
  *
  * @param capabilities - What the browser reported it can decode.
  * @returns The profile to send with a session request.
@@ -126,7 +130,7 @@ const detectDeviceProfile = ({
   screenWidth,
   screenHeight,
   name,
-  maxBitrateKbps = DEFAULT_MAX_BITRATE_KBPS,
+  maxBitrateKbps,
 }: DetectDeviceProfileOptions): DeviceProfile => {
   const videoCodecs = VIDEO_PROBES.filter((probe) => isTypeSupported(probe.mimeType)).map(
     (probe) => probe.codec,
@@ -151,7 +155,7 @@ const detectDeviceProfile = ({
     name,
     maxWidth: Math.max(screenWidth, 640),
     maxHeight: Math.max(screenHeight, 480),
-    maxBitrateKbps,
+    ...(maxBitrateKbps === undefined ? {} : { maxBitrateKbps }),
     maxAudioChannels: 2,
     supportedVideoRanges: supportsHdr ? ['SDR', 'HDR10', 'HLG'] : ['SDR'],
     tenBitVideoCodecs,
