@@ -2,6 +2,8 @@ import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { DotField } from '@FluxUI/DotField';
 import { blendLights } from '@FluxUI/blendLights';
+import { cn } from '@FluxUI/cn';
+import type { DotFieldProps } from '@FluxUI/DotField.types';
 import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types';
 
 const BLOOMS = [
@@ -46,14 +48,20 @@ const paint = (light: MoodLight, at: number): string => {
  * is lit by that film. The lights drift slowly rather than holding still, and can carry a grid over
  * them for the pages that want structure behind the artwork.
  *
+ * Given a film it hands it to the grid it already draws, which stops rippling and shows the film
+ * instead. It is the same field of dots either way — that is the whole joke, and it only works
+ * because they were a display all along.
+ *
  * @param lights - The colours and where they sit.
  * @param hasGrid - Whether to lay a grid over them.
  * @param isDrifting - Whether the lights move, or hold where they are.
+ * @param film - A film for the grid to play, if there is one.
  */
 const MoodBackground = ({
   lights = [],
   hasGrid = false,
   isDrifting = false,
+  film = null,
 }: MoodBackgroundProps) => {
   const prefersReducedMotion = useReducedMotion();
   const given = lights.filter((light) => light.color !== '');
@@ -64,6 +72,12 @@ const MoodBackground = ({
   const paintedRef = useRef<string[]>([]);
   const driftingRef = useRef<HTMLDivElement | null>(null);
   const shiftedRef = useRef(-1);
+  const isShowingFilm = film !== null;
+  const filmRef = useRef(isShowingFilm);
+
+  filmRef.current = isShowingFilm;
+
+  const gridProps: DotFieldProps = film === null ? {} : { frame: film };
 
   wantedRef.current = lit;
 
@@ -82,7 +96,7 @@ const MoodBackground = ({
           ? wanted
           : blendLights(heldRef.current, wanted, EASE);
 
-      const shift = Math.round(window.scrollY * PARALLAX);
+      const shift = filmRef.current ? 0 : Math.round(window.scrollY * PARALLAX);
       const drifting = driftingRef.current;
 
       if (drifting !== null && shiftedRef.current !== shift) {
@@ -113,7 +127,10 @@ const MoodBackground = ({
   return (
     <div
       role="presentation"
-      className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden"
+      className={cn(
+        'pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden',
+        isShowingFilm && 'fixed inset-0 h-screen',
+      )}
     >
       <div ref={driftingRef} className="absolute inset-0 will-change-transform">
         {lit.slice(0, BLOOMS.length).map((light, at) => (
@@ -134,7 +151,7 @@ const MoodBackground = ({
           />
         ))}
 
-        {hasGrid ? <DotField /> : null}
+        {hasGrid || isShowingFilm ? <DotField {...gridProps} /> : null}
       </div>
 
       <span className="flux-mood-fade" />

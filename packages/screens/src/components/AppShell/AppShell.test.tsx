@@ -1,7 +1,17 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
+
+vi.mock('@FluxUI/badAppleFilm', () => ({
+  loadBadAppleFilm: async () =>
+    Promise.resolve({
+      seconds: 60,
+      lift: (lifts: Float32Array) => {
+        lifts.fill(1);
+      },
+    }),
+}));
 import type { AppShellProps } from './AppShell.types';
 
 const draw = (overrides: Partial<AppShellProps> = {}) => {
@@ -16,6 +26,37 @@ const draw = (overrides: Partial<AppShellProps> = {}) => {
 
   return { props, view };
 };
+
+const KONAMI = [
+  'ArrowUp',
+  'ArrowUp',
+  'ArrowDown',
+  'ArrowDown',
+  'ArrowLeft',
+  'ArrowRight',
+  'ArrowLeft',
+  'ArrowRight',
+  'b',
+  'a',
+];
+
+/**
+ * Enters the Konami code, at the page or at whatever else is given.
+ *
+ * @param target - What to press the keys at.
+ */
+const enterTheCode = (target: EventTarget = window) => {
+  for (const key of KONAMI) {
+    target.dispatchEvent(new KeyboardEvent('keydown', { key, bubbles: true }));
+  }
+};
+
+const filmOf = (container: HTMLElement): HTMLElement | null =>
+  container.querySelector('[role="presentation"].fixed');
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('AppShell', () => {
   it('draws what it was given', () => {
@@ -129,5 +170,135 @@ describe('AppShell', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(AppShell.displayName).toBe('AppShell');
+  });
+
+  it('plays a film on the background dots for anybody who knows the code', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+  });
+
+  it('leaves somebody searching for it alone, however they spell what they searched for', () => {
+    const { view } = draw();
+    const field = document.createElement('input');
+
+    document.body.append(field);
+    enterTheCode(field);
+
+    expect(filmOf(view.container)).not.toBeInTheDocument();
+
+    field.remove();
+  });
+
+  it('keeps the code to the home page, since that is the only page with dots to play it on', () => {
+    const { view } = draw({ section: 'search' });
+
+    enterTheCode();
+
+    expect(filmOf(view.container)).not.toBeInTheDocument();
+  });
+
+  it('does not play it at all for somebody who asked for less motion', () => {
+    vi.stubGlobal(
+      'matchMedia',
+      vi.fn().mockImplementation((media: string) => ({
+        media,
+        matches: media.includes('reduce'),
+        onchange: null,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+        addListener: vi.fn(),
+        removeListener: vi.fn(),
+        dispatchEvent: vi.fn(),
+      })),
+    );
+
+    const { view } = draw();
+
+    enterTheCode();
+
+    expect(filmOf(view.container)).not.toBeInTheDocument();
+  });
+
+  it('stops it rather than carrying it into wherever the viewer goes next', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    view.rerender(
+      <AppShell section="search" onSectionChange={vi.fn()}>
+        <p>The library</p>
+      </AppShell>,
+    );
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).not.toBeInTheDocument();
+    });
+  });
+
+  it('ends the film on Escape', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+    });
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).not.toBeInTheDocument();
+    });
+  });
+
+  it('offers a way out on screen, for a phone that has no Escape to press', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    const stop = screen.getByRole('button', { name: 'Stop the film' });
+
+    await userEvent.click(stop);
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).not.toBeInTheDocument();
+    });
+  });
+
+  it('keeps that way out to itself until there is something to get out of', () => {
+    draw();
+
+    expect(screen.queryByRole('button', { name: 'Stop the film' })).not.toBeInTheDocument();
+  });
+
+  it('sits through a key that is not Escape rather than cutting the film short', async () => {
+    const { view } = draw();
+
+    enterTheCode();
+
+    await waitFor(() => {
+      expect(filmOf(view.container)).toBeInTheDocument();
+    });
+
+    act(() => {
+      window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
+    });
+
+    expect(filmOf(view.container)).toBeInTheDocument();
   });
 });
