@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "tauri dev",
+    "dev:vite": "vite",
     "build": "tsc --build && vite build",
     "tauri": "tauri",
     "test": "NODE_OPTIONS=--no-experimental-webstorage vitest run",

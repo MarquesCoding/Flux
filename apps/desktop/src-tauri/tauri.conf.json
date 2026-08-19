@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "identifier": "app.flux.desktop",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm dev:vite",
     "devUrl": "http://localhost:5174",
     "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist"
