@@ -28,10 +28,11 @@ const useDotFilm = (isPlaying: boolean, onEnd: () => void): DotFieldFrame | null
 
     let wanted = true;
 
-    void import('@FluxUI/silhouetteFilm')
+    void import('@FluxUI/badAppleFilm')
+      .then(async (loaded) => loaded.loadBadAppleFilm())
       .then((loaded) => {
         if (wanted) {
-          setFilm(loaded.silhouetteFilm);
+          setFilm(loaded);
         }
       })
       .catch(() => {

@@ -2,6 +2,16 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
+
+vi.mock('@FluxUI/badAppleFilm', () => ({
+  loadBadAppleFilm: async () =>
+    Promise.resolve({
+      seconds: 60,
+      lift: (lifts: Float32Array) => {
+        lifts.fill(1);
+      },
+    }),
+}));
 import type { AppShellProps } from './AppShell.types';
 
 const draw = (overrides: Partial<AppShellProps> = {}) => {

@@ -1,7 +1,18 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { silhouetteFilm } from '@FluxUI/silhouetteFilm';
 import { useDotFilm } from './useDotFilm';
+
+const SECONDS = 12;
+
+vi.mock('@FluxUI/badAppleFilm', () => ({
+  loadBadAppleFilm: async () =>
+    Promise.resolve({
+      seconds: SECONDS,
+      lift: (lifts: Float32Array) => {
+        lifts.fill(1);
+      },
+    }),
+}));
 import type { DotFieldFrame } from '@FluxUI/DotField.types';
 
 /**
@@ -87,7 +98,7 @@ describe('useDotFilm', () => {
     expect(onEnd).not.toHaveBeenCalled();
 
     act(() => {
-      vi.advanceTimersByTime((silhouetteFilm.seconds + 1) * 1000);
+      vi.advanceTimersByTime((SECONDS + 1) * 1000);
     });
 
     expect(onEnd).toHaveBeenCalledTimes(1);
