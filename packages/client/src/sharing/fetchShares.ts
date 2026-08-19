@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import {
@@ -56,7 +57,7 @@ const fetchEverybodysShares = async (): Promise<AdminShare[]> => {
  * @returns The link, or null where the server refused.
  */
 const createShare = async (asked: NewShare): Promise<CreatedShare | null> => {
-  const response = await fetch('/api/shares', {
+  const response = await fetch(serverUrl('/api/shares'), {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -82,7 +83,7 @@ const createShare = async (asked: NewShare): Promise<CreatedShare | null> => {
  * @returns Whether it was withdrawn.
  */
 const revokeShare = async (shareId: string): Promise<boolean> => {
-  const response = await fetch(`/api/shares/${shareId}`, {
+  const response = await fetch(serverUrl(`/api/shares/${shareId}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -98,7 +99,7 @@ const revokeShare = async (shareId: string): Promise<boolean> => {
  * @returns Whether it was withdrawn.
  */
 const revokeAnybodysShare = async (shareId: string): Promise<boolean> => {
-  const response = await fetch(`/api/admin/shares/${shareId}`, {
+  const response = await fetch(serverUrl(`/api/admin/shares/${shareId}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -116,7 +117,7 @@ const revokeAnybodysShare = async (shareId: string): Promise<boolean> => {
  */
 const openShare = async (token: string): Promise<ShareOutcome> => {
   try {
-    const response = await fetch(`/api/share/${encodeURIComponent(token)}`, {
+    const response = await fetch(serverUrl(`/api/share/${encodeURIComponent(token)}`), {
       credentials: 'same-origin',
       headers: { accept: 'application/json' },
     });

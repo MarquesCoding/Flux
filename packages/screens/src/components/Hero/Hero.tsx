@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { ArrowDown01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -27,7 +28,7 @@ const PREVIEW_SETTLE_MILLISECONDS = 2500;
  * @param mediaId - The item.
  * @returns The address to load.
  */
-const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
+const artworkUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/image/backdrop`);
 
 /**
  * Builds the address a title's logo is served from — the title as its designer set it, which the
@@ -36,7 +37,7 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
  * @param mediaId - The item.
  * @returns The address to load.
  */
-const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
+const logoUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/image/logo`);
 
 const SYNOPSIS_MILLISECONDS = 8000;
 

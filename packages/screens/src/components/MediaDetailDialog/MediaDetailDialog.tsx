@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import {
   ArrowLeft01Icon,
@@ -43,7 +44,7 @@ const CAST_PLACEHOLDERS = 5;
  * @returns The address to load.
  */
 const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
-  `/api/media/${mediaId}/image/${kind}`;
+  serverUrl(`/api/media/${mediaId}/image/${kind}`);
 
 /**
  * Everything known about one item, for deciding whether to watch it: what it is about, who is in it,
@@ -207,7 +208,7 @@ const MediaDetailDialog = ({
                 <motion.img
                   variants={revealVariants(prefersReducedMotion)}
                   transition={revealTransition(prefersReducedMotion)}
-                  src={`/api/media/${shown.id}/image/logo`}
+                  src={serverUrl(`/api/media/${shown.id}/image/logo`)}
                   alt=""
                   className="max-h-[7svh] w-auto max-w-[min(55vw,15rem)] object-contain object-left"
                   onError={() => {

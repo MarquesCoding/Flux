@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
 import { z } from 'zod';
 import { LibrarySchema, MediaPageSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
@@ -49,7 +50,9 @@ type UpdateLibraryInput = {
  * Reads every library on this server, with where each reads from and when it was last scanned.
  */
 const fetchLibraries = async (): Promise<Library[]> => {
-  const response = await fetch('/api/libraries', { headers: { accept: 'application/json' } });
+  const response = await fetch(serverUrl('/api/libraries'), {
+    headers: { accept: 'application/json' },
+  });
 
   if (!response.ok) {
     throw new Error(`Libraries request failed with status ${response.status.toString()}`);
@@ -66,7 +69,7 @@ const fetchLibraries = async (): Promise<Library[]> => {
  * @returns The library as created.
  */
 const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
-  const response = await fetch('/api/libraries', {
+  const response = await fetch(serverUrl('/api/libraries'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -93,7 +96,7 @@ const createLibrary = async (input: CreateLibraryInput): Promise<Library> => {
  * @returns The library as it now stands.
  */
 const updateLibrary = async (libraryId: string, input: UpdateLibraryInput): Promise<Library> => {
-  const response = await fetch(`/api/libraries/${libraryId}`, {
+  const response = await fetch(serverUrl(`/api/libraries/${libraryId}`), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(input),
@@ -175,7 +178,7 @@ const fetchLibraryItems = async (
     query.set('minYourStars', String(minYourStars));
   }
 
-  const response = await fetch(`/api/libraries/${libraryId}/items?${query.toString()}`, {
+  const response = await fetch(serverUrl(`/api/libraries/${libraryId}/items?${query.toString()}`), {
     headers: { accept: 'application/json' },
   });
 
@@ -220,7 +223,7 @@ const correctMatch = async (
   reference: string,
   kind?: 'tv' | 'movie',
 ): Promise<Correction | { problem: string }> => {
-  const response = await fetch(`/api/media/${mediaId}/match`, {
+  const response = await fetch(serverUrl(`/api/media/${mediaId}/match`), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     credentials: 'same-origin',
@@ -252,7 +255,7 @@ const correctMatch = async (
  * @returns How many files it reached, or null where the server refused.
  */
 const forgetCorrection = async (mediaId: string): Promise<Correction | null> => {
-  const response = await fetch(`/api/media/${mediaId}/match`, {
+  const response = await fetch(serverUrl(`/api/media/${mediaId}/match`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -279,7 +282,7 @@ type RebuiltArtefacts = z.infer<typeof RebuiltArtefactsSchema>;
  * @returns What there was to throw away, or null where the server refused.
  */
 const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | null> => {
-  const response = await fetch(`/api/media/${mediaId}/artefacts/rebuild`, {
+  const response = await fetch(serverUrl(`/api/media/${mediaId}/artefacts/rebuild`), {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -304,7 +307,9 @@ const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | nul
  */
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
-  const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });
+  const response = await fetch(serverUrl(`/api/libraries/${libraryId}/scan${query}`), {
+    method: 'POST',
+  });
 
   if (!response.ok) {
     return null;
@@ -322,7 +327,7 @@ const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | 
  * @returns Its state, and how far it has got where it has said.
  */
 const readScanState = async (jobId: string): Promise<ScanProgress> => {
-  const response = await fetch(`/api/libraries/scans/${jobId}`, {
+  const response = await fetch(serverUrl(`/api/libraries/scans/${jobId}`), {
     headers: { accept: 'application/json' },
   });
 
@@ -342,7 +347,7 @@ const readScanState = async (jobId: string): Promise<ScanProgress> => {
  * @returns The scan to watch, or null where the server refused.
  */
 const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
-  const response = await fetch(`/api/libraries/${libraryId}/reset`, { method: 'POST' });
+  const response = await fetch(serverUrl(`/api/libraries/${libraryId}/reset`), { method: 'POST' });
 
   if (!response.ok) {
     return null;
@@ -359,7 +364,7 @@ const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
  * @returns The job to watch, or null where the server refused.
  */
 const regenerateLibraryPreviews = async (libraryId: string): Promise<ScanJob | null> => {
-  const response = await fetch(`/api/libraries/${libraryId}/regenerate-previews`, {
+  const response = await fetch(serverUrl(`/api/libraries/${libraryId}/regenerate-previews`), {
     method: 'POST',
   });
 

@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 
@@ -30,7 +31,7 @@ const fetchDevices = async (): Promise<Device[]> => {
  * @param deviceId - The session to end.
  */
 const endDevice = async (deviceId: string): Promise<boolean> => {
-  const response = await fetch(`/api/account/devices/${deviceId}`, {
+  const response = await fetch(serverUrl(`/api/account/devices/${deviceId}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -44,7 +45,7 @@ const endDevice = async (deviceId: string): Promise<boolean> => {
  * of the page they are securing their account on.
  */
 const endOtherDevices = async (): Promise<boolean> => {
-  const response = await fetch('/api/account/devices/end-others', {
+  const response = await fetch(serverUrl('/api/account/devices/end-others'), {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);

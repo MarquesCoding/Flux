@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
 import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
@@ -22,7 +23,7 @@ const createProfile = async (
   colour: ProfileColour,
   avatar?: Avatar,
 ): Promise<boolean> => {
-  const response = await fetch('/api/profiles', {
+  const response = await fetch(serverUrl('/api/profiles'), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify(avatar === undefined ? { name, colour } : { name, colour, avatar }),
@@ -48,7 +49,7 @@ const saveProfile = async (
   avatar?: Avatar,
   askStillWatchingAfter?: number,
 ): Promise<boolean> => {
-  const response = await fetch(`/api/profiles/${profileId}`, {
+  const response = await fetch(serverUrl(`/api/profiles/${profileId}`), {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -70,7 +71,7 @@ const saveProfile = async (
  * @returns The profile as it now stands, or why it was refused.
  */
 const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolean> => {
-  const response = await fetch(`/api/profiles/${profileId}/photo`, {
+  const response = await fetch(serverUrl(`/api/profiles/${profileId}/photo`), {
     method: 'PUT',
     headers: { 'content-type': file.type },
     body: file,
@@ -86,7 +87,7 @@ const uploadProfilePhoto = async (profileId: string, file: File): Promise<boolea
  * @param profileId - The profile to remove.
  */
 const removeProfile = async (profileId: string): Promise<boolean> => {
-  const response = await fetch(`/api/profiles/${profileId}`, { method: 'DELETE' }).catch(
+  const response = await fetch(serverUrl(`/api/profiles/${profileId}`), { method: 'DELETE' }).catch(
     () => null,
   );
 

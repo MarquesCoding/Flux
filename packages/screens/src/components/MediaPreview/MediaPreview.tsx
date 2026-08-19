@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { PauseIcon, PlayIcon, VolumeHighIcon, VolumeMute01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
@@ -23,7 +24,7 @@ const SETTLE_MILLISECONDS = 2600;
  * @param mediaId - The item.
  * @returns The address to load.
  */
-const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
+const previewUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/preview`);
 
 const CUE_LINE = 80;
 

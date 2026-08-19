@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@FluxUI/Button';
@@ -11,7 +12,7 @@ import type { EpisodeRowProps } from './EpisodeRow.types';
  * @param mediaId - The episode.
  * @returns The address to load.
  */
-const stillUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
+const stillUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/image/backdrop`);
 
 /**
  * One episode in a list of them: its number, its name, how long it runs, what it is about, and how

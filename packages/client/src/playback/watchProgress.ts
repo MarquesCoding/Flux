@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { WatchProgressListSchema } from '@FluxContracts/schemas/WatchProgress';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
@@ -30,7 +31,7 @@ const reportWatchProgress = async (
   { isLeaving = false }: { isLeaving?: boolean } = {},
 ): Promise<void> => {
   try {
-    await fetch(`/api/media/${mediaId}/progress`, {
+    await fetch(serverUrl(`/api/media/${mediaId}/progress`), {
       method: 'PUT',
       headers: { 'content-type': 'application/json', ...profileHeaders() },
       body: JSON.stringify({ isFinished: false, ...report }),

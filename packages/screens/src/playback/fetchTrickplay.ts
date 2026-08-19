@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { z } from 'zod';
 
 const TrickplaySchema = z.object({
@@ -146,7 +147,9 @@ const thumbnailAt = (thumbnails: Thumbnail[], seconds: number): Thumbnail | null
  */
 const fetchTrickplay = async (mediaId: string): Promise<Trickplay | null> => {
   try {
-    const response = await fetch(`/api/playback/${mediaId}/trickplay`, { method: 'POST' });
+    const response = await fetch(serverUrl(`/api/playback/${mediaId}/trickplay`), {
+      method: 'POST',
+    });
 
     if (!response.ok) {
       return null;

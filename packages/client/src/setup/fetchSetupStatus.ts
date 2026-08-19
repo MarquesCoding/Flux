@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { SetupStatusSchema } from '@FluxContracts/schemas/Setup';
 import type { SetupStatus } from '@FluxContracts/schemas/Setup';
 
@@ -11,7 +12,7 @@ import type { SetupStatus } from '@FluxContracts/schemas/Setup';
  * @returns What the server said.
  */
 const fetchSetupStatus = async (): Promise<SetupStatus> => {
-  const response = await fetch('/api/setup/status', {
+  const response = await fetch(serverUrl('/api/setup/status'), {
     headers: { accept: 'application/json' },
   });
 

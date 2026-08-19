@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
@@ -36,7 +37,7 @@ const signInAsProfile = async (
   profileId: string,
   password: string,
 ): Promise<{ kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string }> => {
-  const response = await fetch(`/api/profiles/${profileId}/sign-in`, {
+  const response = await fetch(serverUrl(`/api/profiles/${profileId}/sign-in`), {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),

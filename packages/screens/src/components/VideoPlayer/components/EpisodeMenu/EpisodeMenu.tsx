@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { File01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
@@ -13,7 +14,7 @@ import type { EpisodeMenuProps } from './EpisodeMenu.types';
  * @param mediaId - The episode.
  * @returns Where to fetch its picture.
  */
-const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
+const artworkUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/image/backdrop`);
 
 /**
  * Names a season for the heading above its episodes, falling back to a neutral heading for anything

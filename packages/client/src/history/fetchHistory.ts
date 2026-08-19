@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { ViewingListSchema, ForgottenSchema } from '@FluxContracts/schemas/Viewing';
 import type { Viewing } from '@FluxContracts/schemas/Viewing';
@@ -26,7 +27,9 @@ const fetchHistory = async (offset = 0): Promise<Viewing[]> => {
  * @param viewingId - The viewing to forget.
  */
 const forgetViewing = async (viewingId: string): Promise<boolean> => {
-  const response = await fetch(`/api/history/${viewingId}`, { method: 'DELETE' }).catch(() => null);
+  const response = await fetch(serverUrl(`/api/history/${viewingId}`), { method: 'DELETE' }).catch(
+    () => null,
+  );
 
   return response !== null && response.ok;
 };

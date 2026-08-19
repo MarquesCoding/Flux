@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
@@ -58,7 +59,7 @@ const fetchRoles = async (): Promise<Role[]> => {
  * @returns Any refusal from the server.
  */
 const createRole = async (role: Omit<Role, 'id'>): Promise<Refusal> => {
-  const response = await fetch('/api/admin/roles', {
+  const response = await fetch(serverUrl('/api/admin/roles'), {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -79,7 +80,7 @@ const createRole = async (role: Omit<Role, 'id'>): Promise<Refusal> => {
  * @returns Any refusal from the server.
  */
 const updateRole = async (id: string, changes: Partial<Omit<Role, 'id'>>): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/roles/${id}`, {
+  const response = await fetch(serverUrl(`/api/admin/roles/${id}`), {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -99,7 +100,7 @@ const updateRole = async (id: string, changes: Partial<Omit<Role, 'id'>>): Promi
  * @returns Any refusal from the server.
  */
 const deleteRole = async (id: string): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/roles/${id}`, {
+  const response = await fetch(serverUrl(`/api/admin/roles/${id}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -129,7 +130,7 @@ const fetchAccountPermissions = async (userId: string): Promise<AccountPermissio
  * @returns Any refusal from the server.
  */
 const assignRole = async (userId: string, roleId: string): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/accounts/${userId}/roles/${roleId}`, {
+  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/roles/${roleId}`), {
     method: 'PUT',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -147,7 +148,7 @@ const assignRole = async (userId: string, roleId: string): Promise<Refusal> => {
  * @returns Any refusal from the server.
  */
 const removeRole = async (userId: string, roleId: string): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/accounts/${userId}/roles/${roleId}`, {
+  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/roles/${roleId}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -167,7 +168,7 @@ const removeRole = async (userId: string, roleId: string): Promise<Refusal> => {
  * @returns Any refusal from the server.
  */
 const setOverride = async (userId: string, grant: PermissionGrant): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/accounts/${userId}/overrides`, {
+  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/overrides`), {
     method: 'PUT',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -187,7 +188,7 @@ const setOverride = async (userId: string, grant: PermissionGrant): Promise<Refu
  * @returns Any refusal from the server.
  */
 const clearOverride = async (userId: string, permission: Permission): Promise<Refusal> => {
-  const response = await fetch(`/api/admin/accounts/${userId}/overrides/${permission}`, {
+  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/overrides/${permission}`), {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);

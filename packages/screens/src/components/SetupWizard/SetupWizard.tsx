@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { SquareLock01Icon, SquareUnlock01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
@@ -36,7 +37,7 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
     setIsSubmitting(true);
 
     try {
-      const response = await fetch('/api/setup', {
+      const response = await fetch(serverUrl('/api/setup'), {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({
