@@ -22,6 +22,7 @@ import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderInta
 import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
+import { headersForUpgrade } from '@FluxServer/auth/headersForUpgrade';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
 import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
@@ -1429,7 +1430,13 @@ const nodeWebSocket = createNodeWebSocket({ app });
 app.get(
   '/api/realtime',
   nodeWebSocket.upgradeWebSocket(async (context) => {
-    const account = (await readSessionOnce(auth, context.req.raw.headers))?.user ?? null;
+    const account =
+      (
+        await readSessionOnce(
+          auth,
+          headersForUpgrade(context.req.raw.headers, context.req.query('token')),
+        )
+      )?.user ?? null;
 
     if (account === null) {
       return {};
