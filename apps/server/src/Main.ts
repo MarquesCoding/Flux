@@ -1299,7 +1299,9 @@ if (seededKinds.length > 0) {
 }
 
 for (const kind of await schedules.sync()) {
-  await jobs.enqueue(scheduleQueueNameFor(kind), {});
+  const queueName = scheduleQueueNameFor(kind);
+
+  await jobs.enqueue(queueName, {}, queueName);
   log.info('server', `schedule: running ${kind} on startup`);
 }
 
