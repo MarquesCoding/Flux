@@ -12,9 +12,8 @@ const onTheServer = (asked: string): string =>
  * without the client being rebuilt, which a desktop client does on the screen it opens with.
  *
  * Nothing is added to the request. A browser is recognised by its cookie, and a client with a window
- * of its own is recognised by the same cookie, attached out where the window cannot reach — see
- * ADR-0026. A shim here once carried a token and the cookies a token could not, which was a great
- * deal of machinery to work around an engine that this client no longer runs on.
+ * of its own is recognised by the same cookie, attached out in the process that owns the window
+ * where a page cannot reach — see ADR-0026.
  *
  * Its `fetch` is handed over rather than left to be found, for two reasons and no others: the
  * library reads the global once when the client is built, which is before a test has had a chance to

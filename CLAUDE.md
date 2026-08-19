@@ -66,6 +66,7 @@ standalone functions. snake_case for Rust modules.
 | Media        | Rust + FFmpeg child process         | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)                                  |
 | UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)                      |
 | Dialogs      | Base UI, and nothing else is        | [0021](docs/adr/0021-dialogs-are-built-on-base-ui.md)                                |
+| Desktop      | Electron, signing in via a browser  | [0025](docs/adr/0025-the-desktop-client-is-electron.md)                              |
 | Lint         | oxlint + ESLint + husky             | [0014](docs/adr/0014-lint-and-commit-enforcement.md)                                 |
 | Realtime     | One WebSocket, viewer + admin feeds | [0017](docs/adr/0017-realtime-one-socket-two-feeds.md)                               |
 | Web state    | TanStack Query + TanStack Router    | [0019](docs/adr/0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) |
