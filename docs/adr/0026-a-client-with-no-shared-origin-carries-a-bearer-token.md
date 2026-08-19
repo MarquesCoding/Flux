@@ -1,0 +1,129 @@
+# ADR-0026: A client with no shared origin carries a bearer token
+
+- **Status:** Proposed
+- **Date:** 2026-08-19
+- **Deciders:** Marques Scripps
+- **Supersedes:** —
+- **Superseded by:** —
+
+## Context
+
+[ADR-0025](0025-the-desktop-client-is-tauri.md) settled what the desktop client is
+built on. Starting it surfaced two things that decision had not accounted for, and
+[FLUX-157](https://linear.app/flux-streaming/issue/FLUX-157/featclient-the-application-has-no-way-to-be-told-where-its-server-is)
+dealt with the first: the application had no way to be told where its server is.
+
+This is the second, and it is the harder one. **A desktop window cannot hold a
+session.**
+
+Forty-three requests carry `credentials: 'same-origin'`, and better-auth is
+configured with a relative `basePath`. Both are correct in a browser, where the
+page came from the Flux server and the cookie is first-party. A Tauri window
+serves its pages from itself, so the server is cross-site, and a cookie set by
+`https://flux.example.com` is simply not sent by a page at `tauri://localhost`.
+
+This is not a CORS setting. `SameSite=None; Secure` would be necessary and is not
+sufficient: WKWebView, which ADR-0025 chose, applies Intelligent Tracking
+Prevention to cross-site cookies, and a custom scheme is not an origin it will
+relax for. The mechanism a browser client depends on is unavailable to a desktop
+one, and no amount of server configuration makes it available.
+
+## Decision
+
+**A client with no shared origin authenticates with a bearer token. A client
+served by the server keeps its cookie.**
+
+The two are not a migration from one to the other. A cookie is the better
+credential where it works: it is `HttpOnly`, so a cross-site script cannot read
+it, and nothing in the application ever holds it. A token in a device store is
+readable by whatever runs in that window, which is an acceptable trade only where
+the alternative is no session at all.
+
+**The server needs no change.** `bearer()` is already installed —
+`apps/server/src/auth/Auth.ts:105`. It reads `Authorization: Bearer <token>`,
+validates it and injects it as the session cookie internally, so every existing
+session lookup, permission check and route guard works untouched. Its own comment
+is "Converts bearer token to session cookie". Nothing about the server learns that
+a second kind of client exists.
+
+**The client keeps the token in the device store**, which is the port ADR-0022
+already defined for exactly this: something a client knows how to keep and the
+application does not. A browser answers that it has no token and sends none.
+
+**Not JWT.** better-auth ships a `jwt` plugin and it is the wrong tool here. It
+issues signed tokens with a JWKS endpoint so that somebody _other than the issuer_
+can verify them without asking. Flux's server is the only thing that ever
+verifies a Flux session, so JWT would add a key pair, a JWKS route, expiry and
+refresh handling to solve a problem this architecture does not have. The bearer
+plugin reuses the session that already exists and already expires.
+
+### How the token is come by
+
+better-auth returns it on any response that sets the session cookie, in a
+`set-auth-token` header it also names in `Access-Control-Expose-Headers`. Signing
+in, signing up and refreshing all produce one. The client reads that header, keeps
+it, and sends it back on every request until it stops working.
+
+## Consequences
+
+### What this gets us
+
+A desktop client can hold a session at all, which is the whole of it. Nothing else
+about FLUX-8 is reachable without this.
+
+The browser is unchanged — same cookie, same headers, same bytes.
+
+The server is unchanged. A single plugin, already enabled, is the entire server
+side of supporting a second class of client.
+
+### What this costs us
+
+**A credential the application can read.** A cookie is `HttpOnly` and a token in
+a device store is not. Anything running in that window can take it, and unlike a
+cookie it travels wherever the client sends it. On a desktop client the window
+runs only what Flux shipped, which is what makes this acceptable — it would not be
+acceptable in a browser, and this decision does not do it there.
+
+**Two credentials to keep working.** Every request path now has to work both ways,
+and a change that only carries the cookie will pass every test in the browser and
+fail entirely on desktop. That is a real trap and the reason the token is applied
+at the same chokepoints `serverUrl` is, rather than per call.
+
+**Sign-out has to reach both.** Clearing a cookie the client cannot see does not
+clear a token the client is holding.
+
+### What this forecloses
+
+Storing a session anywhere the application cannot reach, on clients that need a
+token. That is the trade being made rather than an accident.
+
+A browser client authenticating by token, which this deliberately does not enable.
+The cookie is better where it works, and offering both in one client would mean
+choosing the weaker one by accident.
+
+## Alternatives considered
+
+**`SameSite=None; Secure` cookies and CORS.** The obvious answer, and it does not
+work: WKWebView will not treat a custom scheme as an origin it relaxes tracking
+prevention for. It would also weaken the browser's cookie to buy nothing there.
+
+**better-auth's `jwt` plugin.** Solves third-party verification. Flux has no third
+party.
+
+**API keys, which Flux already has.** They exist and are the wrong shape: they
+identify an integration rather than a person, are minted deliberately by an
+operator, and carry no session, so none of the two-factor, passkey or profile
+machinery would apply to somebody signing in on a desktop.
+
+**Serving the desktop application from the server** so that it shares an origin.
+Discards the offline case, makes the client useless when the server is
+unreachable, and is most of the way back to a browser.
+
+## Revisit when
+
+Tauri or WKWebView offers a first-party cookie store scoped to a configured
+origin, which would make the cookie workable and this unnecessary.
+
+A client appears that is neither trusted with a readable credential nor able to
+hold a cookie — a shared or embedded device, say — at which point the trade above
+needs restating rather than reusing.

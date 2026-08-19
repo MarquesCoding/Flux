@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
+import { serverUrl } from '@FluxClient/query/serverUrl';
+import { authorisation, rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
@@ -44,13 +46,53 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  *
  * @returns The client.
  */
+const onTheServer = (asked: string): string => {
+  const { pathname, search } = new URL(asked, 'http://placeholder.invalid');
+
+  return serverUrl(`${pathname}${search}`);
+};
+
+/**
+ * Sends what better-auth asked for to the server this client watches, carrying whatever says who it
+ * is and keeping any token that comes back.
+ *
+ * A browser is recognised by its cookie and this adds nothing. A client whose window serves its own
+ * pages cannot be sent that cookie, so it presents the token instead and holds the one every
+ * signing-in response hands back — see ADR-0026.
+ *
+ * @param input - What the library asked for.
+ * @param init - How it asked.
+ * @returns The answer.
+ */
+const askTheServer = async (
+  input: string | URL | Request,
+  init?: RequestInit,
+): Promise<Response> => {
+  const asked = input instanceof Request ? input.url : String(input);
+  const carried = new Headers(init?.headers ?? (input instanceof Request ? input.headers : {}));
+
+  for (const [name, value] of Object.entries(authorisation())) {
+    carried.set(name, value);
+  }
+
+  const response =
+    input instanceof Request
+      ? await globalThis.fetch(new Request(onTheServer(asked), input), { headers: carried })
+      : await globalThis.fetch(onTheServer(asked), { ...init, headers: carried });
+
+  const handed = response.headers.get('set-auth-token');
+
+  if (handed !== null) {
+    rememberSessionToken(handed);
+  }
+
+  return response;
+};
+
 const buildClient = () =>
   createAuthClient({
     basePath: '/api/auth',
-    fetchOptions: {
-      customFetchImpl: async (input, init) =>
-        globalThis.fetch(input instanceof Request ? input : String(input), init),
-    },
+    fetchOptions: { customFetchImpl: askTheServer },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],
   });
 
@@ -118,8 +160,9 @@ const fetchSession = async (): Promise<SessionUser | null> => {
  * was once taken from the library's success hook instead, which is a second way of asking the same
  * question and the only one here that could answer no while the server had said yes.
  *
- * The face is forgotten either way. A sign-out that did not reach the server still means somebody
- * walked away from this device, and leaving their face on it is the failure that matters.
+ * The face is forgotten either way, and so is any token this client was holding. A sign-out that did
+ * not reach the server still means somebody walked away from this device, and leaving their face —
+ * or a credential that still works — on it is the failure that matters.
  *
  * @returns Whether the session was ended.
  */
@@ -127,6 +170,7 @@ const signOut = async (): Promise<boolean> => {
   const { error } = await client.signOut();
 
   writeCurrentProfile(null);
+  rememberSessionToken(null);
 
   return error === null;
 };

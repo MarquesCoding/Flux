@@ -52,6 +52,7 @@ more valuable than a tidy directory.
 | [0023](0023-screens-are-part-of-the-application-not-of-a-host.md)           | Screens are part of the application, not of a host                 | Accepted                           |
 | [0024](0024-focus-restoration-after-a-dialog-needs-nothing-from-us.md)      | Focus restoration after a dialog needs nothing from us             | Accepted                           |
 | [0025](0025-the-desktop-client-is-tauri.md)                                 | The desktop client is Tauri, chosen on what each engine can decode | Proposed                           |
+| [0026](0026-a-client-with-no-shared-origin-carries-a-bearer-token.md)       | A client with no shared origin carries a bearer token              | Proposed                           |
 
 ## Format
 
