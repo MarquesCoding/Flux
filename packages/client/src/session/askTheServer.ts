@@ -2,17 +2,13 @@ import {
   AUTH_COOKIES_HEADER,
   SET_AUTH_COOKIES_HEADER,
 } from '@FluxCore/functions/relayedAuthCookies';
-import { serverUrl } from '@FluxClient/query/serverUrl';
+import { onTheServer as pathOnTheServer, PLACEHOLDER_ORIGIN } from '@FluxCore/functions/onTheServer';
+import { platformInUse } from '@FluxClient/platform/installPlatform';
 import { authCookies, rememberAuthCookies } from '@FluxClient/session/authCookies';
 import { authorisation, rememberSessionToken } from '@FluxClient/session/sessionToken';
 
-const PLACEHOLDER_ORIGIN = 'http://flux.invalid';
-
-const onTheServer = (asked: string): string => {
-  const { pathname, search } = new URL(asked, PLACEHOLDER_ORIGIN);
-
-  return serverUrl(`${pathname}${search}`);
-};
+const onTheServer = (asked: string): string =>
+  pathOnTheServer(platformInUse().whereTheServerIs(), asked);
 
 /**
  * Sends what better-auth asked for to the server this client watches, carrying whatever says who it

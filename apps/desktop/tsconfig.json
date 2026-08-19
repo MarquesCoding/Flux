@@ -18,7 +18,8 @@
       "vite/client",
       "vitest/globals",
       "@testing-library/jest-dom"
-    ]
+    ],
+    "exactOptionalPropertyTypes": false
   },
   "include": [
     "src/**/*.ts",

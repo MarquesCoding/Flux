@@ -8,12 +8,9 @@ const STILL_WATCHING_MAX = 20;
 
 const STILL_WATCHING_ANSWER_SECONDS = 90;
 
-const StillWatchingSchema = z
-  .number()
-  .int()
-  .min(STILL_WATCHING_OFF)
-  .max(STILL_WATCHING_MAX)
-  .default(STILL_WATCHING_DEFAULT);
+const HowOftenToAskSchema = z.number().int().min(STILL_WATCHING_OFF).max(STILL_WATCHING_MAX);
+
+const StillWatchingSchema = HowOftenToAskSchema.default(STILL_WATCHING_DEFAULT);
 
 /**
  * Whether to stop and ask before playing another episode nobody asked for.
@@ -39,6 +36,7 @@ const shouldAskStillWatching = (carriedOn: number, askAfter: number): boolean =>
 const neverAsks = (askAfter: number): boolean => askAfter <= STILL_WATCHING_OFF;
 
 export {
+  HowOftenToAskSchema,
   StillWatchingSchema,
   STILL_WATCHING_OFF,
   STILL_WATCHING_DEFAULT,

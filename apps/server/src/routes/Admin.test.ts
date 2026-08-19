@@ -24,7 +24,7 @@ const CREDENTIALS = {
 };
 
 const LIBRARY = {
-  id: '11111111-1111-1111-1111-111111111111',
+  id: '11111111-1111-4111-8111-111111111111',
   name: 'Movies',
   kind: 'movies' as const,
   path: '/media/movies',

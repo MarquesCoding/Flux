@@ -24,7 +24,7 @@
     "react-dom": "^19.0.0",
     "shaka-player": "^5.2.4",
     "sonner": "^2.0.8",
-    "zod": "^3.24.1"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
