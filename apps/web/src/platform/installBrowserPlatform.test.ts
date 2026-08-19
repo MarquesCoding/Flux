@@ -44,6 +44,12 @@ describe('installBrowserPlatform', () => {
     expect(platformInUse().describeThisClient()).toBe('Firefox on macOS');
   });
 
+  it('says the server is wherever this page came from, which a relative path already reaches', () => {
+    installBrowserPlatform();
+
+    expect(platformInUse().whereTheServerIs()).toBe('');
+  });
+
   it('gives this tab an identity that survives being asked twice', () => {
     installBrowserPlatform();
 
