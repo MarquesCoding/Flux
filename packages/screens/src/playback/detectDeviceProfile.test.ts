@@ -204,6 +204,46 @@ describe('the ceilings a browser cannot be asked about', () => {
   });
 });
 
+describe('claiming a codec only in the container Flux actually sends', () => {
+  const takingOnly =
+    (...types: string[]) =>
+    (mimeType: string) =>
+      types.includes(mimeType);
+
+  it('claims opus where the browser takes it in mp4', () => {
+    const profile = build(takingOnly('audio/mp4; codecs="opus"'));
+
+    expect(profile.directPlayProfiles[0]?.audioCodecs).toContain('opus');
+  });
+
+  it('does not claim opus where the browser takes it only in webm', () => {
+    const profile = build(takingOnly('audio/webm; codecs="opus"'));
+
+    expect(profile.directPlayProfiles[0]?.audioCodecs).not.toContain('opus');
+  });
+
+  it('does not claim vp9 where the browser takes it only in webm', () => {
+    const profile = build(takingOnly('video/webm; codecs="vp9"'));
+
+    expect(profile.directPlayProfiles[0]?.videoCodecs).not.toContain('vp9');
+  });
+
+  it('claims nothing at all from a browser that only plays webm', () => {
+    const webmOnly = (mimeType: string) =>
+      mimeType.startsWith('video/webm') || mimeType.startsWith('audio/webm');
+    const profile = build(webmOnly);
+
+    expect(profile.directPlayProfiles[0]?.videoCodecs).toEqual(['h264']);
+    expect(profile.directPlayProfiles[0]?.audioCodecs).toEqual(['aac']);
+  });
+
+  it('does not claim ten bit vp9 on the strength of a webm answer', () => {
+    const profile = build(takingOnly('video/webm; codecs="vp09.02.10.10"'));
+
+    expect(profile.tenBitVideoCodecs).not.toContain('vp9');
+  });
+});
+
 describe('how many channels the profile claims', () => {
   it('claims what the output device accepts rather than assuming stereo', () => {
     expect(build(supporting('avc1', 'mp4a'), { maxAudioChannels: 6 }).maxAudioChannels).toBe(6);
