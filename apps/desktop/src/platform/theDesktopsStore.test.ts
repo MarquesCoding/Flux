@@ -1,102 +1,72 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { theDesktopsStore } from './theDesktopsStore';
 
-const onDisk = new Map<string, string | number>();
+const onDisk = new Map<string, string>();
 
-let refuse = false;
+const written: string[] = [];
 
-vi.mock('@tauri-apps/plugin-store', () => ({
-  load: () => {
-    if (refuse) {
-      return Promise.reject(new Error('There is nowhere to keep a file.'));
-    }
-
-    return Promise.resolve({
-      entries: () => Promise.resolve([...onDisk.entries()]),
-      set: (key: string, value: string | number) => {
-        onDisk.set(key, value);
-
-        return Promise.resolve();
-      },
-      delete: (key: string) => {
-        onDisk.delete(key);
-
-        return Promise.resolve();
-      },
-    });
+const aBridge = () => ({
+  preferences: {
+    held: Object.fromEntries(onDisk),
+    write: (key: string, value: string) => {
+      onDisk.set(key, value);
+      written.push(`${key}=${value}`);
+    },
+    forget: (key: string) => {
+      onDisk.delete(key);
+      written.push(`${key} gone`);
+    },
   },
-}));
+});
 
 beforeEach(() => {
   onDisk.clear();
-  refuse = false;
+  written.length = 0;
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
 describe('theDesktopsStore', () => {
-  it('knows nothing before it has read the file', () => {
-    onDisk.set('the-theme', 'dark');
-
-    expect(theDesktopsStore().read('the-theme')).toBeNull();
-  });
-
-  it('answers with what the file held, so somebody is asked once rather than at every launch', async () => {
+  it('answers with what the file already held, so somebody is asked once rather than at every launch', () => {
     onDisk.set('flux.server.address', 'https://flux.example.com');
+    vi.stubGlobal('flux', aBridge());
 
-    const store = theDesktopsStore();
-    await store.hydrate();
-
-    expect(store.read('flux.server.address')).toBe('https://flux.example.com');
+    expect(theDesktopsStore().read('flux.server.address')).toBe('https://flux.example.com');
   });
 
-  it('ignores what the file held that is not a preference, rather than trusting the shape', async () => {
-    onDisk.set('the-theme', 42);
+  it('answers a read without waiting, since a preference is read while something is drawn', () => {
+    vi.stubGlobal('flux', aBridge());
 
     const store = theDesktopsStore();
-    await store.hydrate();
-
-    expect(store.read('the-theme')).toBeNull();
-  });
-
-  it('answers a read without waiting, since a preference is read while something is drawn', async () => {
-    const store = theDesktopsStore();
-    await store.hydrate();
-
     store.write('the-theme', 'dark');
 
     expect(store.read('the-theme')).toBe('dark');
   });
 
-  it('puts what it was told on disk, which is the point of the file', async () => {
-    const store = theDesktopsStore();
-    await store.hydrate();
+  it('puts what it was told on the file, which is the point of the file', () => {
+    vi.stubGlobal('flux', aBridge());
 
-    store.write('the-theme', 'dark');
-    await Promise.resolve();
+    theDesktopsStore().write('the-theme', 'dark');
 
-    expect(onDisk.get('the-theme')).toBe('dark');
+    expect(written).toEqual(['the-theme=dark']);
   });
 
-  it('lets go on disk as well as in hand', async () => {
+  it('lets go on the file as well as in hand', () => {
     onDisk.set('the-theme', 'dark');
+    vi.stubGlobal('flux', aBridge());
 
     const store = theDesktopsStore();
-    await store.hydrate();
-
     store.forget('the-theme');
-    await Promise.resolve();
 
     expect(store.read('the-theme')).toBeNull();
-    expect(onDisk.has('the-theme')).toBe(false);
+    expect(written).toEqual(['the-theme gone']);
   });
 
-  it('still holds a preference for this run where there is no file to keep one in', async () => {
-    refuse = true;
+  it('answers with nothing for a preference nobody has set', () => {
+    vi.stubGlobal('flux', aBridge());
 
-    const store = theDesktopsStore();
-    await store.hydrate();
-
-    store.write('the-theme', 'dark');
-
-    expect(store.read('the-theme')).toBe('dark');
+    expect(theDesktopsStore().read('never-set')).toBeNull();
   });
 });

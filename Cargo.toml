@@ -1,5 +1,5 @@
 [workspace]
-members = ["apps/desktop/src-tauri", "apps/transcoder"]
+members = ["apps/transcoder"]
 resolver = "2"
 
 [workspace.package]

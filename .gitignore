@@ -23,4 +23,7 @@ target/
 apps/web/certificates/
 
 # Tauri writes these when it builds
-apps/desktop/src-tauri/gen/
+
+apps/desktop/dist-main/
+apps/desktop/dist-preload/
+apps/desktop/release/

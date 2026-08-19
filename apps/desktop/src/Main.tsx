@@ -10,8 +10,9 @@ import { ConnectToServer } from '@FluxScreens/components/ConnectToServer/Connect
 import { buildRouter } from '@FluxScreens/routes/buildRouter';
 import { installDesktopPlatform } from '@FluxDesktop/platform/installDesktopPlatform';
 import './styles/main.css';
+import '@FluxDesktop/TheWindow.types';
 
-await installDesktopPlatform();
+installDesktopPlatform();
 
 const container = document.querySelector('#root');
 

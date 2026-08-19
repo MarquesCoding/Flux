@@ -5,49 +5,46 @@ import { installDesktopPlatform } from './installDesktopPlatform';
 
 const onDisk = new Map<string, string>();
 
-vi.mock('@tauri-apps/plugin-store', () => ({
-  load: () =>
-    Promise.resolve({
-      entries: () => Promise.resolve([...onDisk.entries()]),
-      set: (key: string, value: string) => {
-        onDisk.set(key, value);
-
-        return Promise.resolve();
-      },
-      delete: (key: string) => {
-        onDisk.delete(key);
-
-        return Promise.resolve();
-      },
-    }),
-}));
+const aBridge = () => ({
+  preferences: {
+    held: Object.fromEntries(onDisk),
+    write: (key: string, value: string) => {
+      onDisk.set(key, value);
+    },
+    forget: (key: string) => {
+      onDisk.delete(key);
+    },
+  },
+});
 
 beforeEach(() => {
   forgetPlatform();
   onDisk.clear();
+  vi.stubGlobal('flux', aBridge());
 });
 
 afterEach(() => {
   forgetPlatform();
+  vi.unstubAllGlobals();
 });
 
 describe('installDesktopPlatform', () => {
-  it('leaves the application able to say what it is running on', async () => {
+  it('leaves the application able to say what it is running on', () => {
     expect(() => platformInUse()).toThrow();
 
-    await installDesktopPlatform();
+    installDesktopPlatform();
 
     expect(() => platformInUse()).not.toThrow();
   });
 
-  it('says it watches nowhere until somebody has said where', async () => {
-    await installDesktopPlatform();
+  it('says it watches nowhere until somebody has said where', () => {
+    installDesktopPlatform();
 
     expect(platformInUse().whereTheServerIs()).toBe('');
   });
 
-  it('watches the server it was told about', async () => {
-    await installDesktopPlatform();
+  it('watches the server it was told about', () => {
+    installDesktopPlatform();
 
     rememberServerAddress('https://flux.example.com');
 
@@ -55,18 +52,19 @@ describe('installDesktopPlatform', () => {
   });
 
 
-  it('reads what the file already held, so somebody is asked once rather than at every launch', async () => {
+  it('reads what the file already held, so somebody is asked once rather than at every launch', () => {
     onDisk.set('flux.server.address', 'https://flux.example.com');
 
-    await installDesktopPlatform();
+    vi.stubGlobal('flux', aBridge());
+    installDesktopPlatform();
 
     expect(platformInUse().whereTheServerIs()).toBe('https://flux.example.com');
   });
 
 
 
-  it('is the same running client however often it is asked', async () => {
-    await installDesktopPlatform();
+  it('is the same running client however often it is asked', () => {
+    installDesktopPlatform();
 
     expect(platformInUse().thisClientId()).toBe(platformInUse().thisClientId());
   });
