@@ -97,6 +97,17 @@ const naturalAudioStreamIndex = (item: Parameters<typeof negotiatePlayback>[0]):
  * the server doing work, and is worth saying so, because direct play is the only mode that costs
  * nothing to serve.
  *
+ * HEVC never qualifies, whatever the plan says. An HEVC stream in MP4 is marked either `hvc1` or
+ * `hev1`, the marking decides whether a player will decode it, and Flux does not know which a given
+ * file carries — the catalogue records the codec and not the tag it was written with. Sending it
+ * through a session instead costs a copy, which is close to nothing, and the session marks it
+ * `hvc1` on the way out. So the tag is right on every path rather than on the paths that happen to
+ * re-wrap it.
+ *
+ * That is stricter than Jellyfin, which serves HEVC statically and retags only what it remuxes. The
+ * difference is a file Flux copies where Jellyfin would not, against a black picture on any player
+ * that reads the tag strictly. Worth revisiting if the catalogue ever learns the tag.
+ *
  * @param plan - What the negotiator decided.
  * @param item - The file it decided about.
  * @returns Whether the file is being handed over as it is.
@@ -109,7 +120,8 @@ const isDirectPlay = (
   plan.video.kind === 'passthrough' &&
   plan.audio.kind === 'passthrough' &&
   plan.audio.streamIndex === naturalAudioStreamIndex(item) &&
-  plan.subtitles.kind !== 'burnIn';
+  plan.subtitles.kind !== 'burnIn' &&
+  item.videoCodec !== 'hevc';
 
 type MediaLookup = {
   findForPlayback: (mediaId: string) => Promise<{
@@ -204,6 +216,7 @@ const createPlaybackService = ({
         inputPath: found.path,
         sourceRange: found.item.videoRange,
         sourceSize: [found.item.width, found.item.height],
+        sourceVideoCodec: found.item.videoCodec,
         imageSubtitleIndexes: found.item.subtitleStreams
           .filter((stream) => IMAGE_SUBTITLE_FORMATS.has(stream.format))
           .map((stream) => stream.index),

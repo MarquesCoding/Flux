@@ -22,8 +22,8 @@ use std::process::Command;
 
 use flux_transcoder::boundaries::can_copy_segments;
 use flux_transcoder::keyframes::{
-    cut_interval, longest_segment, parse_cuts, safe_segment_lengths, seek_into, segment_lengths,
-    segment_starts, Cut, Keyframes,
+    cut_interval, longest_segment, parse_cuts, seek_into, segment_lengths, segment_starts,
+    Keyframes,
 };
 
 mod common;
@@ -357,9 +357,14 @@ fn predicts_the_segments_ffmpeg_actually_writes() {
 
 /// Copying is refused exactly when the segments it would produce are unusable.
 ///
-/// `LONGEST_COPYABLE_SEGMENT` is sixteen seconds because of what one film's
-/// unsafe cuts did when skipped. A closed-GOP source with keyframes every two
-/// seconds should never trip it.
+/// The segments that count are the ones the muxer writes, which is one per
+/// keyframe whether or not that keyframe carries leading pictures. This test
+/// used to measure the other thing — the lengths left after passing those
+/// keyframes over — and a fixture with open GOPs far apart failed it at 60s
+/// while its real segments are well inside the limit. Flux no longer passes
+/// them over, so neither does this. See FLUX-145.
+///
+/// A closed-GOP source with keyframes every two seconds should never trip it.
 #[test]
 fn allows_copying_where_the_segments_come_out_a_sensible_length() {
     let fixtures = corpus();
@@ -383,11 +388,7 @@ fn allows_copying_where_the_segments_come_out_a_sensible_length() {
         }
 
         if can_copy_segments(&keyframes, cut) {
-            let lengths = if keyframes.cuts.iter().copied().all(Cut::is_safe) {
-                segment_lengths(&keyframes, cut)
-            } else {
-                safe_segment_lengths(&keyframes, cut)
-            };
+            let lengths = segment_lengths(&keyframes, cut);
 
             assert!(
                 longest_segment(&lengths) <= 16.0,

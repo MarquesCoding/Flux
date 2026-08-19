@@ -175,6 +175,7 @@ fn spec(video: VideoAction, audio: AudioAction) -> SessionSpec {
         subtitles: SubtitleAction::None,
         source_size: None,
         container: SegmentContainer::Fmp4,
+        source_video_codec: None,
     }
 }
 
@@ -313,6 +314,64 @@ async fn serves_the_segments_the_playlist_names() {
 
     assert_eq!(status, StatusCode::OK);
     assert!(bytes.len() > 512, "segment was {} bytes", bytes.len());
+}
+
+/// Every second the muxer wrote is offered exactly once.
+///
+/// The playlist offers groups of the muxer's segments rather than the segments
+/// themselves, so that a hard cut leaving two keyframes a couple of frames
+/// apart does not cost a request for a scrap of film. Grouping must lose
+/// nothing and repeat nothing: what the player is served across the whole
+/// playlist has to be every byte the muxer produced, in order. Counting the
+/// bytes is what proves it, because a group served short or served twice moves
+/// the total either way.
+#[tokio::test]
+async fn serves_every_byte_the_muxer_wrote_across_the_whole_playlist() {
+    let app = app(registry("grouped"));
+    let (_, body) = start(&app, &spec(VideoAction::Copy, AudioAction::Copy)).await;
+
+    let id = body["id"].as_str().expect("has an id");
+    let (_, manifest_bytes) = call(&app, get(body["manifest"].as_str().expect("manifest"))).await;
+    let playlist = String::from_utf8_lossy(&manifest_bytes).into_owned();
+
+    let named: Vec<&str> = playlist
+        .lines()
+        .filter(|line| line.ends_with(".m4s") && !line.starts_with('#'))
+        .collect();
+
+    assert!(!named.is_empty(), "playlist names no segments");
+
+    let mut served = 0_usize;
+
+    for segment in &named {
+        let (status, bytes) = call(&app, get(&format!("/sessions/{id}/{segment}"))).await;
+
+        assert_eq!(status, StatusCode::OK, "{segment} was not served");
+        assert!(!bytes.is_empty(), "{segment} was empty");
+
+        served += bytes.len();
+    }
+
+    let directory = cache_root("grouped").join(id);
+
+    let mut written = 0_usize;
+    let mut entries = tokio::fs::read_dir(&directory)
+        .await
+        .expect("reads the run");
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let name = entry.file_name().to_string_lossy().into_owned();
+
+        if name.starts_with("segment") && name.ends_with(".m4s") {
+            written += usize::try_from(entry.metadata().await.expect("reads it").len())
+                .unwrap_or_default();
+        }
+    }
+
+    assert_eq!(
+        served, written,
+        "the playlist did not offer the film exactly once"
+    );
 }
 
 #[tokio::test]

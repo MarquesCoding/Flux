@@ -90,6 +90,9 @@ const MediaItemSchema = z.object({
   durationSeconds: z.number().positive(),
   videoCodec: VideoCodecSchema,
   videoRange: VideoRangeSchema,
+  videoRangeBase: VideoRangeSchema.nullish().describe(
+    'What a player that cannot read this file\u2019s dynamic metadata sees underneath it. The same as the range itself for anything with nothing extra to ignore. Dolby Vision profile 8.1 declares an HDR10 base and HDR10+ is HDR10 with per-scene metadata added, so an HDR10 screen shows either correctly on its own \u2014 which is why a server that reads this sends the file untouched where one that does not re-encodes it. Absent where a file predates knowing, which is read as nothing but its own range.',
+  ),
   videoBitDepth: z
     .number()
     .int()

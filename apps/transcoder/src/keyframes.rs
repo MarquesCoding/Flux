@@ -245,6 +245,87 @@ pub fn segment_lengths(keyframes: &Keyframes, desired_seconds: f64) -> Vec<f64> 
     lengths
 }
 
+/// How many of the muxer's segments make up each one the playlist offers.
+///
+/// The muxer cuts at every keyframe, because that is the only way a run
+/// restarted after a seek agrees with a run from the beginning about where the
+/// segments are. A film's keyframes are not evenly spaced: an encoder puts one
+/// on a hard cut, so a scene change can leave two a couple of frames apart and
+/// the segment between them is a twelfth of a second long. Measured on a real
+/// remux: 122 of 2,322 segments under a second, 27 under half of one, the
+/// shortest 0.083s — each one a whole request for two frames of film.
+///
+/// So the muxer's segments are grouped, and the playlist offers the groups. A
+/// group takes segments until it is long enough, which leaves every offered
+/// segment at least `minimum` long except where the film itself runs out
+/// first. A tail too short to stand alone joins the group before it rather
+/// than being offered as a stub.
+///
+/// Grouping is decided from the lengths alone, so it holds wherever a run
+/// began — which is the property the every-keyframe cut was bought with, and
+/// this does not spend it.
+///
+/// Returns one count per offered segment. Most are one, and a group of one is
+/// served exactly as it always was.
+#[must_use]
+pub fn segment_groups(lengths: &[f64], minimum: f64) -> Vec<u32> {
+    let mut groups: Vec<u32> = Vec::new();
+    let mut taken = 0_u32;
+    let mut held = 0.0_f64;
+
+    for length in lengths {
+        taken += 1;
+        held += *length;
+
+        if held >= minimum {
+            groups.push(taken);
+            taken = 0;
+            held = 0.0;
+        }
+    }
+
+    if taken > 0 {
+        match groups.last_mut() {
+            Some(last) => *last += taken,
+            None => groups.push(taken),
+        }
+    }
+
+    groups
+}
+
+/// The length of each segment the playlist offers, being the sum of the
+/// muxer's own across each group [`segment_groups`] made.
+#[must_use]
+pub fn grouped_lengths(lengths: &[f64], groups: &[u32]) -> Vec<f64> {
+    let mut merged = Vec::with_capacity(groups.len());
+    let mut at = 0_usize;
+
+    for count in groups {
+        let take = usize::try_from(*count).unwrap_or(usize::MAX);
+        merged.push(lengths.iter().skip(at).take(take).sum());
+        at += take;
+    }
+
+    merged
+}
+
+/// Which of the muxer's segments an offered one is made of.
+///
+/// Returns the first and last, both inclusive, or nothing where the playlist
+/// has no such segment.
+#[must_use]
+pub fn group_span(groups: &[u32], offered: usize) -> Option<(u64, u64)> {
+    let count = *groups.get(offered)?;
+    let first: u64 = groups
+        .iter()
+        .take(offered)
+        .map(|held| u64::from(*held))
+        .sum();
+
+    Some((first, first + u64::from(count) - 1))
+}
+
 /// What to ask the muxer for, so that where it cuts does not depend on where
 /// the run started.
 ///
@@ -420,9 +501,77 @@ mod tests {
     }
 
     use super::{
-        cut_interval, longest_segment, parse_cuts, safe_segment_lengths, seek_into,
-        segment_lengths, segment_starts, Cut, Keyframes,
+        cut_interval, group_span, grouped_lengths, longest_segment, parse_cuts,
+        safe_segment_lengths, seek_into, segment_groups, segment_lengths, segment_starts, Cut,
+        Keyframes,
     };
+
+    /// The fault this exists for, taken from the film that showed it.
+    ///
+    /// A hard cut leaves two keyframes a couple of frames apart, and the
+    /// segment between them was offered to the player as a request of its own.
+    #[test]
+    fn gathers_segments_too_short_to_be_worth_a_request() {
+        let lengths = [3.5, 0.083, 3.4, 3.5];
+        let groups = segment_groups(&lengths, 1.0);
+
+        assert_eq!(groups, vec![1, 2, 1]);
+        assert_eq!(grouped_lengths(&lengths, &groups), vec![3.5, 3.483, 3.5]);
+    }
+
+    #[test]
+    fn leaves_segments_that_are_already_long_enough_alone() {
+        let lengths = [4.0, 3.5, 4.0];
+
+        assert_eq!(segment_groups(&lengths, 1.0), vec![1, 1, 1]);
+    }
+
+    /// A run of short ones gathers into one rather than into pairs.
+    #[test]
+    fn gathers_a_run_of_short_segments_until_it_is_worth_sending() {
+        let groups = segment_groups(&[0.1, 0.1, 0.1, 0.1, 4.0], 0.3);
+
+        assert_eq!(groups, vec![3, 2]);
+    }
+
+    /// The tail joins what came before it rather than being offered as a stub.
+    #[test]
+    fn gives_a_final_scrap_to_the_segment_before_it() {
+        let groups = segment_groups(&[4.0, 4.0, 0.2], 1.0);
+
+        assert_eq!(groups, vec![1, 2]);
+        assert_eq!(grouped_lengths(&[4.0, 4.0, 0.2], &groups), vec![4.0, 4.2]);
+    }
+
+    /// A film shorter than one segment is still a film.
+    #[test]
+    fn offers_a_single_short_film_as_itself() {
+        assert_eq!(segment_groups(&[1.5], 1.0), vec![1]);
+        assert_eq!(segment_groups(&[0.4], 1.0), vec![1]);
+        assert_eq!(segment_groups(&[], 1.0), Vec::<u32>::new());
+    }
+
+    #[test]
+    fn says_which_of_the_muxers_segments_an_offered_one_is_made_of() {
+        let groups = vec![2, 1, 3];
+
+        assert_eq!(group_span(&groups, 0), Some((0, 1)));
+        assert_eq!(group_span(&groups, 1), Some((2, 2)));
+        assert_eq!(group_span(&groups, 2), Some((3, 5)));
+        assert_eq!(group_span(&groups, 3), None);
+    }
+
+    /// Grouping never loses a second of the film, whatever it gathers.
+    #[test]
+    fn offers_every_second_the_muxer_produced() {
+        let lengths = [3.5, 0.083, 0.125, 3.4, 2.0, 0.2];
+        let groups = segment_groups(&lengths, 1.0);
+
+        let offered: f64 = grouped_lengths(&lengths, &groups).iter().sum();
+
+        assert!((offered - lengths.iter().sum::<f64>()).abs() < 1e-9);
+        assert_eq!(groups.iter().sum::<u32>() as usize, lengths.len());
+    }
 
     /// A stream whose clock does not start at nought.
     ///

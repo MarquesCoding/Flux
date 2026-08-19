@@ -213,6 +213,15 @@ pub struct SessionSpec {
     /// and gets the container that carries the most.
     #[serde(default)]
     pub container: SegmentContainer,
+    /// What the source video is, where the caller knows it.
+    ///
+    /// Read only when copying, and only to tag the output. A copied HEVC
+    /// stream must be marked `hvc1` in fragmented MP4: `hev1` is the other
+    /// legal marking, it is what `FFmpeg` writes unasked, and a player given it
+    /// shows a black picture and plays the sound. Absent means the tag is left
+    /// alone, which is right for every codec that has only one.
+    #[serde(default)]
+    pub source_video_codec: Option<String>,
 }
 
 impl SessionSpec {
@@ -1206,6 +1215,28 @@ impl TranscodePlan {
         force_key_frames_argument(self.spec.segment_seconds, self.start_at.seconds)
     }
 
+    /// What a copied video stream has to be marked as, where it has to be
+    /// marked at all.
+    ///
+    /// Only HEVC, and only in fragmented MP4. `hvc1` says the parameter sets
+    /// live in the configuration record, which is what a player reads before it
+    /// decodes anything; `hev1` allows them in the stream instead, and is what
+    /// `FFmpeg` writes for HEVC in MP4 unless it is told otherwise. Safari
+    /// refuses `hev1` outright and Chromium decodes nothing from it, so a
+    /// perfectly good copy arrives as sound over a black picture.
+    ///
+    /// Transport streams carry no codec tag at all, so there is nothing to say.
+    fn copied_video_tag(&self) -> Option<&'static str> {
+        if !self.spec.container.needs_init_segment() {
+            return None;
+        }
+
+        match self.spec.source_video_codec.as_deref() {
+            Some("hevc") => Some("hvc1"),
+            _ => None,
+        }
+    }
+
     fn push_video_args(&self, args: &mut Vec<String>) -> bool {
         let mut is_mapped = false;
 
@@ -1213,6 +1244,11 @@ impl TranscodePlan {
             VideoAction::Copy => {
                 args.push("-c:v".into());
                 args.push("copy".into());
+
+                if let Some(tag) = self.copied_video_tag() {
+                    args.push("-tag:v".into());
+                    args.push(tag.into());
+                }
             }
             VideoAction::Encode {
                 encoder,
@@ -1433,8 +1469,9 @@ impl TranscodePlan {
         if self.start_at.seconds > 0.0 {
             args.push("-ss".into());
             args.push(format!("{:.6}", self.start_at.seconds));
-            args.push("-copyts".into());
         }
+
+        args.push("-copyts".into());
 
         args.push("-i".into());
         args.push(self.spec.input_path.clone());
@@ -1452,6 +1489,8 @@ impl TranscodePlan {
 
         self.push_audio_args(&mut args);
 
+        args.push("-avoid_negative_ts".into());
+        args.push("disabled".into());
         args.push("-f".into());
         args.push("hls".into());
         args.push("-muxdelay".into());
@@ -1468,6 +1507,8 @@ impl TranscodePlan {
         args.push(self.start_at.index.to_string());
 
         if self.spec.container.needs_init_segment() {
+            args.push("-hls_segment_options".into());
+            args.push("movflags=+frag_discont+skip_sidx".into());
             args.push("-hls_segment_type".into());
             args.push("fmp4".into());
             args.push("-hls_fmp4_init_filename".into());
@@ -1521,7 +1562,60 @@ mod tests {
             subtitles: SubtitleAction::None,
             source_size: None,
             container: SegmentContainer::Fmp4,
+            source_video_codec: None,
         }
+    }
+
+    fn copying(codec: &str, container: SegmentContainer) -> SessionSpec {
+        SessionSpec {
+            video: VideoAction::Copy,
+            container,
+            source_video_codec: Some(codec.to_owned()),
+            ..spec()
+        }
+    }
+
+    /// `FFmpeg` writes `hev1` for HEVC in MP4 unless it is told otherwise, and
+    /// a player given `hev1` shows a black picture and plays the sound.
+    #[test]
+    fn marks_a_copied_hevc_stream_as_hvc1_in_fragmented_mp4() {
+        let args = plan(copying("hevc", SegmentContainer::Fmp4)).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-tag:v", "hvc1"]));
+    }
+
+    /// A transport stream carries no codec tag, so there is nothing to say.
+    #[test]
+    fn marks_nothing_when_the_segments_are_transport_streams() {
+        let args = plan(copying("hevc", SegmentContainer::MpegTs)).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-tag:v"));
+    }
+
+    /// H.264 has one marking in MP4 and `FFmpeg` already writes it.
+    #[test]
+    fn leaves_the_tag_alone_for_a_codec_with_only_one() {
+        let args = plan(copying("h264", SegmentContainer::Fmp4)).to_ffmpeg_args();
+
+        assert!(!args.iter().any(|argument| argument == "-tag:v"));
+    }
+
+    /// An encode writes whatever the encoder produces, which is not the source.
+    #[test]
+    fn leaves_the_tag_alone_when_encoding() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264_videotoolbox".into(),
+                max_bitrate_kbps: 8000,
+                max_width: 1920,
+                max_height: 1080,
+                tone_map: None,
+            },
+            source_video_codec: Some("hevc".into()),
+            ..spec()
+        };
+
+        assert!(!plan(spec).to_ffmpeg_args().iter().any(|a| a == "-tag:v"));
     }
 
     /// `-hls_time` is a request the muxer can only honour on a keyframe.
@@ -1686,13 +1780,92 @@ mod tests {
         );
     }
 
-    /// A run from the beginning has nothing to preserve.
+    /// A run from the beginning has the film's own clock to preserve too.
+    ///
+    /// This test used to assert the opposite, on the reasoning that a run
+    /// starting at nought has nothing to keep. It has: an audio encoder's first
+    /// frame carries a priming delay that puts it before the video, and ffmpeg's
+    /// default answer is to shift the whole film forward so nothing is negative.
+    /// Measured on a real remux — the playlist, built from the source's own
+    /// keyframes, says the second segment begins at 3.458; the media ffmpeg
+    /// wrote began it at 3.626. Every boundary in the film was 167ms out of step
+    /// with the playlist describing it.
     #[test]
-    fn does_not_ask_to_copy_timestamps_a_run_starts_with_anyway() {
-        assert!(!plan(spec())
+    fn keeps_the_films_own_timestamps_from_the_beginning_as_well() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args.iter().any(|argument| argument == "-copyts"));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-avoid_negative_ts", "disabled"]));
+    }
+
+    /// The muxer must not shift what the playlist has already described.
+    ///
+    /// `-copyts` alone is not enough: it keeps the timestamps and the muxer
+    /// shifts them anyway. Both were measured together, and only together did
+    /// the media land on the keyframes the playlist names.
+    #[test]
+    fn refuses_the_muxers_offer_to_move_the_film_off_its_own_clock() {
+        let mut sought = plan(spec());
+        sought.start_at = SegmentStart {
+            index: 300,
+            seconds: 2306.4,
+        };
+
+        for session in [plan(spec()), sought] {
+            let args = session.to_ffmpeg_args();
+
+            assert!(
+                args.windows(2)
+                    .any(|pair| pair == ["-avoid_negative_ts", "disabled"]),
+                "expected the shift to be refused"
+            );
+        }
+    }
+
+    /// Fragmented MP4 needs the initial delay written into its fragments, and
+    /// no index box written over the boundaries.
+    ///
+    /// Without `frag_discont` the delay never reaches `moof/traf/tfdt`, so the
+    /// audio of every fragment is stamped a frame away from where it belongs.
+    /// Without `skip_sidx` ffmpeg writes an index HLS never reads, and rewrites
+    /// the presentation times of open-GOP boundary packets to build it.
+    ///
+    /// `negative_cts_offsets` belongs in that list by every argument about
+    /// correctness — without it a fragment cannot say a sample is presented
+    /// after it is decoded, so the muxer stamps each one with a decode time a
+    /// reorder window late. It is left out anyway, because it moves the whole
+    /// film one frame off the times the playlist gives for it: measured on a
+    /// real remux, every segment's media began 42ms after the playlist said it
+    /// would. The playlist is what a player seeks against, so a fragment that
+    /// misdescribes itself is the cheaper of the two faults.
+    #[test]
+    fn tells_the_fragmented_muxer_what_a_player_needs_and_nothing_it_does_not() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-hls_segment_options", "movflags=+frag_discont+skip_sidx"]));
+
+        assert!(
+            !args
+                .iter()
+                .any(|argument| argument.contains("negative_cts_offsets")),
+            "the film must stay on the times the playlist gives for it"
+        );
+    }
+
+    /// Transport streams carry none of that and must not be told to.
+    #[test]
+    fn leaves_a_transport_stream_run_without_fragment_options() {
+        let mut session = plan(spec());
+        session.spec.container = SegmentContainer::MpegTs;
+
+        assert!(!session
             .to_ffmpeg_args()
             .iter()
-            .any(|argument| argument == "-copyts"));
+            .any(|argument| argument == "-hls_segment_options"));
     }
 
     /// A film played from the beginning seeks to nothing.

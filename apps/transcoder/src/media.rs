@@ -112,6 +112,13 @@ pub struct VideoStream {
     pub width: u32,
     pub height: u32,
     pub range: VideoRange,
+    /// What a player that cannot read this stream's dynamic metadata sees instead.
+    ///
+    /// The same as `range` for everything with nothing extra to ignore. Dolby Vision profile 8.1
+    /// and HDR10+ both carry a base layer another kind of player reads correctly on its own, which
+    /// is the whole reason they were specified that way, and a server that ignores it re-encodes
+    /// films that would have played untouched.
+    pub range_base: VideoRange,
     pub bitrate_kbps: Option<u32>,
     pub bit_depth: Option<u8>,
     /// The codec level, as the codec itself numbers it.

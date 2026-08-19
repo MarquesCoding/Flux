@@ -22,6 +22,13 @@ type StartOutcome =
   | { kind: 'failed'; reason: string };
 
 type SessionFile = {
+  body: ReadableStream<Uint8Array>;
+  contentType: string;
+  contentRange: string | null;
+  contentLength: string | null;
+};
+
+type StoredFile = {
   body: ArrayBuffer;
   contentType: string;
 };
@@ -55,7 +62,7 @@ type PlaybackService = {
   trickplay: (mediaId: string) => Promise<Trickplay | null>;
   readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>;
   readPreview: (mediaId: string, range: string | null) => Promise<PreviewRead>;
-  readTrickplayFile: (trickplayId: string, name: string) => Promise<SessionFile | null>;
+  readTrickplayFile: (trickplayId: string, name: string) => Promise<StoredFile | null>;
   stop: (sessionId: string) => Promise<boolean>;
   heartbeat: (sessionId: string, isPlaying: boolean) => Promise<boolean>;
 };

@@ -95,11 +95,15 @@ const createMemoryPlaybackService = (
       return Promise.resolve(null);
     }
 
+    const bytes = new TextEncoder().encode(contents);
+
     return Promise.resolve({
-      body: new TextEncoder().encode(contents).buffer,
+      body: new Blob([bytes]).stream(),
       contentType: name.endsWith('.m3u8')
         ? 'application/vnd.apple.mpegurl'
         : 'application/octet-stream',
+      contentRange: null,
+      contentLength: bytes.byteLength.toString(),
     });
   },
 

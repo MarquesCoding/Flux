@@ -16,6 +16,7 @@ const probe = (): MediaProbe => ({
     width: 3840,
     height: 2160,
     range: 'HDR10',
+    rangeBase: 'HDR10',
     bitrateKbps: 12000,
     bitDepth: 10,
     level: 150,
@@ -55,6 +56,7 @@ const stored = (path: string, overrides: Partial<StoredItem> = {}): StoredItem =
   modifiedAtMs: 1000,
   externalId: null,
   videoBitDepth: 8,
+  videoRangeBase: 'HDR10',
   canCopySegments: true,
   videoFrameRate: 23.976,
   ...overrides,
@@ -200,6 +202,17 @@ describe('a library whose files have gone from under it', () => {
     const { run, rows } = harness({
       found: [file('/a.mkv')],
       existing: [stored('/a.mkv', { videoBitDepth: null })],
+    });
+
+    await run();
+
+    expect(rows.map((row) => row.path)).toEqual(['/a.mkv']);
+  });
+
+  it('probes again where nobody recorded what is legible underneath the range', async () => {
+    const { run, rows } = harness({
+      found: [file('/a.mkv')],
+      existing: [stored('/a.mkv', { videoRangeBase: null })],
     });
 
     await run();

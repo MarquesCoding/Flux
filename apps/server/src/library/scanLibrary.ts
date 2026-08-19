@@ -20,6 +20,7 @@ type StoredItem = {
   modifiedAtMs: number;
   externalId: string | null;
   videoBitDepth: number | null;
+  videoRangeBase: string | null;
   canCopySegments: boolean | null;
   videoFrameRate: number | null;
 };
@@ -96,6 +97,7 @@ const selectChanged = (
       existing.sizeBytes !== file.sizeBytes ||
       existing.modifiedAtMs !== file.modifiedAtMs ||
       existing.videoBitDepth === null ||
+      existing.videoRangeBase === null ||
       existing.canCopySegments === null ||
       existing.videoFrameRate === null
     );
