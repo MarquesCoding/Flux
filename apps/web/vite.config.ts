@@ -19,9 +19,7 @@ const certificate = (name: string): Buffer | null => {
   return existsSync(path) ? readFileSync(path) : null;
 };
 
-const WORKER_SOURCE = fileURLToPath(
-  new URL('../../packages/client/src/notifications/pushWorker.ts', import.meta.url),
-);
+const WORKER_SOURCE = 'src/notifications/pushWorker.ts';
 
 const WORKER_PATH = '/push-worker.js';
 
