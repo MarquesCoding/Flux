@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { setupRenderer } from '@better-auth/electron/preload';
 import { z } from 'zod';
 import { FORGET_ONE, READ_EVERYTHING, WRITE_ONE } from '@FluxDesktop/main/preferenceChannels';
 
@@ -17,3 +18,5 @@ contextBridge.exposeInMainWorld('flux', {
     },
   },
 });
+
+setupRenderer();

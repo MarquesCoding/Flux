@@ -22,6 +22,7 @@ const aFakePlatform = (overrides: Partial<Platform> = {}): Platform => {
     },
     describeThisClient: () => 'A test',
     whereTheServerIs: () => '',
+    signInElsewhere: null,
     openSocket: () => ({ send: () => {}, close: () => {} }),
     thisClientId: () => 'client-1',
     ...overrides,

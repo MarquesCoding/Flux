@@ -68,6 +68,7 @@ beforeEach(() => {
     describeThisClient: () => 'Flux on a desktop',
     thisClientId: () => 'a-window',
     whereTheServerIs: () => serverAddress() ?? '',
+    signInElsewhere: null,
     openSocket: openRealtimeSocket,
   });
 });

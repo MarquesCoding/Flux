@@ -1,12 +1,14 @@
-import { StrictMode, useState } from 'react';
+import { StrictMode, useCallback, useState } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
+import { QueryClientProvider, useQuery, useQueryClient } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { Toaster } from '@FluxUI/Toaster';
 import { TooltipScope } from '@FluxUI/TooltipScope';
 import { buildQueryClient } from '@FluxClient/query/queryClient';
 import { rememberServerAddress, serverAddress } from '@FluxClient/session/serverAddress';
+import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ConnectToServer } from '@FluxScreens/components/ConnectToServer/ConnectToServer';
+import { SignInThroughYourBrowser } from '@FluxScreens/components/SignInThroughYourBrowser/SignInThroughYourBrowser';
 import { buildRouter } from '@FluxScreens/routes/buildRouter';
 import { installDesktopPlatform } from '@FluxDesktop/platform/installDesktopPlatform';
 import './styles/main.css';
@@ -25,14 +27,26 @@ const answers = buildQueryClient();
 const router = buildRouter('Flux');
 
 /**
- * Draws the application, or asks which Flux it is for where nobody has said yet.
+ * Draws the application, or the one thing standing before it.
  *
- * A browser is never asked, so `apps/web` mounts the router and nothing else. A desktop client
- * serves its own pages and cannot know, so the address is the one thing it needs before anything
- * else will work — every request and every picture is built onto it.
+ * Three states, in order, and each is a thing a browser never has to ask. Which Flux is this for —
+ * a browser is answered by the page it was served. Who is watching — a browser signs somebody in
+ * where they already are, and this window cannot hold the cookie that would take. Then the
+ * application, which from here on is the same code the browser runs.
  */
 const Desktop = () => {
+  const cache = useQueryClient();
   const [address, setAddress] = useState(serverAddress());
+  const session = useQuery({ ...sessionQueries.who(), enabled: address !== null });
+
+  const startAgain = useCallback(() => {
+    rememberServerAddress(null);
+    setAddress(null);
+  }, []);
+
+  const signedIn = useCallback(() => {
+    void cache.invalidateQueries({ queryKey: sessionQueries.who().queryKey });
+  }, [cache]);
 
   if (address === null) {
     return (
@@ -43,6 +57,14 @@ const Desktop = () => {
         }}
       />
     );
+  }
+
+  if (session.isPending) {
+    return null;
+  }
+
+  if (session.data === null || session.data === undefined) {
+    return <SignInThroughYourBrowser onSignedIn={signedIn} onChangeServer={startAgain} />;
   }
 
   return <RouterProvider router={router} />;

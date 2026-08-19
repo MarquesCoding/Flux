@@ -1,6 +1,7 @@
 import { installPlatform } from '@FluxClient/platform/installPlatform';
 import { serverAddress } from '@FluxClient/session/serverAddress';
 import { theDesktopsStore } from '@FluxDesktop/platform/theDesktopsStore';
+import { signInThroughABrowser } from '@FluxDesktop/platform/signInThroughABrowser';
 import { describeThisDesktop } from '@FluxDesktop/platform/describeThisDesktop';
 import { thisWindowsId } from '@FluxDesktop/platform/thisWindowsId';
 import { openRealtimeSocket } from '@FluxDesktop/realtime/openRealtimeSocket';
@@ -16,6 +17,7 @@ import { openRealtimeSocket } from '@FluxDesktop/realtime/openRealtimeSocket';
 const installDesktopPlatform = (): void => {
   installPlatform({
     store: theDesktopsStore(),
+    signInElsewhere: signInThroughABrowser(),
     describeThisClient: () => describeThisDesktop(navigator.userAgent),
     thisClientId: thisWindowsId,
     whereTheServerIs: () => serverAddress() ?? '',

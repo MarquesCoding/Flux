@@ -4,14 +4,16 @@ type Preferences = {
   forget: (key: string) => void;
 };
 
-type FluxBridge = {
-  preferences: Preferences;
-};
+type SignedInAccount = { id: string; email: string; name: string };
 
 declare global {
   interface Window {
-    flux: FluxBridge;
+    flux: { preferences: Preferences };
+    requestAuth: () => Promise<void>;
+    signOut: () => Promise<void>;
+    getUser: () => Promise<SignedInAccount | null>;
+    onAuthenticated: (then: (user: SignedInAccount) => void) => () => void;
   }
 }
 
-export type { FluxBridge, Preferences };
+export type { Preferences, SignedInAccount };
