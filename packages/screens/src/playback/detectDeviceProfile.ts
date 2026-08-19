@@ -19,20 +19,20 @@ const VIDEO_PROBES = [
   { codec: 'h264', mimeType: 'video/mp4; codecs="avc1.640028"' },
   { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.1.6.L120.B0"' },
   { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.08"' },
-  { codec: 'vp9', mimeType: 'video/webm; codecs="vp9"' },
+  { codec: 'vp9', mimeType: 'video/mp4; codecs="vp09.00.10.08"' },
 ] as const;
 
 const TEN_BIT_VIDEO_PROBES = [
   { codec: 'hevc', mimeType: 'video/mp4; codecs="hvc1.2.4.L120.B0"' },
   { codec: 'av1', mimeType: 'video/mp4; codecs="av01.0.05M.10"' },
-  { codec: 'vp9', mimeType: 'video/webm; codecs="vp09.02.10.10"' },
+  { codec: 'vp9', mimeType: 'video/mp4; codecs="vp09.02.10.10"' },
 ] as const;
 
 const AUDIO_PROBES = [
   { codec: 'aac', mimeType: 'audio/mp4; codecs="mp4a.40.2"' },
   { codec: 'ac3', mimeType: 'audio/mp4; codecs="ac-3"' },
   { codec: 'eac3', mimeType: 'audio/mp4; codecs="ec-3"' },
-  { codec: 'opus', mimeType: 'audio/webm; codecs="opus"' },
+  { codec: 'opus', mimeType: 'audio/mp4; codecs="opus"' },
   { codec: 'flac', mimeType: 'audio/mp4; codecs="flac"' },
 ] as const;
 
