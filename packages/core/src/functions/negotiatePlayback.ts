@@ -298,6 +298,19 @@ const decideVideo = (
  * decided separately from picture because the common case is a file whose picture is fine and whose
  * sound is not, and remuxing one is far cheaper than re-encoding both.
  *
+ * How many channels a track carries is not a reason to touch it. A client that can decode the codec
+ * has an operating system underneath it that knows what is plugged in, and will fold a 5.1 bed down
+ * for two speakers, render it binaurally for headphones, or pass it to a receiver untouched.
+ * Downmixing first takes that choice away from every listener and cannot be undone further along.
+ *
+ * Measured on a Mac playing an E-AC-3 5.1 film through Safari with AirPods in: the output reports
+ * two channels and always will, because AirPods are a stereo endpoint and macOS renders spatial
+ * audio into them. Refusing 5.1 on that number sent a stereo downmix to the one arrangement that
+ * had something to do with the other four channels. See FLUX-152.
+ *
+ * `maxAudioChannels` still says what to encode to once something else has forced an encode, which
+ * is what it is good for: a stereo device has no use for a 5.1 encode.
+ *
  * @param media - The file, as the catalogue holds it.
  * @param profile - What the device says it can play.
  * @param qualityClamp - What the viewer pinned quality to, where they pinned it.
@@ -376,20 +389,6 @@ const decideAudio = (
       'AudioProfileNotSupported',
       `Client does not decode the ${stream.profile} profile of ${stream.codec}`,
     );
-  }
-
-  if (stream.channels > profile.maxAudioChannels) {
-    return {
-      kind: 'transcode',
-      streamIndex: stream.index,
-      codec: targetCodec,
-      channels: profile.maxAudioChannels,
-      maxBitrateKbps,
-      reason: {
-        code: 'AudioChannelsAboveLimit',
-        detail: `Source has ${stream.channels.toString()} channels, client supports ${profile.maxAudioChannels.toString()}`,
-      },
-    };
   }
 
   if (compressedBitrateKbps !== null) {
