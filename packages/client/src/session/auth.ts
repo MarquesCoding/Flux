@@ -1,7 +1,8 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
-import { serverUrl } from '@FluxClient/query/serverUrl';
-import { authorisation, rememberSessionToken } from '@FluxClient/session/sessionToken';
+import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServer';
+import { forgetAuthCookies } from '@FluxClient/session/authCookies';
+import { rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
@@ -17,59 +18,6 @@ type AuthenticateOutcome =
 type Enrollment = { totpURI: string; backupCodes: string[] };
 
 const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
-
-const PLACEHOLDER_ORIGIN = 'http://flux.invalid';
-
-const onTheServer = (asked: string): string => {
-  const { pathname, search } = new URL(asked, PLACEHOLDER_ORIGIN);
-
-  return serverUrl(`${pathname}${search}`);
-};
-
-/**
- * Sends what better-auth asked for to the server this client watches, carrying whatever says who it
- * is and keeping any token that comes back.
- *
- * A browser is recognised by its cookie and this adds nothing. A client whose window serves its own
- * pages cannot be sent that cookie, so it presents the token instead and holds the one every
- * signing-in response hands back — see ADR-0026.
- *
- * The client is built against an origin that does not exist, and every request is moved onto the one
- * this client actually watches. That is what lets somebody change which server they are watching
- * without the client being rebuilt, which a desktop client does on the screen it opens with.
- *
- * A header the caller already set is left alone, since it knows something this does not.
- *
- * @param input - What the library asked for.
- * @param init - How it asked.
- * @returns The answer.
- */
-const askTheServer = async (
-  input: string | URL | Request,
-  init?: RequestInit,
-): Promise<Response> => {
-  const asked = input instanceof Request ? input.url : String(input);
-  const carried = new Headers(init?.headers ?? (input instanceof Request ? input.headers : {}));
-
-  for (const [name, value] of Object.entries(authorisation())) {
-    if (!carried.has(name)) {
-      carried.set(name, value);
-    }
-  }
-
-  const response =
-    input instanceof Request
-      ? await globalThis.fetch(new Request(onTheServer(asked), input), { headers: carried })
-      : await globalThis.fetch(onTheServer(asked), { ...init, headers: carried });
-
-  const handed = response.headers.get('set-auth-token');
-
-  if (handed !== null) {
-    rememberSessionToken(handed);
-  }
-
-  return response;
-};
 
 /**
  * Builds the one client that speaks to better-auth, which this module holds and nothing else sees.
@@ -188,6 +136,7 @@ const signOut = async (): Promise<boolean> => {
 
   writeCurrentProfile(null);
   rememberSessionToken(null);
+  forgetAuthCookies();
 
   return error === null;
 };

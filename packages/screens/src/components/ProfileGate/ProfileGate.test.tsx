@@ -53,6 +53,7 @@ const serverWith = (
 
     return Promise.resolve({
       ok: signIn.ok,
+      headers: new Headers(),
       json: () => Promise.resolve({}),
       text: () => Promise.resolve(signIn.body ?? '{}'),
     });

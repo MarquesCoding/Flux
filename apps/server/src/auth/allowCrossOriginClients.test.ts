@@ -86,6 +86,23 @@ describe('allowCrossOriginClients', () => {
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
 
+  it('lets a client send back the cookies it is holding, which a preflight has to allow', async () => {
+    const response = await served().request('/api/health', {
+      method: 'OPTIONS',
+      headers: { origin: 'https://localhost:5173' },
+    });
+
+    expect(response.headers.get('access-control-allow-headers')).toContain('x-flux-auth-cookies');
+  });
+
+  it('lets a client read the cookies it is being handed, which it cannot be sent', async () => {
+    const response = await askedFrom('https://localhost:5173');
+
+    expect(response.headers.get('access-control-expose-headers')).toContain(
+      'x-flux-set-auth-cookies',
+    );
+  });
+
   it('varies on origin, so one client is not served another client answer', async () => {
     const response = await askedFrom('https://localhost:5173');
 

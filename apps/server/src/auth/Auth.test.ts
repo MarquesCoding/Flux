@@ -1,5 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { z } from 'zod';
+import { base32 } from '@better-auth/utils/base32';
+import { createOTP } from '@better-auth/utils/otp';
 import { createMemoryAuth } from './createMemoryAuth';
+import { exposeAuthCookies } from '@FluxServer/auth/exposeAuthCookies';
+import { requestWithAuthCookies } from '@FluxServer/auth/requestWithAuthCookies';
 import { ownAddresses } from '@FluxServer/env/ownOrigins';
 
 const BASE_URL = 'http://localhost:8420';
@@ -10,7 +15,13 @@ const credentials = {
   name: 'Viewer',
 };
 
-const post = (path: string, body: Record<string, string>, headers: Record<string, string> = {}) =>
+const EnrolmentSchema = z.object({ totpURI: z.string(), backupCodes: z.array(z.string()) });
+
+const post = (
+  path: string,
+  body: Record<string, string | boolean>,
+  headers: Record<string, string> = {},
+) =>
   new Request(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
@@ -291,5 +302,102 @@ describe('createAuth', () => {
     );
 
     expect(response.status).toBe(200);
+  });
+});
+
+describe('a client that cannot hold a cookie', () => {
+  /**
+   * Signs an account up, turns two-factor on the way somebody would, and answers with what is needed
+   * to sign in again — all without a cookie, since that is the client this is about.
+   *
+   * @param ask - The server, wired as the application wires it.
+   * @returns The backup codes, and the account's password.
+   */
+  const withTwoFactorOn = async (
+    ask: (request: Request) => Promise<Response>,
+  ): Promise<string[]> => {
+    const signedUp = await ask(post('/api/auth/sign-up/email', credentials));
+    const token = signedUp.headers.get('set-auth-token') ?? '';
+    const bearer = { authorization: `Bearer ${token}` };
+
+    const enabled = EnrolmentSchema.parse(
+      await (
+        await ask(post('/api/auth/two-factor/enable', { password: credentials.password }, bearer))
+      ).json(),
+    );
+
+    const shown = new URL(enabled.totpURI).searchParams.get('secret') ?? '';
+    const secret = new TextDecoder().decode(base32.decode(shown));
+
+    await ask(
+      post(
+        '/api/auth/two-factor/verify-totp',
+        { code: await createOTP(secret, { digits: 6, period: 30 }).totp() },
+        bearer,
+      ),
+    );
+
+    return enabled.backupCodes;
+  };
+
+  it('is asked for a second factor, and can answer it', async () => {
+    const { auth } = createMemoryAuth();
+    const ask = async (request: Request) =>
+      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
+
+    const backupCodes = await withTwoFactorOn(ask);
+
+    const signedIn = await ask(post('/api/auth/sign-in/email', credentials));
+    const challenge = signedIn.headers.get('x-flux-set-auth-cookies');
+
+    expect(await signedIn.json()).toMatchObject({ twoFactorRedirect: true });
+    expect(challenge).toContain('two_factor=');
+
+    const verified = await ask(
+      post(
+        '/api/auth/two-factor/verify-backup-code',
+        { code: backupCodes[0] ?? '' },
+        { 'x-flux-auth-cookies': challenge ?? '' },
+      ),
+    );
+
+    expect(verified.status).toBe(200);
+    expect(verified.headers.get('set-auth-token')).not.toBeNull();
+  });
+
+  it('cannot answer the challenge without handing it back, which is what the header is for', async () => {
+    const { auth } = createMemoryAuth();
+    const ask = async (request: Request) =>
+      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
+
+    const backupCodes = await withTwoFactorOn(ask);
+
+    await ask(post('/api/auth/sign-in/email', credentials));
+
+    const verified = await ask(
+      post('/api/auth/two-factor/verify-backup-code', { code: backupCodes[0] ?? '' }),
+    );
+
+    expect(verified.status).toBe(401);
+  });
+
+  it('is handed the trusted device, so choosing to be trusted is not quietly lost', async () => {
+    const { auth } = createMemoryAuth();
+    const ask = async (request: Request) =>
+      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
+
+    const backupCodes = await withTwoFactorOn(ask);
+
+    const signedIn = await ask(post('/api/auth/sign-in/email', credentials));
+
+    const verified = await ask(
+      post(
+        '/api/auth/two-factor/verify-backup-code',
+        { code: backupCodes[0] ?? '', trustDevice: true },
+        { 'x-flux-auth-cookies': signedIn.headers.get('x-flux-set-auth-cookies') ?? '' },
+      ),
+    );
+
+    expect(verified.headers.get('x-flux-set-auth-cookies')).toContain('trust_device=');
   });
 });

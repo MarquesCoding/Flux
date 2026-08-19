@@ -106,6 +106,40 @@ server holds unauthenticated connections open while it waits for one. That is a
 thing to be careful about on a public endpoint, and being careful about it is more
 code than either of the others.
 
+### Two cookies bearer does not know about
+
+`bearer` converts one cookie, the session one. The two-factor plugin sets two of
+its own — the pending challenge, and the record of a device somebody chose to
+trust — and reads them back from the `Cookie` header on the request that answers.
+Neither reaches a client that cannot be sent a cookie, so a second factor could be
+asked for and never answered: sign-in returns `twoFactorRedirect`, and every code
+typed after it is refused.
+
+A client cannot fix this by holding the cookie itself, either. `Set-Cookie` is a
+forbidden response header and `Cookie` a forbidden request one, in every browser
+engine, and a desktop window is a browser engine. What a script can read and write
+is an ordinary header.
+
+**So the server hands those two over in a header, and takes them back in one.**
+This is `bearer`'s own trick rather than a new idea: it answers with
+`set-auth-token` for precisely the same reason. `exposeAuthCookies` copies the
+values out of `Set-Cookie` on the way out, `headersWithAuthCookies` writes them
+back into `Cookie` on the way in, and the two-factor plugin is untouched — it
+reads the cookie where it has always read it.
+
+Two cookies and no others, named on the server. The session cookie is deliberately
+not among them: `bearer` already carries it, and accepting it here would be a
+second way to present a session, on a path built for something else. Both relayed
+cookies are signed with the server's own secret, so a value that was not issued
+here fails to verify a moment later. What a client can do with one is present a
+value it was already given, which is what holding a cookie is.
+
+**A browser is given none of this.** It has the real cookies, and a signed
+challenge sitting in web storage beside them would be a credential in the open for
+nothing in return. The client sends and stores the header only where
+`whereTheServerIs` answers with something, which is exactly the condition this ADR
+is about.
+
 ## Consequences
 
 ### What this gets us
@@ -137,6 +171,11 @@ clear a token the client is holding.
 **A credential in a URL, on one path.** Named above, and worth counting here: it
 is the one place this decision puts a token somewhere it can be written down by
 something other than the client.
+
+**A cookie relay to keep in step.** A better-auth plugin that starts setting a
+cookie of its own gets the same treatment or silently fails on desktop, and the
+failure looks like a feature that does nothing rather than an error. The list of
+relayed cookies is one line in one file, which is the least bad version of that.
 
 ### What this forecloses
 

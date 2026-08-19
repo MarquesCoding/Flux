@@ -1,9 +1,19 @@
 import { createMiddleware } from 'hono/factory';
+import {
+  AUTH_COOKIES_HEADER,
+  SET_AUTH_COOKIES_HEADER,
+} from '@FluxCore/functions/relayedAuthCookies';
 import { originIsAllowed } from '@FluxServer/auth/originIsAllowed';
 
-const ALLOWED_HEADERS = ['authorization', 'content-type', 'accept', 'range'];
+const ALLOWED_HEADERS = ['authorization', 'content-type', 'accept', 'range', AUTH_COOKIES_HEADER];
 
-const EXPOSED_HEADERS = ['set-auth-token', 'content-range', 'content-length', 'accept-ranges'];
+const EXPOSED_HEADERS = [
+  'set-auth-token',
+  SET_AUTH_COOKIES_HEADER,
+  'content-range',
+  'content-length',
+  'accept-ranges',
+];
 
 const PREFLIGHT_SECONDS = 600;
 

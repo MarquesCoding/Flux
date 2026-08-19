@@ -1,4 +1,4 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
+import { askTheServer } from '@FluxClient/session/askTheServer';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
@@ -29,6 +29,12 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
  * library's surface, and put a Flux idea — a household with profiles — into a library that has no
  * opinion about them. So it stays here, as the exception, named.
  *
+ * It is asked through `askTheServer` all the same, because the route answers exactly as better-auth
+ * does: with a session for a client that can hold one, a token for a client that cannot, and a
+ * pending second factor for somebody who has one. Asked with a plain `fetch`, a client with no
+ * shared origin would be signed in by a cookie it can never hold, and told to answer a challenge it
+ * had not been given.
+ *
  * @param profileId - Who picked.
  * @param password - Their PIN, where the profile has one.
  * @returns Whether it worked, and why not where it did not.
@@ -37,7 +43,7 @@ const signInAsProfile = async (
   profileId: string,
   password: string,
 ): Promise<{ kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string }> => {
-  const response = await fetch(serverUrl(`/api/profiles/${profileId}/sign-in`), {
+  const response = await askTheServer(`/api/profiles/${profileId}/sign-in`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),
