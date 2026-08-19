@@ -1,5 +1,4 @@
 import { serverAddress } from '@FluxClient/session/serverAddress';
-import { sessionToken } from '@FluxClient/session/sessionToken';
 import type { Connect } from '@FluxClient/realtime/createRealtimeClient';
 
 const PATH = '/api/realtime';
@@ -11,18 +10,14 @@ const PATH = '/api/realtime';
  * from itself. It uses the address somebody gave it, over the matching scheme — a server reached
  * over TLS refuses a plain socket, and one without a certificate has no TLS to offer.
  *
- * The token rides in the address because a browser WebSocket cannot carry a header on the upgrade —
- * there is no API for it — and a client with no cookie has nothing else to say who it is with.
+ * Nothing is carried in the address. A browser WebSocket cannot set a header on the upgrade, but the
+ * upgrade is still a request leaving this client, and the session is attached to those out in the
+ * process that owns the window — see ADR-0026.
  *
  * @param address - Where this client was told its Flux is.
- * @param token - The session this client holds, where it holds one.
  * @returns The socket address.
  */
-const socketAddressOf = (address: string, token: string | null): string => {
-  const socket = `${address.replace(/^http/, 'ws')}${PATH}`;
-
-  return token === null || token === '' ? socket : `${socket}?token=${encodeURIComponent(token)}`;
-};
+const socketAddressOf = (address: string): string => `${address.replace(/^http/, 'ws')}${PATH}`;
 
 /**
  * Opens the real socket, against the server this client was told to watch.
@@ -37,7 +32,7 @@ const openRealtimeSocket: Connect = (handlers) => {
     throw new Error('This client has not been told where its server is.');
   }
 
-  const socket = new WebSocket(socketAddressOf(address, sessionToken()));
+  const socket = new WebSocket(socketAddressOf(address));
 
   socket.onopen = () => {
     handlers.onOpen();

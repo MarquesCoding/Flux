@@ -3,7 +3,6 @@ import type { DBAdapter, DBAdapterInstance } from 'better-auth';
 import { electron } from '@better-auth/electron';
 import {
   admin,
-  bearer,
   deviceAuthorization,
   genericOAuth,
   jwt,
@@ -103,7 +102,6 @@ const createAuth = ({
       electron(),
       passkey({ rpName: FLUX_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
-      bearer({ requireSignature: true }),
       jwt(),
       apiKey({ enableSessionForAPIKeys: true }),
       admin(),

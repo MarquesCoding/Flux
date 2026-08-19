@@ -7,9 +7,6 @@ import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
 import type { FluxAuth } from '@FluxServer/auth/Auth';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 import { allowCrossOriginClients } from '@FluxServer/auth/allowCrossOriginClients';
-import { exposeAuthCookies } from '@FluxServer/auth/exposeAuthCookies';
-import { headersWithAuthCookies } from '@FluxServer/auth/headersWithAuthCookies';
-import { requestWithAuthCookies } from '@FluxServer/auth/requestWithAuthCookies';
 import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
 import { splitPersonCredits } from '@FluxServer/library/splitPersonCredits';
 import type { LibraryService } from '@FluxServer/library/LibraryService';
@@ -509,9 +506,7 @@ const createApp = ({
 
   app.all('/api/auth/admin/*', createBetterAuthAdminBlock());
 
-  app.on(['GET', 'POST'], '/api/auth/*', async (context) =>
-    exposeAuthCookies(await auth.handler(requestWithAuthCookies(context.req.raw))),
-  );
+  app.on(['GET', 'POST'], '/api/auth/*', (context) => auth.handler(context.req.raw));
 
   app.openapi(setupStatusRoute, async (context) => {
     const detectedOrigin = new URL(context.req.url).origin;
@@ -1478,13 +1473,11 @@ const createApp = ({
       return context.json({ error: 'No such profile.' }, 404);
     }
 
-    return exposeAuthCookies(
-      await auth.api.signInEmail({
-        body: { email, password: parsed.data.password },
-        asResponse: true,
-        headers: headersWithAuthCookies(context.req.raw.headers),
-      }),
-    );
+    return auth.api.signInEmail({
+      body: { email, password: parsed.data.password },
+      asResponse: true,
+      headers: context.req.raw.headers,
+    });
   });
 
   app.get('/api/profiles/avatars/:style', (context) => {

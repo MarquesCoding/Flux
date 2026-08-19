@@ -22,7 +22,6 @@ import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderInta
 import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
-import { headersForUpgrade } from '@FluxServer/auth/headersForUpgrade';
 import { createAuth } from '@FluxServer/auth/Auth';
 import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
 import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
@@ -1434,7 +1433,7 @@ app.get(
       (
         await readSessionOnce(
           auth,
-          headersForUpgrade(context.req.raw.headers, context.req.query('token')),
+          context.req.raw.headers,
         )
       )?.user ?? null;
 

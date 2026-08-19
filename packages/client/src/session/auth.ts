@@ -1,8 +1,6 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
 import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServer';
-import { forgetAuthCookies } from '@FluxClient/session/authCookies';
-import { rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { electronProxyClient } from '@better-auth/electron/proxy';
 import { DESKTOP_SCHEME } from '@FluxCore/functions/desktopScheme';
@@ -149,8 +147,6 @@ const signOut = async (): Promise<boolean> => {
   const { error } = await client.signOut();
 
   writeCurrentProfile(null);
-  rememberSessionToken(null);
-  forgetAuthCookies();
 
   return error === null;
 };

@@ -1,10 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { z } from 'zod';
-import { base32 } from '@better-auth/utils/base32';
-import { createOTP } from '@better-auth/utils/otp';
 import { createMemoryAuth } from './createMemoryAuth';
-import { exposeAuthCookies } from '@FluxServer/auth/exposeAuthCookies';
-import { requestWithAuthCookies } from '@FluxServer/auth/requestWithAuthCookies';
 import { ownAddresses } from '@FluxServer/env/ownOrigins';
 
 const BASE_URL = 'http://localhost:8420';
@@ -14,8 +9,6 @@ const credentials = {
   password: 'a-long-enough-password',
   name: 'Viewer',
 };
-
-const EnrolmentSchema = z.object({ totpURI: z.string(), backupCodes: z.array(z.string()) });
 
 const post = (
   path: string,
@@ -177,25 +170,23 @@ describe('createAuth', () => {
     expect(response.headers.get('set-cookie')).toContain('Secure');
   });
 
-  it('accepts a bearer token as an alternative to a session cookie', async () => {
+  it('is signed by its cookie and nothing else, so a stray header cannot stand in for one', async () => {
     const { auth } = createMemoryAuth();
     await auth.handler(post('/api/auth/sign-up/email', credentials));
 
     const signIn = await auth.handler(
       post('/api/auth/sign-in/email', { email: credentials.email, password: credentials.password }),
     );
-    const token = signIn.headers.get('set-auth-token');
+    const cookie = signIn.headers.getSetCookie()[0]?.split(';')[0] ?? '';
 
-    expect(token).toBeTruthy();
-
-    const session = await auth.handler(
+    const asked = await auth.handler(
       new Request(`${BASE_URL}/api/auth/get-session`, {
-        headers: { authorization: `Bearer ${token ?? ''}` },
+        headers: { cookie, authorization: 'Bearer not-a-real-token' },
       }),
     );
 
-    expect(session.status).toBe(200);
-    expect(await session.text()).toContain(credentials.email);
+    expect(asked.status).toBe(200);
+    expect(await asked.text()).toContain(credentials.email);
   });
 
   it('gives every new user a profile row', async () => {
@@ -305,113 +296,4 @@ describe('createAuth', () => {
   });
 });
 
-describe('a bearer token nobody signed', () => {
-  it('is ignored, rather than costing a browser the cookie that was working', async () => {
-    const { auth } = createMemoryAuth();
-    const signedUp = await auth.handler(post('/api/auth/sign-up/email', credentials));
-    const cookie = signedUp.headers.getSetCookie()[0]?.split(';')[0] ?? '';
 
-    const session = await auth.api.getSession({
-      headers: new Headers({ cookie, authorization: 'Bearer not-a-real-token' }),
-    });
-
-    expect(session?.user.email).toBe(credentials.email);
-  });
-});
-
-describe('a client that cannot hold a cookie', () => {
-  /**
-   * Signs an account up, turns two-factor on the way somebody would, and answers with what is needed
-   * to sign in again — all without a cookie, since that is the client this is about.
-   *
-   * @param ask - The server, wired as the application wires it.
-   * @returns The backup codes, and the account's password.
-   */
-  const withTwoFactorOn = async (
-    ask: (request: Request) => Promise<Response>,
-  ): Promise<string[]> => {
-    const signedUp = await ask(post('/api/auth/sign-up/email', credentials));
-    const token = signedUp.headers.get('set-auth-token') ?? '';
-    const bearer = { authorization: `Bearer ${token}` };
-
-    const enabled = EnrolmentSchema.parse(
-      await (
-        await ask(post('/api/auth/two-factor/enable', { password: credentials.password }, bearer))
-      ).json(),
-    );
-
-    const shown = new URL(enabled.totpURI).searchParams.get('secret') ?? '';
-    const secret = new TextDecoder().decode(base32.decode(shown));
-
-    await ask(
-      post(
-        '/api/auth/two-factor/verify-totp',
-        { code: await createOTP(secret, { digits: 6, period: 30 }).totp() },
-        bearer,
-      ),
-    );
-
-    return enabled.backupCodes;
-  };
-
-  it('is asked for a second factor, and can answer it', async () => {
-    const { auth } = createMemoryAuth();
-    const ask = async (request: Request) =>
-      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
-
-    const backupCodes = await withTwoFactorOn(ask);
-
-    const signedIn = await ask(post('/api/auth/sign-in/email', credentials));
-    const challenge = signedIn.headers.get('x-flux-set-auth-cookies');
-
-    expect(await signedIn.json()).toMatchObject({ twoFactorRedirect: true });
-    expect(challenge).toContain('two_factor=');
-
-    const verified = await ask(
-      post(
-        '/api/auth/two-factor/verify-backup-code',
-        { code: backupCodes[0] ?? '' },
-        { 'x-flux-auth-cookies': challenge ?? '' },
-      ),
-    );
-
-    expect(verified.status).toBe(200);
-    expect(verified.headers.get('set-auth-token')).not.toBeNull();
-  });
-
-  it('cannot answer the challenge without handing it back, which is what the header is for', async () => {
-    const { auth } = createMemoryAuth();
-    const ask = async (request: Request) =>
-      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
-
-    const backupCodes = await withTwoFactorOn(ask);
-
-    await ask(post('/api/auth/sign-in/email', credentials));
-
-    const verified = await ask(
-      post('/api/auth/two-factor/verify-backup-code', { code: backupCodes[0] ?? '' }),
-    );
-
-    expect(verified.status).toBe(401);
-  });
-
-  it('is handed the trusted device, so choosing to be trusted is not quietly lost', async () => {
-    const { auth } = createMemoryAuth();
-    const ask = async (request: Request) =>
-      exposeAuthCookies(await auth.handler(requestWithAuthCookies(request)));
-
-    const backupCodes = await withTwoFactorOn(ask);
-
-    const signedIn = await ask(post('/api/auth/sign-in/email', credentials));
-
-    const verified = await ask(
-      post(
-        '/api/auth/two-factor/verify-backup-code',
-        { code: backupCodes[0] ?? '', trustDevice: true },
-        { 'x-flux-auth-cookies': signedIn.headers.get('x-flux-set-auth-cookies') ?? '' },
-      ),
-    );
-
-    expect(verified.headers.get('x-flux-set-auth-cookies')).toContain('trust_device=');
-  });
-});

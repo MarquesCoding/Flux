@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
 import { rememberServerAddress, serverAddress } from '@FluxClient/session/serverAddress';
-import { rememberSessionToken } from '@FluxClient/session/sessionToken';
 import { openRealtimeSocket, socketAddressOf } from './openRealtimeSocket';
 import type { Handlers } from '@FluxClient/realtime/createRealtimeClient';
 
@@ -80,40 +79,25 @@ afterEach(() => {
 
 describe('socketAddressOf', () => {
   it('opens a plain socket against a server reached without TLS', () => {
-    expect(socketAddressOf('http://192.168.1.20:8420', null)).toBe(
+    expect(socketAddressOf('http://192.168.1.20:8420')).toBe(
       'ws://192.168.1.20:8420/api/realtime',
     );
   });
 
   it('opens a secure socket against a server reached over TLS, which refuses a plain one', () => {
-    expect(socketAddressOf('https://flux.example.com', null)).toBe(
+    expect(socketAddressOf('https://flux.example.com')).toBe(
       'wss://flux.example.com/api/realtime',
     );
   });
 
   it('keeps a path, for a Flux served under one', () => {
-    expect(socketAddressOf('https://example.com/flux', null)).toBe(
+    expect(socketAddressOf('https://example.com/flux')).toBe(
       'wss://example.com/flux/api/realtime',
     );
   });
 
-  it('carries the token in the address, since an upgrade cannot carry a header', () => {
-    expect(socketAddressOf('https://flux.example.com', 'a-session-token')).toBe(
-      'wss://flux.example.com/api/realtime?token=a-session-token',
-    );
-  });
 
-  it('escapes a token rather than trusting it to be address-shaped', () => {
-    expect(socketAddressOf('https://flux.example.com', 'a token/with=things')).toBe(
-      'wss://flux.example.com/api/realtime?token=a%20token%2Fwith%3Dthings',
-    );
-  });
 
-  it('asks for nothing where this client holds no token, so a cookie still works', () => {
-    expect(socketAddressOf('https://flux.example.com', '')).toBe(
-      'wss://flux.example.com/api/realtime',
-    );
-  });
 });
 
 describe('openRealtimeSocket', () => {
@@ -129,14 +113,6 @@ describe('openRealtimeSocket', () => {
     expect(FakeSocket.last?.url).toBe('wss://flux.example.com/api/realtime');
   });
 
-  it('carries the session it holds, since a cookie is not what says who this client is', () => {
-    rememberServerAddress('https://flux.example.com');
-    rememberSessionToken('a-session-token');
-
-    openRealtimeSocket(nothingListening());
-
-    expect(FakeSocket.last?.url).toBe('wss://flux.example.com/api/realtime?token=a-session-token');
-  });
 
   it('passes on the moments the client cares about', () => {
     rememberServerAddress('https://flux.example.com');
