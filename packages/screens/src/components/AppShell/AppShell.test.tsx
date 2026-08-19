@@ -41,7 +41,8 @@ const enterTheCode = (target: EventTarget = window) => {
   }
 };
 
-const filmOf = (container: HTMLElement): HTMLElement | null => container.querySelector('.bg-black');
+const filmOf = (container: HTMLElement): HTMLElement | null =>
+  container.querySelector('[role="presentation"].fixed');
 
 afterEach(() => {
   vi.unstubAllGlobals();

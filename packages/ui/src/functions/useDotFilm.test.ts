@@ -1,19 +1,17 @@
-import { act, render } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { silhouetteFilm } from '@FluxUI/silhouetteFilm';
-import { DotFilm } from './DotFilm';
-
-const canvasOf = (container: HTMLElement): HTMLCanvasElement | null =>
-  container.querySelector('canvas');
+import { useDotFilm } from './useDotFilm';
+import type { DotFieldFrame } from '@FluxUI/DotField.types';
 
 /**
  * Lets the fetch of the film settle. It is a promise rather than a wait, so this runs it out by
- * hand rather than by the clock — which keeps the tests that stop the clock honest.
+ * hand rather than by the clock — which keeps the test that stops the clock honest.
  *
- * @param container - What was rendered, which is where the film turns up.
+ * @param read - What the hook is answering with.
  */
-const fetched = async (container: HTMLElement) => {
-  for (let tick = 0; tick < 20 && canvasOf(container) === null; tick += 1) {
+const fetched = async (read: () => DotFieldFrame | null) => {
+  for (let tick = 0; tick < 20 && read() === null; tick += 1) {
     await act(async () => {
       await Promise.resolve();
     });
@@ -21,17 +19,19 @@ const fetched = async (container: HTMLElement) => {
 };
 
 /**
- * Renders it playing, with the film fetched and on screen.
+ * Renders it playing, with the film fetched and ready to draw.
  *
  * @param onEnd - Told when it stops.
- * @returns What was rendered.
+ * @returns What the hook answered.
  */
 const playing = async (onEnd: () => void) => {
-  const view = render(<DotFilm isPlaying onEnd={onEnd} />);
+  const view = renderHook(({ isPlaying }: { isPlaying: boolean }) => useDotFilm(isPlaying, onEnd), {
+    initialProps: { isPlaying: true },
+  });
 
-  await fetched(view.container);
+  await fetched(() => view.result.current);
 
-  expect(canvasOf(view.container)).toBeInTheDocument();
+  expect(view.result.current).toBeTypeOf('function');
 
   return view;
 };
@@ -40,34 +40,24 @@ afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('DotFilm', () => {
-  it('draws nothing at all until somebody has found it', () => {
-    const { container } = render(<DotFilm isPlaying={false} onEnd={vi.fn()} />);
-
-    expect(container).toBeEmptyDOMElement();
-  });
-
-  it('fetches the film only once it is asked for', async () => {
-    const { container } = render(<DotFilm isPlaying={false} onEnd={vi.fn()} />);
+describe('useDotFilm', () => {
+  it('has nothing to draw until somebody has found it', async () => {
+    const view = renderHook(() => useDotFilm(false, vi.fn()));
 
     await act(async () => {
       await Promise.resolve();
     });
 
-    expect(canvasOf(container)).not.toBeInTheDocument();
+    expect(view.result.current).toBeNull();
   });
 
-  it('covers the page and plays the film on the dots', async () => {
-    const { container } = await playing(vi.fn());
+  it('hands back a frame source once the film has been fetched', async () => {
+    const view = await playing(vi.fn());
+    const lifts = new Float32Array(40 * 30);
 
-    expect(container.firstElementChild?.className).toContain('fixed inset-0');
-    expect(canvasOf(container)).toBeInTheDocument();
-  });
+    view.result.current?.(lifts, 40, 30, 10);
 
-  it('is decoration, so nothing reading the page aloud mentions it', async () => {
-    const { container } = await playing(vi.fn());
-
-    expect(container.firstElementChild).toHaveAttribute('aria-hidden', 'true');
+    expect(lifts.some((lift) => lift > 0)).toBe(true);
   });
 
   it('ends on any key at all, not only the one somebody guesses', async () => {
@@ -103,11 +93,19 @@ describe('DotFilm', () => {
     expect(onEnd).toHaveBeenCalledTimes(1);
   });
 
+  it('gives the dots nothing to draw once it has stopped', async () => {
+    const view = await playing(vi.fn());
+
+    view.rerender({ isPlaying: false });
+
+    expect(view.result.current).toBeNull();
+  });
+
   it('stops listening once it has stopped', async () => {
     const onEnd = vi.fn();
-    const { rerender } = await playing(onEnd);
+    const view = await playing(onEnd);
 
-    rerender(<DotFilm isPlaying={false} onEnd={onEnd} />);
+    view.rerender({ isPlaying: false });
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
 
     expect(onEnd).not.toHaveBeenCalled();
@@ -116,9 +114,12 @@ describe('DotFilm', () => {
   it('tells whoever asked for it about the end it was last given', async () => {
     const first = vi.fn();
     const second = vi.fn();
-    const { rerender } = await playing(first);
+    const view = renderHook(({ onEnd }: { onEnd: () => void }) => useDotFilm(true, onEnd), {
+      initialProps: { onEnd: first },
+    });
 
-    rerender(<DotFilm isPlaying onEnd={second} />);
+    await fetched(() => view.result.current);
+    view.rerender({ onEnd: second });
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'q' }));
 
     expect(first).not.toHaveBeenCalled();
