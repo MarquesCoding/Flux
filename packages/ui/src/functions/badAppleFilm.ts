@@ -8,6 +8,10 @@ const STAGE = 4 / 3;
  * file rather than part of any bundle, so it is asked for once somebody has entered the code and
  * never on the way to anything else.
  *
+ * The film is four by three and the page is not, so it is laid over the whole field and cropped
+ * rather than sat inside it. A border of dots that the film stops at reads as a window onto
+ * something else, which is the one thing the dots being the screen cannot survive.
+ *
  * @returns The film, and how long it runs for.
  */
 const loadBadAppleFilm = async (): Promise<DotFieldFilm> => {
@@ -26,19 +30,20 @@ const loadBadAppleFilm = async (): Promise<DotFieldFilm> => {
     seconds: mask.frames / mask.fps,
     lift: (lifts: Float32Array, columns: number, rows: number, seconds: number): void => {
       const bits = mask.at(Math.floor(seconds * mask.fps));
-      const across = Math.min(columns, rows * STAGE);
+      const across = Math.max(columns, rows * STAGE);
+      const high = across / STAGE;
       const left = (columns - across) / 2;
+      const top = (rows - high) / 2;
 
       for (let row = 0; row < rows; row += 1) {
-        const down = rows <= 1 ? 0 : row / (rows - 1);
-        const line = Math.round(down * (mask.height - 1)) * mask.width;
+        const down = Math.floor(((row + 0.5 - top) / high) * mask.height);
+        const line = Math.min(mask.height - 1, Math.max(0, down)) * mask.width;
 
         for (let column = 0; column < columns; column += 1) {
-          const along = (column - left) / across;
-          const into = row * columns + column;
+          const along = Math.floor(((column + 0.5 - left) / across) * mask.width);
 
-          lifts[into] =
-            along < 0 || along > 1 ? 0 : (bits[line + Math.round(along * (mask.width - 1))] ?? 0);
+          lifts[row * columns + column] =
+            bits[line + Math.min(mask.width - 1, Math.max(0, along))] ?? 0;
         }
       }
     },

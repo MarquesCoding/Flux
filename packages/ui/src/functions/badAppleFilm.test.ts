@@ -98,7 +98,7 @@ describe('loadBadAppleFilm', () => {
     expect(lifts[3]).toBe(0);
   });
 
-  it('leaves the dots either side dark rather than stretching the picture over them', async () => {
+  it('fills the field edge to edge rather than stopping short of it', async () => {
     serve([Array.from({ length: WIDTH * HEIGHT }, () => 1)]);
 
     const film = await loadBadAppleFilm();
@@ -106,9 +106,20 @@ describe('loadBadAppleFilm', () => {
 
     film.lift(lifts, 40, 3, 0);
 
-    expect(lifts[0]).toBe(0);
-    expect(lifts[39]).toBe(0);
-    expect(lifts[20]).toBe(1);
+    expect(lifts.every((lift) => lift === 1)).toBe(true);
+  });
+
+  it('crops the film to the field rather than squashing it to fit', async () => {
+    const banner = Array.from({ length: WIDTH * HEIGHT }, (_, at) => (at < WIDTH ? 1 : 0));
+
+    serve([banner]);
+
+    const film = await loadBadAppleFilm();
+    const lifts = new Float32Array(40 * 3);
+
+    film.lift(lifts, 40, 3, 0);
+
+    expect(lifts.every((lift) => lift === 0)).toBe(true);
   });
 
   it('holds on the last frame rather than running off the end of the film', async () => {
