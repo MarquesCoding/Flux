@@ -10,7 +10,10 @@ type DetectDeviceProfileOptions = {
   screenHeight: number;
   name: string;
   maxBitrateKbps?: number;
+  maxAudioChannels?: number;
 };
+
+const STEREO = 2;
 
 const VIDEO_PROBES = [
   { codec: 'h264', mimeType: 'video/mp4; codecs="avc1.640028"' },
@@ -104,6 +107,15 @@ const unsupportedAudioProfilesFor = (
 };
 
 /**
+ * Reads a channel count as a whole number of channels, never fewer than two.
+ *
+ * @param claimed - What the device answered.
+ * @returns The count to declare.
+ */
+const atLeastStereo = (claimed: number): number =>
+  Number.isFinite(claimed) ? Math.max(STEREO, Math.floor(claimed)) : STEREO;
+
+/**
  * Builds the profile the server negotiates against, from what this browser actually reports it can
  * play rather than from what its name suggests — two browsers of the same name on different machines
  * answer differently, and guessing produces a film that will not play.
@@ -131,6 +143,7 @@ const detectDeviceProfile = ({
   screenHeight,
   name,
   maxBitrateKbps,
+  maxAudioChannels = STEREO,
 }: DetectDeviceProfileOptions): DeviceProfile => {
   const videoCodecs = VIDEO_PROBES.filter((probe) => isTypeSupported(probe.mimeType)).map(
     (probe) => probe.codec,
@@ -156,7 +169,7 @@ const detectDeviceProfile = ({
     maxWidth: Math.max(screenWidth, 640),
     maxHeight: Math.max(screenHeight, 480),
     ...(maxBitrateKbps === undefined ? {} : { maxBitrateKbps }),
-    maxAudioChannels: 2,
+    maxAudioChannels: atLeastStereo(maxAudioChannels),
     supportedVideoRanges: supportsHdr ? ['SDR', 'HDR10', 'HLG'] : ['SDR'],
     tenBitVideoCodecs,
     maxVideoLevels: {
@@ -183,6 +196,42 @@ type MediaQuerySource = {
   matchMedia?: (query: string) => { matches: boolean };
 };
 
+type AudioOutputSource = {
+  AudioContext?: new () => {
+    destination: { maxChannelCount: number };
+    close: () => Promise<void>;
+  };
+};
+
+/**
+ * Asks the current output device how many channels it accepts, which is the only part of an audio
+ * profile a browser will answer.
+ *
+ * It describes the device rather than the browser, so it is read once when the profile is built and
+ * goes stale the moment somebody plugs in headphones or connects a receiver. That is a worse answer
+ * than renegotiating on every device change and a far better one than the two this used to assume.
+ *
+ * @returns What the output accepts, never fewer than two.
+ */
+const channelsTheOutputAccepts = (): number => {
+  const source: AudioOutputSource = window;
+
+  if (source.AudioContext === undefined) {
+    return STEREO;
+  }
+
+  try {
+    const context = new source.AudioContext();
+    const accepted = context.destination.maxChannelCount;
+
+    void context.close();
+
+    return accepted;
+  } catch {
+    return STEREO;
+  }
+};
+
 /**
  * Asks the browser which containers, codecs and ranges it can actually play, by testing each rather
  * than by reading its name.
@@ -204,6 +253,7 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
     screenWidth: Math.round(window.screen.width * window.devicePixelRatio),
     screenHeight: Math.round(window.screen.height * window.devicePixelRatio),
     name,
+    maxAudioChannels: channelsTheOutputAccepts(),
   });
 };
 
