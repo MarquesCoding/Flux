@@ -8,6 +8,8 @@ const ARTWORK_HOST = 'image.tmdb.org';
 
 const PAUSED = 'Paused';
 
+const BETWEEN = ' · ';
+
 const A_SECOND = 1000;
 
 type WhatIsPlaying =
@@ -55,6 +57,26 @@ const theBadgeFor = (playing: WhatIsPlaying): { image: string; text: string } =>
   return playing.isPaused
     ? { image: 'fluxpause', text: 'Paused' }
     : { image: 'fluxplay', text: 'Playing' };
+};
+
+/**
+ * Says how many other people are watching this together.
+ *
+ * Discord has a group of its own, and it is sent, but it draws it only on an activity that says
+ * somebody is playing something. This one says they are watching, which is what it is — so the
+ * company goes in the line somebody reads rather than in a field they will never see.
+ *
+ * @param party - The watch party, where there is one.
+ * @returns What to say about the company, or nothing where somebody is watching alone.
+ */
+const theCompanyIn = (party: { id: string; size: number } | null): string | null => {
+  if (party === null || party.size < 2) {
+    return null;
+  }
+
+  const others = party.size - 1;
+
+  return others === 1 ? 'with 1 other' : `with ${others.toString()} others`;
 };
 
 /**
@@ -110,10 +132,11 @@ const theArtworkFor = (artwork: string | null): string | undefined => {
  * an end that is no longer coming — better to say what is open and let the missing clock say the
  * rest.
  *
- * A watch party is sent as Discord's own idea of a group, which is what draws the little figure and
- * the count beside the time. Its size is given as both the number in it and the room in it, because
- * a watch party has no limit to be short of — what somebody wants to see is that three people are
- * watching this together, not how many more could.
+ * A watch party is said in the line somebody reads, and sent as Discord's own group besides. The
+ * group is the field made for it, but Discord draws it only where an activity says somebody is
+ * playing something, and this one says they are watching — which is worth more than the little
+ * figure, because it is what the card leads with. The field is still sent: it is true, it costs
+ * nothing, and wherever Discord does draw it, it will be right.
  *
  * @param playing - What is happening, or nothing where the status should come down.
  * @param version - Which Flux this is, which is what the picture says when somebody rests on it.
@@ -159,7 +182,10 @@ const aDiscordActivity = (
         };
 
   const line = playing.series === null ? null : (episode ?? playing.title);
-  const state = playing.isPaused ? (line === null ? PAUSED : `${PAUSED} — ${line}`) : line;
+  const together = theCompanyIn(playing.party);
+  const body = [line, together].filter((part) => part !== null).join(BETWEEN);
+  const said = body === '' ? null : body;
+  const state = playing.isPaused ? (said === null ? PAUSED : `${PAUSED} — ${said}`) : said;
 
   return {
     type: WATCHING,

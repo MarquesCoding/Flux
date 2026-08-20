@@ -200,4 +200,37 @@ describe('aDiscordActivity', () => {
       'A Programme',
     );
   });
+
+  it('says who somebody is watching with, in the line they read rather than a field they will not see', () => {
+    expect(
+      aDiscordActivity({ ...AN_EPISODE, party: { id: 'a-party', size: 2 } }, '0.0.0')?.state,
+    ).toBe('Series 2, Episode 12 · with 1 other');
+  });
+
+  it('counts the others rather than the party, since somebody knows they are in it', () => {
+    expect(
+      aDiscordActivity({ ...AN_EPISODE, party: { id: 'a-party', size: 4 } }, '0.0.0')?.state,
+    ).toBe('Series 2, Episode 12 · with 3 others');
+  });
+
+  it('says the company for a film, which has no line of its own to add it to', () => {
+    expect(aDiscordActivity({ ...A_FILM, party: { id: 'a-party', size: 3 } }, '0.0.0')?.state).toBe(
+      'with 2 others',
+    );
+  });
+
+  it('says nothing about company for a party of one, which is watching alone', () => {
+    expect(
+      aDiscordActivity({ ...AN_EPISODE, party: { id: 'a-party', size: 1 } }, '0.0.0')?.state,
+    ).toBe('Series 2, Episode 12');
+  });
+
+  it('keeps both the pause and the company, which are true at the same time', () => {
+    expect(
+      aDiscordActivity(
+        { ...AN_EPISODE, isPaused: true, party: { id: 'a-party', size: 2 } },
+        '0.0.0',
+      )?.state,
+    ).toBe('Paused — Series 2, Episode 12 · with 1 other');
+  });
 });
