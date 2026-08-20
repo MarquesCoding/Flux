@@ -52,6 +52,17 @@ const pointerEvent = (kind: string, pointerType: string): Event => {
 };
 
 /**
+ * The address a request was made to, whichever shape fetch was handed.
+ */
+const urlOf = (input: RequestInfo | URL): string => {
+  if (typeof input === 'string') {
+    return input;
+  }
+
+  return input instanceof URL ? input.href : input.url;
+};
+
+/**
  * A mouse resting on the card, which is the only thing that opens it.
  */
 const restOn = async (element: Element, pointerType = 'mouse') => {
@@ -125,6 +136,20 @@ describe('RailCard', () => {
     renderInAnAddress(<RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />);
 
     expect(screen.getByText('Parasite')).toBeInTheDocument();
+  });
+
+  it('reads the clip aloud in writing, since a hover preview is silent', async () => {
+    const { container } = renderInAnAddress(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    await restOn(cardHolder(container));
+
+    await waitFor(() => {
+      expect(vi.mocked(fetch).mock.calls.some(([url]) => urlOf(url).includes('/subtitles'))).toBe(
+        true,
+      );
+    });
   });
 
   it('opens the page when the card is chosen', async () => {

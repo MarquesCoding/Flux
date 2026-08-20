@@ -2,11 +2,19 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { coverPage, forgetPageCovers } from '@FluxUI/pageCover';
 import { Hero } from './Hero';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaPreviewProps } from '@FluxScreens/components/MediaPreview/MediaPreview.types';
+
+const { previewMock } = vi.hoisted(() => ({ previewMock: vi.fn() }));
 
 vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
-  MediaPreview: () => <div>preview</div>,
+  MediaPreview: (props: MediaPreviewProps) => {
+    previewMock(props);
+
+    return <div>preview</div>;
+  },
 }));
 
 const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn() }));
@@ -33,6 +41,7 @@ const item = (id: string, title: string): MediaSummary => ({
 const items = [item('a', 'Arrival'), item('b', 'Dune'), item('c', 'Sicario')];
 
 beforeEach(() => {
+  previewMock.mockReset();
   detailMock.mockReset();
   detailMock.mockReturnValue(Promise.resolve(null));
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -40,9 +49,18 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  forgetPageCovers();
 });
 
 describe('Hero', () => {
+  it('offers the featured clip sound, and reads it aloud in writing either way', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(
+      expect.objectContaining({ hasSound: true, hasSubtitles: true }),
+    );
+  });
+
   it('stands in a runway by default, so the page can scroll beneath it', () => {
     const { container } = renderInAnAddress(
       <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />,
@@ -133,6 +151,42 @@ describe('Hero', () => {
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} onFeatureChange={onFeatureChange} />);
 
     expect(onFeatureChange).toHaveBeenCalledWith(items[0]);
+  });
+
+  it('holds the featured clip still while something is standing over the page', () => {
+    coverPage();
+
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ isHeld: true }));
+  });
+
+  it('lets it play on while nothing is', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ isHeld: false }));
+  });
+
+  it('holds still while something is standing over the page', () => {
+    const uncover = coverPage();
+
+    renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+
+    act(() => {
+      uncover();
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
   });
 
   it('moves on after a while', () => {

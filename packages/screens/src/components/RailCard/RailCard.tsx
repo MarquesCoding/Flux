@@ -259,6 +259,7 @@ const RailCard = ({
                   backdropUrl={artworkUrl ?? null}
                   durationSeconds={media.durationSeconds}
                   settleMilliseconds={0}
+                  hasSubtitles
                   fills
                 />
               </div>
