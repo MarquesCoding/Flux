@@ -11,13 +11,14 @@ import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxScreens/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxScreens/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
+import { useIsPageCovered } from '@FluxUI/useIsPageCovered';
 import type { HeroProps } from './Hero.types';
 
 const DRAWS_IN_BY_PIXELS = 640;
 
 const FOOT_OF_THE_CARD = '24svh';
 
-const ROTATE_AFTER_MILLISECONDS = 14_000;
+const ROTATE_AFTER_MILLISECONDS = 28_000;
 
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
@@ -88,7 +89,8 @@ const Hero = ({
   const [isPointedAt, setIsPointedAt] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const isHeld = isPointedAt || isFocused;
+  const isCovered = useIsPageCovered();
+  const isHeld = isPointedAt || isFocused || isCovered;
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
@@ -225,6 +227,10 @@ const Hero = ({
                 settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
                 onEnded={showNext}
                 {...(onPalette === undefined ? {} : { onPalette })}
+                hasSound
+                hasSubtitles
+                controlsAtTop
+                isHeld={isCovered}
                 fills
               />
             </motion.div>

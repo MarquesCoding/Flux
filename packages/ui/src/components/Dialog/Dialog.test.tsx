@@ -1,9 +1,32 @@
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { forgetPageCovers, isPageCovered } from '@FluxUI/pageCover';
 import { Dialog } from './Dialog';
 
+afterEach(() => {
+  forgetPageCovers();
+});
+
 describe('Dialog', () => {
+  it('stands over the page while it is open, and stands down on the way out', () => {
+    const { rerender } = render(
+      <Dialog label="Arrival" isOpen onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    );
+
+    expect(isPageCovered()).toBe(true);
+
+    rerender(
+      <Dialog label="Arrival" isOpen={false} onClose={vi.fn()}>
+        <p>Details</p>
+      </Dialog>,
+    );
+
+    expect(isPageCovered()).toBe(false);
+  });
+
   it('shows nothing while closed', () => {
     render(
       <Dialog label="Arrival" isOpen={false} onClose={vi.fn()}>

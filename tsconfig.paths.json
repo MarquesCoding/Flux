@@ -127,6 +127,8 @@
       "@FluxUI/MaskFrames.types": ["./packages/ui/src/functions/MaskFrames.types.ts"],
       "@FluxUI/useDotFilm": ["./packages/ui/src/functions/useDotFilm.ts"],
       "@FluxUI/useKonamiCode": ["./packages/ui/src/functions/useKonamiCode.ts"],
+      "@FluxUI/pageCover": ["./packages/ui/src/functions/pageCover.ts"],
+      "@FluxUI/useIsPageCovered": ["./packages/ui/src/functions/useIsPageCovered.ts"],
       "@FluxUI/usePagedScroller": ["./packages/ui/src/functions/usePagedScroller.ts"],
       "@FluxUI/useSlidingHighlight": ["./packages/ui/src/functions/useSlidingHighlight.ts"],
       "@FluxUI/usePortalContainer": ["./packages/ui/src/functions/usePortalContainer.ts"],
