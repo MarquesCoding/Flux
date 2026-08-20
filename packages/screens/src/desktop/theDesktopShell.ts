@@ -2,6 +2,19 @@ const MARK = 'fluxDesktop';
 
 const CHANGE_SERVER = 'flux:change-server';
 
+const NOW_WATCHING = 'flux:now-watching';
+
+type WhatIsBeingWatched = {
+  title: string;
+  series: string | null;
+  season: number | null;
+  episode: number | null;
+  startedAt: number;
+  endsAt: number | null;
+  tmdbId: string | null;
+  isSeries: boolean;
+};
+
 /**
  * Whether these pages are being shown inside Flux's own window rather than a browser.
  *
@@ -26,4 +39,19 @@ const askForADifferentServer = (): void => {
   document.dispatchEvent(new CustomEvent(CHANGE_SERVER));
 };
 
-export { askForADifferentServer, isTheDesktopClient };
+/**
+ * Tells the window what somebody is watching, for it to publish where a page cannot.
+ *
+ * Discord's status is a socket on the same machine, which no page can open — so the page says what
+ * is playing and the window says it to Discord. Nothing is sent unless the profile asked for it,
+ * which is decided before this is called and not here.
+ *
+ * @param watching - What is playing, or nothing to say that nothing is.
+ */
+const nowWatching = (watching: WhatIsBeingWatched | null): void => {
+  document.dispatchEvent(new CustomEvent(NOW_WATCHING, { detail: watching }));
+};
+
+export type { WhatIsBeingWatched };
+
+export { askForADifferentServer, isTheDesktopClient, nowWatching };

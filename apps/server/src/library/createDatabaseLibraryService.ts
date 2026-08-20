@@ -548,6 +548,7 @@ const createDatabaseLibraryService = ({
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
           rating: mediaItem.rating,
+          externalId: mediaItem.externalId,
           genres: mediaItem.genres,
         })
         .from(mediaItem)
@@ -560,6 +561,7 @@ const createDatabaseLibraryService = ({
         ...row,
         addedAt: row.addedAt.toISOString(),
         hasPoster: posterUrl !== null,
+          externalId: row.externalId,
         hasBackdrop: backdropUrl !== null,
         hasLogo: logoUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
@@ -695,6 +697,7 @@ const createDatabaseLibraryService = ({
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
           rating: mediaItem.rating,
+          externalId: mediaItem.externalId,
           genres: mediaItem.genres,
         })
         .from(mediaItem)
@@ -706,6 +709,7 @@ const createDatabaseLibraryService = ({
         ...row,
         addedAt: row.addedAt.toISOString(),
         hasPoster: posterUrl !== null,
+          externalId: row.externalId,
         hasBackdrop: backdropUrl !== null,
         hasLogo: logoUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
@@ -733,6 +737,7 @@ const createDatabaseLibraryService = ({
           seasonNumber: mediaItem.seasonNumber,
           episodeNumber: mediaItem.episodeNumber,
           rating: mediaItem.rating,
+          externalId: mediaItem.externalId,
           genres: mediaItem.genres,
         })
         .from(mediaItem)
@@ -744,6 +749,7 @@ const createDatabaseLibraryService = ({
         ...row,
         addedAt: row.addedAt.toISOString(),
         hasPoster: posterUrl !== null,
+          externalId: row.externalId,
         hasBackdrop: backdropUrl !== null,
         hasLogo: logoUrl !== null,
         genres: readGenres(JsonValueSchema.parse(genres ?? null)),
@@ -795,6 +801,7 @@ const createDatabaseLibraryService = ({
           cast: row.castMembers,
           rating: row.rating,
           hasPoster: row.posterUrl !== null,
+          externalId: row.externalId,
           hasBackdrop: row.backdropUrl !== null,
           hasLogo: row.logoUrl !== null,
           seriesTitle: row.seriesTitle,

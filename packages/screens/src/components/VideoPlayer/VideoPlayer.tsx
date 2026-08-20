@@ -9,6 +9,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
 import { useNowPlaying } from '@FluxScreens/playback/useNowPlaying';
+import { useDiscordPresence } from '@FluxScreens/playback/useDiscordPresence';
+import { profileQueries } from '@FluxClient/query/profileQueries';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { detectFromBrowser } from '@FluxScreens/playback/detectDeviceProfile';
 import { qualityStepCostsFor } from '@FluxClient/playback/qualityStepCostsFor';
@@ -65,7 +67,7 @@ import {
 import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxScreens/playback/liftCues';
 import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
 import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
@@ -221,6 +223,7 @@ const VideoPlayer = ({
   const [state, setState] = useState<PlayerState>('starting');
   const [problem, setProblem] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
+  const whoIsWatching = useQuery(profileQueries.watching());
   const [position, setPosition] = useState(0);
   const [reportedDuration, setReportedDuration] = useState(0);
   const [trickplay, setTrickplay] = useState<Trickplay | null>(null);
@@ -1238,6 +1241,13 @@ const VideoPlayer = ({
     durationSeconds: duration,
     onTogglePlay: togglePlay,
     onSeek: seek,
+  });
+
+  useDiscordPresence({
+    media: { ...media, durationSeconds: duration },
+    isPlaying,
+    positionSeconds: position,
+    isAllowed: whoIsWatching.data?.showsWhatIamWatching ?? false,
   });
 
   useEffect(() => {

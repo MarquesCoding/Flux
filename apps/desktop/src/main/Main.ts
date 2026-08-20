@@ -1,9 +1,17 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
-import { CHANGE_SERVER, GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
+import {
+  CHANGE_SERVER,
+  GO_TO_THE_SERVER,
+  NOW_WATCHING,
+} from '@FluxDesktop/main/preferenceChannels';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
 import { theDockIcon } from '@FluxDesktop/main/theDockIcon';
+import { tellDiscord } from '@FluxDesktop/main/tellDiscord';
+import { whatIsPlaying } from '@FluxDesktop/main/whatIsPlaying';
+import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { theWindowsOwnMenu } from '@FluxDesktop/main/theWindowsOwnMenu';
 import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
@@ -34,6 +42,16 @@ const start = async (): Promise<void> => {
   theDockIcon();
 
   ipcMain.on(CHANGE_SERVER, changeServer);
+
+  const discord = tellDiscord();
+
+  ipcMain.on(NOW_WATCHING, (_event, said: JsonValue) => {
+    discord.about(whatIsPlaying(JsonValueSchema.catch(null).parse(said)));
+  });
+
+  app.on('will-quit', () => {
+    discord.close();
+  });
 
   theApplicationMenu(changeServer);
 

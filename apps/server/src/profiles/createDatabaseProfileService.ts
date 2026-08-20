@@ -40,6 +40,7 @@ type ProfileRow = {
   avatarSeed: string | null;
   photoPath: string | null;
   askStillWatchingAfter: number;
+  showsWhatIamWatching: boolean;
   createdAt: Date;
   updatedAt: Date;
 };
@@ -91,6 +92,7 @@ const toProfile = (row: ProfileRow): ViewerProfile => ({
   askStillWatchingAfter: StillWatchingSchema.catch(STILL_WATCHING_DEFAULT).parse(
     row.askStillWatchingAfter,
   ),
+  showsWhatIamWatching: row.showsWhatIamWatching,
   createdAt: row.createdAt.toISOString(),
   updatedAt: row.updatedAt.toISOString(),
 });
@@ -128,6 +130,7 @@ const COLUMNS = {
   avatarSeed: viewerProfile.avatarSeed,
   photoPath: viewerProfile.photoPath,
   askStillWatchingAfter: viewerProfile.askStillWatchingAfter,
+  showsWhatIamWatching: viewerProfile.showsWhatIamWatching,
   createdAt: viewerProfile.createdAt,
   updatedAt: viewerProfile.updatedAt,
 };
@@ -184,6 +187,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
       colour: readColour(created.colour),
       avatar: { kind: 'initial' },
       askStillWatchingAfter: STILL_WATCHING_DEFAULT,
+      showsWhatIamWatching: false,
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
     };
@@ -216,6 +220,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
         colour: created.colour,
         avatar: { kind: 'initial' },
         askStillWatchingAfter: STILL_WATCHING_DEFAULT,
+      showsWhatIamWatching: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
@@ -230,6 +235,9 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
           ...(request.askStillWatchingAfter === undefined
             ? {}
             : { askStillWatchingAfter: request.askStillWatchingAfter }),
+          ...(request.showsWhatIamWatching === undefined
+            ? {}
+            : { showsWhatIamWatching: request.showsWhatIamWatching }),
           name: request.name,
           colour: request.colour,
           updatedAt: new Date(),
@@ -300,6 +308,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
                 avatarStyle: found.avatarStyle,
                 avatarSeed: found.avatarSeed,
                 photoPath: found.photoPath,
+                showsWhatIamWatching: found.showsWhatIamWatching,
                 askStillWatchingAfter: found.askStillWatchingAfter,
                 createdAt: found.createdAt,
                 updatedAt: found.updatedAt,

@@ -2,6 +2,7 @@ import { Icon } from '@FluxUI/Icon';
 import { ImageAdd01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
+import { Switch } from '@FluxUI/Switch';
 import { TextField } from '@FluxUI/TextField';
 import { FilePicker } from '@FluxUI/FilePicker';
 import {
@@ -50,6 +51,9 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const [askAfter, setAskAfter] = useState(
     profile?.askStillWatchingAfter ?? STILL_WATCHING_DEFAULT,
   );
+  const [showsWhatIamWatching, setShowsWhatIamWatching] = useState(
+    profile?.showsWhatIamWatching ?? false,
+  );
   const [isSaving, setIsSaving] = useState(false);
 
   const trimmed = name.trim();
@@ -63,7 +67,14 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
     const saved =
       profile === null
         ? await createProfile(trimmed, colour, chosen)
-        : await saveProfile(profile.id, trimmed, colour, chosen, askAfter);
+        : await saveProfile(
+            profile.id,
+            trimmed,
+            colour,
+            chosen,
+            askAfter,
+            showsWhatIamWatching,
+          );
 
     if (saved && photo !== null && profile !== null) {
       await uploadProfilePhoto(profile.id, photo);
@@ -98,6 +109,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               colour,
               avatar,
               askStillWatchingAfter: askAfter,
+              showsWhatIamWatching,
               createdAt: profile?.createdAt ?? '',
               updatedAt: profile?.updatedAt ?? '',
             }}
@@ -261,6 +273,26 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             </li>
           ))}
         </ul>
+      </fieldset>
+
+      <fieldset className="flex flex-col gap-2">
+        <legend className="pb-2 text-xs font-medium uppercase tracking-wide text-text-muted">
+          Show what I am watching on Discord
+        </legend>
+
+        <p className="text-xs leading-relaxed text-text-muted">
+          The title, and the series and episode where there is one, appear in your Discord status
+          while something is playing — visible to anybody who can see your profile. It needs Flux
+          open on the same machine as Discord, and it shows nothing at all when nothing is playing.
+        </p>
+
+        <Switch
+          label="Show what I am watching on Discord"
+          isOn={showsWhatIamWatching}
+          onToggle={() => {
+            setShowsWhatIamWatching((was) => !was);
+          }}
+        />
       </fieldset>
 
       <div className="flex items-center gap-2">

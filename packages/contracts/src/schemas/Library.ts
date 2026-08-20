@@ -48,6 +48,7 @@ const MediaSummarySchema = z.object({
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
   genres: z.array(z.string()).nullish(),
+  externalId: z.string().nullish(),
 });
 
 const CastMemberSchema = z.object({
@@ -69,6 +70,7 @@ const MediaMetadataSchema = z.object({
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
+  externalId: z.string().nullish(),
 });
 
 const MediaDetailSchema = MediaItemSchema.extend({

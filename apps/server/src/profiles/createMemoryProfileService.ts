@@ -48,6 +48,7 @@ const createMemoryProfileService = (
       colour: PROFILE_COLOURS.find((known) => known === colour) ?? DEFAULT_COLOUR,
       avatar,
       askStillWatchingAfter: STILL_WATCHING_DEFAULT,
+      showsWhatIamWatching: false,
       createdAt: stamp(),
       updatedAt: stamp(),
     };

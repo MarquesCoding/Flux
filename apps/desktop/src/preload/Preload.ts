@@ -2,6 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import { z } from 'zod';
 import {
   CHANGE_SERVER,
+  NOW_WATCHING,
   FORGET_ONE,
   GO_TO_THE_SERVER,
   READ_EVERYTHING,
@@ -16,6 +17,10 @@ document.documentElement.dataset['fluxDesktop'] = 'true';
 
 document.addEventListener('flux:change-server', () => {
   ipcRenderer.send(CHANGE_SERVER);
+});
+
+document.addEventListener('flux:now-watching', (event) => {
+  ipcRenderer.send(NOW_WATCHING, event instanceof CustomEvent ? event.detail : null);
 });
 
 contextBridge.exposeInMainWorld('flux', {
