@@ -19,7 +19,6 @@ const installDesktopPlatform = (): void => {
     store: theDesktopsStore(),
     describeThisClient: () => describeThisDesktop(navigator.userAgent),
     thisClientId: thisWindowsId,
-    whereTheServerIs: () => '',
     openSocket: () => ({ send: () => {}, close: () => {} }),
   });
 };

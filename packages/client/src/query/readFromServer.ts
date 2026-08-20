@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { RequestFailed } from '@FluxClient/query/RequestFailed';
@@ -28,7 +27,7 @@ const readFromServer = async <Value>(
   schema: { parse: (body: JsonValue) => Value },
   headers: Record<string, string> = {},
 ): Promise<Value> => {
-  const response = await fetch(serverUrl(path), {
+  const response = await fetch(path, {
     headers: { accept: 'application/json', ...headers },
   });
 

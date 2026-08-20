@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import {
   Cancel01Icon,
@@ -819,7 +818,7 @@ const VideoPlayer = ({
       }
 
       if (startedId !== null) {
-        void fetch(serverUrl(`/api/playback/session/${startedId}`), {
+        void fetch(`/api/playback/session/${startedId}`, {
           method: 'DELETE',
           keepalive: true,
         }).catch(() => undefined);

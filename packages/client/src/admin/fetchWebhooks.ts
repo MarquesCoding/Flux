@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
@@ -46,7 +45,7 @@ const fetchWebhooks = async (): Promise<WebhookSubscription[]> => {
 const createWebhook = async (
   webhook: NewWebhook,
 ): Promise<{ created: CreatedWebhook | null; refusal: Refusal }> => {
-  const response = await fetch(serverUrl('/api/webhooks'), {
+  const response = await fetch('/api/webhooks', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -73,7 +72,7 @@ const createWebhook = async (
  * @returns Any refusal from the server.
  */
 const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/webhooks/${id}`), {
+  const response = await fetch(`/api/webhooks/${id}`, {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -93,7 +92,7 @@ const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal>
  * @returns Any refusal from the server.
  */
 const deleteWebhook = async (id: string): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/webhooks/${id}`), {
+  const response = await fetch(`/api/webhooks/${id}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -110,7 +109,7 @@ const deleteWebhook = async (id: string): Promise<Refusal> => {
  * @param id - The subscription to test.
  */
 const testWebhook = async (id: string): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/webhooks/${id}/test`), {
+  const response = await fetch(`/api/webhooks/${id}/test`, {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -144,7 +143,7 @@ const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> =>
  */
 const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {
   const response = await fetch(
-    serverUrl(`/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`),
+    `/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`,
     {
       method: 'POST',
       credentials: 'same-origin',

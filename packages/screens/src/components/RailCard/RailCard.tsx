@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { ArrowTurnForwardIcon, FavouriteIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
@@ -189,9 +188,9 @@ const RailCard = ({
   useEffect(() => cancel, [cancel]);
 
   const artworkUrl = media.hasBackdrop
-    ? serverUrl(`/api/media/${media.id}/image/backdrop`)
+    ? `/api/media/${media.id}/image/backdrop`
     : media.hasPoster
-      ? serverUrl(`/api/media/${media.id}/image/poster`)
+      ? `/api/media/${media.id}/image/poster`
       : undefined;
 
   return (

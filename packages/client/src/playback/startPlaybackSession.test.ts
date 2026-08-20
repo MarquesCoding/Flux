@@ -1,6 +1,4 @@
 import { z } from 'zod';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   startPlaybackSession,
@@ -302,32 +300,3 @@ describe('describeWhy', () => {
   });
 });
 
-describe('a client that serves its own pages', () => {
-  it('plays from the server rather than from itself, since the server answers in paths', async () => {
-    forgetPlatform();
-    installPlatform({ ...aFakePlatform(), whereTheServerIs: () => 'https://flux.example.com' });
-
-    const outcome = await startPlaybackSession('media-1', profile, 'client-1');
-
-    expect(outcome).toMatchObject({
-      kind: 'started',
-      session: {
-        delivery: {
-          kind: 'hls',
-          manifestUrl: 'https://flux.example.com/api/playback/session/abc/index.m3u8',
-        },
-      },
-    });
-
-    forgetPlatform();
-  });
-
-  it('leaves a browser resolving it against the page it was served', async () => {
-    const outcome = await startPlaybackSession('media-1', profile, 'client-1');
-
-    expect(outcome).toMatchObject({
-      kind: 'started',
-      session: { delivery: { manifestUrl: '/api/playback/session/abc/index.m3u8' } },
-    });
-  });
-});

@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { LogPageSchema, LogRecordSchema } from '@FluxContracts/schemas/Log';
 import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
 import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
@@ -21,7 +20,7 @@ const NOTHING: LogPage = { records: [], total: 0 };
  * @returns The records that matched, newest first.
  */
 const fetchLogs = async (query: Partial<LogQuery>): Promise<LogPage> => {
-  const response = await fetch(serverUrl('/api/admin/logs'), {
+  const response = await fetch('/api/admin/logs', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },

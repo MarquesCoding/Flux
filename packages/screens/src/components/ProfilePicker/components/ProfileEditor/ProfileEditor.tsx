@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import { ImageAdd01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
@@ -27,7 +26,7 @@ const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/
  * @returns Where to fetch the preview.
  */
 const previewUrl = (style: AvatarStyle, seed: string): string =>
-  serverUrl(`/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`);
+  `/api/profiles/avatars/${style}?seed=${encodeURIComponent(seed)}`;
 
 const ASK_AFTER_CHOICES = [STILL_WATCHING_OFF, 2, 3, 4, 6, 8] as const;
 

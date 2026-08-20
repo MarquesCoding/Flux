@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { ApiKeySchema, CreatedApiKeySchema } from '@FluxContracts/schemas/ApiKey';
 import { z } from 'zod';
@@ -34,7 +33,7 @@ const createApiKey = async (input: {
   rateLimit: { max: number; everySeconds: number } | null;
 }): Promise<CreatedApiKey | null> => {
   try {
-    const response = await fetch(serverUrl('/api/keys'), {
+    const response = await fetch('/api/keys', {
       ...asJson,
       method: 'POST',
       body: JSON.stringify({
@@ -60,7 +59,7 @@ const createApiKey = async (input: {
  */
 const setApiKeyEnabled = async (id: string, enabled: boolean): Promise<boolean> => {
   try {
-    const response = await fetch(serverUrl(`/api/keys/${id}`), {
+    const response = await fetch(`/api/keys/${id}`, {
       ...asJson,
       method: 'PATCH',
       body: JSON.stringify({ enabled }),
@@ -81,7 +80,7 @@ const setApiKeyEnabled = async (id: string, enabled: boolean): Promise<boolean> 
  */
 const revokeApiKey = async (id: string): Promise<boolean> => {
   try {
-    const response = await fetch(serverUrl(`/api/keys/${id}`), {
+    const response = await fetch(`/api/keys/${id}`, {
       credentials: 'same-origin',
       method: 'DELETE',
     });

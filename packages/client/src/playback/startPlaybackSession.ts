@@ -1,5 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
-import { onThisServer } from '@FluxClient/query/onThisServer';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
@@ -9,9 +7,9 @@ import type { QualityPreference } from './qualityPreference';
 const DeliverySchema = z.union([
   z.object({
     kind: z.literal('hls'),
-    manifestUrl: z.string().min(1).transform(onThisServer),
+    manifestUrl: z.string().min(1),
   }),
-  z.object({ kind: z.literal('direct'), url: z.string().min(1).transform(onThisServer) }),
+  z.object({ kind: z.literal('direct'), url: z.string().min(1) }),
 ]);
 
 const StartedSessionSchema = z.object({
@@ -50,7 +48,7 @@ const startPlaybackSession = async (
   audioStreamIndex?: number,
   requestedQuality?: QualityPreference,
 ): Promise<StartOutcome> => {
-  const response = await fetch(serverUrl(`/api/playback/${mediaId}/session`), {
+  const response = await fetch(`/api/playback/${mediaId}/session`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({
@@ -95,7 +93,7 @@ const startPlaybackSession = async (
  * @param sessionId - The session to stop.
  */
 const stopPlaybackSession = async (sessionId: string): Promise<void> => {
-  await fetch(serverUrl(`/api/playback/session/${sessionId}`), { method: 'DELETE' }).catch(
+  await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(
     () => undefined,
   );
 };
@@ -109,7 +107,7 @@ const stopPlaybackSession = async (sessionId: string): Promise<void> => {
  *   browser has promised to finish.
  */
 const stopWatching = async (clientId: string, keepalive = false): Promise<void> => {
-  await fetch(serverUrl(`/api/presence/${clientId}/watching`), {
+  await fetch(`/api/presence/${clientId}/watching`, {
     method: 'DELETE',
     keepalive,
   }).catch(() => undefined);
@@ -123,7 +121,7 @@ const stopWatching = async (clientId: string, keepalive = false): Promise<void> 
  * @param isPlaying - Whether the picture is moving.
  */
 const heartbeatPlaybackSession = async (sessionId: string, isPlaying: boolean): Promise<void> => {
-  await fetch(serverUrl(`/api/playback/session/${sessionId}/heartbeat`), {
+  await fetch(`/api/playback/session/${sessionId}/heartbeat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ isPlaying }),
@@ -149,7 +147,7 @@ const sendPresenceHeartbeat = async (
     presentedHeight: number;
   },
 ): Promise<void> => {
-  await fetch(serverUrl(`/api/presence/${clientId}/heartbeat`), {
+  await fetch(`/api/presence/${clientId}/heartbeat`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ isPlaying, ...(health === undefined ? {} : { health }) }),

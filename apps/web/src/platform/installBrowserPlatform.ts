@@ -12,7 +12,6 @@ const installBrowserPlatform = (): void => {
   installPlatform({
     store: theBrowsersStore(),
     describeThisClient: describeThisBrowser,
-    whereTheServerIs: () => '',
     thisClientId: thisTabsId,
     openSocket: openRealtimeSocket,
   });

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
-import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServer';
+import { askTheServer } from '@FluxClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
@@ -43,17 +43,10 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * `credentials: include` of its own accord, so that was an answer to a question nobody had asked,
  * sitting on the one path where a mistake ends a session or fails to.
  *
- * The `baseURL` is an address that resolves nowhere, because there is no address to give: a browser
- * is answered by the page it was served, a desktop client by whichever Flux somebody named, and
- * neither is known when the client is built. The library needs one to join a path to, so it is given
- * a placeholder and `askTheServer` puts the path on the real server as it goes. A request that
- * escapes that rewrite fails to reach anything rather than reaching somewhere wrong.
- *
  * @returns The client.
  */
 const buildClient = () =>
   createAuthClient({
-    baseURL: PLACEHOLDER_ORIGIN,
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: askTheServer },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],

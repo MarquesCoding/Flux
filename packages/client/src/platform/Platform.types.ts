@@ -10,7 +10,6 @@ type Platform = {
   store: DeviceStore;
   describeThisClient: () => string;
   thisClientId: () => string;
-  whereTheServerIs: () => string;
   openSocket: Connect;
 };
 

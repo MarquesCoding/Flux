@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 
 const SERVICE_WORKER_PATH = '/push-worker.js';
 
@@ -69,7 +68,7 @@ const subscribeToPush = async (publicKey: string): Promise<boolean> => {
     applicationServerKey: toApplicationServerKey(publicKey),
   });
 
-  const response = await fetch(serverUrl('/api/notifications/push'), {
+  const response = await fetch('/api/notifications/push', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -99,7 +98,7 @@ const unsubscribeFromPush = async (): Promise<void> => {
     return;
   }
 
-  await fetch(serverUrl('/api/notifications/push'), {
+  await fetch('/api/notifications/push', {
     method: 'DELETE',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },

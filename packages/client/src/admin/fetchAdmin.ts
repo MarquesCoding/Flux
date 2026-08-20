@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
@@ -250,7 +249,7 @@ type CatalogueMatch = z.infer<typeof CatalogueMatchesSchema>['matches'][number];
  */
 const searchCatalogue = async (query: string, kind: 'tv' | 'movie'): Promise<CatalogueMatch[]> => {
   const parameters = new URLSearchParams({ query, kind });
-  const response = await fetch(serverUrl(`/api/admin/catalogue/search?${parameters.toString()}`), {
+  const response = await fetch(`/api/admin/catalogue/search?${parameters.toString()}`, {
     credentials: 'same-origin',
   }).catch(() => null);
 
@@ -350,7 +349,7 @@ const fetchActiveSessions = async (): Promise<ActiveSession[]> => {
  * @param clientId - The session to stop.
  */
 const stopSession = async (clientId: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/sessions/${clientId}`), {
+  const response = await fetch(`/api/admin/sessions/${clientId}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -365,7 +364,7 @@ const stopSession = async (clientId: string): Promise<boolean> => {
  * @param clientId - The session to pause.
  */
 const pauseSession = async (clientId: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/sessions/${clientId}/pause`), {
+  const response = await fetch(`/api/admin/sessions/${clientId}/pause`, {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -384,7 +383,7 @@ const pauseSession = async (clientId: string): Promise<boolean> => {
  * @returns Whether it was delivered.
  */
 const messageSession = async (clientId: string, text: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/sessions/${clientId}/message`), {
+  const response = await fetch(`/api/admin/sessions/${clientId}/message`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -400,7 +399,7 @@ const messageSession = async (clientId: string, text: string): Promise<boolean> 
  * @param clientId - The session to resume.
  */
 const resumeSession = async (clientId: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/sessions/${clientId}/resume`), {
+  const response = await fetch(`/api/admin/sessions/${clientId}/resume`, {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -436,7 +435,7 @@ const runJob = async (
   libraryId?: string,
   force?: boolean,
 ): Promise<ScanJob | null> => {
-  const response = await fetch(serverUrl(`/api/admin/jobs/${kind}/run`), {
+  const response = await fetch(`/api/admin/jobs/${kind}/run`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -460,7 +459,7 @@ const runJob = async (
  * @param jobId - The job to stop.
  */
 const cancelJob = async (jobId: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/jobs/running/${jobId}/cancel`), {
+  const response = await fetch(`/api/admin/jobs/running/${jobId}/cancel`, {
     method: 'POST',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -488,7 +487,7 @@ const addJobTrigger = async (
   kind: string,
   trigger: ScheduleTrigger,
 ): Promise<JobTrigger | null> => {
-  const response = await fetch(serverUrl(`/api/admin/jobs/${kind}/triggers`), {
+  const response = await fetch(`/api/admin/jobs/${kind}/triggers`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -510,7 +509,7 @@ const addJobTrigger = async (
  * @param triggerId - The trigger to remove.
  */
 const removeJobTrigger = async (kind: string, triggerId: string): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/admin/jobs/${kind}/triggers/${triggerId}`), {
+  const response = await fetch(`/api/admin/jobs/${kind}/triggers/${triggerId}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -539,7 +538,7 @@ type StorageCount = z.infer<typeof StorageCountSchema>;
  * next reading rather than from this call.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
-  const response = await fetch(serverUrl('/api/admin/storage/measure'), { method: 'POST' }).catch(
+  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(
     () => null,
   );
 
@@ -560,7 +559,7 @@ const measureStorage = async (): Promise<StorageCount | null> => {
  * @returns Whether the setting was written.
  */
 const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
-  const response = await fetch(serverUrl('/api/admin/settings'), {
+  const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ hardwareAccel }),
@@ -577,7 +576,7 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
  * @returns Whether it was written.
  */
 const saveCatalogueKey = async (catalogueApiKey: string): Promise<boolean> => {
-  const response = await fetch(serverUrl('/api/admin/settings'), {
+  const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },

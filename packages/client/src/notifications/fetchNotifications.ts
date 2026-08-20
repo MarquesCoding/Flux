@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import {
@@ -36,7 +35,7 @@ const fetchNotifications = async (): Promise<Inbox> => {
  * @param id - The one to mark, or nothing to mark them all.
  */
 const markNotificationsRead = async (id?: string): Promise<number> => {
-  const response = await fetch(serverUrl('/api/notifications/read'), {
+  const response = await fetch('/api/notifications/read', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },

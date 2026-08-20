@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
 
@@ -20,7 +19,7 @@ const fetchFavourites = async (): Promise<string[]> => {
  * @param isKept - Whether it should be kept.
  */
 const setFavourite = async (mediaId: string, isKept: boolean): Promise<boolean> => {
-  const response = await fetch(serverUrl(`/api/media/${mediaId}/favourite`), {
+  const response = await fetch(`/api/media/${mediaId}/favourite`, {
     method: isKept ? 'PUT' : 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);

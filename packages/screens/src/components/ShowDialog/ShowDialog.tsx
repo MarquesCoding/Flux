@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import {
   Cancel01Icon,
@@ -37,7 +36,7 @@ import type { ShowDialogProps } from './ShowDialog.types';
  * @param mediaId - The programme being drawn.
  * @returns The address to load.
  */
-const artworkUrl = (mediaId: string): string => serverUrl(`/api/media/${mediaId}/image/backdrop`);
+const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
  * A programme in full: its seasons, its episodes, where a viewer got to in each, and the episodes
@@ -204,7 +203,7 @@ const ShowDialog = ({
                 shown.title
               ) : (
                 <img
-                  src={serverUrl(`/api/media/${lettered.id}/image/logo`)}
+                  src={`/api/media/${lettered.id}/image/logo`}
                   alt={shown.title}
                   className="max-h-[16svh] w-auto max-w-[min(70vw,26rem)] object-contain object-left"
                   onError={() => {

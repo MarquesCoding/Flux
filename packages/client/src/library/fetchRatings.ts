@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { HouseholdRatingSchema, RatingListSchema } from '@FluxContracts/schemas/Rating';
 import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
@@ -34,7 +33,7 @@ const fetchRatings = async (): Promise<Rating[]> => {
  * @returns Whether the server accepted it.
  */
 const setRating = async (subject: RatingSubject, stars: number | null): Promise<boolean> => {
-  const response = await fetch(serverUrl(`${addressOf(subject)}/rating`), {
+  const response = await fetch(`${addressOf(subject)}/rating`, {
     method: stars === null ? 'DELETE' : 'PUT',
     credentials: 'same-origin',
     ...(stars === null

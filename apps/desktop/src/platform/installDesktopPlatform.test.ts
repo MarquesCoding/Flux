@@ -50,11 +50,6 @@ describe('installDesktopPlatform', () => {
     expect(onDisk.get('flux.server.address')).toBe('https://flux.example.com');
   });
 
-  it('points requests nowhere, since this page asks Flux for nothing', () => {
-    installDesktopPlatform();
-
-    expect(platformInUse().whereTheServerIs()).toBe('');
-  });
 
   it('names the machine rather than the engine, so a sessions list reads like a household', () => {
     installDesktopPlatform();

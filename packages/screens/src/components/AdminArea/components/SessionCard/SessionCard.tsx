@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { Icon } from '@FluxUI/Icon';
 import {
   InformationCircleIcon,
@@ -49,9 +48,7 @@ const SessionCard = ({
       <span className="relative flex aspect-video w-24 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-[var(--surface-hover)]">
         {playback !== null && (playback.hasBackdrop || playback.hasPoster) ? (
           <img
-            src={serverUrl(
-              `/api/media/${playback.mediaId}/image/${playback.hasBackdrop ? 'backdrop' : 'poster'}`,
-            )}
+            src={`/api/media/${playback.mediaId}/image/${playback.hasBackdrop ? 'backdrop' : 'poster'}`}
             alt=""
             className="h-full w-full object-cover"
           />

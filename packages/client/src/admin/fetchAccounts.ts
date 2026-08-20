@@ -1,4 +1,3 @@
-import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
@@ -37,7 +36,7 @@ const fetchAccounts = async (): Promise<Account[]> => {
  * @returns Any refusal from the server.
  */
 const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/ban`), {
+  const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
@@ -56,7 +55,7 @@ const banAccount = async (userId: string, reason: string): Promise<Refusal> => {
  * @returns Any refusal from the server.
  */
 const unbanAccount = async (userId: string): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}/ban`), {
+  const response = await fetch(`/api/admin/accounts/${userId}/ban`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -74,7 +73,7 @@ const unbanAccount = async (userId: string): Promise<Refusal> => {
  * @returns Any refusal from the server.
  */
 const removeAccount = async (userId: string): Promise<Refusal> => {
-  const response = await fetch(serverUrl(`/api/admin/accounts/${userId}`), {
+  const response = await fetch(`/api/admin/accounts/${userId}`, {
     method: 'DELETE',
     credentials: 'same-origin',
   }).catch(() => null);
@@ -95,7 +94,7 @@ const inviteAccount = async (request: {
   email: string;
   password: string;
 }): Promise<Refusal> => {
-  const response = await fetch(serverUrl('/api/admin/accounts'), {
+  const response = await fetch('/api/admin/accounts', {
     method: 'POST',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
