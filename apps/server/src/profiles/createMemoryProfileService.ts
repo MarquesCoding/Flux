@@ -48,6 +48,7 @@ const createMemoryProfileService = (
       colour: PROFILE_COLOURS.find((known) => known === colour) ?? DEFAULT_COLOUR,
       avatar,
       askStillWatchingAfter: STILL_WATCHING_DEFAULT,
+      showsWhatIamWatching: false,
       createdAt: stamp(),
       updatedAt: stamp(),
     };
@@ -85,6 +86,8 @@ const createMemoryProfileService = (
         name: request.name,
         colour: request.colour,
         avatar: request.avatar ?? held.profile.avatar,
+        askStillWatchingAfter: request.askStillWatchingAfter ?? held.profile.askStillWatchingAfter,
+        showsWhatIamWatching: request.showsWhatIamWatching ?? held.profile.showsWhatIamWatching,
         updatedAt: stamp(),
       };
 

@@ -42,12 +42,14 @@ const MediaSummarySchema = z.object({
   hasPoster: z.boolean().default(false),
   hasBackdrop: z.boolean().default(false),
   hasLogo: z.boolean().default(false),
+  posterUrl: z.string().url().nullish(),
   seriesId: z.string().nullable().default(null),
   rating: z.number().nullish(),
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
   genres: z.array(z.string()).nullish(),
+  externalId: z.string().nullish(),
 });
 
 const CastMemberSchema = z.object({
@@ -69,6 +71,7 @@ const MediaMetadataSchema = z.object({
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
   episodeNumber: z.number().int().nullish(),
+  externalId: z.string().nullish(),
 });
 
 const MediaDetailSchema = MediaItemSchema.extend({

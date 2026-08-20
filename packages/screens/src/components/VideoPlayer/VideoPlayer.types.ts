@@ -3,6 +3,7 @@ import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { SequencedCommand } from '@FluxContracts/schemas/WatchParty';
 
 type PartyPlayback = {
+  id: string;
   command: SequencedCommand | null;
   meConnectionId: string | null;
   referenceSeconds: number | null;
@@ -21,7 +22,8 @@ type PartyPlayback = {
 };
 
 type VideoPlayerProps = {
-  media: Pick<MediaSummary, 'id' | 'title' | 'durationSeconds'>;
+  media: Pick<MediaSummary, 'id' | 'title' | 'durationSeconds'> &
+    Partial<Pick<MediaSummary, 'seriesTitle' | 'seasonNumber' | 'episodeNumber' | 'hasPoster'>>;
   isImmersive?: boolean;
   startSeconds?: number;
   onClose: () => void;

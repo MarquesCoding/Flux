@@ -98,6 +98,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               colour,
               avatar,
               askStillWatchingAfter: askAfter,
+              showsWhatIamWatching: profile?.showsWhatIamWatching ?? false,
               createdAt: profile?.createdAt ?? '',
               updatedAt: profile?.updatedAt ?? '',
             }}
