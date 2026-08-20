@@ -3,6 +3,7 @@ import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences
 import { GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
+import { theDockIcon } from '@FluxDesktop/main/theDockIcon';
 import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 
@@ -20,6 +21,8 @@ const start = async (): Promise<void> => {
       void showTheApplication(theWindow);
     }
   });
+
+  theDockIcon();
 
   theApplicationMenu(() => {
     forgetTheServerAddress();
