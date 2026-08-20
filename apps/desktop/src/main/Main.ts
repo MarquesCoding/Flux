@@ -1,28 +1,21 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
-import { alsoKeep, keepTheServersCookies } from '@FluxDesktop/main/keepTheServersCookies';
-import { letTheBrowserSendThemBack } from '@FluxDesktop/main/letTheBrowserSendThemBack';
+import { GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
-import { theDesktopsAuth } from '@FluxDesktop/main/theDesktopsAuth';
-import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
-import { pointSignInAt } from '@FluxDesktop/main/whereToSignIn';
 
 let theWindow: BrowserWindow | null = null;
-
-const auth = theDesktopsAuth();
-
-letTheBrowserSendThemBack(auth, () => theWindow);
 
 const start = async (): Promise<void> => {
   await app.whenReady();
 
-  pointSignInAt(theServerAddress());
-  answerAboutPreferences(() => {
-    pointSignInAt(theServerAddress());
+  answerAboutPreferences(() => {});
+
+  ipcMain.on(GO_TO_THE_SERVER, () => {
+    if (theWindow !== null) {
+      void showTheApplication(theWindow);
+    }
   });
-  keepTheServersCookies();
-  alsoKeep(auth.getCookie());
 
   theWindow = openTheWindow();
 

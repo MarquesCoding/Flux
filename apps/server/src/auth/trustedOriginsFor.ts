@@ -1,5 +1,4 @@
 import { ownOrigins } from '@FluxServer/env/ownOrigins';
-import { DESKTOP_ORIGINS } from '@FluxCore/functions/desktopScheme';
 type TrustedOriginsOptions = {
   configured: readonly string[];
   port: number;
@@ -11,8 +10,8 @@ type TrustedOriginsOptions = {
  *
  * The environment is unioned with the stored settings rather than consulted only at setup, which is
  * the fault FLUX-144 fixed: an operator editing `TRUSTED_ORIGINS` afterwards changed nothing,
- * silently. The addresses this machine holds are added, and so is the desktop client, which nobody
- * should have to configure.
+ * silently. The addresses this machine holds are added, since a client reaching this server by one of
+ * them is reaching this server.
  *
  * Read through here by everything that needs the list, because two places working it out separately
  * is how one of them comes to disagree — better-auth refused an origin the CORS headers had just
@@ -29,7 +28,7 @@ const trustedOriginsFor =
     const stored = (await settings.read()).trustedOrigins;
     const named = [...new Set([...configured, ...stored])];
 
-    return [...named, ...ownOrigins(named, port), ...DESKTOP_ORIGINS];
+    return [...named, ...ownOrigins(named, port)];
   };
 
 export { trustedOriginsFor };

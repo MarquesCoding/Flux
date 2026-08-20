@@ -9,7 +9,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@better-auth/electron": "1.7.1",
     "@better-auth/passkey": "^1.7.1",
     "@flux/contracts": "workspace:*",
     "@flux/core": "workspace:*",

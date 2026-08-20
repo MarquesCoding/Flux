@@ -1,6 +1,5 @@
 import { betterAuth } from 'better-auth';
 import type { DBAdapter, DBAdapterInstance } from 'better-auth';
-import { electron } from '@better-auth/electron';
 import {
   admin,
   deviceAuthorization,
@@ -99,7 +98,6 @@ const createAuth = ({
     },
     plugins: [
       twoFactor({ issuer: FLUX_APP_NAME }),
-      electron(),
       passkey({ rpName: FLUX_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
       jwt(),

@@ -6,7 +6,6 @@ import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
 import type { FluxAuth } from '@FluxServer/auth/Auth';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
-import { electronHandover } from '@FluxCore/functions/electronHandover';
 import { allowCrossOriginClients } from '@FluxServer/auth/allowCrossOriginClients';
 import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
 import { splitPersonCredits } from '@FluxServer/library/splitPersonCredits';
@@ -1474,13 +1473,10 @@ const createApp = ({
       return context.json({ error: 'No such profile.' }, 404);
     }
 
-    const handover = electronHandover(context.req.query());
-
     return auth.api.signInEmail({
       body: { email, password: parsed.data.password },
       asResponse: true,
       headers: context.req.raw.headers,
-      ...(handover === null ? {} : { query: handover }),
     });
   });
 

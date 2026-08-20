@@ -1,10 +1,7 @@
 import { z } from 'zod';
-import type { Handover } from '@FluxCore/functions/electronHandover';
 import { createAuthClient } from 'better-auth/client';
 import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
-import { electronProxyClient } from '@better-auth/electron/proxy';
-import { DESKTOP_SCHEME } from '@FluxCore/functions/desktopScheme';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
 import type { SessionUser } from '@FluxContracts/schemas/Session';
@@ -37,13 +34,6 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  * The plugins are the ones the server mounts and this application calls: `admin` for the role on a
  * user, `twoFactor`, and `passkey`.
  *
- * `electronProxy` is there for a browser rather than for the desktop client, which is not the
- * confusion it sounds like. A desktop client signs somebody in by opening this application in their
- * real browser, where a cookie is a cookie and a second factor and a passkey both work as they
- * always have. This plugin is what lets that page hand the result back: it watches for the code the
- * server leaves and sends the browser to `app.flux.desktop:/`, where the window is waiting. A
- * browser nobody sent there sees nothing of it.
- *
  * Its `fetch` is handed over rather than left to be found, for two reasons and no others: the
  * library reads the global once when the client is built, which is before a test has had a chance
  * to stand in for it, and it asks with a `URL` where a caller may be expecting a string.
@@ -66,12 +56,7 @@ const buildClient = () =>
     baseURL: PLACEHOLDER_ORIGIN,
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: askTheServer },
-    plugins: [
-      adminClient(),
-      twoFactorClient(),
-      passkeyClient(),
-      electronProxyClient({ protocol: DESKTOP_SCHEME }),
-    ],
+    plugins: [adminClient(), twoFactorClient(), passkeyClient()],
   });
 
 const client = buildClient();
@@ -312,49 +297,9 @@ const disableTwoFactor = async (password: string): Promise<boolean> => {
   return error === null;
 };
 
-/**
- * Asks the server for a code that will get an already signed-in somebody back to their desktop
- * client.
- *
- * Signing in mints one by itself, which covers somebody who had to. It does not cover somebody who
- * was already signed in here — most people, most of the time, since this is the browser they use
- * Flux in — and for them there is no sign-in to hang it on. So the session that already exists is
- * offered instead.
- *
- * @param carried - What the desktop client sent them here with.
- * @returns Whether the server minted one.
- */
-const handThisSessionToTheDesktop = async (carried: Handover): Promise<boolean> => {
-  const { error } = await client.electron.transferUser({}, { query: carried });
-
-  return error === null;
-};
-
-/**
- * Sends somebody back to the desktop client that sent them here, once they have signed in.
- *
- * A desktop client cannot sign anybody in, so it opens a browser here. The server mints a
- * single-use code at the moment a session is made and leaves it where this page can find it; this
- * watches for it and follows it back to the application.
- *
- * Called after signing in rather than on arrival, because there is nothing to find until there is a
- * session. It answers with a way to stop watching, for a screen that goes before anybody finishes.
- *
- * @returns How to stop watching.
- */
-const sendThemBackToTheirDesktop = (): (() => void) => {
-  const watching = client.ensureElectronRedirect();
-
-  return () => {
-    clearInterval(watching);
-  };
-};
-
 export type { RegisterOutcome, AuthenticateOutcome, Enrollment };
 
 export {
-  handThisSessionToTheDesktop,
-  sendThemBackToTheirDesktop,
   fetchSession,
   signOut,
   registerPasskey,

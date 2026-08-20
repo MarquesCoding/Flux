@@ -1,13 +1,8 @@
-import { StrictMode, useState } from 'react';
+import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { RouterProvider } from '@tanstack/react-router';
 import { Toaster } from '@FluxUI/Toaster';
-import { TooltipScope } from '@FluxUI/TooltipScope';
-import { buildQueryClient } from '@FluxClient/query/queryClient';
-import { rememberServerAddress, serverAddress } from '@FluxClient/session/serverAddress';
+import { rememberServerAddress } from '@FluxClient/session/serverAddress';
 import { ConnectToServer } from '@FluxScreens/components/ConnectToServer/ConnectToServer';
-import { buildRouter } from '@FluxScreens/routes/buildRouter';
 import { installDesktopPlatform } from '@FluxDesktop/platform/installDesktopPlatform';
 import './styles/main.css';
 import '@FluxDesktop/TheWindow.types';
@@ -20,44 +15,31 @@ if (container === null) {
   throw new Error('Root container #root is missing from index.html');
 }
 
-const answers = buildQueryClient();
-
-const router = buildRouter('Flux');
-
 /**
- * Draws the application, or asks which Flux it is for where nobody has said yet.
+ * The one screen this client ships: which Flux is yours.
  *
- * One question, and it is the only one a browser never has to ask: a browser is answered by the page
- * it was served. Everything after it — who is watching, a PIN, a second factor — is the same code
- * the browser runs, because the process holding this window keeps the cookies the window cannot, so
- * signing in here works exactly as signing in there does.
+ * Everything after it is the Flux running on that server, drawn by that server, because this window
+ * loads its pages rather than serving its own. That is what makes signing in, a second factor, a
+ * passkey and a saved password all work here exactly as they work in a browser — there is nothing
+ * unusual about this client for any of them to trip over.
+ *
+ * It is shown only until somebody has said. After that the window opens on their server and this
+ * page is never drawn again.
  */
-const Desktop = () => {
-  const [address, setAddress] = useState(serverAddress());
-
-  if (address === null) {
-    return (
-      <ConnectToServer
-        onConnected={(chosen) => {
-          rememberServerAddress(chosen);
-          setAddress(chosen);
-        }}
-      />
-    );
-  }
-
-  return <RouterProvider router={router} />;
-};
+const Desktop = () => (
+  <ConnectToServer
+    onConnected={(chosen) => {
+      rememberServerAddress(chosen);
+      window.flux.goToTheServer();
+    }}
+  />
+);
 
 Desktop.displayName = 'Desktop';
 
 createRoot(container).render(
   <StrictMode>
-    <QueryClientProvider client={answers}>
-      <TooltipScope>
-        <Desktop />
-        <Toaster />
-      </TooltipScope>
-    </QueryClientProvider>
+    <Desktop />
+    <Toaster />
   </StrictMode>,
 );

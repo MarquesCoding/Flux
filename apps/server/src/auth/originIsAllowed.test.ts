@@ -14,9 +14,6 @@ describe('originIsAllowed', () => {
     expect(originIsAllowed('https://somewhere.else', CONFIGURED)).toBeNull();
   });
 
-  it('always allows the desktop client, which is not a website anybody can navigate to', () => {
-    expect(originIsAllowed('app.flux.desktop:/', [])).toBe('app.flux.desktop:/');
-  });
 
   it('says nothing where the request named no origin, which is a same-origin request', () => {
     expect(originIsAllowed(undefined, CONFIGURED)).toBeNull();

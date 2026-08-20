@@ -37,15 +37,6 @@ describe('trustedOriginsFor', () => {
     expect(origins).toContain('https://added.later');
   });
 
-  it('answers the desktop client without anybody naming it', async () => {
-    const origins = await trustedOriginsFor({
-      configured: [],
-      port: 8420,
-      settings: settingsSaying([]),
-    })();
-
-    expect(origins).toContain('app.flux.desktop:/');
-  });
 
   it('reads the settings afresh, so an addition is obeyed without a restart', async () => {
     const stored = ['https://first.example'];

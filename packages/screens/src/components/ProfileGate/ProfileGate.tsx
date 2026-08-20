@@ -18,9 +18,6 @@ import {
   stillTransition,
 } from '@FluxUI/animations/reveal';
 import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
-import { theHandoverOnArrival } from '@FluxScreens/desktop/theHandoverOnArrival';
-import { sendThemBackToTheirDesktop } from '@FluxClient/session/auth';
-import { ThisClientsChoices } from '@FluxScreens/components/ThisClientsChoices/ThisClientsChoices';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
@@ -184,19 +181,11 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     setIsSubmitting(true);
     setProblem(null);
 
-    const carried = theHandoverOnArrival();
-
-    const outcome = await signInAsProfile(chosen.id, password, carried);
+    const outcome = await signInAsProfile(chosen.id, password);
 
     setIsSubmitting(false);
 
     if (outcome.kind === 'signedIn') {
-      if (carried !== null) {
-        sendThemBackToTheirDesktop();
-
-        return;
-      }
-
       onSignedIn();
 
       return;
@@ -501,8 +490,6 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           )}
         </div>
       )}
-
-      {isTitleOver ? <ThisClientsChoices /> : null}
 
       <motion.p
         initial={{ opacity: 0 }}

@@ -1,7 +1,11 @@
 import { contextBridge, ipcRenderer } from 'electron';
-import { setupRenderer } from '@better-auth/electron/preload';
 import { z } from 'zod';
-import { FORGET_ONE, READ_EVERYTHING, WRITE_ONE } from '@FluxDesktop/main/preferenceChannels';
+import {
+  FORGET_ONE,
+  GO_TO_THE_SERVER,
+  READ_EVERYTHING,
+  WRITE_ONE,
+} from '@FluxDesktop/main/preferenceChannels';
 
 const HeldSchema = z.record(z.string(), z.string()).catch({});
 
@@ -17,6 +21,7 @@ contextBridge.exposeInMainWorld('flux', {
       ipcRenderer.send(FORGET_ONE, key);
     },
   },
+  goToTheServer: () => {
+    ipcRenderer.send(GO_TO_THE_SERVER);
+  },
 });
-
-setupRenderer();

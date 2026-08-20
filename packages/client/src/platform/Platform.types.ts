@@ -6,19 +6,12 @@ type DeviceStore = {
   forget: (key: string) => void;
 };
 
-type SignInElsewhere = {
-  start: () => Promise<void>;
-  whenDone: (then: () => void) => () => void;
-};
-
 type Platform = {
   store: DeviceStore;
   describeThisClient: () => string;
   thisClientId: () => string;
   whereTheServerIs: () => string;
-  signInElsewhere: SignInElsewhere | null;
-  changeServer: (() => void) | null;
   openSocket: Connect;
 };
 
-export type { DeviceStore, Platform, SignInElsewhere };
+export type { DeviceStore, Platform };

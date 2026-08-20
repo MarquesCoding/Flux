@@ -39,13 +39,6 @@ describe('allowCrossOriginClients', () => {
     expect(response.headers.get('access-control-expose-headers')).toContain('content-range');
   });
 
-  it('lets the desktop client read the answer without anybody configuring it', async () => {
-    const response = await served([]).request('/api/health', {
-      headers: { origin: 'app.flux.desktop:/' },
-    });
-
-    expect(response.headers.get('access-control-allow-origin')).toBe('app.flux.desktop:/');
-  });
 
   it('says nothing to an origin nobody named, so the engine hides the answer', async () => {
     const response = await askedFrom('https://somewhere.else');
