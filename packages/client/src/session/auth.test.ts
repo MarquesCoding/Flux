@@ -3,6 +3,7 @@ import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPla
 import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import { readCurrentProfile, writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
 import {
+  sendThemBackToTheirDesktop,
   authenticateWithPasskey,
   deletePasskey,
   disableTwoFactor,
@@ -272,5 +273,28 @@ describe('two-factor', () => {
     fetchMock.mockResolvedValue(said({}, 401));
 
     await expect(disableTwoFactor('wrong')).resolves.toBe(false);
+  });
+});
+
+describe('sendThemBackToTheirDesktop', () => {
+  it('watches for the code the server leaves, which is what carries somebody home', () => {
+    const started = vi.spyOn(globalThis, 'setInterval');
+
+    const stop = sendThemBackToTheirDesktop();
+
+    expect(started).toHaveBeenCalled();
+
+    stop();
+    started.mockRestore();
+  });
+
+  it('hands back a way to stop, for a screen that goes before anybody finishes', () => {
+    const stopped = vi.spyOn(globalThis, 'clearInterval');
+
+    sendThemBackToTheirDesktop()();
+
+    expect(stopped).toHaveBeenCalled();
+
+    stopped.mockRestore();
   });
 });

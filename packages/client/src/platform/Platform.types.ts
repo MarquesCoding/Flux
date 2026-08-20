@@ -17,6 +17,7 @@ type Platform = {
   thisClientId: () => string;
   whereTheServerIs: () => string;
   signInElsewhere: SignInElsewhere | null;
+  changeServer: (() => void) | null;
   openSocket: Connect;
 };
 

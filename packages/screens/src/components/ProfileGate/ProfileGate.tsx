@@ -20,6 +20,7 @@ import {
 import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
 import { electronHandover } from '@FluxCore/functions/electronHandover';
 import { sendThemBackToTheirDesktop } from '@FluxClient/session/auth';
+import { ThisClientsChoices } from '@FluxScreens/components/ThisClientsChoices/ThisClientsChoices';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
@@ -502,6 +503,8 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           )}
         </div>
       )}
+
+      {isTitleOver ? <ThisClientsChoices /> : null}
 
       <motion.p
         initial={{ opacity: 0 }}

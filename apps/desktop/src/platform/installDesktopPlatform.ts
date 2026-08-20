@@ -1,6 +1,7 @@
 import { installPlatform } from '@FluxClient/platform/installPlatform';
 import { serverAddress } from '@FluxClient/session/serverAddress';
 import { theDesktopsStore } from '@FluxDesktop/platform/theDesktopsStore';
+import { askForADifferentServer } from '@FluxDesktop/platform/askForADifferentServer';
 import { signInThroughABrowser } from '@FluxDesktop/platform/signInThroughABrowser';
 import { describeThisDesktop } from '@FluxDesktop/platform/describeThisDesktop';
 import { thisWindowsId } from '@FluxDesktop/platform/thisWindowsId';
@@ -18,6 +19,7 @@ const installDesktopPlatform = (): void => {
   installPlatform({
     store: theDesktopsStore(),
     signInElsewhere: signInThroughABrowser(),
+    changeServer: askForADifferentServer,
     describeThisClient: () => describeThisDesktop(navigator.userAgent),
     thisClientId: thisWindowsId,
     whereTheServerIs: () => serverAddress() ?? '',

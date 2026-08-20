@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
-import { carryTheSession } from '@FluxDesktop/main/carryTheSession';
+import { holdTheSession } from '@FluxDesktop/main/holdTheSession';
 import { letTheBrowserSendThemBack } from '@FluxDesktop/main/letTheBrowserSendThemBack';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
@@ -21,7 +21,7 @@ const start = async (): Promise<void> => {
   answerAboutPreferences(() => {
     pointSignInAt(theServerAddress());
   });
-  carryTheSession(auth);
+  holdTheSession();
 
   theWindow = openTheWindow();
 

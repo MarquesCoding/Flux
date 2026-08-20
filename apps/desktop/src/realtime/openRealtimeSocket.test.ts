@@ -68,6 +68,7 @@ beforeEach(() => {
     thisClientId: () => 'a-window',
     whereTheServerIs: () => serverAddress() ?? '',
     signInElsewhere: null,
+    changeServer: null,
     openSocket: openRealtimeSocket,
   });
 });
