@@ -1,3 +1,4 @@
+import { serverUrl } from '@FluxClient/query/serverUrl';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 
@@ -33,10 +34,15 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
  * @param mediaId - The item being played.
  * @param trackId - Which track.
  * @param fromSeconds - Where to begin the track, for a preview that starts part-way in.
+ * Built onto the server this client watches, because a video element resolves what it is given
+ * against the page it is on — and a client serving its own pages would ask itself for subtitles.
+ *
  * @returns The address to attach to the video element.
  */
 const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>
-  `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`;
+  serverUrl(
+    `/api/media/${mediaId}/subtitles/${trackId}?from=${Math.max(0, Math.floor(fromSeconds)).toString()}`,
+  );
 
 /**
  * Picks the track to show before anybody has chosen — a forced track in the language being heard,

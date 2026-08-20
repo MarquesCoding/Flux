@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
+import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import { frameUrl, FRAME_WIDTH } from './frameUrl';
 
 describe('frameUrl', () => {
@@ -22,5 +24,18 @@ describe('frameUrl', () => {
 
   it('can be asked for a width other than the usual one', () => {
     expect(frameUrl('abc', 0, 320)).toContain('width=320');
+  });
+});
+
+describe('a client that serves its own pages', () => {
+  it('asks the server for a frame rather than asking itself', () => {
+    forgetPlatform();
+    installPlatform({ ...aFakePlatform(), whereTheServerIs: () => 'https://flux.example.com' });
+
+    expect(frameUrl('a-media-id', 30)).toBe(
+      'https://flux.example.com/api/playback/a-media-id/frame?seconds=30&width=1280',
+    );
+
+    forgetPlatform();
   });
 });

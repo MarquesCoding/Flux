@@ -5,6 +5,8 @@ import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
 
 const SET_COOKIE = 'set-cookie';
 
+type Held = { getCookie: () => string };
+
 /**
  * Signs somebody in inside this window, by keeping the cookies the server sets and sending them back.
  *
@@ -17,11 +19,19 @@ const SET_COOKIE = 'set-cookie';
  * Only the server somebody named, in both directions. A credential sent to a host that did not ask
  * for it is a credential given away, and a cookie kept from one is a stranger's cookie.
  *
+ * Two ways in, one way out. Signing in here fills the jar; signing in through a browser leaves the
+ * session with the library that fetched it, which knows how to authenticate its own requests and
+ * nothing about the rest of Flux. So where the jar is empty the library is asked instead, and either
+ * way every request leaves signed. Without that, a browser sign-in worked perfectly and the
+ * application it returned to stayed logged out.
+ *
  * Every path answers, including the ones that went wrong. Electron holds a request open until this
  * replies, so a throw here does not fail one request, it hangs every request for as long as the
  * application runs.
+ *
+ * @param held - The library holding a session got through a browser.
  */
-const holdTheSession = (): void => {
+const holdTheSession = (held: Held): void => {
   const jar = theCookieJar();
   const { webRequest } = session.defaultSession;
 
@@ -46,7 +56,12 @@ const holdTheSession = (): void => {
 
   webRequest.onBeforeSendHeaders((details, respond) => {
     try {
-      const carried = cookieForRequest(details.url, theServerAddress(), jar.carried());
+      const mine = jar.carried();
+      const carried = cookieForRequest(
+        details.url,
+        theServerAddress(),
+        mine === '' ? held.getCookie() : mine,
+      );
 
       respond({
         requestHeaders:

@@ -16,6 +16,8 @@ vi.mock('@FluxDesktop/main/theServerAddress', () => ({ theServerAddress: () => w
 
 let watching = 'https://flux.example.com';
 
+let throughABrowser = '';
+
 const { holdTheSession } = await import('./holdTheSession');
 
 const theServerSets = (url: string, lines: string[]): void => {
@@ -34,7 +36,8 @@ beforeEach(() => {
   onBeforeSendHeaders.mockClear();
   onHeadersReceived.mockClear();
   watching = 'https://flux.example.com';
-  holdTheSession();
+  throughABrowser = '';
+  holdTheSession({ getCookie: () => throughABrowser });
 });
 
 describe('holdTheSession', () => {
@@ -74,5 +77,22 @@ describe('holdTheSession', () => {
     watching = 'not an address';
 
     expect(askingFor('https://flux.example.com/api/libraries')).toHaveBeenCalledOnce();
+  });
+
+  it('falls back to a session got through a browser, which the jar never sees', () => {
+    throughABrowser = 'better-auth.session_token=from-a-browser';
+
+    expect(askingFor('https://flux.example.com/api/libraries')).toHaveBeenCalledWith({
+      requestHeaders: { Accept: '*/*', Cookie: 'better-auth.session_token=from-a-browser' },
+    });
+  });
+
+  it('prefers the one somebody signed in with here, where there is one', () => {
+    throughABrowser = 'better-auth.session_token=from-a-browser';
+    theServerSets('https://flux.example.com/api/auth/sign-in/email', ['s=signed-in-here']);
+
+    expect(askingFor('https://flux.example.com/api/libraries')).toHaveBeenCalledWith({
+      requestHeaders: { Accept: '*/*', Cookie: 's=signed-in-here' },
+    });
   });
 });

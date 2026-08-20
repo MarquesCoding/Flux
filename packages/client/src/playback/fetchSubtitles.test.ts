@@ -1,4 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
+import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
@@ -156,5 +158,18 @@ describe('previewTrack', () => {
 
   it('copes with a track that says no language', () => {
     expect(previewTrack([track({ id: 'unknown', language: null })], 'en')?.id).toBe('unknown');
+  });
+});
+
+describe('a client that serves its own pages', () => {
+  it('points the video element at the server rather than at itself', () => {
+    forgetPlatform();
+    installPlatform({ ...aFakePlatform(), whereTheServerIs: () => 'https://flux.example.com' });
+
+    expect(subtitleTrackUrl('a-media-id', 'a-track')).toBe(
+      'https://flux.example.com/api/media/a-media-id/subtitles/a-track?from=0',
+    );
+
+    forgetPlatform();
   });
 });

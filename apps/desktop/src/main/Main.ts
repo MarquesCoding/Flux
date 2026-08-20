@@ -21,7 +21,7 @@ const start = async (): Promise<void> => {
   answerAboutPreferences(() => {
     pointSignInAt(theServerAddress());
   });
-  holdTheSession();
+  holdTheSession(auth);
 
   theWindow = openTheWindow();
 
