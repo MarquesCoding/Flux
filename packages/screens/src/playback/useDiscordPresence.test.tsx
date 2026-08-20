@@ -20,7 +20,9 @@ type Watched = z.infer<typeof WatchedSchema> | null;
 const seen: Watched[] = [];
 
 const heard = (event: Event) => {
-  seen.push(event instanceof CustomEvent ? WatchedSchema.nullable().catch(null).parse(event.detail) : null);
+  seen.push(
+    event instanceof CustomEvent ? WatchedSchema.nullable().catch(null).parse(event.detail) : null,
+  );
 };
 
 const AN_EPISODE = {
@@ -122,5 +124,49 @@ describe('useDiscordPresence', () => {
     });
 
     expect(said()).toMatchObject({ series: null, isSeries: false });
+  });
+
+  it('does not clear and re-say the status as the position moves, which cleared it twice a second', () => {
+    const AtPosition = ({ positionSeconds }: { positionSeconds: number }) => {
+      useDiscordPresence({
+        media: AN_EPISODE,
+        isPlaying: true,
+        positionSeconds,
+        isAllowed: true,
+      });
+
+      return null;
+    };
+
+    const { rerender } = render(<AtPosition positionSeconds={10} />);
+
+    seen.length = 0;
+
+    for (let second = 11; second <= 24; second += 1) {
+      rerender(<AtPosition positionSeconds={second} />);
+    }
+
+    expect(seen.length).toBeLessThanOrEqual(1);
+  });
+
+  it('says it again once the time left has moved far enough that a seek would have', () => {
+    const AtPosition = ({ positionSeconds }: { positionSeconds: number }) => {
+      useDiscordPresence({
+        media: AN_EPISODE,
+        isPlaying: true,
+        positionSeconds,
+        isAllowed: true,
+      });
+
+      return null;
+    };
+
+    const { rerender } = render(<AtPosition positionSeconds={10} />);
+
+    seen.length = 0;
+
+    rerender(<AtPosition positionSeconds={400} />);
+
+    expect(seen.at(-1)?.title).toBe(AN_EPISODE.title);
   });
 });
