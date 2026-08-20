@@ -27,11 +27,15 @@ type DiscordActivity = {
 /**
  * Names the platform badge, which is the second asset registered against the application.
  *
+ * Lower case because Discord holds asset names that way whatever they were uploaded as. Asked for
+ * anything else it neither draws the badge nor says why: the activity is accepted, and the asset is
+ * dropped out of it on the way through.
+ *
  * @param platform - What this process is running on.
  * @returns The asset to draw small, or nothing where none is registered for it.
  */
 const theBadgeFor = (platform: string): string | undefined =>
-  platform === 'darwin' ? 'macOS' : undefined;
+  platform === 'darwin' ? 'macos' : undefined;
 
 /**
  * Writes what somebody is watching the way Discord shows it.

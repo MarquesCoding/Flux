@@ -67,7 +67,7 @@ describe('aDiscordActivity', () => {
   });
 
   it('badges a Mac, which is the second asset registered', () => {
-    expect(aDiscordActivity(A_FILM, 'darwin')?.assets).toMatchObject({ small_image: 'macOS' });
+    expect(aDiscordActivity(A_FILM, 'darwin')?.assets).toMatchObject({ small_image: 'macos' });
   });
 
   it('badges nothing where no asset is registered for the platform', () => {
