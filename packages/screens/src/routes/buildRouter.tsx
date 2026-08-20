@@ -42,6 +42,16 @@ const AdminPage = lazyRouteComponent(
   'AdminPage',
 );
 
+const BooksPage = lazyRouteComponent(
+  async () => import('@FluxScreens/components/BooksPage/BooksPage'),
+  'BooksPage',
+);
+
+const ReadPage = lazyRouteComponent(
+  async () => import('@FluxScreens/components/ReadPage/ReadPage'),
+  'ReadPage',
+);
+
 const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
 
 /**
@@ -85,6 +95,13 @@ const buildRouter = (title = 'Flux') => {
     ...carries,
   });
 
+  const read = createRoute({
+    getParentRoute: () => signedIn,
+    path: '/read/$bookId',
+    component: ReadPage,
+    ...carries,
+  });
+
   const shell = createRoute({
     getParentRoute: () => signedIn,
     id: 'shell',
@@ -106,6 +123,7 @@ const buildRouter = (title = 'Flux') => {
       ...carries,
     }),
     createRoute({ getParentRoute: () => shell, path: '/admin', component: AdminPage, ...carries }),
+    createRoute({ getParentRoute: () => shell, path: '/read', component: BooksPage, ...carries }),
     ...BROWSABLE.map((path) =>
       createRoute({ getParentRoute: () => shell, path, component: BrowsePage, ...carries }),
     ),
@@ -115,7 +133,7 @@ const buildRouter = (title = 'Flux') => {
   return createRouter({
     routeTree: root.addChildren([
       share,
-      signedIn.addChildren([watch, shell.addChildren(sections)]),
+      signedIn.addChildren([watch, read, shell.addChildren(sections)]),
     ]),
     defaultErrorComponent: PageProblem,
     scrollRestoration: true,

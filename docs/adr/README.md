@@ -53,6 +53,7 @@ more valuable than a tidy directory.
 | [0024](0024-focus-restoration-after-a-dialog-needs-nothing-from-us.md)      | Focus restoration after a dialog needs nothing from us                                    | Accepted                           |
 | [0025](0025-the-desktop-client-is-electron.md)                              | The desktop client is Electron, chosen on what it can hold rather than what it can decode | Proposed                           |
 | [0026](0026-the-desktop-client-is-a-window-onto-the-server.md)              | The desktop client is a window onto the server, not a copy of it                          | Proposed                           |
+| [0027](0027-a-book-is-not-a-media-item.md)                                  | Keep books in tables of their own                                                         | Proposed                           |
 
 ## Format
 

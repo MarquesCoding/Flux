@@ -15,6 +15,7 @@ const KIND_LABELS: Record<LibraryKind, string> = {
   movies: 'Movies',
   shows: 'Shows',
   music: 'Music',
+  books: 'Books',
 };
 
 /**

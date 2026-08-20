@@ -302,6 +302,13 @@
       "when": 1787194374824,
       "tag": "0042_profile_shows_what_i_am_watching",
       "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1787194434824,
+      "tag": "0043_books",
+      "breakpoints": true
     }
   ]
 }
