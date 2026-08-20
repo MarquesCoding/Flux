@@ -17,7 +17,7 @@ const DRAWS_IN_BY_PIXELS = 640;
 
 const FOOT_OF_THE_CARD = '24svh';
 
-const ROTATE_AFTER_MILLISECONDS = 14_000;
+const ROTATE_AFTER_MILLISECONDS = 28_000;
 
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
 
@@ -225,6 +225,9 @@ const Hero = ({
                 settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
                 onEnded={showNext}
                 {...(onPalette === undefined ? {} : { onPalette })}
+                hasSound
+                hasSubtitles
+                controlsAtTop
                 fills
               />
             </motion.div>

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { PauseIcon, PlayIcon, VolumeHighIcon, VolumeMute01Icon } from '@hugeicons/core-free-icons';
+import { VolumeHighIcon, VolumeMute01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { VideoSurface } from '@FluxUI/VideoSurface';
@@ -12,12 +12,14 @@ import {
 } from '@FluxClient/playback/fetchSubtitles';
 import { liftCues } from '@FluxScreens/playback/liftCues';
 import { readPreviewState } from '@FluxClient/playback/readPreviewState';
+import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
+import { fadeAudioOut } from '@FluxScreens/playback/fadeAudioOut';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
 const SETTLE_MILLISECONDS = 2600;
 
 /**
- * Builds the address an item's preview clip is served from — the short silent clip rendered when the
+ * Builds the address an item's preview clip is served from — the short clip rendered when the
  * library was scanned, which is what plays under a pointer resting on a card.
  *
  * @param mediaId - The item.
@@ -33,6 +35,8 @@ const PREVIEW_ABSENT = 'No preview available';
 
 const LOOK_EVERY_MILLISECONDS = 200;
 
+const FADE_MILLISECONDS = 700;
+
 /**
  * Plays a few seconds of an item where a poster would otherwise sit, once a pointer has rested long
  * enough to mean it. Starts muted and silent by default, since a grid where every card can make a
@@ -44,8 +48,11 @@ const LOOK_EVERY_MILLISECONDS = 200;
  * @param fills - Whether the clip fills its space or fits inside it.
  * @param settleMilliseconds - How long a pointer must rest before it plays.
  * @param startFraction - How far into the item to start.
- * @param hasSound - Whether it plays with sound.
+ * @param hasSound - Whether it may be unmuted at all. It still starts silent either way, and only
+ *   carries a viewer's remembered choice where this is set.
  * @param hasSubtitles - Whether it carries forced subtitles.
+ * @param controlsAtTop - Whether the controls sit in the top corner rather than the bottom one, for a
+ *   preview filling a screen that has nothing else up there.
  * @param repeats - Whether it starts again at the end.
  * @param onEnded - Told when the clip finishes.
  * @param onPlayingChange - Told when it starts or stops.
@@ -60,6 +67,7 @@ const MediaPreview = ({
   settleMilliseconds = SETTLE_MILLISECONDS,
   hasSound = false,
   hasSubtitles = false,
+  controlsAtTop = false,
   repeats,
   onEnded,
   onPlayingChange,
@@ -68,7 +76,6 @@ const MediaPreview = ({
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const stillRef = useRef<HTMLImageElement>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
   const [hasEnded, setHasEnded] = useState(false);
   const [, setHasFrame] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
@@ -112,8 +119,10 @@ const MediaPreview = ({
 
     let abandoned = false;
 
+    const clip = previewUrl(mediaId);
+
     const play = async () => {
-      const state = await readPreviewState(previewUrl(mediaId));
+      const state = await readPreviewState(clip);
 
       if (abandoned) {
         return;
@@ -127,9 +136,17 @@ const MediaPreview = ({
 
       setAbsence(null);
       element.muted = true;
-      element.src = previewUrl(mediaId);
+      element.volume = 1;
+      element.src = clip;
 
       await element.play().catch(() => {});
+
+      if (!element.isConnected || !hasSound || readSoundPreference() === 'muted') {
+        return;
+      }
+
+      element.muted = false;
+      setIsMuted(false);
     };
 
     const timer = setTimeout(() => {
@@ -139,15 +156,19 @@ const MediaPreview = ({
     return () => {
       abandoned = true;
       clearTimeout(timer);
-      setIsPlaying(false);
       setHasStarted(false);
       setHasEnded(false);
       setIsMuted(true);
       setAbsence(null);
-      element.removeAttribute('src');
-      element.load();
+
+      void fadeAudioOut(element, FADE_MILLISECONDS).then(() => {
+        if (element.src.endsWith(clip)) {
+          element.removeAttribute('src');
+          element.load();
+        }
+      });
     };
-  }, [mediaId, settleMilliseconds]);
+  }, [mediaId, settleMilliseconds, hasSound]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -224,8 +245,6 @@ const MediaPreview = ({
           isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
         onPlayingChange={(playing) => {
-          setIsPlaying(playing);
-
           if (playing) {
             setHasStarted(true);
             setHasEnded(false);
@@ -263,7 +282,11 @@ const MediaPreview = ({
       />
 
       {actions === undefined && (!hasSound || !hasStarted) ? null : (
-        <div className="absolute bottom-4 right-4 z-10 flex items-center gap-2">
+        <div
+          className={`absolute right-4 z-10 flex items-center gap-2 ${
+            controlsAtTop ? 'top-4' : 'bottom-4'
+          }`}
+        >
           {actions}
 
           {!hasSound || !hasStarted ? null : (
@@ -271,7 +294,7 @@ const MediaPreview = ({
               <Button
                 isIconOnly
                 variant="ghost"
-                label={isPlaying ? 'Pause the preview' : 'Play the preview'}
+                label={isMuted ? 'Turn sound on' : 'Turn sound off'}
                 onClick={() => {
                   const element = videoRef.current;
 
@@ -279,28 +302,12 @@ const MediaPreview = ({
                     return;
                   }
 
-                  if (element.paused) {
-                    void element.play().catch(() => {});
-                  } else {
-                    element.pause();
-                  }
-                }}
-                className="bg-black/50 text-white backdrop-blur"
-              >
-                {isPlaying ? <Icon of={PauseIcon} size={18} /> : <Icon of={PlayIcon} size={18} />}
-              </Button>
+                  const isSilenced = !isMuted;
 
-              <Button
-                isIconOnly
-                variant="ghost"
-                label={isMuted ? 'Turn sound on' : 'Turn sound off'}
-                onClick={() => {
-                  const element = videoRef.current;
-
-                  if (element !== null) {
-                    element.muted = !isMuted;
-                    setIsMuted(!isMuted);
-                  }
+                  element.muted = isSilenced;
+                  element.volume = 1;
+                  setIsMuted(isSilenced);
+                  saveSoundPreference(isSilenced ? 'muted' : 'audible');
                 }}
                 className="bg-black/50 text-white backdrop-blur"
               >

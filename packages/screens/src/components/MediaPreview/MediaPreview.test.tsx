@@ -1,6 +1,7 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
 import { MediaPreview } from './MediaPreview';
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
@@ -300,9 +301,7 @@ describe('MediaPreview', () => {
     expect(screen.queryByRole('button', { name: /sound/i })).not.toBeInTheDocument();
   });
 
-  it('lets somebody stop a preview once it is running', async () => {
-    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
-
+  it('offers nothing but sound, since a preview is not something to scrub through', async () => {
     render(
       <MediaPreview
         mediaId={MEDIA_ID}
@@ -315,9 +314,30 @@ describe('MediaPreview', () => {
 
     await settle();
     await startPlaying();
-    await actor.click(screen.getByRole('button', { name: 'Pause the preview' }));
 
-    expect(pause).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: /preview/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Turn sound on' })).toBeInTheDocument();
+  });
+
+  it('puts the controls where a full-screen preview has room for them', async () => {
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+        controlsAtTop
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    const controls = screen.getByRole('button', { name: 'Turn sound on' }).parentElement;
+
+    expect(controls?.className).toContain('top-4');
+    expect(controls?.className).not.toContain('bottom-4');
   });
 
   it('lets somebody ask for sound', async () => {
@@ -427,5 +447,154 @@ describe('MediaPreview', () => {
     await waitFor(() => {
       expect(fetch).toHaveBeenCalled();
     });
+  });
+
+  it('gives sound back to somebody who asked for it last time', async () => {
+    saveSoundPreference('audible');
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+
+    await waitFor(() => {
+      expect(videoOf().muted).toBe(false);
+    });
+  });
+
+  it('still starts muted where sound was asked for, since a browser refuses otherwise', async () => {
+    saveSoundPreference('audible');
+
+    let wasMutedWhenPlayed: boolean | null = null;
+
+    play.mockImplementation(() => {
+      wasMutedWhenPlayed = videoOf().muted;
+
+      return Promise.resolve();
+    });
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+
+    await waitFor(() => {
+      expect(play).toHaveBeenCalled();
+    });
+
+    expect(wasMutedWhenPlayed).toBe(true);
+  });
+
+  it('stays silent where the caller never offered sound, whatever was remembered', async () => {
+    saveSoundPreference('audible');
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    expect(videoOf().muted).toBe(true);
+  });
+
+  it('remembers that somebody asked for sound', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+    await actor.click(screen.getByRole('button', { name: 'Turn sound on' }));
+
+    expect(readSoundPreference()).toBe('audible');
+  });
+
+  it('remembers that they turned it off again', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    saveSoundPreference('audible');
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Turn sound off' })).toBeInTheDocument();
+    });
+
+    await actor.click(screen.getByRole('button', { name: 'Turn sound off' }));
+
+    expect(readSoundPreference()).toBe('muted');
+  });
+
+  it('fades an audible clip out rather than cutting it off when it is taken away', async () => {
+    saveSoundPreference('audible');
+
+    const { unmount } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await waitFor(() => {
+      expect(videoOf().muted).toBe(false);
+    });
+
+    const element = videoOf();
+
+    unmount();
+
+    expect(element.src).not.toBe('');
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(element.volume).toBe(0);
+    expect(element.src).toBe('');
   });
 });

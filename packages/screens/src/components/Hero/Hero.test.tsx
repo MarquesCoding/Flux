@@ -4,9 +4,16 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { Hero } from './Hero';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaPreviewProps } from '@FluxScreens/components/MediaPreview/MediaPreview.types';
+
+const { previewMock } = vi.hoisted(() => ({ previewMock: vi.fn() }));
 
 vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
-  MediaPreview: () => <div>preview</div>,
+  MediaPreview: (props: MediaPreviewProps) => {
+    previewMock(props);
+
+    return <div>preview</div>;
+  },
 }));
 
 const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn() }));
@@ -33,6 +40,7 @@ const item = (id: string, title: string): MediaSummary => ({
 const items = [item('a', 'Arrival'), item('b', 'Dune'), item('c', 'Sicario')];
 
 beforeEach(() => {
+  previewMock.mockReset();
   detailMock.mockReset();
   detailMock.mockReturnValue(Promise.resolve(null));
   vi.useFakeTimers({ shouldAdvanceTime: true });
@@ -43,6 +51,14 @@ afterEach(() => {
 });
 
 describe('Hero', () => {
+  it('offers the featured clip sound, and reads it aloud in writing either way', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(
+      expect.objectContaining({ hasSound: true, hasSubtitles: true }),
+    );
+  });
+
   it('stands in a runway by default, so the page can scroll beneath it', () => {
     const { container } = renderInAnAddress(
       <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />,
