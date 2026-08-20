@@ -30,6 +30,9 @@ vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
   isPasskeySupported: vi.fn(),
 }));
 
+
+
+
 const passkeyMock = vi.mocked(authenticateWithPasskey);
 const passkeySupportedMock = vi.mocked(isPasskeySupported);
 
@@ -53,6 +56,7 @@ const serverWith = (
 
     return Promise.resolve({
       ok: signIn.ok,
+      headers: new Headers(),
       json: () => Promise.resolve({}),
       text: () => Promise.resolve(signIn.body ?? '{}'),
     });
@@ -73,6 +77,7 @@ const arrive = async () => {
 };
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
   serverWith(HOUSEHOLD);
@@ -390,5 +395,40 @@ describe('signing in with a passkey instead of a password', () => {
     });
 
     expect(onSignedIn).not.toHaveBeenCalled();
+  });
+});
+
+describe('shown inside the desktop client', () => {
+  it('offers a different server, which is the one thing a window can do and a browser cannot', async () => {
+    document.documentElement.dataset['fluxDesktop'] = 'true';
+
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    expect(screen.getByRole('button', { name: 'Use a different server' })).toBeInTheDocument();
+
+    delete document.documentElement.dataset['fluxDesktop'];
+  });
+
+  it('asks the window when it is chosen', async () => {
+    const heard = vi.fn();
+    document.documentElement.dataset['fluxDesktop'] = 'true';
+    document.addEventListener('flux:change-server', heard);
+
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+    await userEvent.click(screen.getByRole('button', { name: 'Use a different server' }));
+
+    expect(heard).toHaveBeenCalledOnce();
+
+    document.removeEventListener('flux:change-server', heard);
+    delete document.documentElement.dataset['fluxDesktop'];
+  });
+
+  it('offers nothing of the sort in a browser, which is already where it was opened', async () => {
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    expect(screen.queryByRole('button', { name: 'Use a different server' })).toBeNull();
   });
 });

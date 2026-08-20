@@ -4,7 +4,12 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { fetchEveryone, signInAsProfile } from './fetchEveryone';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
-type Answer = { ok: boolean; json: () => Promise<JsonValue>; text?: () => Promise<string> };
+type Answer = {
+  ok: boolean;
+  headers: Headers;
+  json: () => Promise<JsonValue>;
+  text?: () => Promise<string>;
+};
 
 type FetchLike = (input: string, init?: RequestInit) => Promise<Answer>;
 
@@ -41,6 +46,7 @@ afterEach(() => {
 const answerWith = (body: string, ok = true) => {
   fetchMock.mockResolvedValue({
     ok,
+    headers: new Headers(),
     json: () => Promise.resolve(JSON.parse(body)),
     text: () => Promise.resolve(body),
   });

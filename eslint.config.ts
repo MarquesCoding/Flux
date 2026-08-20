@@ -11,6 +11,8 @@ export default tseslint.config(
   {
     ignores: [
       '**/dist/**',
+      '**/dist-main/**',
+      '**/dist-preload/**',
       '**/coverage/**',
       '**/node_modules/**',
       'target/**',

@@ -2,7 +2,6 @@ import { betterAuth } from 'better-auth';
 import type { DBAdapter, DBAdapterInstance } from 'better-auth';
 import {
   admin,
-  bearer,
   deviceAuthorization,
   genericOAuth,
   jwt,
@@ -11,7 +10,7 @@ import {
 } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
-import { ownOrigins } from '@FluxServer/env/ownOrigins';
+import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
 import type { Env } from '@FluxServer/env/Env';
 import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
 
@@ -52,12 +51,11 @@ const createAuth = ({
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
-    trustedOrigins: async () => {
-      const stored = (await settings.read()).trustedOrigins;
-      const configured = [...new Set([...env.TRUSTED_ORIGINS, ...stored])];
-
-      return [...configured, ...ownOrigins(configured, env.PORT)];
-    },
+    trustedOrigins: trustedOriginsFor({
+      configured: env.TRUSTED_ORIGINS,
+      port: env.PORT,
+      settings,
+    }),
     emailAndPassword: {
       enabled: true,
       minPasswordLength: 10,
@@ -102,7 +100,6 @@ const createAuth = ({
       twoFactor({ issuer: FLUX_APP_NAME }),
       passkey({ rpName: FLUX_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
-      bearer(),
       jwt(),
       apiKey({ enableSessionForAPIKeys: true }),
       admin(),

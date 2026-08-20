@@ -303,6 +303,28 @@ describe('profiles over HTTP', () => {
     expect(response.headers.getSetCookie().join(' ')).toContain('session_token');
   });
 
+  it('hands out a cookie that works, which is the whole point of handing one out', async () => {
+    const { app, profiles } = build();
+    const cookie = await signedIn(app);
+    const [profile] = await read(app, cookie);
+
+    named(profiles, profile?.id ?? '');
+
+    const signIn = await app.request(`${BASE}/api/profiles/${profile?.id ?? ''}/sign-in`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify({ password: CREDENTIALS.password }),
+    });
+
+    const handed = signIn.headers.getSetCookie()[0]?.split(';')[0] ?? '';
+
+    const asked = await app.request(`${BASE}/api/profiles`, {
+      headers: { accept: 'application/json', cookie: handed, origin: BASE },
+    });
+
+    expect(asked.status).toBe(200);
+  });
+
   it('refuses the wrong password', async () => {
     const { app, profiles } = build();
     const cookie = await signedIn(app);

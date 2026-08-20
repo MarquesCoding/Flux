@@ -1,3 +1,4 @@
+import { askTheServer } from '@FluxClient/session/askTheServer';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
 import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
@@ -30,13 +31,14 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
  *
  * @param profileId - Who picked.
  * @param password - Their PIN, where the profile has one.
+ * @param carried - What a desktop client sent somebody here with, where one did.
  * @returns Whether it worked, and why not where it did not.
  */
 const signInAsProfile = async (
   profileId: string,
   password: string,
 ): Promise<{ kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string }> => {
-  const response = await fetch(`/api/profiles/${profileId}/sign-in`, {
+  const response = await askTheServer(`/api/profiles/${profileId}/sign-in`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),

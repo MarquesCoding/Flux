@@ -219,7 +219,7 @@ describe('passkeys', () => {
 describe('two-factor', () => {
   it('starts enrolment, and hands back the secret and the backup codes', async () => {
     fetchMock.mockResolvedValue(
-      said({ totpURI: 'otpauth://totp/Flux', backupCodes: ['aaaa-1111'] }),
+      said({ method: 'totp', totpURI: 'otpauth://totp/Flux', backupCodes: ['aaaa-1111'] }),
     );
 
     await expect(enableTwoFactor('a-long-enough-password')).resolves.toEqual({
@@ -228,6 +228,12 @@ describe('two-factor', () => {
     });
 
     expect(asked()).toBe('/api/auth/two-factor/enable');
+  });
+
+  it('hands back nothing where the server enrolled a code by mail, which Flux does not offer', async () => {
+    fetchMock.mockResolvedValue(said({ method: 'otp' }));
+
+    await expect(enableTwoFactor('a-long-enough-password')).resolves.toBeNull();
   });
 
   it('hands back nothing where the password was wrong', async () => {
@@ -268,3 +274,5 @@ describe('two-factor', () => {
     await expect(disableTwoFactor('wrong')).resolves.toBe(false);
   });
 });
+
+

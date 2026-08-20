@@ -49,7 +49,9 @@ type UpdateLibraryInput = {
  * Reads every library on this server, with where each reads from and when it was last scanned.
  */
 const fetchLibraries = async (): Promise<Library[]> => {
-  const response = await fetch('/api/libraries', { headers: { accept: 'application/json' } });
+  const response = await fetch('/api/libraries', {
+    headers: { accept: 'application/json' },
+  });
 
   if (!response.ok) {
     throw new Error(`Libraries request failed with status ${response.status.toString()}`);
@@ -304,7 +306,9 @@ const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | nul
  */
 const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
   const query = force ? '?force=true' : '';
-  const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, { method: 'POST' });
+  const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, {
+    method: 'POST',
+  });
 
   if (!response.ok) {
     return null;
