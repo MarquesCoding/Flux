@@ -57,6 +57,7 @@ import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabas
 import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
 import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
+import { createDatabaseBookService } from '@FluxServer/books/createDatabaseBookService';
 import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile';
 import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService';
 import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
@@ -347,6 +348,8 @@ const giveDefaultRole = async (userId: string): Promise<void> => {
   }
 };
 const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'));
+
+const bookService = createDatabaseBookService(db, env.IMAGE_CACHE_DIR);
 
 const transcoder = createTranscoderClient({ baseUrl: env.TRANSCODER_URL });
 
@@ -1113,6 +1116,7 @@ const app = createApp({
     });
   },
   profiles: profileService,
+  books: bookService,
   promoteProfile: async ({ profileId, email, password }) => {
     const rows = await db
       .select({
@@ -1429,13 +1433,7 @@ const nodeWebSocket = createNodeWebSocket({ app });
 app.get(
   '/api/realtime',
   nodeWebSocket.upgradeWebSocket(async (context) => {
-    const account =
-      (
-        await readSessionOnce(
-          auth,
-          context.req.raw.headers,
-        )
-      )?.user ?? null;
+    const account = (await readSessionOnce(auth, context.req.raw.headers))?.user ?? null;
 
     if (account === null) {
       return {};

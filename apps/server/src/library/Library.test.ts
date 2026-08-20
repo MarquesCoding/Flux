@@ -676,7 +676,7 @@ describe('library routes', () => {
     const response = await app.request(`${BASE}/api/libraries`, {
       method: 'POST',
       headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ name: 'Books', kind: 'books', path: '/media/books' }),
+      body: JSON.stringify({ name: 'Podcasts', kind: 'podcasts', path: '/media/podcasts' }),
     });
 
     expect(response.status).toBe(400);
