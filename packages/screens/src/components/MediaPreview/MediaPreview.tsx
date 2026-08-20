@@ -54,6 +54,9 @@ const FADE_MILLISECONDS = 700;
  * @param hasSubtitles - Whether it carries forced subtitles.
  * @param controlsAtTop - Whether the controls sit in the top corner rather than the bottom one, for a
  *   preview filling a screen that has nothing else up there.
+ * @param isHeld - Whether the clip should hold where it is rather than playing on. A hero standing
+ *   behind a dialog would otherwise run its clip out while nobody could see it, and come back to a
+ *   still it has no reason to leave.
  * @param repeats - Whether it starts again at the end.
  * @param onEnded - Told when the clip finishes.
  * @param onPlayingChange - Told when it starts or stops.
@@ -69,6 +72,7 @@ const MediaPreview = ({
   hasSound = false,
   hasSubtitles = false,
   controlsAtTop = false,
+  isHeld = false,
   repeats,
   onEnded,
   onPlayingChange,
@@ -178,6 +182,22 @@ const MediaPreview = ({
 
     return claimSound(setMayBeHeard);
   }, [hasSound]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+
+    if (element === null || !hasStarted || hasEnded) {
+      return;
+    }
+
+    if (isHeld) {
+      element.pause();
+
+      return;
+    }
+
+    void element.play().catch(() => {});
+  }, [isHeld, hasStarted, hasEnded]);
 
   useEffect(() => {
     const element = videoRef.current;

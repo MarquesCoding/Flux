@@ -230,6 +230,7 @@ const Hero = ({
                 hasSound
                 hasSubtitles
                 controlsAtTop
+                isHeld={isCovered}
                 fills
               />
             </motion.div>

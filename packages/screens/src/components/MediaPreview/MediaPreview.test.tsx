@@ -644,6 +644,63 @@ describe('MediaPreview', () => {
     });
   });
 
+  it('holds the clip where it is while something stands over the page', async () => {
+    const { rerender } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    pause.mockClear();
+
+    rerender(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        isHeld
+      />,
+    );
+
+    expect(pause).toHaveBeenCalled();
+  });
+
+  it('carries on from where it was rather than starting again', async () => {
+    const { rerender } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        isHeld
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    play.mockClear();
+
+    rerender(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    expect(play).toHaveBeenCalled();
+    expect(videoOf().currentTime).toBe(0);
+  });
+
   it('fades an audible clip out rather than cutting it off when it is taken away', async () => {
     saveSoundPreference('audible');
 

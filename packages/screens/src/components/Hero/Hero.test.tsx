@@ -153,6 +153,20 @@ describe('Hero', () => {
     expect(onFeatureChange).toHaveBeenCalledWith(items[0]);
   });
 
+  it('holds the featured clip still while something is standing over the page', () => {
+    coverPage();
+
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ isHeld: true }));
+  });
+
+  it('lets it play on while nothing is', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ isHeld: false }));
+  });
+
   it('holds still while something is standing over the page', () => {
     const uncover = coverPage();
 
