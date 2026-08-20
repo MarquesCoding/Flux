@@ -31,6 +31,14 @@ vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
   isPasskeySupported: vi.fn(),
 }));
 
+vi.mock('@FluxScreens/desktop/theHandoverOnArrival', () => ({
+  theHandoverOnArrival: () => sentFromADesktop,
+}));
+
+const HANDOVER = { client_id: 'electron', code_challenge: 'a-challenge', state: 'a-state' };
+
+let sentFromADesktop: typeof HANDOVER | null = null;
+
 const passkeyMock = vi.mocked(authenticateWithPasskey);
 const passkeySupportedMock = vi.mocked(isPasskeySupported);
 
@@ -75,6 +83,7 @@ const arrive = async () => {
 };
 
 beforeEach(() => {
+  sentFromADesktop = null;
   window.history.replaceState({}, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
@@ -91,11 +100,7 @@ describe('a desktop client that sent somebody here', () => {
   it('carries what it sent them with onto the request that signs them in', async () => {
     const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
 
-    window.history.replaceState(
-      {},
-      '',
-      '/?client_id=electron&code_challenge=a-challenge&state=a-state',
-    );
+    sentFromADesktop = HANDOVER;
 
     renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
 
@@ -121,11 +126,7 @@ describe('a desktop client that sent somebody here', () => {
 
     vi.mocked(sendThemBackToTheirDesktop).mockClear();
 
-    window.history.replaceState(
-      {},
-      '',
-      '/?client_id=electron&code_challenge=a-challenge&state=a-state',
-    );
+    sentFromADesktop = HANDOVER;
 
     renderInAnAddress(<ProfileGate onSignedIn={onSignedIn} />);
 

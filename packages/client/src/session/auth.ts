@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import type { Handover } from '@FluxCore/functions/electronHandover';
 import { createAuthClient } from 'better-auth/client';
 import { askTheServer, PLACEHOLDER_ORIGIN } from '@FluxClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
@@ -312,6 +313,24 @@ const disableTwoFactor = async (password: string): Promise<boolean> => {
 };
 
 /**
+ * Asks the server for a code that will get an already signed-in somebody back to their desktop
+ * client.
+ *
+ * Signing in mints one by itself, which covers somebody who had to. It does not cover somebody who
+ * was already signed in here — most people, most of the time, since this is the browser they use
+ * Flux in — and for them there is no sign-in to hang it on. So the session that already exists is
+ * offered instead.
+ *
+ * @param carried - What the desktop client sent them here with.
+ * @returns Whether the server minted one.
+ */
+const handThisSessionToTheDesktop = async (carried: Handover): Promise<boolean> => {
+  const { error } = await client.electron.transferUser({}, { query: carried });
+
+  return error === null;
+};
+
+/**
  * Sends somebody back to the desktop client that sent them here, once they have signed in.
  *
  * A desktop client cannot sign anybody in, so it opens a browser here. The server mints a
@@ -334,6 +353,7 @@ const sendThemBackToTheirDesktop = (): (() => void) => {
 export type { RegisterOutcome, AuthenticateOutcome, Enrollment };
 
 export {
+  handThisSessionToTheDesktop,
   sendThemBackToTheirDesktop,
   fetchSession,
   signOut,

@@ -3,6 +3,7 @@ import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPla
 import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
 import { readCurrentProfile, writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
 import {
+  handThisSessionToTheDesktop,
   sendThemBackToTheirDesktop,
   authenticateWithPasskey,
   deletePasskey,
@@ -296,5 +297,35 @@ describe('sendThemBackToTheirDesktop', () => {
     expect(stopped).toHaveBeenCalled();
 
     stopped.mockRestore();
+  });
+});
+
+describe('handThisSessionToTheDesktop', () => {
+  const CARRIED = { client_id: 'electron', code_challenge: 'a-challenge', state: 'a-state' };
+
+  it('offers the session that already exists, since there is no sign-in to hang a code on', async () => {
+    fetchMock.mockResolvedValue(said({ redirect: false }));
+
+    await expect(handThisSessionToTheDesktop(CARRIED)).resolves.toBe(true);
+
+    expect(asked()).toBe('/api/auth/electron/transfer-user');
+  });
+
+  it('carries what the desktop client sent them here with, or the server mints nothing', async () => {
+    fetchMock.mockResolvedValue(said({ redirect: false }));
+
+    await handThisSessionToTheDesktop(CARRIED);
+
+    const at = String(fetchMock.mock.calls[0]?.[0] ?? '');
+
+    expect(at).toContain('client_id=electron');
+    expect(at).toContain('code_challenge=a-challenge');
+    expect(at).toContain('state=a-state');
+  });
+
+  it('says so where the server would not, rather than sending somebody nowhere', async () => {
+    fetchMock.mockResolvedValue(said({ message: 'no' }, 401));
+
+    await expect(handThisSessionToTheDesktop(CARRIED)).resolves.toBe(false);
   });
 });

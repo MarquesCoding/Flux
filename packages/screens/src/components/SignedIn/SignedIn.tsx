@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfileGate } from '@FluxScreens/components/ProfileGate/ProfileGate';
+import { HandBackToTheDesktop } from '@FluxScreens/components/HandBackToTheDesktop/HandBackToTheDesktop';
+import { theHandoverOnArrival } from '@FluxScreens/desktop/theHandoverOnArrival';
 import { SplashScreen } from '@FluxUI/SplashScreen';
 import { shellContext } from '@FluxClient/shell/shellContext';
 import { sessionQueries } from '@FluxClient/query/sessionQueries';
@@ -260,6 +262,12 @@ const SignedIn = ({ title }: SignedInProps) => {
         </p>
       </main>
     );
+  }
+
+  const carried = theHandoverOnArrival();
+
+  if (carried !== null && user !== null) {
+    return <HandBackToTheDesktop carried={carried} />;
   }
 
   if (shell === null) {
