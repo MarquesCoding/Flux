@@ -33,6 +33,7 @@
     "node-unrar-js": "^2.0.2",
     "pg": "^8.23.0",
     "pg-boss": "^12.27.0",
+    "sanitize-html": "^2.17.7",
     "undici": "^8.10.0",
     "web-push": "^3.6.7",
     "zod": "^4.4.3"
@@ -40,6 +41,7 @@
   "devDependencies": {
     "@better-auth/utils": "0.4.2",
     "@types/pg": "^8.21.0",
+    "@types/sanitize-html": "^2.16.1",
     "@types/web-push": "^3.6.4",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",

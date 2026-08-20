@@ -1,4 +1,5 @@
 import { openComicRar } from './openComicRar';
+import { openEpub } from './openEpub';
 import { openComicZip } from './openComicZip';
 import { openPortableDocument } from './openPortableDocument';
 import type { BookFormat } from '@FluxContracts/schemas/Book';
@@ -36,12 +37,15 @@ const bookFormatOf = (path: string): BookFormat | null => {
  * back says how it wants to be read: a fixed book hands over pages as pictures, and a reflowing one
  * hands over documents that lay themselves out against whatever screen they reach.
  *
- * EPUB is not opened here yet, so it is refused rather than half-opened.
- *
  * @param path - The file.
+ * @param addressFor - Turns a path inside a book into one this server serves, which only a book that
+ *   reflows has any use for: its pictures live inside it, where no browser can reach them.
  * @returns The book, or nothing where it cannot be opened as one.
  */
-const openBookFile = async (path: string): Promise<OpenedBook | null> => {
+const openBookFile = async (
+  path: string,
+  addressFor: (href: string) => string | null = () => null,
+): Promise<OpenedBook | null> => {
   const format = bookFormatOf(path);
 
   if (format === 'cbz') {
@@ -54,6 +58,10 @@ const openBookFile = async (path: string): Promise<OpenedBook | null> => {
 
   if (format === 'pdf') {
     return openPortableDocument(path);
+  }
+
+  if (format === 'epub') {
+    return openEpub(path, addressFor);
   }
 
   return null;
