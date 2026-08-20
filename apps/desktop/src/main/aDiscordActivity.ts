@@ -32,23 +32,30 @@ type DiscordActivity = {
   details: string;
   state?: string;
   timestamps?: { start: number; end?: number };
-  assets: { large_image: string; large_text: string; small_image?: string };
+  assets: { large_image: string; large_text: string; small_image: string; small_text: string };
   party?: { id: string; size: [number, number] };
   buttons?: { label: string; url: string }[];
 };
 
 /**
- * Names the platform badge, which is the second asset registered against the application.
+ * Names the badge that says what is happening, which is the small picture over the corner of the
+ * large one.
  *
- * Lower case because Discord holds asset names that way whatever they were uploaded as. Asked for
- * anything else it neither draws the badge nor says why: the activity is accepted, and the asset is
- * dropped out of it on the way through.
+ * It said which platform this was before, which is a thing nobody looking at somebody else's status
+ * wants to know. What they want is whether it is moving.
  *
- * @param platform - What this process is running on.
- * @returns The asset to draw small, or nothing where none is registered for it.
+ * @param playing - What is happening.
+ * @returns The asset to draw small, and what it says when somebody rests on it.
  */
-const theBadgeFor = (platform: string): string | undefined =>
-  platform === 'darwin' ? 'macos' : undefined;
+const theBadgeFor = (playing: WhatIsPlaying): { image: string; text: string } => {
+  if (playing.kind === 'browsing') {
+    return { image: 'fluxsearch', text: 'Browsing' };
+  }
+
+  return playing.isPaused
+    ? { image: 'fluxpause', text: 'Paused' }
+    : { image: 'fluxplay', text: 'Playing' };
+};
 
 /**
  * The picture to draw large, where there is one Discord can fetch and it is safe to name.
@@ -109,20 +116,18 @@ const theArtworkFor = (artwork: string | null): string | undefined => {
  * watching this together, not how many more could.
  *
  * @param playing - What is happening, or nothing where the status should come down.
- * @param platform - What this process is running on.
  * @param version - Which Flux this is, which is what the picture says when somebody rests on it.
  * @returns The activity to send, or nothing to clear it.
  */
 const aDiscordActivity = (
   playing: WhatIsPlaying | null,
-  platform: string,
   version: string,
 ): DiscordActivity | null => {
   if (playing === null) {
     return null;
   }
 
-  const badge = theBadgeFor(platform);
+  const badge = theBadgeFor(playing);
   const named = `Flux v${version}`;
 
   if (playing.kind === 'browsing') {
@@ -132,7 +137,8 @@ const aDiscordActivity = (
       assets: {
         large_image: LOGO,
         large_text: named,
-        ...(badge === undefined ? {} : { small_image: badge }),
+        small_image: badge.image,
+        small_text: badge.text,
       },
     };
   }
@@ -170,7 +176,8 @@ const aDiscordActivity = (
     assets: {
       large_image: artwork ?? LOGO,
       large_text: named,
-      ...(badge === undefined ? {} : { small_image: badge }),
+      small_image: badge.image,
+      small_text: badge.text,
     },
     ...(playing.party === null
       ? {}

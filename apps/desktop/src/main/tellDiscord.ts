@@ -52,7 +52,7 @@ const tellDiscord = (temporary: string, version: string): Presence => {
     send(FRAME, {
       cmd: 'SET_ACTIVITY',
       nonce: `${Date.now().toString()}`,
-      args: { pid: process.pid, activity: aDiscordActivity(playing, process.platform, version) },
+      args: { pid: process.pid, activity: aDiscordActivity(playing, version) },
     });
   };
 
