@@ -85,6 +85,7 @@ const MediaPreview = ({
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const wasHeld = useRef(false);
+  const isFallingQuiet = useRef(false);
   const stillRef = useRef<HTMLImageElement>(null);
   const [hasEnded, setHasEnded] = useState(false);
   const [, setHasFrame] = useState(false);
@@ -146,17 +147,24 @@ const MediaPreview = ({
       }
 
       setAbsence(null);
+      isFallingQuiet.current = false;
       element.muted = true;
       element.volume = 1;
       element.src = clip;
 
+      element.addEventListener(
+        'play',
+        () => {
+          if (!element.isConnected || !hasSound || readSoundPreference() === 'muted') {
+            return;
+          }
+
+          setIsMuted(false);
+        },
+        { once: true },
+      );
+
       await element.play().catch(() => {});
-
-      if (!element.isConnected || !hasSound || readSoundPreference() === 'muted') {
-        return;
-      }
-
-      setIsMuted(false);
     };
 
     const timer = setTimeout(() => {
@@ -209,6 +217,7 @@ const MediaPreview = ({
     wasHeld.current = false;
 
     const timer = setTimeout(() => {
+      isFallingQuiet.current = false;
       element.volume = 0;
 
       void element
@@ -306,6 +315,27 @@ const MediaPreview = ({
         className={`flux-preview h-full w-full object-cover transition-opacity duration-700 ${
           isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
+        onTimeUpdate={(seconds) => {
+          const element = videoRef.current;
+
+          if (element === null || loops || isFallingQuiet.current) {
+            return;
+          }
+
+          const left = element.duration - seconds;
+
+          if (Number.isNaN(left) || left > FADE_MILLISECONDS / 1000) {
+            return;
+          }
+
+          if (element.muted || element.volume === 0) {
+            return;
+          }
+
+          isFallingQuiet.current = true;
+
+          void rampVolume(element, 0, FADE_MILLISECONDS);
+        }}
         onPlayingChange={(playing) => {
           if (playing) {
             setHasStarted(true);

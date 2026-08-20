@@ -39,6 +39,17 @@ const startPlaying = async () => {
   });
 };
 
+const startAllPlaying = async () => {
+  await act(async () => {
+    for (const clip of videosOf()) {
+      clip.dispatchEvent(new Event('play'));
+      clip.dispatchEvent(new Event('playing'));
+    }
+
+    await Promise.resolve();
+  });
+};
+
 const endClip = async () => {
   await act(async () => {
     videoOf().dispatchEvent(new Event('ended'));
@@ -470,6 +481,7 @@ describe('MediaPreview', () => {
     );
 
     await settle();
+    await startPlaying();
 
     await waitFor(() => {
       expect(videoOf().muted).toBe(false);
@@ -594,6 +606,7 @@ describe('MediaPreview', () => {
     );
 
     await settle();
+    await startAllPlaying();
 
     await waitFor(() => {
       const clips = videosOf();
@@ -636,6 +649,7 @@ describe('MediaPreview', () => {
     );
 
     await settle();
+    await startAllPlaying();
 
     rerender(<>{behind}</>);
 
