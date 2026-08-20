@@ -3,17 +3,7 @@ import { inPageOrder } from './inPageOrder';
 import { readZipDirectory } from './readZipDirectory';
 import { readZipEntry } from './readZipEntry';
 import type { ZipEntry } from './readZipDirectory';
-
-type BookPageBytes = {
-  bytes: Uint8Array;
-  contentType: string;
-};
-
-type FixedBook = {
-  layout: 'fixed';
-  pageCount: number;
-  readPage: (at: number) => Promise<BookPageBytes | null>;
-};
+import type { FixedBook } from './BookFile';
 
 /**
  * Opens a comic archive, which is a zip of pictures and not much else.
@@ -67,7 +57,5 @@ const openComicZip = async (path: string): Promise<FixedBook | null> => {
     },
   };
 };
-
-export type { BookPageBytes, FixedBook };
 
 export { openComicZip };
