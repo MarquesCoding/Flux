@@ -1,7 +1,8 @@
-import { useRef } from 'react';
+import { useEffect, useRef } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
 import { cn } from '@FluxUI/cn';
 import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { coverPage } from '@FluxUI/pageCover';
 import type { DialogProps, DialogSize } from './Dialog.types';
 
 const OVERLAY_MOTION = [
@@ -72,6 +73,14 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
   const portalContainer = usePortalContainer();
   const panelRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!isOpen) {
+      return;
+    }
+
+    return coverPage();
+  }, [isOpen]);
 
   return (
     <BaseDialog.Root

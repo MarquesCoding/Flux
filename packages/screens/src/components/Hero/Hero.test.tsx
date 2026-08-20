@@ -2,6 +2,7 @@ import { act, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { coverPage, forgetPageCovers } from '@FluxUI/pageCover';
 import { Hero } from './Hero';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MediaPreviewProps } from '@FluxScreens/components/MediaPreview/MediaPreview.types';
@@ -48,6 +49,7 @@ beforeEach(() => {
 
 afterEach(() => {
   vi.useRealTimers();
+  forgetPageCovers();
 });
 
 describe('Hero', () => {
@@ -149,6 +151,28 @@ describe('Hero', () => {
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} onFeatureChange={onFeatureChange} />);
 
     expect(onFeatureChange).toHaveBeenCalledWith(items[0]);
+  });
+
+  it('holds still while something is standing over the page', () => {
+    const uncover = coverPage();
+
+    renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+
+    act(() => {
+      vi.advanceTimersByTime(500);
+    });
+
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+
+    act(() => {
+      uncover();
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
   });
 
   it('moves on after a while', () => {

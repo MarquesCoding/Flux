@@ -11,6 +11,7 @@ import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { MediaPreview } from '@FluxScreens/components/MediaPreview/MediaPreview';
 import { MediaFacts } from '@FluxScreens/components/MediaFacts/MediaFacts';
 import { PageDots } from '@FluxUI/PageDots';
+import { useIsPageCovered } from '@FluxUI/useIsPageCovered';
 import type { HeroProps } from './Hero.types';
 
 const DRAWS_IN_BY_PIXELS = 640;
@@ -88,7 +89,8 @@ const Hero = ({
   const [isPointedAt, setIsPointedAt] = useState(false);
   const [isFocused, setIsFocused] = useState(false);
 
-  const isHeld = isPointedAt || isFocused;
+  const isCovered = useIsPageCovered();
+  const isHeld = isPointedAt || isFocused || isCovered;
   const prefersReducedMotion = useReducedMotion();
 
   const featured = items[index % Math.max(items.length, 1)];
