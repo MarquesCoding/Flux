@@ -23,6 +23,7 @@ import { ProfileEditor } from '@FluxScreens/components/ProfilePicker/components/
 import { TwoFactorSetup } from '@FluxScreens/components/TwoFactorSetup/TwoFactorSetup';
 import { PasskeySetup } from '@FluxScreens/components/PasskeySetup/PasskeySetup';
 import { DeviceList } from '@FluxScreens/components/AccountArea/components/DeviceList/DeviceList';
+import { DiscordPresence } from '@FluxScreens/components/AccountArea/components/DiscordPresence/DiscordPresence';
 import { SharePanel } from '@FluxScreens/components/AccountArea/components/SharePanel/SharePanel';
 import type { AccountAreaProps } from './AccountArea.types';
 
@@ -113,6 +114,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
 
         <TabPanel
           value="profile"
+          className="flex flex-col gap-6"
           render={
             <motion.section
               variants={revealVariants(prefersReducedMotion)}
@@ -156,6 +158,8 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
               )}
             </div>
           </Card>
+
+          <DiscordPresence onChanged={read} />
 
           <Dialog
             label="How you appear"
