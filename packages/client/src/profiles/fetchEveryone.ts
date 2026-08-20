@@ -1,3 +1,4 @@
+import type { Handover } from '@FluxCore/functions/electronHandover';
 import { askTheServer } from '@FluxClient/session/askTheServer';
 import { readFromServer } from '@FluxClient/query/readFromServer';
 import { z } from 'zod';
@@ -30,20 +31,33 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
  * opinion about them. So it stays here, as the exception, named.
  *
  * It is asked through `askTheServer` all the same, because the route answers exactly as better-auth
- * does: with a session for a client that can hold one, a token for a client that cannot, and a
- * pending second factor for somebody who has one. Asked with a plain `fetch`, a client with no
- * shared origin would be signed in by a cookie it can never hold, and told to answer a challenge it
- * had not been given.
+ * does, and because it carries what a desktop client sent somebody here with.
+ *
+ * That last part is why the address this page was opened at matters. A desktop client cannot sign
+ * anybody in, so it opens a browser here with who is asking and a challenge only it can answer. The
+ * server mints the code that gets somebody back at the moment a session is made, and only where all
+ * three arrived with the request that made it — so they are carried from the address bar onto this
+ * request rather than left behind on the page.
+ *
+ * The handover is passed in rather than read here, because it comes off the address bar and this
+ * package does not have one — it is the application rather than a page in it.
  *
  * @param profileId - Who picked.
  * @param password - Their PIN, where the profile has one.
+ * @param carried - What a desktop client sent somebody here with, where one did.
  * @returns Whether it worked, and why not where it did not.
  */
 const signInAsProfile = async (
   profileId: string,
   password: string,
+  carried: Handover | null = null,
 ): Promise<{ kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string }> => {
-  const response = await askTheServer(`/api/profiles/${profileId}/sign-in`, {
+  const asked =
+    carried === null
+      ? `/api/profiles/${profileId}/sign-in`
+      : `/api/profiles/${profileId}/sign-in?${new URLSearchParams(carried).toString()}`;
+
+  const response = await askTheServer(asked, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ password }),

@@ -3,7 +3,7 @@ import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
-import { authenticateWithPasskey } from '@FluxClient/session/auth';
+import { authenticateWithPasskey, sendThemBackToTheirDesktop } from '@FluxClient/session/auth';
 import { isPasskeySupported } from '@FluxScreens/passkeys/isPasskeySupported';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
@@ -24,6 +24,7 @@ const many = (count: number): ViewerProfile[] =>
 
 vi.mock('@FluxClient/session/auth', () => ({
   authenticateWithPasskey: vi.fn(),
+  sendThemBackToTheirDesktop: vi.fn(() => () => {}),
 }));
 
 vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
@@ -74,6 +75,7 @@ const arrive = async () => {
 };
 
 beforeEach(() => {
+  window.history.replaceState({}, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
   serverWith(HOUSEHOLD);
@@ -83,6 +85,80 @@ beforeEach(() => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+});
+
+describe('a desktop client that sent somebody here', () => {
+  it('carries what it sent them with onto the request that signs them in', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    window.history.replaceState(
+      {},
+      '',
+      '/?client_id=electron&code_challenge=a-challenge&state=a-state',
+    );
+
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+    await actor.type(screen.getByLabelText('Password'), 'a password');
+    await actor.click(screen.getByRole('button', { name: /Watch/ }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls
+        .map((call) => String(call[0]))
+        .find((at) => at.includes('/sign-in'));
+
+      expect(asked).toContain('client_id=electron');
+      expect(asked).toContain('code_challenge=a-challenge');
+      expect(asked).toContain('state=a-state');
+    });
+  });
+
+  it('sends them back to the application rather than opening Flux in the browser', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onSignedIn = vi.fn();
+
+    vi.mocked(sendThemBackToTheirDesktop).mockClear();
+
+    window.history.replaceState(
+      {},
+      '',
+      '/?client_id=electron&code_challenge=a-challenge&state=a-state',
+    );
+
+    renderInAnAddress(<ProfileGate onSignedIn={onSignedIn} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+    await actor.type(screen.getByLabelText('Password'), 'a password');
+    await actor.click(screen.getByRole('button', { name: /Watch/ }));
+
+    await waitFor(() => {
+      expect(vi.mocked(sendThemBackToTheirDesktop)).toHaveBeenCalledOnce();
+    });
+
+    expect(onSignedIn).not.toHaveBeenCalled();
+  });
+
+  it('asks for nothing extra on an ordinary visit, which is most of them', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+
+    await arrive();
+    await actor.click(screen.getByRole('button', { name: /Marques/ }));
+    await actor.type(screen.getByLabelText('Password'), 'a password');
+    await actor.click(screen.getByRole('button', { name: /Watch/ }));
+
+    await waitFor(() => {
+      const asked = fetchMock.mock.calls
+        .map((call) => String(call[0]))
+        .find((at) => at.includes('/sign-in'));
+
+      expect(asked).not.toContain('client_id');
+    });
+  });
 });
 
 describe('ProfileGate', () => {

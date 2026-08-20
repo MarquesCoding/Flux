@@ -18,6 +18,8 @@ import {
   stillTransition,
 } from '@FluxUI/animations/reveal';
 import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
+import { electronHandover } from '@FluxCore/functions/electronHandover';
+import { sendThemBackToTheirDesktop } from '@FluxClient/session/auth';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
@@ -181,11 +183,21 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
     setIsSubmitting(true);
     setProblem(null);
 
-    const outcome = await signInAsProfile(chosen.id, password);
+    const carried = electronHandover(
+      Object.fromEntries(new URLSearchParams(window.location.search)),
+    );
+
+    const outcome = await signInAsProfile(chosen.id, password, carried);
 
     setIsSubmitting(false);
 
     if (outcome.kind === 'signedIn') {
+      if (carried !== null) {
+        sendThemBackToTheirDesktop();
+
+        return;
+      }
+
       onSignedIn();
 
       return;

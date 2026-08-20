@@ -311,9 +311,30 @@ const disableTwoFactor = async (password: string): Promise<boolean> => {
   return error === null;
 };
 
+/**
+ * Sends somebody back to the desktop client that sent them here, once they have signed in.
+ *
+ * A desktop client cannot sign anybody in, so it opens a browser here. The server mints a
+ * single-use code at the moment a session is made and leaves it where this page can find it; this
+ * watches for it and follows it back to the application.
+ *
+ * Called after signing in rather than on arrival, because there is nothing to find until there is a
+ * session. It answers with a way to stop watching, for a screen that goes before anybody finishes.
+ *
+ * @returns How to stop watching.
+ */
+const sendThemBackToTheirDesktop = (): (() => void) => {
+  const watching = client.ensureElectronRedirect();
+
+  return () => {
+    clearInterval(watching);
+  };
+};
+
 export type { RegisterOutcome, AuthenticateOutcome, Enrollment };
 
 export {
+  sendThemBackToTheirDesktop,
   fetchSession,
   signOut,
   registerPasskey,
