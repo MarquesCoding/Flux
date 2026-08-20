@@ -43,22 +43,22 @@ question at all.
 ### This ADR was first drafted the other way
 
 An earlier draft chose Tauri, on the measurement below, and was never accepted.
-Building on it is what changed the answer, and the reason is worth stating
-plainly rather than quietly rewriting: **the codec question was answered before
-anybody had asked what a desktop window can hold.**
+Building on it is what changed the answer, and the reason is worth stating plainly
+rather than quietly rewriting: **the codec question was answered before anybody had
+asked what a desktop window can hold.**
 
-A Tauri window is WKWebView, and WKWebView will not send a cookie to a server
-whose pages it did not serve. Intelligent Tracking Prevention does not relax for
-a custom scheme, and no server configuration reaches it. So a session had to be
-carried some other way, and every piece of that was Flux's to invent: a bearer
-token in a device store, a relay for the two cookies the token plugin does not
-carry, a query string on the WebSocket upgrade because an upgrade cannot set a
-header. Each piece worked. Each existed only because of the piece before it, and
-all of it was on the one path where a mistake ends somebody's session or fails to.
+A Tauri window is WKWebView, and WKWebView will not send a cookie to a server whose
+pages it did not serve. Intelligent Tracking Prevention does not relax for a custom
+scheme, and no server configuration reaches it — so a session had to be carried
+some other way, and every piece of that was Flux's to invent.
 
-better-auth publishes an Electron integration and nothing for Tauri. That is not
-a small convenience. It is the difference between a client whose authentication is
-the library's problem and one whose authentication is ours.
+Electron's Chromium has no such objection, and its main process can reach what a
+page cannot. That is what makes
+[ADR-0026](0026-the-desktop-client-is-a-window-onto-the-server.md) possible: the
+window loads the server's own pages, and every question about holding a session
+stops being asked. On WKWebView that is not available — a Tauri window cannot be
+pointed at a remote origin and keep its cookies — so the framework choice and the
+architecture are the same choice.
 
 ## Decision
 
@@ -72,6 +72,9 @@ resolution and would need `AVSampleBufferAudioRenderer` — so bundling it to wi
 video would narrow audio on the platform where the audio is the point.
 
 **Mainline Electron for now, not a fork.** See "Revisit when" and FLUX-164.
+
+**What goes in the window is the server's, not ours.** See
+[ADR-0026](0026-the-desktop-client-is-a-window-onto-the-server.md).
 
 ### What was measured, and still holds
 
@@ -113,13 +116,12 @@ It does not touch the first.
 
 ### What this gets us
 
-**Authentication that is a library's problem rather than ours.** Somebody signs in
-through their own browser on the server's own pages, where a cookie is a cookie
-and a saved password, a passkey and an authenticator app all work as they always
-have. The session lives in the main process, where the page cannot read it. That
-is a better position than the one Tauri forced, not merely a cheaper one — the
-Tauri answer put a readable credential in a device store because there was no
-alternative.
+**Authentication stops being anybody's problem.** The window loads the server's own
+pages, so a cookie is a cookie and a saved password, a passkey and an authenticator
+app all work as they always have — see
+[ADR-0026](0026-the-desktop-client-is-a-window-onto-the-server.md). The Tauri
+answer put a readable credential in a device store because there was no
+alternative. This one holds no credential at all.
 
 **One engine to test against.** A Tauri window is whatever WKWebView the operating
 system happens to ship, so a Mac on an older release draws differently from Chrome
@@ -130,11 +132,10 @@ and a known quantity.
 client is an entry point, the platform ports of ADR-0022, a preload script, and a
 stylesheet.
 
-**A main process that can reach what a page cannot.** A page can set a header on a
-`fetch` and cannot set one on a `<video>`, which is what fetches every segment of
-everything anybody watches. Attaching credentials on the way out is not a
-workaround here; it is the thing that made the cookie approach viable at all, and
-Tauri had no equivalent.
+**A window that can be pointed somewhere.** Electron will load a remote origin into
+a `BrowserWindow` and treat it as that origin, cookies and passkeys and all, with a
+preload script still attached for the native parts. That single capability is the
+whole of ADR-0026, and it is what Tauri does not offer.
 
 ### What this costs us
 
@@ -159,10 +160,11 @@ negotiated per session. FLUX-152 removed the sharpest edge of this by making the
 channel count a target rather than a gate; a client that ever passes an Atmos
 bitstream through will have to care where the browser did not.
 
-**One compiler setting, in one package.** `@better-auth/electron`'s published
-types answer `?: T | undefined` where `exactOptionalPropertyTypes` demands `?: T`,
-so `apps/desktop` turns that setting off — alone in the tree, and only because the
-alternative was a cast the standards forbid.
+**A zod 4 migration nobody asked for.** Reaching `@better-auth/electron` at all
+meant better-auth 1.7, which meant one zod in the tree, which meant `@hono/zod-openapi`
+1.6 across the API contract layer. The package was later removed and the migration
+kept: it was owed anyway, and the tree is on the version the ecosystem is on. It is
+recorded here because the cost was paid for a package that is gone.
 
 ### What this forecloses
 
@@ -184,9 +186,8 @@ disadvantage is structural.
 **Tauri with the machinery already built.** It existed and it worked: a bearer
 token, a two-factor cookie relay proved end to end against real better-auth, a
 token on the socket upgrade. Rejected because working is not the bar for the code
-that decides who somebody is. It was four moving parts standing in for one cookie,
-each needing to keep working as better-auth grows plugins that set cookies of
-their own — and one that does will fail silently on desktop and nowhere else.
+that decides who somebody is, and because ADR-0026 removed the need for any of it
+by removing the condition that produced it.
 
 **Fully native SwiftUI.** The only option where spatialisation is a first-class
 API (`AVPlayerItem.allowedAudioSpatializationFormats`), and it discards

@@ -52,7 +52,7 @@ more valuable than a tidy directory.
 | [0023](0023-screens-are-part-of-the-application-not-of-a-host.md)           | Screens are part of the application, not of a host                                        | Accepted                           |
 | [0024](0024-focus-restoration-after-a-dialog-needs-nothing-from-us.md)      | Focus restoration after a dialog needs nothing from us                                    | Accepted                           |
 | [0025](0025-the-desktop-client-is-electron.md)                              | The desktop client is Electron, chosen on what it can hold rather than what it can decode | Proposed                           |
-| [0026](0026-a-desktop-client-signs-in-through-a-browser.md)                 | A desktop client signs in through a browser, and carries the cookie it is given           | Proposed                           |
+| [0026](0026-the-desktop-client-is-a-window-onto-the-server.md)              | The desktop client is a window onto the server, not a copy of it                          | Proposed                           |
 
 ## Format
 

@@ -5,8 +5,9 @@ const KEY = 'flux.server.address';
 /**
  * Reads the server a client with a window of its own was told to watch.
  *
- * A browser never asks: its pages came from the server, so a relative path already reaches it. A
- * client that serves its own pages has to be told once and remember — see ADR-0026.
+ * A browser never asks: its pages came from the server. A client with a window of its own is asked
+ * once, before it has anything to show, and the answer is what its window then opens on — see
+ * ADR-0026.
  *
  * @returns The address, or nothing where this client has not been told one.
  */
