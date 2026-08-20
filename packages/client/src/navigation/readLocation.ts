@@ -7,6 +7,7 @@ const SECTIONS = [
   'films',
   'new',
   'favourites',
+  'read',
   'search',
   'account',
   'admin',
