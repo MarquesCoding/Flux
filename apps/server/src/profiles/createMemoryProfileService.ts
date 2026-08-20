@@ -86,6 +86,8 @@ const createMemoryProfileService = (
         name: request.name,
         colour: request.colour,
         avatar: request.avatar ?? held.profile.avatar,
+        askStillWatchingAfter: request.askStillWatchingAfter ?? held.profile.askStillWatchingAfter,
+        showsWhatIamWatching: request.showsWhatIamWatching ?? held.profile.showsWhatIamWatching,
         updatedAt: stamp(),
       };
 

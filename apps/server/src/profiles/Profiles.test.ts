@@ -16,6 +16,10 @@ import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 
 const BASE = 'http://localhost:8420';
 
+const ShowsWhatIamWatchingSchema = z.object({
+  profiles: z.array(z.object({ showsWhatIamWatching: z.boolean() })),
+});
+
 const CREDENTIALS = {
   name: 'Marques',
   email: 'marques@flux.local',
@@ -149,6 +153,32 @@ describe('profiles over HTTP', () => {
 
     expect(response.status).toBe(204);
     expect((await read(app, cookie))[0]?.name).toBe('Sam');
+  });
+
+  it('remembers that somebody wants what they are watching shown on Discord', async () => {
+    const { app } = build();
+    const cookie = await signedIn(app);
+    const [profile] = await read(app, cookie);
+
+    const response = await app.request(`${BASE}/api/profiles/${profile?.id ?? ''}`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({
+        name: profile?.name ?? '',
+        colour: '#3a8ee8',
+        showsWhatIamWatching: true,
+      }),
+    });
+
+    expect(response.status).toBe(204);
+
+    const listed = ShowsWhatIamWatchingSchema.parse(
+      await (
+        await app.request(`${BASE}/api/profiles`, { headers: { cookie, origin: BASE } })
+      ).json(),
+    );
+
+    expect(listed.profiles[0]?.showsWhatIamWatching).toBe(true);
   });
 
   it('changes the address of a picture when the picture changes', async () => {

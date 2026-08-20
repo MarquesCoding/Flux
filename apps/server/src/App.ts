@@ -1373,13 +1373,15 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    const { name, colour, avatar, askStillWatchingAfter } = context.req.valid('json');
+    const { name, colour, avatar, askStillWatchingAfter, showsWhatIamWatching } =
+      context.req.valid('json');
 
     const changed = await profiles.rename(account.id, context.req.valid('param').profileId, {
       name,
       colour,
       ...(avatar === undefined ? {} : { avatar }),
       ...(askStillWatchingAfter === undefined ? {} : { askStillWatchingAfter }),
+      ...(showsWhatIamWatching === undefined ? {} : { showsWhatIamWatching }),
     });
 
     if (changed) {
