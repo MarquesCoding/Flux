@@ -1998,6 +1998,7 @@ describe('when the player is in a watch party', () => {
     const onReport = vi.fn();
 
     const full = {
+      id: 'a-party',
       command: null,
       meConnectionId: 'me',
       referenceSeconds: null,

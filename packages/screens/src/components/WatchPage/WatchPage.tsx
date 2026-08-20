@@ -96,6 +96,7 @@ const WatchPage = () => {
             isPlaying: watchParty.party.isPlaying,
             isHeld: watchParty.party.isHeld,
             waitingFor: watchParty.waitingFor,
+            id: watchParty.party.id,
             members: watchParty.party.members.length,
             onReport: watchParty.report,
             onCommand: watchParty.send,

@@ -42,6 +42,7 @@ const MediaSummarySchema = z.object({
   hasPoster: z.boolean().default(false),
   hasBackdrop: z.boolean().default(false),
   hasLogo: z.boolean().default(false),
+  posterUrl: z.string().url().nullish(),
   seriesId: z.string().nullable().default(null),
   rating: z.number().nullish(),
   seriesTitle: z.string().nullish(),

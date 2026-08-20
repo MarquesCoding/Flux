@@ -5,6 +5,7 @@ const CHANGE_SERVER = 'flux:change-server';
 const NOW_WATCHING = 'flux:now-watching';
 
 type WhatIsBeingWatched = {
+  kind: 'watching';
   title: string;
   series: string | null;
   season: number | null;
@@ -13,7 +14,12 @@ type WhatIsBeingWatched = {
   endsAt: number | null;
   tmdbId: string | null;
   isSeries: boolean;
+  isPaused: boolean;
+  artwork: string | null;
+  party: { id: string; size: number } | null;
 };
+
+type WhatIsBeingDone = WhatIsBeingWatched | { kind: 'browsing' };
 
 /**
  * Whether these pages are being shown inside Flux's own window rather than a browser.
@@ -40,18 +46,22 @@ const askForADifferentServer = (): void => {
 };
 
 /**
- * Tells the window what somebody is watching, for it to publish where a page cannot.
+ * Tells the window what somebody is doing, for it to publish where a page cannot.
  *
  * Discord's status is a socket on the same machine, which no page can open — so the page says what
- * is playing and the window says it to Discord. Nothing is sent unless the profile asked for it,
+ * is happening and the window says it to Discord. Nothing is sent unless the profile asked for it,
  * which is decided before this is called and not here.
  *
- * @param watching - What is playing, or nothing to say that nothing is.
+ * Browsing is a state of its own rather than the absence of watching, because the two want opposite
+ * things from Discord: one replaces the status, the other takes it down. Told nothing at all, the
+ * window cannot tell somebody who stopped watching from somebody who never asked to be shown.
+ *
+ * @param doing - What is happening, or nothing to take the status down.
  */
-const nowWatching = (watching: WhatIsBeingWatched | null): void => {
-  document.dispatchEvent(new CustomEvent(NOW_WATCHING, { detail: watching }));
+const nowWatching = (doing: WhatIsBeingDone | null): void => {
+  document.dispatchEvent(new CustomEvent(NOW_WATCHING, { detail: doing }));
 };
 
-export type { WhatIsBeingWatched };
+export type { WhatIsBeingDone, WhatIsBeingWatched };
 
 export { askForADifferentServer, isTheDesktopClient, nowWatching };

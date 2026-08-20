@@ -43,7 +43,7 @@ const start = async (): Promise<void> => {
 
   ipcMain.on(CHANGE_SERVER, changeServer);
 
-  const discord = tellDiscord(app.getPath('temp'));
+  const discord = tellDiscord(app.getPath('temp'), app.getVersion());
 
   ipcMain.on(NOW_WATCHING, (_event, said: JsonValue) => {
     discord.about(whatIsPlaying(JsonValueSchema.catch(null).parse(said)));

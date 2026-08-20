@@ -1248,6 +1248,7 @@ const VideoPlayer = ({
     isPlaying,
     positionSeconds: position,
     isAllowed: whoIsWatching.data?.showsWhatIamWatching ?? false,
+    party: party === undefined ? null : { id: party.id, size: party.members },
   });
 
   useEffect(() => {

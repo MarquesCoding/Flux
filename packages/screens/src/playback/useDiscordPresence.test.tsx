@@ -13,9 +13,12 @@ const WatchedSchema = z.object({
   endsAt: z.number().nullable(),
   tmdbId: z.string().nullable(),
   isSeries: z.boolean(),
+  isPaused: z.boolean(),
 });
 
 type Watched = z.infer<typeof WatchedSchema> | null;
+
+const KindSchema = z.object({ kind: z.string() }).nullable().catch(null);
 
 const seen: Watched[] = [];
 
@@ -76,12 +79,21 @@ describe('useDiscordPresence', () => {
     });
   });
 
-  it('says when it will end, so Discord counts for itself', () => {
+  it('spans the whole thing, so the bar reads as a place in it and not as time spent looking', () => {
     watching({ positionSeconds: 200 });
 
     const detail = said();
 
-    expect((detail?.endsAt ?? 0) - (detail?.startedAt ?? 0)).toBe(1_200_000);
+    expect((detail?.endsAt ?? 0) - (detail?.startedAt ?? 0)).toBe(1_400_000);
+  });
+
+  it('starts as far behind now as somebody is into it, which is what Discord draws as elapsed', () => {
+    watching({ positionSeconds: 200 });
+
+    const behind = Date.now() - (said()?.startedAt ?? 0);
+
+    expect(behind).toBeGreaterThanOrEqual(200_000);
+    expect(behind).toBeLessThan(205_000);
   });
 
   it('offers the catalogue id, which becomes the button', () => {
@@ -96,10 +108,10 @@ describe('useDiscordPresence', () => {
     expect(said()).toBeNull();
   });
 
-  it('says nothing while paused, since somebody who stopped is not watching', () => {
+  it('keeps saying what is open while paused, since a pause is not leaving', () => {
     watching({ isPlaying: false });
 
-    expect(said()).toBeNull();
+    expect(said()?.title).toBe(AN_EPISODE.title);
   });
 
   it('says nothing in a browser, which has no window to publish it', () => {
@@ -133,6 +145,7 @@ describe('useDiscordPresence', () => {
         isPlaying: true,
         positionSeconds,
         isAllowed: true,
+        party: null,
       });
 
       return null;
@@ -156,6 +169,7 @@ describe('useDiscordPresence', () => {
         isPlaying: true,
         positionSeconds,
         isAllowed: true,
+        party: null,
       });
 
       return null;
@@ -168,5 +182,96 @@ describe('useDiscordPresence', () => {
     rerender(<AtPosition positionSeconds={400} />);
 
     expect(seen.at(-1)?.title).toBe(AN_EPISODE.title);
+  });
+
+  it('stays on what is open when it is paused, since a pause is not going back to the library', () => {
+    const raw: (string | null)[] = [];
+    const listen = (event: Event) => {
+      const said = event instanceof CustomEvent ? KindSchema.parse(event.detail) : null;
+
+      raw.push(said === null ? null : said.kind);
+    };
+
+    document.addEventListener('flux:now-watching', listen);
+
+    const Showing = ({ isPlaying }: { isPlaying: boolean }) => {
+      useDiscordPresence({
+        media: AN_EPISODE,
+        isPlaying,
+        positionSeconds: 10,
+        isAllowed: true,
+        party: null,
+      });
+
+      return null;
+    };
+
+    const { rerender } = render(<Showing isPlaying />);
+
+    raw.length = 0;
+
+    rerender(<Showing isPlaying={false} />);
+
+    document.removeEventListener('flux:now-watching', listen);
+
+    expect(raw).toContain('watching');
+    expect(raw).not.toContain('browsing');
+  });
+
+  it('still says nothing at all where the profile never asked to be shown', () => {
+    const raw: (string | null)[] = [];
+    const listen = (event: Event) => {
+      const said = event instanceof CustomEvent ? KindSchema.parse(event.detail) : null;
+
+      raw.push(said === null ? null : said.kind);
+    };
+
+    document.addEventListener('flux:now-watching', listen);
+
+    const Showing = () => {
+      useDiscordPresence({
+        media: AN_EPISODE,
+        isPlaying: false,
+        positionSeconds: 0,
+        isAllowed: false,
+        party: null,
+      });
+
+      return null;
+    };
+
+    render(<Showing />);
+
+    document.removeEventListener('flux:now-watching', listen);
+
+    expect(raw).not.toContain('browsing');
+    expect(raw.at(-1)).toBeNull();
+  });
+
+  it('goes back to browsing on the way out of the player, which is leaving rather than pausing', () => {
+    const raw: (string | null)[] = [];
+    const listen = (event: Event) => {
+      const said = event instanceof CustomEvent ? KindSchema.parse(event.detail) : null;
+
+      raw.push(said === null ? null : said.kind);
+    };
+
+    document.addEventListener('flux:now-watching', listen);
+
+    const { unmount } = watching({ isAllowed: true, isPlaying: true });
+
+    raw.length = 0;
+
+    unmount();
+
+    document.removeEventListener('flux:now-watching', listen);
+
+    expect(raw).toContain('browsing');
+  });
+
+  it('says a pause is a pause, so the window can take the clock off', () => {
+    watching({ isPlaying: false });
+
+    expect(said()).toMatchObject({ isPaused: true });
   });
 });

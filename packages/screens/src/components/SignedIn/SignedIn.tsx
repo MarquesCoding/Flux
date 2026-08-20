@@ -13,6 +13,7 @@ import { watchPresence } from '@FluxClient/presence/watchPresence';
 import { byMediaId } from '@FluxClient/playback/watchProgress';
 import { summariseDetail } from '@FluxClient/library/summariseDetail';
 import { usePlace } from '@FluxScreens/navigation/usePlace';
+import { useBrowsingPresence } from '@FluxScreens/playback/useBrowsingPresence';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
 import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
@@ -42,6 +43,8 @@ const SignedIn = ({ title }: SignedInProps) => {
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
 
   const watchParty = useWatchParty();
+
+  useBrowsingPresence();
 
   const watched = useQuery(viewingQueries.progress());
 
