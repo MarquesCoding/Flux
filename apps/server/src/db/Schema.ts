@@ -464,6 +464,88 @@ const mediaItem = pgTable(
   ],
 );
 
+const book = pgTable(
+  'book',
+  {
+    id: text('id').primaryKey(),
+    libraryId: text('libraryId')
+      .notNull()
+      .references(() => library.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    title: text('title').notNull(),
+    layout: text('layout').notNull(),
+    direction: text('direction').notNull(),
+    year: integer('year'),
+    overview: text('overview'),
+    genres: jsonb('genres'),
+    authors: jsonb('authors'),
+    rating: real('rating'),
+    posterUrl: text('posterUrl'),
+    externalId: text('externalId'),
+    addedAt: timestamp('addedAt').notNull().defaultNow(),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('book_path_idx').on(table.libraryId, table.path),
+    index('book_library_idx').on(table.libraryId),
+    index('book_title_idx').on(table.title),
+    check('book_layout_known', sql`${table.layout} in ('fixed', 'reflow')`),
+    check('book_direction_known', sql`${table.direction} in ('rightToLeft', 'leftToRight')`),
+  ],
+);
+
+const bookChapter = pgTable(
+  'book_chapter',
+  {
+    id: text('id').primaryKey(),
+    bookId: text('bookId')
+      .notNull()
+      .references(() => book.id, { onDelete: 'cascade' }),
+    path: text('path').notNull(),
+    number: real('number').notNull(),
+    title: text('title').notNull(),
+    format: text('format').notNull(),
+    pageCount: integer('pageCount'),
+    sizeBytes: bigint('sizeBytes', { mode: 'number' }).notNull(),
+    modifiedAtMs: bigint('modifiedAtMs', { mode: 'number' }).notNull(),
+    addedAt: timestamp('addedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('book_chapter_path_idx').on(table.bookId, table.path),
+    index('book_chapter_order_idx').on(table.bookId, table.number),
+    check('book_chapter_format_known', sql`${table.format} in ('cbz', 'cbr', 'pdf', 'epub')`),
+  ],
+);
+
+const readingProgress = pgTable(
+  'reading_progress',
+  {
+    id: text('id').primaryKey(),
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    bookId: text('bookId')
+      .notNull()
+      .references(() => book.id, { onDelete: 'cascade' }),
+    chapterId: text('chapterId')
+      .notNull()
+      .references(() => bookChapter.id, { onDelete: 'cascade' }),
+    pageNumber: integer('pageNumber'),
+    fraction: real('fraction'),
+    isFinished: boolean('isFinished').notNull().default(false),
+    updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('reading_progress_profile_idx').on(table.profileId, table.chapterId),
+    index('reading_progress_recent_idx').on(table.profileId, table.updatedAt),
+    index('reading_progress_book_idx').on(table.profileId, table.bookId),
+    check(
+      'reading_progress_somewhere',
+      sql`${table.pageNumber} is not null or ${table.fraction} is not null`,
+    ),
+  ],
+);
+
 const serverSetting = pgTable('server_setting', {
   key: text('key').primaryKey(),
   value: jsonb('value').notNull(),
@@ -707,4 +789,7 @@ export {
   rolePermission,
   userRole,
   userPermissionOverride,
+  book,
+  bookChapter,
+  readingProgress,
 };

@@ -15,7 +15,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import { library, mediaItem, rating, series } from '@FluxServer/db/Schema';
+import { book, bookChapter, library, mediaItem, rating, series } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
@@ -27,6 +27,8 @@ import {
 } from './createMediaStore';
 import { fetchLogos } from './fetchLogos';
 import { scanLibrary } from './scanLibrary';
+import { scanBookLibrary } from '@FluxServer/books/scanBookLibrary';
+import type { BookStore } from '@FluxServer/books/scanBookLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
@@ -70,6 +72,7 @@ type CreateDatabaseLibraryServiceOptions = {
   transcoder: Transcoder;
   jobs: JobQueue;
   providers?: MetadataProvider[];
+  books?: BookStore;
   onProblem?: (path: string, reason: string) => void;
 };
 
@@ -173,6 +176,7 @@ const createDatabaseLibraryService = ({
   transcoder,
   jobs,
   providers,
+  books,
   atOnce = 1,
   onProblem,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
@@ -312,6 +316,75 @@ const createDatabaseLibraryService = ({
   };
 
   /**
+   * Reads a library of films or programmes, by probing every file that changed.
+   *
+   * @param found - The library.
+   * @param force - Whether to read everything again regardless of what has changed.
+   * @param jobId - The job to report against, where this is one.
+   * @returns What the scan changed.
+   */
+  const scanFilms = async (
+    found: { id: string; path: string },
+    force: boolean,
+    jobId: string | undefined,
+  ): Promise<ScanResult> =>
+    scanLibrary({
+      libraryId: found.id,
+      root: found.path,
+      files,
+      store,
+      transcoder,
+      force,
+      ...(providers === undefined ? {} : { providers }),
+      ...(onProblem === undefined ? {} : { onProblem }),
+      ...(jobId === undefined
+        ? {}
+        : {
+            onProgress: (phase, processed, total) =>
+              jobs.reportProgress(jobId, phase, processed, total),
+            isCancelled: () => jobs.isCancelled(jobId),
+          }),
+    });
+
+  /**
+   * Reads a library of books, by opening every file that changed rather than probing it.
+   *
+   * A books library needs somewhere to put what it finds, and that is a service this one is given
+   * rather than one it builds: the shelf knows how to read an archive and this does not, and a
+   * server assembled without it simply has no books rather than a half-working scan.
+   *
+   * @param found - The library.
+   * @param force - Whether to read everything again regardless of what has changed.
+   * @param jobId - The job to report against, where this is one.
+   * @returns What the scan changed, or nothing changed where this server has no shelf.
+   */
+  const scanBooks = async (
+    found: { id: string; path: string },
+    force: boolean,
+    jobId: string | undefined,
+  ): Promise<ScanResult> => {
+    if (books === undefined) {
+      return { added: 0, updated: 0, removed: 0, failed: 0 };
+    }
+
+    return scanBookLibrary({
+      libraryId: found.id,
+      root: found.path,
+      files,
+      store: books,
+      force,
+      ...(onProblem === undefined ? {} : { onProblem }),
+      ...(jobId === undefined
+        ? {}
+        : {
+            onProgress: (processed, total) =>
+              jobs.reportProgress(jobId, 'probing', processed, total),
+            isCancelled: () => jobs.isCancelled(jobId),
+          }),
+    });
+  };
+
+  /**
    * Decides how many of a library's files to work on at once: what the library was configured with,
    * or what the server thinks it can manage. A library on a network share wants one — the files arrive
    * down one wire, and asking for four divides that wire four ways and adds seeking to it.
@@ -365,10 +438,12 @@ const createDatabaseLibraryService = ({
           lastScanFailed: library.lastScanFailed,
           defaultAudioLanguage: library.defaultAudioLanguage,
           filesAtOnce: library.filesAtOnce,
-          itemCount: sql<number>`count(${mediaItem.id})::int`,
+          itemCount: sql<number>`(case when ${library.kind} = 'books' then count(distinct ${bookChapter.id}) else count(distinct ${mediaItem.id}) end)::int`,
         })
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
+        .leftJoin(book, eq(book.libraryId, library.id))
+        .leftJoin(bookChapter, eq(bookChapter.bookId, book.id))
         .groupBy(library.id)
         .orderBy(asc(library.name));
 
@@ -438,10 +513,12 @@ const createDatabaseLibraryService = ({
           lastScannedAt: library.lastScannedAt,
           defaultAudioLanguage: library.defaultAudioLanguage,
           filesAtOnce: library.filesAtOnce,
-          itemCount: sql<number>`count(${mediaItem.id})::int`,
+          itemCount: sql<number>`(case when ${library.kind} = 'books' then count(distinct ${bookChapter.id}) else count(distinct ${mediaItem.id}) end)::int`,
         })
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
+        .leftJoin(book, eq(book.libraryId, library.id))
+        .leftJoin(bookChapter, eq(bookChapter.bookId, book.id))
         .where(eq(library.id, libraryId))
         .groupBy(library.id);
 
@@ -938,23 +1015,9 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const result = await scanLibrary({
-        libraryId,
-        root: found.path,
-        files,
-        store,
-        transcoder,
-        force,
-        ...(providers === undefined ? {} : { providers }),
-        ...(onProblem === undefined ? {} : { onProblem }),
-        ...(jobId === undefined
-          ? {}
-          : {
-              onProgress: (phase, processed, total) =>
-                jobs.reportProgress(jobId, phase, processed, total),
-              isCancelled: () => jobs.isCancelled(jobId),
-            }),
-      });
+      const result = await (found.kind === 'books'
+        ? scanBooks(found, force, jobId)
+        : scanFilms(found, force, jobId));
 
       await db
         .update(library)

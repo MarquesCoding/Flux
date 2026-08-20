@@ -55,6 +55,16 @@ import {
   presenceStopWatchingRoute,
 } from '@FluxServer/routes/PresenceRoute';
 import { mediaImageRoute } from '@FluxServer/routes/ImageRoute';
+import {
+  listBooksRoute,
+  readBookCoverRoute,
+  readBookDocumentRoute,
+  readBookPageRoute,
+  readBookResourceRoute,
+  readBookRoute,
+  readReadingProgressRoute,
+  saveReadingProgressRoute,
+} from '@FluxServer/routes/BookRoute';
 import { listSegmentsRoute } from '@FluxServer/routes/SegmentRoute';
 import {
   listProgressRoute,
@@ -147,6 +157,7 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
 import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
+import type { BookService } from '@FluxServer/books/createDatabaseBookService';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import { createSessionGate } from '@FluxServer/auth/createSessionGate';
 import { createBetterAuthAdminBlock } from '@FluxServer/auth/createBetterAuthAdminBlock';
@@ -358,6 +369,7 @@ type CreateAppOptions = {
   shares?: ShareService;
   shareSessions?: ShareSessions;
   profiles?: ProfileService;
+  books?: BookService;
   promoteProfile?: (request: {
     profileId: string;
     email: string;
@@ -415,6 +427,7 @@ const createApp = ({
   shares,
   shareSessions,
   profiles,
+  books,
   promoteProfile,
   listUsers,
   capabilities,
@@ -2807,6 +2820,117 @@ const createApp = ({
     }
 
     return context.json({ segments: await segments.list(mediaId) }, 200);
+  });
+
+  app.openapi(listBooksRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null || books === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json({ books: await books.list(context.req.valid('param').libraryId) }, 200);
+  });
+
+  app.openapi(readBookRoute, async (context) => {
+    const found = books === undefined ? null : await books.read(context.req.valid('param').bookId);
+
+    return found === null
+      ? context.json({ error: 'No such book.' }, 404)
+      : context.json(found, 200);
+  });
+
+  app.openapi(readBookCoverRoute, async (context) => {
+    const cover =
+      books === undefined ? null : await books.readCover(context.req.valid('param').bookId);
+
+    if (cover === null) {
+      return context.json({ error: 'No cover for that book.' }, 404);
+    }
+
+    return context.body(cover.bytes.slice().buffer, 200, {
+      'content-type': cover.contentType,
+      'cache-control': 'public, max-age=604800, immutable',
+    });
+  });
+
+  app.openapi(readBookPageRoute, async (context) => {
+    const { chapterId, page } = context.req.valid('param');
+    const { width } = context.req.valid('query');
+    const read = books === undefined ? null : await books.readPage(chapterId, page, width);
+
+    if (read === null) {
+      return context.json({ error: 'No such page.' }, 404);
+    }
+
+    return context.body(read.bytes.slice().buffer, 200, {
+      'content-type': read.contentType,
+      'cache-control': 'private, max-age=604800, immutable',
+    });
+  });
+
+  app.openapi(readBookDocumentRoute, async (context) => {
+    const { bookId, chapterId } = context.req.valid('param');
+    const document =
+      books === undefined
+        ? null
+        : await books.readDocument(
+            chapterId,
+            (href) =>
+              `/api/books/${bookId}/chapters/${chapterId}/resource?href=${encodeURIComponent(href)}`,
+          );
+
+    if (document === null) {
+      return context.json({ error: 'No such part of that book.' }, 404);
+    }
+
+    return context.body(document, 200, {
+      'content-type': 'text/html; charset=utf-8',
+      'cache-control': 'private, max-age=3600',
+    });
+  });
+
+  app.openapi(readBookResourceRoute, async (context) => {
+    const { chapterId } = context.req.valid('param');
+    const read =
+      books === undefined
+        ? null
+        : await books.readResource(chapterId, context.req.valid('query').href);
+
+    if (read === null) {
+      return context.json({ error: 'That is not in this book.' }, 404);
+    }
+
+    return context.body(read.bytes.slice().buffer, 200, {
+      'content-type': read.contentType,
+      'cache-control': 'private, max-age=604800, immutable',
+    });
+  });
+
+  app.openapi(saveReadingProgressRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+    const { chapterId } = context.req.valid('param');
+
+    if (profileId === null || books === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 404);
+    }
+
+    const saved = await books.saveProgress(profileId, chapterId, context.req.valid('json'));
+
+    return saved ? context.body(null, 204) : context.json({ error: 'No such chapter.' }, 404);
+  });
+
+  app.openapi(readReadingProgressRoute, async (context) => {
+    const profileId = await readProfileId(context.req.raw.headers);
+
+    if (profileId === null || books === undefined) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    return context.json(
+      { progress: await books.readProgress(profileId, context.req.valid('param').bookId) },
+      200,
+    );
   });
 
   app.openapi(mediaImageRoute, async (context) => {

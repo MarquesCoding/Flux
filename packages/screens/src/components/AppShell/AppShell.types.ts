@@ -2,10 +2,10 @@ import type { MoodLight } from '@FluxUI/MoodBackground.types';
 import type { ReactNode } from 'react';
 import type { LibraryKind } from '@FluxContracts/schemas/Library';
 
-const BROWSE_SECTIONS = ['home', 'shows', 'films', 'new', 'favourites'] as const;
+const BROWSE_SECTIONS = ['home', 'shows', 'films', 'new', 'favourites', 'read'] as const;
 
 type ShellSection =
-  'home' | 'shows' | 'films' | 'new' | 'favourites' | 'search' | 'account' | 'admin';
+  'home' | 'shows' | 'films' | 'new' | 'favourites' | 'read' | 'search' | 'account' | 'admin';
 
 type AppShellProps = {
   section: ShellSection;

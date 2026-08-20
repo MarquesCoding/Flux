@@ -1,6 +1,7 @@
 import { Icon } from '@FluxUI/Icon';
 import {
   DiceFaces05Icon,
+  Book02Icon,
   FavouriteIcon,
   FilmRoll01Icon,
   FireIcon,
@@ -34,6 +35,7 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
   shows: 'A programme',
   music: 'Something to listen to',
+  books: 'Something to read',
 };
 
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
@@ -42,6 +44,7 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   films: <Icon of={FilmRoll01Icon} size={18} />,
   new: <Icon of={FireIcon} size={18} />,
   favourites: <Icon of={FavouriteIcon} size={18} />,
+  read: <Icon of={Book02Icon} size={18} />,
   search: <Icon of={Search01Icon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
   admin: <Icon of={Settings01Icon} size={18} />,
@@ -53,6 +56,7 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   films: <Icon of={FilmRoll01Icon} size={18} isActive />,
   new: <Icon of={FireIcon} size={18} isActive />,
   favourites: <Icon of={FavouriteIcon} size={18} isActive />,
+  read: <Icon of={Book02Icon} size={18} isActive />,
   search: <Icon of={Search01Icon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
   admin: <Icon of={Settings01Icon} size={18} isActive />,
@@ -64,6 +68,7 @@ const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
   films: 'settle',
   new: 'fill',
   favourites: 'fill',
+  read: 'settle',
   search: 'settle',
   account: 'settle',
   admin: 'spin',
@@ -75,6 +80,7 @@ const SECTION_LABELS: Record<ShellSection, string> = {
   films: 'Films',
   new: 'New & Popular',
   favourites: 'Favourites',
+  read: 'Read',
   search: 'Search',
   account: 'Account',
   admin: 'Admin',
