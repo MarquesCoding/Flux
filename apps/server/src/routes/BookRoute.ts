@@ -63,6 +63,7 @@ const readBookPageRoute = createRoute({
       chapterId: z.string().uuid(),
       page: z.coerce.number().int().nonnegative(),
     }),
+    query: z.object({ width: z.coerce.number().int().positive().max(3840).optional() }),
   },
   responses: {
     200: { description: 'The page' },

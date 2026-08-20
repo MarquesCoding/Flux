@@ -2856,7 +2856,8 @@ const createApp = ({
 
   app.openapi(readBookPageRoute, async (context) => {
     const { chapterId, page } = context.req.valid('param');
-    const read = books === undefined ? null : await books.readPage(chapterId, page);
+    const { width } = context.req.valid('query');
+    const read = books === undefined ? null : await books.readPage(chapterId, page, width);
 
     if (read === null) {
       return context.json({ error: 'No such page.' }, 404);

@@ -3,6 +3,7 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { and, asc, eq, inArray } from 'drizzle-orm';
 import { book, bookChapter, library, readingProgress } from '@FluxServer/db/Schema';
+import sharp from 'sharp';
 import { z } from 'zod';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import {
@@ -23,11 +24,15 @@ import type {
 import type { BookPageBytes } from './BookFile';
 import type { BookStore } from './scanBookLibrary';
 
+const WEBP_QUALITY = 82;
+
+const WIDEST = 3840;
+
 const EXTENSIONS = new Map([
+  ['image/webp', 'webp'],
   ['image/jpeg', 'jpg'],
   ['image/png', 'png'],
   ['image/gif', 'gif'],
-  ['image/webp', 'webp'],
   ['image/avif', 'avif'],
   ['image/bmp', 'bmp'],
 ]);
@@ -35,7 +40,7 @@ const EXTENSIONS = new Map([
 type BookService = BookStore & {
   list: (libraryId: string) => Promise<Book[]>;
   read: (bookId: string) => Promise<BookDetail | null>;
-  readPage: (chapterId: string, page: number) => Promise<BookPageBytes | null>;
+  readPage: (chapterId: string, page: number, width?: number) => Promise<BookPageBytes | null>;
   readDocument: (chapterId: string, addressFor: (href: string) => string) => Promise<string | null>;
   readResource: (chapterId: string, href: string) => Promise<BookPageBytes | null>;
   readCover: (bookId: string) => Promise<BookPageBytes | null>;
@@ -89,18 +94,24 @@ const createDatabaseBookService = (db: FluxDatabase, cacheDir: string): BookServ
     return found ?? null;
   };
 
-  const cachedAt = (chapterId: string, page: number, contentType: string): string =>
-    join(
-      cacheDir,
-      'books',
-      chapterId,
-      `${page.toString()}.${EXTENSIONS.get(contentType) ?? 'bin'}`,
-    );
+  const cachedAt = (
+    chapterId: string,
+    page: number,
+    width: number | null,
+    contentType: string,
+  ): string => {
+    const named = `${page.toString()}${width === null ? '' : `@${width.toString()}`}`;
 
-  const readCached = async (chapterId: string, page: number): Promise<BookPageBytes | null> => {
+    return join(cacheDir, 'books', chapterId, `${named}.${EXTENSIONS.get(contentType) ?? 'bin'}`);
+  };
+
+  const readCached = async (
+    chapterId: string,
+    page: number,
+    width: number | null,
+  ): Promise<BookPageBytes | null> => {
     for (const [contentType] of EXTENSIONS) {
-      const at = cachedAt(chapterId, page, contentType);
-      const bytes = await readFile(at).catch(() => null);
+      const bytes = await readFile(cachedAt(chapterId, page, width, contentType)).catch(() => null);
 
       if (bytes !== null) {
         return { bytes: new Uint8Array(bytes), contentType };
@@ -110,15 +121,48 @@ const createDatabaseBookService = (db: FluxDatabase, cacheDir: string): BookServ
     return null;
   };
 
-  const keep = async (chapterId: string, page: number, held: BookPageBytes): Promise<void> => {
-    const at = cachedAt(chapterId, page, held.contentType);
+  const keep = async (
+    chapterId: string,
+    page: number,
+    width: number | null,
+    held: BookPageBytes,
+  ): Promise<void> => {
+    const at = cachedAt(chapterId, page, width, held.contentType);
 
     await mkdir(dirname(at), { recursive: true }).catch(() => null);
     await writeFile(at, held.bytes).catch(() => null);
   };
 
-  const pageOf = async (chapterId: string, page: number): Promise<BookPageBytes | null> => {
-    const already = await readCached(chapterId, page);
+  /**
+   * Draws a page down to the width somebody asked for.
+   *
+   * A page out of a volume is a megabyte and a half of picture and sometimes three, which is a lot to
+   * send a phone for something it will draw a thousand pixels wide. Narrowed pages go out as WebP,
+   * which is a great deal smaller for line art and screentone than what these archives hold.
+   *
+   * A page that will not draw is sent as it came rather than not at all.
+   *
+   * @param held - The page as it was found.
+   * @param width - How wide it is wanted.
+   * @returns The page, narrowed where that worked.
+   */
+  const narrowed = async (held: BookPageBytes, width: number): Promise<BookPageBytes> => {
+    const drawn = await sharp(held.bytes)
+      .resize({ width, withoutEnlargement: true })
+      .webp({ quality: WEBP_QUALITY })
+      .toBuffer()
+      .catch(() => null);
+
+    return drawn === null ? held : { bytes: new Uint8Array(drawn), contentType: 'image/webp' };
+  };
+
+  const pageOf = async (
+    chapterId: string,
+    page: number,
+    width?: number,
+  ): Promise<BookPageBytes | null> => {
+    const wanted = width === undefined || width <= 0 ? null : Math.min(width, WIDEST);
+    const already = await readCached(chapterId, page, wanted);
 
     if (already !== null) {
       return already;
@@ -137,11 +181,12 @@ const createDatabaseBookService = (db: FluxDatabase, cacheDir: string): BookServ
       return null;
     }
 
-    await keep(chapterId, page, read);
+    const held = wanted === null ? read : await narrowed(read, wanted);
 
-    return read;
+    await keep(chapterId, page, wanted, held);
+
+    return held;
   };
-
   return {
     listStored: async (libraryId) => {
       const rows = await db
