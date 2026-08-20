@@ -11,6 +11,7 @@ import {
   writeReaderPreferences,
 } from '@FluxScreens/reading/readerPreferences';
 import type { ReaderPreferences } from '@FluxScreens/reading/readerPreferences';
+import { CLOSEST, distanceBetween, heldWithin, scaleFrom } from '@FluxScreens/reading/pinch';
 import type { PageReaderProps } from './PageReader.types';
 
 const CHROME_LINGERS_MS = 2600;
@@ -20,6 +21,8 @@ const A_SWIPE = 48;
 const PRELOAD = 4;
 
 const WIDEST = 3840;
+
+const A_LOOK = 2.5;
 
 /**
  * How wide to ask for a page, in real pixels rather than the ones a browser counts in.
@@ -48,6 +51,11 @@ const widthFor = (across: number): number => {
  *
  * Pages are asked for at the width they will be drawn, and the next few are fetched before they are
  * turned to, so a turn is a picture already in hand rather than a wait.
+ *
+ * A page can be pinched into and dragged around, because a page that fits a phone is a page whose
+ * lettering does not. While it is held larger a drag moves it rather than turning, which is the only
+ * sensible reading of the gesture, and turning the page puts it back — somebody who zoomed into a
+ * corner does not want the next page to open in that corner.
  *
  * @param book - The book being read.
  * @param chapters - Everything in it, so one can be moved to from here.
@@ -91,6 +99,10 @@ const PageReader = ({
   const [isChromeShown, setIsChromeShown] = useState(true);
   const startedAt = useRef<number | null>(null);
   const hideAt = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [scale, setScale] = useState(CLOSEST);
+  const [moved, setMoved] = useState({ x: 0, y: 0 });
+  const pinch = useRef<{ from: number; base: number } | null>(null);
+  const dragged = useRef<{ x: number; y: number; from: { x: number; y: number } } | null>(null);
 
   const groups = useMemo(
     () =>
@@ -117,6 +129,11 @@ const PageReader = ({
       report.current?.(first, isLast);
     }
   }, [first, isLast]);
+
+  useEffect(() => {
+    setScale(CLOSEST);
+    setMoved({ x: 0, y: 0 });
+  }, [first]);
 
   const wake = useCallback(() => {
     setIsChromeShown(true);
@@ -254,12 +271,51 @@ const PageReader = ({
       className="fixed inset-0 z-50 flex flex-col bg-black"
       onPointerMove={wake}
       onTouchStart={(event) => {
-        startedAt.current = event.touches[0]?.clientX ?? null;
+        const [one, other] = [event.touches[0], event.touches[1]];
+
+        if (one !== undefined && other !== undefined) {
+          pinch.current = { from: distanceBetween(one, other), base: scale };
+          startedAt.current = null;
+
+          return;
+        }
+
+        if (scale > CLOSEST && one !== undefined) {
+          dragged.current = { x: one.clientX, y: one.clientY, from: moved };
+
+          return;
+        }
+
+        startedAt.current = one?.clientX ?? null;
+      }}
+      onTouchMove={(event) => {
+        const [one, other] = [event.touches[0], event.touches[1]];
+        const pinching = pinch.current;
+
+        if (pinching !== null && one !== undefined && other !== undefined) {
+          setScale(scaleFrom(pinching.base, pinching.from, distanceBetween(one, other)));
+
+          return;
+        }
+
+        const dragging = dragged.current;
+
+        if (dragging !== null && one !== undefined) {
+          const across = typeof window === 'undefined' ? 0 : window.innerWidth;
+          const down = typeof window === 'undefined' ? 0 : window.innerHeight;
+
+          setMoved({
+            x: heldWithin(dragging.from.x + (one.clientX - dragging.x), across, scale),
+            y: heldWithin(dragging.from.y + (one.clientY - dragging.y), down, scale),
+          });
+        }
       }}
       onTouchEnd={(event) => {
         const from = startedAt.current;
         const to = event.changedTouches[0]?.clientX ?? null;
 
+        pinch.current = null;
+        dragged.current = null;
         startedAt.current = null;
 
         if (from === null || to === null || Math.abs(to - from) < A_SWIPE) {
@@ -270,6 +326,11 @@ const PageReader = ({
         const isRightToLeft = settings.direction === 'rightToLeft';
 
         (wentLeft === isRightToLeft ? back : forward)();
+      }}
+      onDoubleClick={() => {
+        setScale((was) => (was > CLOSEST ? CLOSEST : A_LOOK));
+        setMoved({ x: 0, y: 0 });
+        wake();
       }}
     >
       <header
@@ -359,23 +420,32 @@ const PageReader = ({
         />
       </header>
 
-      <div className="relative flex min-h-0 flex-1 items-center justify-center">
-        {ordered.map((page) => (
-          <img
-            key={page}
-            src={bookPageUrl(book.id, chapterId, page, widthFor(showing.length))}
-            alt={`Page ${(page + 1).toString()}`}
-            onLoad={(event) => {
-              noted(page, event.currentTarget);
-            }}
-            className={[
-              'select-none',
-              settings.fit === 'width' ? 'w-full object-contain' : '',
-              settings.fit === 'height' ? 'h-full object-contain' : '',
-              settings.fit === 'both' ? 'max-h-full max-w-full object-contain' : '',
-            ].join(' ')}
-          />
-        ))}
+      <div className="relative flex min-h-0 flex-1 items-center justify-center overflow-hidden">
+        <div
+          className="flex h-full w-full items-center justify-center"
+          style={{
+            transform: `translate3d(${moved.x.toString()}px, ${moved.y.toString()}px, 0) scale(${scale.toString()})`,
+            transition:
+              pinch.current === null && dragged.current === null ? 'transform 120ms' : 'none',
+          }}
+        >
+          {ordered.map((page) => (
+            <img
+              key={page}
+              src={bookPageUrl(book.id, chapterId, page, widthFor(showing.length))}
+              alt={`Page ${(page + 1).toString()}`}
+              onLoad={(event) => {
+                noted(page, event.currentTarget);
+              }}
+              className={[
+                'select-none',
+                settings.fit === 'width' ? 'w-full object-contain' : '',
+                settings.fit === 'height' ? 'h-full object-contain' : '',
+                settings.fit === 'both' ? 'max-h-full max-w-full object-contain' : '',
+              ].join(' ')}
+            />
+          ))}
+        </div>
 
         <div className="absolute inset-y-0 left-0 flex w-1/3">
           <Button
