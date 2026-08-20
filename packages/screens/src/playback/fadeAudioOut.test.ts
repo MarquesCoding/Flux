@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { fadeAudioOut, STEP_MILLISECONDS } from './fadeAudioOut';
+import { STEP_MILLISECONDS } from '@FluxScreens/playback/rampVolume';
+import { fadeAudioOut } from './fadeAudioOut';
 
 const FADE_MILLISECONDS = 700;
 

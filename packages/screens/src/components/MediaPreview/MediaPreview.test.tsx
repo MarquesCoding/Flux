@@ -672,7 +672,7 @@ describe('MediaPreview', () => {
     expect(pause).toHaveBeenCalled();
   });
 
-  it('carries on from where it was rather than starting again', async () => {
+  it('waits a moment before carrying on, rather than snapping back into motion', async () => {
     const { rerender } = render(
       <MediaPreview
         mediaId={MEDIA_ID}
@@ -697,7 +697,79 @@ describe('MediaPreview', () => {
       />,
     );
 
+    expect(play).not.toHaveBeenCalled();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800);
+    });
+
     expect(play).toHaveBeenCalled();
+  });
+
+  it('turns the sound back up rather than returning it at full', async () => {
+    const { rerender } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        isHeld
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    rerender(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(750);
+    });
+
+    expect(videoOf().volume).toBeLessThan(1);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800);
+    });
+
+    expect(videoOf().volume).toBe(1);
+  });
+
+  it('carries on from where it was rather than starting again', async () => {
+    const { rerender } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        isHeld
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    rerender(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+      />,
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(800);
+    });
+
+    expect(videoOf().src).not.toBe('');
     expect(videoOf().currentTime).toBe(0);
   });
 

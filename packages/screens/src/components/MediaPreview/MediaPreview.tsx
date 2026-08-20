@@ -14,6 +14,7 @@ import { liftCues } from '@FluxScreens/playback/liftCues';
 import { readPreviewState } from '@FluxClient/playback/readPreviewState';
 import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
 import { fadeAudioOut } from '@FluxScreens/playback/fadeAudioOut';
+import { rampVolume } from '@FluxScreens/playback/rampVolume';
 import { claimSound } from '@FluxScreens/playback/soundOwner';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
@@ -38,6 +39,8 @@ const LOOK_EVERY_MILLISECONDS = 200;
 
 const FADE_MILLISECONDS = 700;
 
+const SETTLE_BACK_MILLISECONDS = 700;
+
 /**
  * Plays a few seconds of an item where a poster would otherwise sit, once a pointer has rested long
  * enough to mean it. Starts muted and silent by default, since a grid where every card can make a
@@ -56,7 +59,8 @@ const FADE_MILLISECONDS = 700;
  *   preview filling a screen that has nothing else up there.
  * @param isHeld - Whether the clip should hold where it is rather than playing on. A hero standing
  *   behind a dialog would otherwise run its clip out while nobody could see it, and come back to a
- *   still it has no reason to leave.
+ *   still it has no reason to leave. Letting go waits a moment and turns the sound back up rather
+ *   than snapping straight into motion, so a dialog closing settles rather than startles.
  * @param repeats - Whether it starts again at the end.
  * @param onEnded - Told when the clip finishes.
  * @param onPlayingChange - Told when it starts or stops.
@@ -80,6 +84,7 @@ const MediaPreview = ({
   actions,
 }: MediaPreviewProps) => {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const wasHeld = useRef(false);
   const stillRef = useRef<HTMLImageElement>(null);
   const [hasEnded, setHasEnded] = useState(false);
   const [, setHasFrame] = useState(false);
@@ -191,12 +196,30 @@ const MediaPreview = ({
     }
 
     if (isHeld) {
+      wasHeld.current = true;
       element.pause();
 
       return;
     }
 
-    void element.play().catch(() => {});
+    if (!wasHeld.current) {
+      return;
+    }
+
+    wasHeld.current = false;
+
+    const timer = setTimeout(() => {
+      element.volume = 0;
+
+      void element
+        .play()
+        .then(() => rampVolume(element, 1, FADE_MILLISECONDS))
+        .catch(() => {});
+    }, SETTLE_BACK_MILLISECONDS);
+
+    return () => {
+      clearTimeout(timer);
+    };
   }, [isHeld, hasStarted, hasEnded]);
 
   useEffect(() => {

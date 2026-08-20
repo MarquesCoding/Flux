@@ -1,4 +1,4 @@
-const STEP_MILLISECONDS = 40;
+import { rampVolume } from '@FluxScreens/playback/rampVolume';
 
 /**
  * Takes a clip's sound down to nothing before it is put away, so one leaving the screen falls quiet
@@ -10,34 +10,14 @@ const STEP_MILLISECONDS = 40;
  * @returns When it has gone quiet and stopped.
  */
 const fadeAudioOut = async (element: HTMLVideoElement, milliseconds: number): Promise<void> => {
-  const from = element.volume;
-
-  if (element.muted || element.paused || from === 0 || milliseconds <= 0) {
+  if (element.muted || element.paused || element.volume === 0 || milliseconds <= 0) {
     element.pause();
 
     return;
   }
 
-  await new Promise<void>((quiet) => {
-    let elapsed = 0;
-
-    const timer = setInterval(() => {
-      elapsed += STEP_MILLISECONDS;
-
-      const gone = elapsed / milliseconds;
-
-      if (gone >= 1) {
-        clearInterval(timer);
-        element.volume = 0;
-        element.pause();
-        quiet();
-
-        return;
-      }
-
-      element.volume = from * (1 - gone);
-    }, STEP_MILLISECONDS);
-  });
+  await rampVolume(element, 0, milliseconds);
+  element.pause();
 };
 
-export { fadeAudioOut, STEP_MILLISECONDS };
+export { fadeAudioOut };
