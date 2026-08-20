@@ -10,6 +10,8 @@ import { Hero } from '@FluxScreens/components/Hero/Hero';
 import { groupIntoRails } from '@FluxClient/library/groupIntoRails';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
+import { useNavigate } from '@tanstack/react-router';
+import { BookRail } from '@FluxScreens/components/BookRail/BookRail';
 import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { viewingQueries } from '@FluxClient/query/viewingQueries';
 import { pickFeatured } from '@FluxClient/library/pickFeatured';
@@ -65,6 +67,7 @@ const LibraryBrowser = ({
   const [appliedSearch, setAppliedSearch] = useState('');
   const [chosen, setChosen] = useState<string | null>(null);
 
+  const go = useNavigate();
   const askedFor = useQuery(libraryQueries.all());
   const libraries = askedFor.data ?? [];
 
@@ -73,6 +76,9 @@ const LibraryBrowser = ({
     libraries.find((entry) => entry.id === chosen)?.id ??
     libraries[0]?.id ??
     null;
+
+  const selected = libraries.find((entry) => entry.id === selectedId) ?? null;
+  const shelf = selected !== null && selected.kind === 'books' ? selected : null;
 
   const page = useQuery(
     libraryQueries.items(selectedId, { search: appliedSearch, limit: PAGE_SIZE }),
@@ -217,7 +223,15 @@ const LibraryBrowser = ({
             animate="shown"
             exit="gone"
           >
-            {items.length === 0 ? (
+            {shelf !== null ? (
+              <BookRail
+                libraryId={shelf.id}
+                title={shelf.name}
+                onOpen={(book) => {
+                  void go({ to: '/read/$bookId', params: { bookId: book.id } });
+                }}
+              />
+            ) : items.length === 0 ? (
               <EmptyLibrary
                 search={appliedSearch}
                 libraryName={libraries.find((entry) => entry.id === loadedFor)?.name ?? null}
