@@ -1,4 +1,5 @@
 import { serverUrl } from '@FluxClient/query/serverUrl';
+import { onThisServer } from '@FluxClient/query/onThisServer';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
 import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
@@ -6,8 +7,11 @@ import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
 import type { QualityPreference } from './qualityPreference';
 
 const DeliverySchema = z.union([
-  z.object({ kind: z.literal('hls'), manifestUrl: z.string().min(1) }),
-  z.object({ kind: z.literal('direct'), url: z.string().min(1) }),
+  z.object({
+    kind: z.literal('hls'),
+    manifestUrl: z.string().min(1).transform(onThisServer),
+  }),
+  z.object({ kind: z.literal('direct'), url: z.string().min(1).transform(onThisServer) }),
 ]);
 
 const StartedSessionSchema = z.object({
