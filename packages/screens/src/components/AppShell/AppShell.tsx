@@ -34,6 +34,7 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
   shows: 'A programme',
   music: 'Something to listen to',
+  books: 'Something to read',
 };
 
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {

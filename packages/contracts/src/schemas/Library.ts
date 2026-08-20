@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { MediaItemSchema } from './MediaItem';
-const LIBRARY_KINDS = ['movies', 'shows', 'music'] as const;
+const LIBRARY_KINDS = ['movies', 'shows', 'music', 'books'] as const;
 
 const LibraryKindSchema = z.enum(LIBRARY_KINDS);
 
