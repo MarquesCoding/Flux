@@ -949,6 +949,7 @@ const libraryService = createDatabaseLibraryService({
   transcoder,
   jobs,
   providers: [catalogueProvider, createFilenameMetadataProvider()],
+  books: bookService,
   atOnce: env.MEDIA_JOBS,
   onProblem: (path, reason) => {
     log.warn('scanner', `skipped ${path}: ${reason}`);
