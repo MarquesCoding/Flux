@@ -15,6 +15,11 @@ const IS_MAC = process.platform === 'darwin';
  * part of a desktop application that belongs to the application rather than to what it is showing,
  * which is exactly what this is.
  *
+ * It is under File on every platform, and on the application menu as well where there is one. The
+ * application menu takes its name from the bundle rather than from anything here, so somebody
+ * looking for Flux may be reading a menu called something else — and somebody who cannot find the
+ * thing that points this window at their server has an application that does nothing.
+ *
  * @param changeServer - What to do when somebody asks for a different one.
  * @returns The menu, already set.
  */
@@ -24,7 +29,7 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
     submenu: [
       { role: 'about' },
       { type: 'separator' },
-      { label: 'Change server…', click: changeServer },
+      { label: 'Change server…', accelerator: 'CmdOrCtrl+Shift+S', click: changeServer },
       { type: 'separator' },
       { role: 'services' },
       { type: 'separator' },
@@ -38,11 +43,15 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
 
   const file: MenuItemConstructorOptions = {
     label: 'File',
-    submenu: [{ label: 'Change server…', click: changeServer }, { type: 'separator' }, { role: 'quit' }],
+    submenu: [
+      { label: 'Change server…', accelerator: 'CmdOrCtrl+Shift+S', click: changeServer },
+      ...(IS_MAC ? [] : [{ type: 'separator' } as const, { role: 'quit' } as const]),
+    ],
   };
 
   const menu = Menu.buildFromTemplate([
-    ...(IS_MAC ? [flux] : [file]),
+    ...(IS_MAC ? [flux] : []),
+    file,
     { role: 'editMenu' },
     {
       label: 'View',

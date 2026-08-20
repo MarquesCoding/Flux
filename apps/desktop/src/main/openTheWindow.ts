@@ -20,10 +20,14 @@ const MINIMUM_HEIGHT = 560;
  * The frame is hidden on macOS so the window reads as an application rather than as a browser, and
  * the traffic lights are inset to clear the screens' own header.
  *
+ * The icon is given for the platforms that take one from the window. macOS takes its from the bundle
+ * instead, which the packaging config points at the same file.
+ *
  * @returns The window.
  */
 const openTheWindow = (): BrowserWindow => {
   const window = new BrowserWindow({
+    icon: join(app.getAppPath(), 'build/icon.png'),
     width: WIDTH,
     height: HEIGHT,
     minWidth: MINIMUM_WIDTH,

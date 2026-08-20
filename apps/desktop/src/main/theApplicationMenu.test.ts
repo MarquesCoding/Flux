@@ -1,6 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type Item = { label?: string; role?: string; click?: () => void; submenu?: Item[] };
+type Item = {
+  label?: string;
+  role?: string;
+  accelerator?: string;
+  click?: () => void;
+  submenu?: Item[];
+};
 
 const buildFromTemplate = vi.fn<(template: Item[]) => object>((template) => ({ template }));
 
@@ -49,6 +55,23 @@ describe('theApplicationMenu', () => {
     theApplicationMenu(vi.fn());
 
     expect(built().some((item) => item.role === 'reload')).toBe(true);
+  });
+
+  it('offers it under File, since the application menu is named by the bundle and may not say Flux', () => {
+    theApplicationMenu(vi.fn());
+
+    const file = buildFromTemplate.mock.calls[0]?.[0].find((item) => item.label === 'File');
+
+    expect(file?.submenu?.some((item) => item.label === 'Change server…')).toBe(true);
+  });
+
+  it('gives it a shortcut, for somebody who has already hunted for it once', () => {
+    theApplicationMenu(vi.fn());
+
+    const changing = built().filter((item) => item.label === 'Change server…');
+
+    expect(changing.every((item) => item.accelerator === 'CmdOrCtrl+Shift+S')).toBe(true);
+    expect(changing.length).toBeGreaterThan(0);
   });
 
   it('sets it, rather than building one nobody sees', () => {

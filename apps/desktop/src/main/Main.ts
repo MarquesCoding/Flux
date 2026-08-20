@@ -6,6 +6,8 @@ import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
 import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 
+app.setName('Flux');
+
 let theWindow: BrowserWindow | null = null;
 
 const start = async (): Promise<void> => {

@@ -1,6 +1,7 @@
 {
   "name": "@flux/desktop",
   "version": "0.0.0",
+  "productName": "Flux",
   "private": true,
   "type": "module",
   "scripts": {
@@ -41,5 +42,30 @@
     "vite": "^8.2.1",
     "vitest": "^4.1.10"
   },
-  "main": "dist-main/main/Main.js"
+  "main": "dist-main/main/Main.js",
+  "build": {
+    "appId": "app.flux.desktop",
+    "productName": "Flux",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "files": [
+      "dist/**",
+      "dist-main/**",
+      "dist-preload/**",
+      "package.json"
+    ],
+    "mac": {
+      "category": "public.app-category.entertainment",
+      "icon": "build/icon.png"
+    },
+    "win": {
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "icon": "build/icon.png",
+      "category": "AudioVideo"
+    }
+  }
 }
