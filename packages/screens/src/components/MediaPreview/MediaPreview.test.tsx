@@ -787,6 +787,80 @@ describe('MediaPreview', () => {
     expect(videoOf().currentTime).toBe(0);
   });
 
+  it('lets the sound down as the clip runs out, over the time actually left', async () => {
+    saveSoundPreference('audible');
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+        onEnded={vi.fn()}
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await waitFor(() => {
+      expect(videoOf().muted).toBe(false);
+    });
+
+    const element = videoOf();
+
+    Object.defineProperty(element, 'duration', { configurable: true, value: 24 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 23.6 });
+
+    await act(async () => {
+      element.dispatchEvent(new Event('timeupdate'));
+      await vi.advanceTimersByTimeAsync(200);
+    });
+
+    expect(element.volume).toBeLessThan(1);
+    expect(element.volume).toBeGreaterThan(0);
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(400);
+    });
+
+    expect(element.volume).toBe(0);
+  });
+
+  it('leaves a looping clip alone, since it has no end to fall quiet before', async () => {
+    saveSoundPreference('audible');
+
+    render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await waitFor(() => {
+      expect(videoOf().muted).toBe(false);
+    });
+
+    const element = videoOf();
+
+    Object.defineProperty(element, 'duration', { configurable: true, value: 24 });
+    Object.defineProperty(element, 'currentTime', { configurable: true, value: 23.6 });
+
+    await act(async () => {
+      element.dispatchEvent(new Event('timeupdate'));
+      await vi.advanceTimersByTimeAsync(600);
+    });
+
+    expect(element.volume).toBe(1);
+  });
+
   it('fades an audible clip out rather than cutting it off when it is taken away', async () => {
     saveSoundPreference('audible');
 

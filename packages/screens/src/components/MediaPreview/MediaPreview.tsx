@@ -334,7 +334,7 @@ const MediaPreview = ({
 
           isFallingQuiet.current = true;
 
-          void rampVolume(element, 0, FADE_MILLISECONDS);
+          void rampVolume(element, 0, Math.max(left, 0) * 1000);
         }}
         onPlayingChange={(playing) => {
           if (playing) {
