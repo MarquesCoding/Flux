@@ -1,9 +1,10 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
-import { GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
+import { CHANGE_SERVER, GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
 import { theDockIcon } from '@FluxDesktop/main/theDockIcon';
+import { theWindowsOwnMenu } from '@FluxDesktop/main/theWindowsOwnMenu';
 import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 
@@ -16,6 +17,14 @@ const start = async (): Promise<void> => {
 
   answerAboutPreferences(() => {});
 
+  const changeServer = () => {
+    forgetTheServerAddress();
+
+    if (theWindow !== null) {
+      void showTheApplication(theWindow);
+    }
+  };
+
   ipcMain.on(GO_TO_THE_SERVER, () => {
     if (theWindow !== null) {
       void showTheApplication(theWindow);
@@ -24,21 +33,19 @@ const start = async (): Promise<void> => {
 
   theDockIcon();
 
-  theApplicationMenu(() => {
-    forgetTheServerAddress();
+  ipcMain.on(CHANGE_SERVER, changeServer);
 
-    if (theWindow !== null) {
-      void showTheApplication(theWindow);
-    }
-  });
+  theApplicationMenu(changeServer);
 
   theWindow = openTheWindow();
+  theWindowsOwnMenu(theWindow, changeServer);
 
   await showTheApplication(theWindow);
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {
       theWindow = openTheWindow();
+      theWindowsOwnMenu(theWindow, changeServer);
 
       void showTheApplication(theWindow);
     }

@@ -18,6 +18,7 @@ import {
   stillTransition,
 } from '@FluxUI/animations/reveal';
 import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
+import { askForADifferentServer, isTheDesktopClient } from '@FluxScreens/desktop/theDesktopShell';
 import { useQuery } from '@tanstack/react-query';
 import { sessionQueries } from '@FluxClient/query/sessionQueries';
 import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
@@ -490,6 +491,19 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
           )}
         </div>
       )}
+
+      {isTitleOver && isTheDesktopClient() ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.4 }}
+          className="absolute bottom-16"
+        >
+          <Button variant="ghost" size="sm" onClick={askForADifferentServer}>
+            Use a different server
+          </Button>
+        </motion.div>
+      ) : null}
 
       <motion.p
         initial={{ opacity: 0 }}
