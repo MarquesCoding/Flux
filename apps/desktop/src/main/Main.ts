@@ -2,6 +2,8 @@ import { app, BrowserWindow, ipcMain } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
 import { GO_TO_THE_SERVER } from '@FluxDesktop/main/preferenceChannels';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
+import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
+import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 
 let theWindow: BrowserWindow | null = null;
@@ -12,6 +14,14 @@ const start = async (): Promise<void> => {
   answerAboutPreferences(() => {});
 
   ipcMain.on(GO_TO_THE_SERVER, () => {
+    if (theWindow !== null) {
+      void showTheApplication(theWindow);
+    }
+  });
+
+  theApplicationMenu(() => {
+    forgetTheServerAddress();
+
     if (theWindow !== null) {
       void showTheApplication(theWindow);
     }

@@ -32,6 +32,31 @@ beforeEach(() => {
   held.clear();
 });
 
+describe('theServerAddress', () => {
+  it('answers with nothing before anybody has said', async () => {
+    const { theServerAddress } = await import('./theServerAddress');
+
+    expect(theServerAddress()).toBe('');
+  });
+
+  it('answers with what the window wrote down', async () => {
+    const { theServerAddress } = await import('./theServerAddress');
+
+    held.set('flux.server.address', 'https://flux.example.com');
+
+    expect(theServerAddress()).toBe('https://flux.example.com');
+  });
+
+  it('forgets it when asked, so this client asks again', async () => {
+    const { forgetTheServerAddress, theServerAddress } = await import('./theServerAddress');
+
+    held.set('flux.server.address', 'https://flux.example.com');
+    forgetTheServerAddress();
+
+    expect(theServerAddress()).toBe('');
+  });
+});
+
 describe('thePreferenceFile', () => {
   it('reads a dot in a key as part of the key, since every preference Flux has contains one', () => {
     thePreferenceFile();
