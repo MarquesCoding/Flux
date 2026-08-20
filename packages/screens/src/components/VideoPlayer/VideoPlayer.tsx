@@ -8,6 +8,7 @@ import {
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
+import { useNowPlaying } from '@FluxScreens/playback/useNowPlaying';
 import { VideoSurface } from '@FluxUI/VideoSurface';
 import { detectFromBrowser } from '@FluxScreens/playback/detectDeviceProfile';
 import { qualityStepCostsFor } from '@FluxClient/playback/qualityStepCostsFor';
@@ -1229,6 +1230,15 @@ const VideoPlayer = ({
     },
     [party],
   );
+
+  useNowPlaying({
+    media,
+    isPlaying,
+    positionSeconds: position,
+    durationSeconds: duration,
+    onTogglePlay: togglePlay,
+    onSeek: seek,
+  });
 
   useEffect(() => {
     saveCaptionStyle(captionStyle);
