@@ -19,6 +19,10 @@ const SET_COOKIE = 'set-cookie';
  * that the server is answering correctly. Letting the engine send its own cookies leaves every
  * request exactly the shape it was.
  *
+ * The lifetime the server gave is kept with it, so a session meant to last a week does. Without it
+ * every cookie is one the engine drops when the window closes, and somebody is asked to sign in at
+ * every launch.
+ *
  * Only the server somebody named. A cookie kept from anywhere else belongs to somebody else.
  */
 const keepTheServersCookies = (): void => {
@@ -36,7 +40,7 @@ const keepTheServersCookies = (): void => {
         ([name]) => name.toLowerCase() === SET_COOKIE,
       );
 
-      for (const { name, value } of asCookiePairs(set?.[1] ?? [])) {
+      for (const { name, value, expiresAt } of asCookiePairs(set?.[1] ?? [])) {
         void session.defaultSession.cookies.set({
           url: server,
           name,
@@ -44,6 +48,7 @@ const keepTheServersCookies = (): void => {
           path: '/',
           sameSite: 'no_restriction',
           secure: server.startsWith('https://'),
+          ...(expiresAt === null ? {} : { expirationDate: expiresAt }),
         });
       }
     } catch {

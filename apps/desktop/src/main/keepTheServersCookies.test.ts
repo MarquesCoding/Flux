@@ -53,6 +53,18 @@ describe('keepTheServersCookies', () => {
     expect(set).toHaveBeenCalledWith(expect.objectContaining({ secure: true }));
   });
 
+  it('keeps it for as long as the server said, so a week means a week', () => {
+    theServerSets('https://flux.example.com/api/auth/sign-in/email', ['s=abc; Max-Age=604800']);
+
+    expect(set.mock.calls[0]?.[0]).toHaveProperty('expirationDate');
+  });
+
+  it('leaves a cookie the server gave no lifetime as one that ends with the window', () => {
+    theServerSets('https://flux.example.com/api/auth/sign-in/email', ['s=abc']);
+
+    expect(set.mock.calls[0]?.[0]).not.toHaveProperty('expirationDate');
+  });
+
   it('keeps nothing a stranger set, since that one belongs to somebody else', () => {
     theServerSets('https://images.example.org/poster.jpg', ['tracker=abc']);
 
