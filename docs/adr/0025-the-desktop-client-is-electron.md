@@ -71,7 +71,15 @@ no spatial audio on Apple platforms —
 resolution and would need `AVSampleBufferAudioRenderer` — so bundling it to widen
 video would narrow audio on the platform where the audio is the point.
 
-**Mainline Electron for now, not a fork.** See "Revisit when" and FLUX-164.
+**castLabs' Electron, not mainline.** Mainline decodes neither AC-3 nor E-AC-3 —
+measured in Electron 43.4.1, `canPlayType` "no" and `isTypeSupported` false for
+both. castLabs build the same Electron with `enable_platform_ac3_eac3_audio`
+turned on, and their **stable** `v43.2.0+wvcus` answers "probably" and true for
+both, measured the same way. Their builds carry Widevine besides.
+
+Only from 43. Their `v42.8.0+wvcus` shipped the same day and does not have it, so
+this pins the desktop client to their 43 line or later — which is where mainline
+already is.
 
 **What goes in the window is the server's, not ours.** See
 [ADR-0026](0026-the-desktop-client-is-a-window-onto-the-server.md).
@@ -139,11 +147,18 @@ whole of ADR-0026, and it is what Tauri does not offer.
 
 ### What this costs us
 
-**Dolby transcodes on the desktop client.** The measurement above, paid. This is
-not a regression against the web application — Chrome viewers are already here —
-but it is the specific thing FLUX-8 wanted a desktop client for on a Mac, and a
-Safari viewer moving to the desktop client loses direct play of E-AC-3. That is
-the sharpest edge of this decision and it should not be softened.
+**Dolby on Linux is refused rather than trusted.** castLabs turn on _platform_
+decoders, and Chromium implements those for macOS and Windows only — so the same
+build on Linux answers that it plays AC-3 and then plays silence. `negotiatePlayback`
+believes what a client says it can decode, so a claim that cannot be honoured is
+worse than an honest refusal: it is a film with no sound rather than a transcode
+that works. `detectDeviceProfile` therefore drops both Dolby codecs on Linux and
+ChromeOS whatever the engine claims.
+
+**A dependency on somebody else's build.** Flux's desktop client now tracks
+castLabs' release cadence rather than Electron's. If they stop enabling the flag,
+this is back to transcoding — or to building Chromium, which is hours of compute
+per release per platform and not something this project should take on.
 
 **A much larger client.** Chromium and Node, against a Tauri binary that borrows
 the system WebView.
@@ -204,15 +219,14 @@ codecs.
 
 ## Revisit when
 
-**A build of Electron decodes E-AC-3.** castLabs already ship one:
-`v43.0.0-alpha.1+wvcus` toggles `enable_platform_ac3_eac3_audio`, and their builds
-carry Widevine besides. FLUX-164 holds what has to be checked first — whether a
-stable release carries the flag, and the fact that on Linux it reports the codec
-supported and then plays silence, which is worse than not supporting it because
-`negotiatePlayback` believes what the client says.
+Electron enables the flag upstream, which
+[electron#48819](https://github.com/electron/electron/issues/48819) asks for and
+which would let this drop back to mainline and stop tracking somebody else's
+releases.
 
-Electron enables it upstream, which
-[electron#48819](https://github.com/electron/electron/issues/48819) asks for.
+Chromium implements platform AC-3 decoding on Linux, at which point the guard in
+`detectDeviceProfile` should be removed rather than left to refuse something that
+works.
 
 **A native playback layer turns out to be needed.** `attachShaka` is the only
 module importing `shaka-player`, so the seam exists.

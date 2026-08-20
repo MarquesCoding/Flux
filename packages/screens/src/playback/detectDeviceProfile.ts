@@ -5,6 +5,7 @@ type CodecProbe = (mimeType: string) => boolean;
 
 type DetectDeviceProfileOptions = {
   isTypeSupported: CodecProbe;
+  platform: string;
   supportsHdr: boolean;
   screenWidth: number;
   screenHeight: number;
@@ -35,6 +36,28 @@ const AUDIO_PROBES = [
   { codec: 'opus', mimeType: 'audio/mp4; codecs="opus"' },
   { codec: 'flac', mimeType: 'audio/mp4; codecs="flac"' },
 ] as const;
+
+const DOLBY_CODECS = ['ac3', 'eac3'] as const;
+
+/**
+ * Whether what this client says about Dolby can be believed.
+ *
+ * A build with `enable_platform_ac3_eac3_audio` turned on — castLabs' Electron is one — answers that
+ * it plays AC-3 and E-AC-3, and on macOS and Windows it does. The flag enables *platform* decoders,
+ * and Chromium implements those for those two platforms only, so the same build on Linux answers
+ * yes and then plays silence.
+ *
+ * That is worse than answering no. `negotiatePlayback` believes what a client says it can decode, so
+ * a client claiming Dolby it cannot decode gets direct play and hands somebody a film with no sound —
+ * where a client that admits it cannot gets an honest transcode and a working one.
+ *
+ * Reported by a tester on castLabs' own build and confirmed by castLabs:
+ * https://github.com/castlabs/electron-releases/issues/221
+ *
+ * @param platform - What the client says it is running on.
+ * @returns Whether a claim of Dolby support means anything here.
+ */
+const dolbyCanBeBelieved = (platform: string): boolean => !/linux|x11|cros/i.test(platform);
 
 const HE_AAC_PROBES = ['audio/mp4; codecs="mp4a.40.5"', 'audio/mp4; codecs="mp4a.40.29"'] as const;
 
@@ -138,6 +161,7 @@ const atLeastStereo = (claimed: number): number =>
  */
 const detectDeviceProfile = ({
   isTypeSupported,
+  platform,
   supportsHdr,
   screenWidth,
   screenHeight,
@@ -149,9 +173,13 @@ const detectDeviceProfile = ({
     (probe) => probe.codec,
   );
 
-  const audioCodecs = AUDIO_PROBES.filter((probe) => isTypeSupported(probe.mimeType)).map(
-    (probe) => probe.codec,
-  );
+  const believable = dolbyCanBeBelieved(platform);
+
+  const audioCodecs = AUDIO_PROBES.filter(
+    (probe) =>
+      isTypeSupported(probe.mimeType) &&
+      (believable || !DOLBY_CODECS.some((dolby) => dolby === probe.codec)),
+  ).map((probe) => probe.codec);
 
   const tenBitVideoCodecs = TEN_BIT_VIDEO_PROBES.filter((probe) =>
     isTypeSupported(probe.mimeType),
@@ -249,6 +277,7 @@ const detectFromBrowser = (name = 'Browser'): DeviceProfile => {
 
   return detectDeviceProfile({
     isTypeSupported,
+    platform: window.navigator.platform,
     supportsHdr: queries.matchMedia?.('(dynamic-range: high)').matches ?? false,
     screenWidth: Math.round(window.screen.width * window.devicePixelRatio),
     screenHeight: Math.round(window.screen.height * window.devicePixelRatio),
