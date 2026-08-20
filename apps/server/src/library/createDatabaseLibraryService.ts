@@ -15,7 +15,7 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import { library, mediaItem, rating, series } from '@FluxServer/db/Schema';
+import { book, bookChapter, library, mediaItem, rating, series } from '@FluxServer/db/Schema';
 import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
 import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
@@ -438,10 +438,12 @@ const createDatabaseLibraryService = ({
           lastScanFailed: library.lastScanFailed,
           defaultAudioLanguage: library.defaultAudioLanguage,
           filesAtOnce: library.filesAtOnce,
-          itemCount: sql<number>`count(${mediaItem.id})::int`,
+          itemCount: sql<number>`(case when ${library.kind} = 'books' then count(distinct ${bookChapter.id}) else count(distinct ${mediaItem.id}) end)::int`,
         })
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
+        .leftJoin(book, eq(book.libraryId, library.id))
+        .leftJoin(bookChapter, eq(bookChapter.bookId, book.id))
         .groupBy(library.id)
         .orderBy(asc(library.name));
 
@@ -511,10 +513,12 @@ const createDatabaseLibraryService = ({
           lastScannedAt: library.lastScannedAt,
           defaultAudioLanguage: library.defaultAudioLanguage,
           filesAtOnce: library.filesAtOnce,
-          itemCount: sql<number>`count(${mediaItem.id})::int`,
+          itemCount: sql<number>`(case when ${library.kind} = 'books' then count(distinct ${bookChapter.id}) else count(distinct ${mediaItem.id}) end)::int`,
         })
         .from(library)
         .leftJoin(mediaItem, eq(mediaItem.libraryId, library.id))
+        .leftJoin(book, eq(book.libraryId, library.id))
+        .leftJoin(bookChapter, eq(bookChapter.bookId, book.id))
         .where(eq(library.id, libraryId))
         .groupBy(library.id);
 
