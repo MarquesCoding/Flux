@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import { markTheDocument } from '@FluxDesktop/preload/markTheDocument';
 import { z } from 'zod';
 import {
   CHANGE_SERVER,
@@ -13,7 +14,7 @@ const HeldSchema = z.record(z.string(), z.string()).catch({});
 
 const held = HeldSchema.parse(ipcRenderer.sendSync(READ_EVERYTHING));
 
-document.documentElement.dataset['fluxDesktop'] = 'true';
+markTheDocument(document);
 
 document.addEventListener('flux:change-server', () => {
   ipcRenderer.send(CHANGE_SERVER);
