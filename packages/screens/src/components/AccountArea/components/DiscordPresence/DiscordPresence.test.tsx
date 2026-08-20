@@ -138,8 +138,30 @@ describe('DiscordPresence', () => {
     expect(screen.getByRole('switch')).not.toBeChecked();
   });
 
-  it('cannot be flipped while nobody has picked who is watching', async () => {
+  it('changes the profile the server counts playback against when nobody was picked', async () => {
     readCurrentProfile.mockReturnValue(null);
+    fetchProfiles.mockResolvedValue([
+      aProfile({ id: 'profile-1', name: 'Default' }),
+      aProfile({ id: 'profile-2', name: 'Ada' }),
+    ]);
+
+    draw();
+
+    await waitFor(() => {
+      expect(screen.getByRole('switch')).toBeEnabled();
+    });
+
+    await userEvent.click(screen.getByRole('switch'));
+
+    await waitFor(() => {
+      expect(saveProfile).toHaveBeenCalled();
+    });
+
+    expect(saveProfile.mock.calls[0]?.[0]).toBe('profile-1');
+  });
+
+  it('cannot be flipped while the account has nobody on it at all', async () => {
+    fetchProfiles.mockResolvedValue([]);
 
     draw();
 

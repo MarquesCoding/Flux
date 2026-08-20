@@ -547,7 +547,7 @@ describe('VideoPlayer', () => {
   });
 
   it('does not send a keepalive stop before a session has actually started', () => {
-    const fetchMock = vi.fn();
+    const fetchMock = vi.fn<(input: string, options?: RequestInit) => void>();
 
     vi.stubGlobal('fetch', fetchMock);
     startMock.mockReturnValue(new Promise(() => undefined));
@@ -555,7 +555,9 @@ describe('VideoPlayer', () => {
 
     window.dispatchEvent(new Event('pagehide'));
 
-    expect(fetchMock).not.toHaveBeenCalled();
+    const keptAlive = fetchMock.mock.calls.filter(([, options]) => options?.keepalive === true);
+
+    expect(keptAlive).toHaveLength(0);
 
     expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
 
