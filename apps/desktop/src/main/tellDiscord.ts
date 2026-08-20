@@ -1,6 +1,11 @@
 import { createConnection } from 'node:net';
 import type { Socket } from 'node:net';
-import { aDiscordFrame, FRAME, HANDSHAKE, readDiscordFrames } from '@FluxDesktop/main/aDiscordFrame';
+import {
+  aDiscordFrame,
+  FRAME,
+  HANDSHAKE,
+  readDiscordFrames,
+} from '@FluxDesktop/main/aDiscordFrame';
 import { aDiscordActivity } from '@FluxDesktop/main/aDiscordActivity';
 import { whereDiscordListens } from '@FluxDesktop/main/whereDiscordListens';
 import type { WhatIsPlaying } from '@FluxDesktop/main/aDiscordActivity';
@@ -27,9 +32,12 @@ type Presence = {
  * the beginning. A media player that complained about a chat application would be a worse media
  * player.
  *
+ * @param temporary - Where this machine keeps this user's temporary files, which is where Discord
+ *   listens on a Mac. Passed in rather than read from the environment, which does not always carry
+ *   it.
  * @returns How to say what is playing, and how to stop.
  */
-const tellDiscord = (): Presence => {
+const tellDiscord = (temporary: string): Presence => {
   let socket: Socket | null = null;
   let ready = false;
   let waiting: WhatIsPlaying | null = null;
@@ -109,7 +117,7 @@ const tellDiscord = (): Presence => {
 
       if (socket === null) {
         if (playing !== null) {
-          connect(whereDiscordListens(process.platform, process.env));
+          connect(whereDiscordListens(process.platform, process.env, temporary));
         }
 
         return;
