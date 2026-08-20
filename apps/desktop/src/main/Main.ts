@@ -1,6 +1,6 @@
 import { app, BrowserWindow } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
-import { holdTheSession } from '@FluxDesktop/main/holdTheSession';
+import { alsoKeep, keepTheServersCookies } from '@FluxDesktop/main/keepTheServersCookies';
 import { letTheBrowserSendThemBack } from '@FluxDesktop/main/letTheBrowserSendThemBack';
 import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
@@ -21,7 +21,8 @@ const start = async (): Promise<void> => {
   answerAboutPreferences(() => {
     pointSignInAt(theServerAddress());
   });
-  holdTheSession(auth);
+  keepTheServersCookies();
+  alsoKeep(auth.getCookie());
 
   theWindow = openTheWindow();
 
