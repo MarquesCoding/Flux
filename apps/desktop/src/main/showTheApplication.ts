@@ -6,7 +6,7 @@ const DEV_SERVER = 'ELECTRON_RENDERER_URL';
 
 type Fillable = {
   loadURL: (address: string) => Promise<void>;
-  loadFile: (path: string) => Promise<void>;
+  loadFile: (path: string, options?: { search?: string }) => Promise<void>;
 };
 
 /**
@@ -19,20 +19,28 @@ type Fillable = {
  * it applies — signing in, a second factor, a passkey and a password manager all work because
  * nothing is unusual about them.
  *
- * The page this client ships is only the one that asks which Flux is yours, shown until somebody has
- * said. After that this window is a browser looking at their server, with the things a browser
- * cannot have added to it.
+ * A server that does not answer falls back to the one page this client ships, carrying the address
+ * that failed. A self-hosted server is off sometimes, and a laptop is away from it sometimes, so
+ * this is an ordinary Tuesday rather than an error: without it the window shows nothing at all and
+ * says so only in a console nobody has open.
  *
  * @param window - The window to fill.
  * @returns When it has been asked to load, which is before it has drawn.
  */
 const showTheApplication = async (window: Fillable): Promise<void> => {
   const server = theServerAddress();
+  const asking = join(app.getAppPath(), 'dist/index.html');
 
   if (server !== '') {
-    await window.loadURL(server);
+    try {
+      await window.loadURL(server);
 
-    return;
+      return;
+    } catch {
+      await window.loadFile(asking, { search: `unreachable=${encodeURIComponent(server)}` });
+
+      return;
+    }
   }
 
   const served = process.env[DEV_SERVER];
@@ -43,7 +51,7 @@ const showTheApplication = async (window: Fillable): Promise<void> => {
     return;
   }
 
-  await window.loadFile(join(app.getAppPath(), 'dist/index.html'));
+  await window.loadFile(asking);
 };
 
 export { showTheApplication };

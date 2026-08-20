@@ -15,12 +15,27 @@ import type { ConnectToServerProps } from './ConnectToServer.types';
  * like a broken application rather than a wrong address, and somebody who has just installed
  * something has no reason to assume it is their fault.
  *
+ * Somebody arriving here because the server they already named stopped answering is shown that
+ * address and told so, rather than an empty box — they came here to correct a detail or to wait, not
+ * to remember what they typed months ago.
+ *
  * @param onConnected - Told the address, once something answered at it.
+ * @param startWith - What to put in the box, for somebody being asked again.
+ * @param couldNotReach - The address that stopped answering, where that is why they are here.
  * @param reach - How to ask whether a Flux is there, which a test replaces.
  */
-const ConnectToServer = ({ onConnected, reach = reachServer }: ConnectToServerProps) => {
-  const [typed, setTyped] = useState('');
-  const [problem, setProblem] = useState<string | null>(null);
+const ConnectToServer = ({
+  onConnected,
+  startWith = '',
+  couldNotReach,
+  reach = reachServer,
+}: ConnectToServerProps) => {
+  const [typed, setTyped] = useState(startWith);
+  const [problem, setProblem] = useState<string | null>(
+    couldNotReach === undefined
+      ? null
+      : `Flux at ${couldNotReach} could not be reached. Check that it is running.`,
+  );
   const [asking, setAsking] = useState(false);
 
   const connect = async () => {

@@ -97,3 +97,38 @@ describe('ConnectToServer', () => {
     });
   });
 });
+
+describe('coming back because the server stopped answering', () => {
+  it('says which server, rather than showing an empty box and no reason', () => {
+    render(
+      <ConnectToServer
+        onConnected={vi.fn()}
+        startWith="https://flux.example.com"
+        couldNotReach="https://flux.example.com"
+      />,
+    );
+
+    expect(
+      screen.getByText(/Flux at https:\/\/flux\.example\.com could not be reached/),
+    ).toBeInTheDocument();
+  });
+
+  it('puts the address back in the box, since nobody remembers what they typed months ago', () => {
+    render(
+      <ConnectToServer
+        onConnected={vi.fn()}
+        startWith="https://flux.example.com"
+        couldNotReach="https://flux.example.com"
+      />,
+    );
+
+    expect(screen.getByLabelText('Server address')).toHaveValue('https://flux.example.com');
+  });
+
+  it('says nothing of the sort on a first launch', () => {
+    render(<ConnectToServer onConnected={vi.fn()} />);
+
+    expect(screen.getByLabelText('Server address')).toHaveValue('');
+    expect(screen.queryByText(/could not be reached/)).toBeNull();
+  });
+});

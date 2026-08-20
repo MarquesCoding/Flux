@@ -23,17 +23,23 @@ if (container === null) {
  * passkey and a saved password all work here exactly as they work in a browser — there is nothing
  * unusual about this client for any of them to trip over.
  *
- * It is shown only until somebody has said. After that the window opens on their server and this
- * page is never drawn again.
+ * It is shown until somebody has said, and again if the server they named stops answering — a
+ * self-hosted server is off sometimes and a laptop is away from it sometimes. Coming back that way
+ * arrives with the address already in the box and the reason above it.
  */
-const Desktop = () => (
-  <ConnectToServer
-    onConnected={(chosen) => {
-      rememberServerAddress(chosen);
-      window.flux.goToTheServer();
-    }}
-  />
-);
+const Desktop = () => {
+  const unreachable = new URLSearchParams(window.location.search).get('unreachable');
+
+  return (
+    <ConnectToServer
+      onConnected={(chosen) => {
+        rememberServerAddress(chosen);
+        window.flux.goToTheServer();
+      }}
+      {...(unreachable === null ? {} : { startWith: unreachable, couldNotReach: unreachable })}
+    />
+  );
+};
 
 Desktop.displayName = 'Desktop';
 
