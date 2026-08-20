@@ -5,6 +5,7 @@ type ProfileRequest = {
   colour: ProfileColour;
   avatar?: Avatar;
   askStillWatchingAfter?: number;
+  showsWhatIamWatching?: boolean;
 };
 
 type ProfileService = {

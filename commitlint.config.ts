@@ -27,6 +27,7 @@ const config: UserConfig = {
         'web',
         'server',
         'transcoder',
+        'desktop',
         'ui',
         'contracts',
         'core',

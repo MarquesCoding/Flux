@@ -33,6 +33,7 @@ const ViewerProfileSchema = z.object({
   colour: ProfileColourSchema,
   avatar: AvatarSchema,
   askStillWatchingAfter: StillWatchingSchema,
+  showsWhatIamWatching: z.boolean().default(false),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -42,6 +43,7 @@ const ViewerProfileRequestSchema = z.object({
   colour: ProfileColourSchema,
   avatar: AvatarSchema.optional(),
   askStillWatchingAfter: HowOftenToAskSchema.optional(),
+  showsWhatIamWatching: z.boolean().optional(),
 });
 
 const ViewerProfileListSchema = z.object({ profiles: z.array(ViewerProfileSchema) });

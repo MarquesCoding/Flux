@@ -47,6 +47,7 @@ const saveProfile = async (
   colour: ProfileColour,
   avatar?: Avatar,
   askStillWatchingAfter?: number,
+  showsWhatIamWatching?: boolean,
 ): Promise<boolean> => {
   const response = await fetch(`/api/profiles/${profileId}`, {
     method: 'PATCH',
@@ -56,6 +57,7 @@ const saveProfile = async (
       colour,
       ...(avatar === undefined ? {} : { avatar }),
       ...(askStillWatchingAfter === undefined ? {} : { askStillWatchingAfter }),
+      ...(showsWhatIamWatching === undefined ? {} : { showsWhatIamWatching }),
     }),
   }).catch(() => null);
 

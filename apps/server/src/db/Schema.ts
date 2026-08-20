@@ -182,6 +182,7 @@ const viewerProfile = pgTable(
     avatarSeed: text('avatarSeed'),
     photoPath: text('photoPath'),
     askStillWatchingAfter: integer('askStillWatchingAfter').notNull().default(4),
+    showsWhatIamWatching: boolean('showsWhatIamWatching').notNull().default(false),
     createdAt: timestamp('createdAt').notNull().defaultNow(),
     updatedAt: timestamp('updatedAt').notNull().defaultNow(),
   },
