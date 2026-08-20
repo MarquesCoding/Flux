@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
+import { forgetSoundClaims } from '@FluxScreens/playback/soundOwner';
 import { MediaPreview } from './MediaPreview';
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
@@ -13,6 +14,11 @@ const pause = vi.fn();
  * The clip, which jsdom draws as an element and never plays.
  */
 const videoOf = (): HTMLVideoElement => screen.getByLabelText('Preview');
+
+/**
+ * Every clip on screen at once, for the pages that show more than one.
+ */
+const videosOf = (): HTMLVideoElement[] => screen.getAllByLabelText('Preview');
 
 /**
  * The still, which is the item's own artwork rather than a frame of the clip.
@@ -81,6 +87,7 @@ const answersPreviewWith = (status: number) => {
 afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
+  forgetSoundClaims();
 });
 
 const settle = async () => {
@@ -562,6 +569,79 @@ describe('MediaPreview', () => {
     await actor.click(screen.getByRole('button', { name: 'Turn sound off' }));
 
     expect(readSoundPreference()).toBe('muted');
+  });
+
+  it('lets only the newest clip be heard, so a dialog does not talk over the page behind it', async () => {
+    saveSoundPreference('audible');
+
+    render(
+      <>
+        <MediaPreview
+          mediaId={MEDIA_ID}
+          backdropUrl="/artwork.jpg"
+          durationSeconds={7200}
+          settleMilliseconds={0}
+          hasSound
+        />
+        <MediaPreview
+          mediaId="0f1d5f3e-6c2a-4a1e-9d77-2b9a1c4e8f01"
+          backdropUrl="/artwork.jpg"
+          durationSeconds={7200}
+          settleMilliseconds={0}
+          hasSound
+        />
+      </>,
+    );
+
+    await settle();
+
+    await waitFor(() => {
+      const clips = videosOf();
+
+      expect(clips).toHaveLength(2);
+      expect(clips[1]?.muted).toBe(false);
+    });
+
+    expect(videosOf()[0]?.muted).toBe(true);
+  });
+
+  it('gives the sound back to the page once what covered it has gone', async () => {
+    saveSoundPreference('audible');
+
+    const covering = (
+      <MediaPreview
+        mediaId="0f1d5f3e-6c2a-4a1e-9d77-2b9a1c4e8f01"
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />
+    );
+
+    const behind = (
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        hasSound
+      />
+    );
+
+    const { rerender } = render(
+      <>
+        {behind}
+        {covering}
+      </>,
+    );
+
+    await settle();
+
+    rerender(<>{behind}</>);
+
+    await waitFor(() => {
+      expect(videoOf().muted).toBe(false);
+    });
   });
 
   it('fades an audible clip out rather than cutting it off when it is taken away', async () => {

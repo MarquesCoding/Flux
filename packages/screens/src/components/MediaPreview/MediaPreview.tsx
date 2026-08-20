@@ -14,6 +14,7 @@ import { liftCues } from '@FluxScreens/playback/liftCues';
 import { readPreviewState } from '@FluxClient/playback/readPreviewState';
 import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
 import { fadeAudioOut } from '@FluxScreens/playback/fadeAudioOut';
+import { claimSound } from '@FluxScreens/playback/soundOwner';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
 const SETTLE_MILLISECONDS = 2600;
@@ -79,6 +80,7 @@ const MediaPreview = ({
   const [hasEnded, setHasEnded] = useState(false);
   const [, setHasFrame] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [mayBeHeard, setMayBeHeard] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [absence, setAbsence] = useState<PreviewAbsence>(null);
   const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
@@ -145,7 +147,6 @@ const MediaPreview = ({
         return;
       }
 
-      element.muted = false;
       setIsMuted(false);
     };
 
@@ -169,6 +170,24 @@ const MediaPreview = ({
       });
     };
   }, [mediaId, settleMilliseconds, hasSound]);
+
+  useEffect(() => {
+    if (!hasSound) {
+      return;
+    }
+
+    return claimSound(setMayBeHeard);
+  }, [hasSound]);
+
+  useEffect(() => {
+    const element = videoRef.current;
+
+    if (element === null) {
+      return;
+    }
+
+    element.muted = isMuted || !mayBeHeard;
+  }, [isMuted, mayBeHeard]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -304,7 +323,6 @@ const MediaPreview = ({
 
                   const isSilenced = !isMuted;
 
-                  element.muted = isSilenced;
                   element.volume = 1;
                   setIsMuted(isSilenced);
                   saveSoundPreference(isSilenced ? 'muted' : 'audible');
