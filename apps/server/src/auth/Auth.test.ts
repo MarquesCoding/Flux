@@ -10,7 +10,11 @@ const credentials = {
   name: 'Viewer',
 };
 
-const post = (path: string, body: Record<string, string>, headers: Record<string, string> = {}) =>
+const post = (
+  path: string,
+  body: Record<string, string | boolean>,
+  headers: Record<string, string> = {},
+) =>
   new Request(`${BASE_URL}${path}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', ...headers },
@@ -57,6 +61,16 @@ describe('createAuth', () => {
 
       const response = await auth.handler(
         post('/api/auth/sign-out', {}, { origin: 'https://localhost:5173', cookie }),
+      );
+
+      expect(response.status).toBe(200);
+    });
+
+    it('trusts the desktop client, which nobody should have to configure', async () => {
+      const { auth, cookie } = await withStaleSettings();
+
+      const response = await auth.handler(
+        post('/api/auth/sign-out', {}, { origin: BASE_URL, cookie }),
       );
 
       expect(response.status).toBe(200);
@@ -156,25 +170,23 @@ describe('createAuth', () => {
     expect(response.headers.get('set-cookie')).toContain('Secure');
   });
 
-  it('accepts a bearer token as an alternative to a session cookie', async () => {
+  it('is signed by its cookie and nothing else, so a stray header cannot stand in for one', async () => {
     const { auth } = createMemoryAuth();
     await auth.handler(post('/api/auth/sign-up/email', credentials));
 
     const signIn = await auth.handler(
       post('/api/auth/sign-in/email', { email: credentials.email, password: credentials.password }),
     );
-    const token = signIn.headers.get('set-auth-token');
+    const cookie = signIn.headers.getSetCookie()[0]?.split(';')[0] ?? '';
 
-    expect(token).toBeTruthy();
-
-    const session = await auth.handler(
+    const asked = await auth.handler(
       new Request(`${BASE_URL}/api/auth/get-session`, {
-        headers: { authorization: `Bearer ${token ?? ''}` },
+        headers: { cookie, authorization: 'Bearer not-a-real-token' },
       }),
     );
 
-    expect(session.status).toBe(200);
-    expect(await session.text()).toContain(credentials.email);
+    expect(asked.status).toBe(200);
+    expect(await asked.text()).toContain(credentials.email);
   });
 
   it('gives every new user a profile row', async () => {
@@ -283,3 +295,5 @@ describe('createAuth', () => {
     expect(response.status).toBe(200);
   });
 });
+
+

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
+import { askTheServer } from '@FluxClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
@@ -47,10 +48,7 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
 const buildClient = () =>
   createAuthClient({
     basePath: '/api/auth',
-    fetchOptions: {
-      customFetchImpl: async (input, init) =>
-        globalThis.fetch(input instanceof Request ? input : String(input), init),
-    },
+    fetchOptions: { customFetchImpl: askTheServer },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],
   });
 
@@ -118,8 +116,9 @@ const fetchSession = async (): Promise<SessionUser | null> => {
  * was once taken from the library's success hook instead, which is a second way of asking the same
  * question and the only one here that could answer no while the server had said yes.
  *
- * The face is forgotten either way. A sign-out that did not reach the server still means somebody
- * walked away from this device, and leaving their face on it is the failure that matters.
+ * The face is forgotten either way, and so is any token this client was holding. A sign-out that did
+ * not reach the server still means somebody walked away from this device, and leaving their face —
+ * or a credential that still works — on it is the failure that matters.
  *
  * @returns Whether the session was ended.
  */
@@ -236,13 +235,21 @@ const renamePasskey = async (id: string, name: string): Promise<boolean> => {
  * Starts enrolling a second factor, which the password is needed for: turning it on is a change to
  * how this account is protected, and a borrowed session should not be able to make it.
  *
+ * The server may answer that it enrolled a code sent by mail instead, which this account is not set
+ * up for and Flux does not offer. There is nothing to show for that, so it is treated as nothing
+ * rather than half a screen with no secret on it.
+ *
  * @param password - The account's password.
  * @returns The secret to enrol against and the backup codes, or nothing where the password was wrong.
  */
 const enableTwoFactor = async (password: string): Promise<Enrollment | null> => {
   const { data, error } = await client.twoFactor.enable({ password });
 
-  return error === null ? { totpURI: data.totpURI, backupCodes: data.backupCodes } : null;
+  if (error !== null || data.method !== 'totp') {
+    return null;
+  }
+
+  return { totpURI: data.totpURI, backupCodes: data.backupCodes };
 };
 
 /**

@@ -23,6 +23,7 @@ import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
 import { createAuth } from '@FluxServer/auth/Auth';
+import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
 import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
 import { createDatabase } from '@FluxServer/db/Database';
 import { findPendingMigrations } from '@FluxServer/db/findPendingMigrations';
@@ -1064,6 +1065,11 @@ const playbackService = createPlaybackService({
 const app = createApp({
   auth,
   settings,
+  trustedOrigins: trustedOriginsFor({
+    configured: env.TRUSTED_ORIGINS,
+    port: env.PORT,
+    settings,
+  }),
   realtime,
   logs: logStore,
   presence,
@@ -1423,7 +1429,13 @@ const nodeWebSocket = createNodeWebSocket({ app });
 app.get(
   '/api/realtime',
   nodeWebSocket.upgradeWebSocket(async (context) => {
-    const account = (await readSessionOnce(auth, context.req.raw.headers))?.user ?? null;
+    const account =
+      (
+        await readSessionOnce(
+          auth,
+          context.req.raw.headers,
+        )
+      )?.user ?? null;
 
     if (account === null) {
       return {};

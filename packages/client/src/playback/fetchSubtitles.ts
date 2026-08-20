@@ -33,6 +33,9 @@ const fetchSubtitleTracks = async (mediaId: string): Promise<SubtitleTrack[]> =>
  * @param mediaId - The item being played.
  * @param trackId - Which track.
  * @param fromSeconds - Where to begin the track, for a preview that starts part-way in.
+ * Built onto the server this client watches, because a video element resolves what it is given
+ * against the page it is on — and a client serving its own pages would ask itself for subtitles.
+ *
  * @returns The address to attach to the video element.
  */
 const subtitleTrackUrl = (mediaId: string, trackId: string, fromSeconds = 0): string =>

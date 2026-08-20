@@ -1,0 +1,47 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { askForADifferentServer, isTheDesktopClient } from './theDesktopShell';
+
+const insideTheWindow = (): void => {
+  document.documentElement.dataset['fluxDesktop'] = 'true';
+};
+
+afterEach(() => {
+  delete document.documentElement.dataset['fluxDesktop'];
+});
+
+describe('isTheDesktopClient', () => {
+  it('says no in a browser, which puts no mark on the document', () => {
+    expect(isTheDesktopClient()).toBe(false);
+  });
+
+  it('says yes where the window marked the document before the page ran', () => {
+    insideTheWindow();
+
+    expect(isTheDesktopClient()).toBe(true);
+  });
+
+  it('says no for a mark that says anything else, rather than for merely being present', () => {
+    document.documentElement.dataset['fluxDesktop'] = 'maybe';
+
+    expect(isTheDesktopClient()).toBe(false);
+  });
+});
+
+describe('askForADifferentServer', () => {
+  it('asks the window, which is the only thing that can point itself somewhere else', () => {
+    const heard = vi.fn();
+    document.addEventListener('flux:change-server', heard);
+
+    askForADifferentServer();
+
+    expect(heard).toHaveBeenCalledOnce();
+
+    document.removeEventListener('flux:change-server', heard);
+  });
+
+  it('asks nothing in particular in a browser, where nobody is listening', () => {
+    expect(() => {
+      askForADifferentServer();
+    }).not.toThrow();
+  });
+});

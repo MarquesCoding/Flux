@@ -81,6 +81,7 @@ export default defineConfig({
   server: {
     port: 5173,
     host: true,
+    cors: false,
     ...(cert === null || key === null ? {} : { https: { cert, key } }),
     proxy: {
       '/api': { target: 'http://localhost:8420', ws: true },

@@ -79,6 +79,12 @@ describe('AvatarSchema', () => {
 });
 
 describe('ViewerProfileRequestSchema', () => {
+  it('leaves out what was left out, so an edit that says nothing changes nothing', () => {
+    expect(
+      ViewerProfileRequestSchema.parse({ name: 'Sam', colour: PROFILE_COLOURS[1] }),
+    ).not.toHaveProperty('askStillWatchingAfter');
+  });
+
   it('trims a name, so leading space is not part of what somebody is called', () => {
     expect(
       ViewerProfileRequestSchema.parse({ name: '  Sam ', colour: PROFILE_COLOURS[1] }),

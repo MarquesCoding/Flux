@@ -142,10 +142,13 @@ const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> =>
  * @param deliveryId - The delivery to send again.
  */
 const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {
-  const response = await fetch(`/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`, {
-    method: 'POST',
-    credentials: 'same-origin',
-  }).catch(() => null);
+  const response = await fetch(
+    `/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`,
+    {
+      method: 'POST',
+      credentials: 'same-origin',
+    },
+  ).catch(() => null);
 
   return response === null
     ? { message: 'The server could not be reached.' }

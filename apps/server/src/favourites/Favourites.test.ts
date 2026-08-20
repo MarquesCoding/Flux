@@ -178,7 +178,7 @@ describe('favourites over HTTP', () => {
     const cookie = await signedIn(app);
 
     const response = await app.request(
-      `${BASE}/api/media/11111111-2222-3333-4444-555555555555/favourite`,
+      `${BASE}/api/media/11111111-2222-4333-8444-555555555555/favourite`,
       { method: 'PUT', headers: { cookie, origin: BASE } },
     );
 

@@ -288,6 +288,13 @@
       "when": 1787091219686,
       "tag": "0040_drop_chapter_segments",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1787185744092,
+      "tag": "0041_account_issuer",
+      "breakpoints": true
     }
   ]
 }

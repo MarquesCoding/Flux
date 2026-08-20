@@ -8,6 +8,11 @@ describe('the Flux stylesheet', () => {
     expect(stylesheet).toMatch(/@source\s+'\.\.\/?'/);
   });
 
+  it('reaches its fonts beside itself, so any host that imports it gets them', () => {
+    expect(stylesheet).toContain("url('../fonts/");
+    expect(stylesheet).not.toContain("url('/fonts/");
+  });
+
   it('defines the tokens components are built from', () => {
     for (const token of ['--color-surface', '--color-accent', '--color-text', '--radius-md']) {
       expect(stylesheet).toContain(token);

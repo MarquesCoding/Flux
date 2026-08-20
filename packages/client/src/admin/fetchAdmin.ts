@@ -538,7 +538,9 @@ type StorageCount = z.infer<typeof StorageCountSchema>;
  * next reading rather than from this call.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
-  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);
+  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(
+    () => null,
+  );
 
   if (response === null || !response.ok) {
     return null;

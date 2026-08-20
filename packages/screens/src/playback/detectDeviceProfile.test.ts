@@ -18,6 +18,7 @@ const build = (
 ) =>
   detectDeviceProfile({
     isTypeSupported,
+    platform: 'MacIntel',
     supportsHdr: false,
     screenWidth: 1920,
     screenHeight: 1080,
@@ -322,5 +323,41 @@ describe('asking the browser how many channels the output takes', () => {
     anOutputAccepting(Number.NaN);
 
     expect(detectFromBrowser().maxAudioChannels).toBe(2);
+  });
+});
+
+describe('a build that claims Dolby it cannot decode', () => {
+  const dolby = supportingCodecs('mp4a.40.2', 'ac-3', 'ec-3', 'avc1.640028');
+
+  it('believes a Mac, where the platform decoders it uses exist', () => {
+    expect(build(dolby, { platform: 'MacIntel' }).directPlayProfiles[0]?.audioCodecs).toContain(
+      'eac3',
+    );
+  });
+
+  it('believes Windows, for the same reason', () => {
+    expect(build(dolby, { platform: 'Win32' }).directPlayProfiles[0]?.audioCodecs).toContain(
+      'eac3',
+    );
+  });
+
+  it('refuses to believe Linux, which answers yes and then plays silence', () => {
+    const audio = build(dolby, { platform: 'Linux x86_64' }).directPlayProfiles[0]?.audioCodecs;
+
+    expect(audio).not.toContain('eac3');
+    expect(audio).not.toContain('ac3');
+  });
+
+  it('refuses ChromeOS too, which is the same engine on the same platform decoders', () => {
+    expect(build(dolby, { platform: 'CrOS x86_64' }).directPlayProfiles[0]?.audioCodecs).not.toContain(
+      'eac3',
+    );
+  });
+
+  it('keeps everything else it said it could play, since only Dolby is in question', () => {
+    const profile = build(dolby, { platform: 'Linux x86_64' });
+
+    expect(profile.directPlayProfiles[0]?.audioCodecs).toContain('aac');
+    expect(profile.directPlayProfiles[0]?.videoCodecs).toContain('h264');
   });
 });
