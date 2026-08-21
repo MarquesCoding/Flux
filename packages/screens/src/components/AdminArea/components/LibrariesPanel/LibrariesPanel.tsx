@@ -3,7 +3,7 @@ import {
   ArrowClockwiseIcon,
   ArrowsClockwiseIcon,
   DotsThreeIcon,
-  GearIcon,
+  GearSixIcon,
   ImageIcon,
   InfoIcon,
   PlusIcon,
@@ -211,7 +211,7 @@ const LibrariesPanel = ({
                     {
                       id: 'settings',
                       label: 'Library settings',
-                      icon: <Icon of={GearIcon} size={15} />,
+                      icon: <Icon of={GearSixIcon} size={15} />,
                       onChoose: () => {
                         live.current.setSettingsLibraryId(row.original.id);
                       },

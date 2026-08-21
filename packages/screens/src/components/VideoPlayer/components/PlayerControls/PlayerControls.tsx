@@ -4,11 +4,11 @@ import {
   ArrowUUpRightIcon,
   ArrowsClockwiseIcon,
   ClockIcon,
-  CornersInIcon,
-  CornersOutIcon,
+  ArrowsInIcon,
+  ArrowsOutIcon,
   FunnelSimpleIcon,
   GaugeIcon,
-  GearIcon,
+  GearSixIcon,
   HeadphonesIcon,
   MinusIcon,
   PauseIcon,
@@ -287,9 +287,9 @@ const PlayerControls = ({
           size="md"
         >
           {selectedSubtitleId === SUBTITLES_OFF ? (
-            <Icon of={SubtitlesIcon} size={22} />
+            <Icon of={SubtitlesIcon} size={20} />
           ) : (
-            <Icon of={SubtitlesIcon} size={22} />
+            <Icon of={SubtitlesIcon} size={20} />
           )}
         </Button>
       )}
@@ -298,8 +298,8 @@ const PlayerControls = ({
         label="Settings"
         {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
         isDisabled={isDisabled}
-        trigger={<Icon of={GearIcon} size={20} />}
-        triggerWhenOpen={<Icon of={GearIcon} size={20} />}
+        trigger={<Icon of={GearSixIcon} size={20} />}
+        triggerWhenOpen={<Icon of={GearSixIcon} size={20} />}
         rows={[
           ...(audioTracks.length < 2
             ? []
@@ -508,9 +508,9 @@ const PlayerControls = ({
         size="md"
       >
         {isFullscreen ? (
-          <Icon of={CornersInIcon} size={20} />
+          <Icon of={ArrowsInIcon} size={20} />
         ) : (
-          <Icon of={CornersOutIcon} size={20} />
+          <Icon of={ArrowsOutIcon} size={20} />
         )}
       </Button>
     </div>

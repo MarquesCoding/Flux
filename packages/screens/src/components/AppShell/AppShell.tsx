@@ -5,7 +5,7 @@ import {
   DiceFiveIcon,
   FilmSlateIcon,
   FireIcon,
-  GearIcon,
+  GearSixIcon,
   HeartIcon,
   HouseIcon,
   MagnifyingGlassIcon,
@@ -47,7 +47,7 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   read: <Icon of={BookOpenIcon} size={18} />,
   search: <Icon of={MagnifyingGlassIcon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
-  admin: <Icon of={GearIcon} size={18} />,
+  admin: <Icon of={GearSixIcon} size={18} />,
 };
 
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
@@ -59,7 +59,7 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   read: <Icon of={BookOpenIcon} size={18} isActive />,
   search: <Icon of={MagnifyingGlassIcon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
-  admin: <Icon of={GearIcon} size={18} isActive />,
+  admin: <Icon of={GearSixIcon} size={18} isActive />,
 };
 
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
@@ -252,8 +252,8 @@ const AppShell = ({
           {
             id: 'admin',
             label: 'Admin',
-            icon: <Icon of={GearIcon} size={20} />,
-            activeIcon: <Icon of={GearIcon} size={20} />,
+            icon: <Icon of={GearSixIcon} size={20} />,
+            activeIcon: <Icon of={GearSixIcon} size={20} />,
             gesture: 'spin' as const,
             isCurrent: section === 'admin',
             onSelect: () => {

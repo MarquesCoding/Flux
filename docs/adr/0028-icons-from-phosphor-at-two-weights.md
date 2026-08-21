@@ -1,4 +1,4 @@
-# ADR-0028: Draw every icon from Phosphor, at two weights
+# ADR-0028: Draw every icon from Phosphor, bold at rest and filled in force
 
 - **Status:** Accepted
 - **Date:** 2026-08-21
@@ -44,9 +44,22 @@ alongside the other sets, for the reason 0020 gave and which has now been tested
 in practice: the set behind `Icon` was replaced across sixty-eight files, and no
 call site changed except the name of the icon it asked for.
 
-**A glyph at rest is duotone; a glyph in force is filled.** These are two
-drawings of one icon rather than one drawing at two stroke widths, which is what
-0020 could not offer. `whenActive` still takes a different glyph where the pair
+**A glyph at rest is bold; a glyph in force is filled.** These are two drawings
+of one icon rather than one drawing at two stroke widths, which is what 0020
+could not offer. Bold rather than a lighter weight because these glyphs sit over
+artwork and beside heavy display type, and because the set this replaces was
+drawn with a rounded stroke of roughly that weight — the application has always
+looked like this.
+
+**Duotone was tried at rest and rejected.** It is a single fixed weight in this
+set: a regular-weight outline with a tinted shape behind it. It cannot be had
+thicker, and thin strokes are the thing being avoided. It stays one of the six a
+caller may name, and suits a large glyph on an empty screen far better than an
+eighteen-pixel one in a row of controls. Where it is asked for, how strong its
+second tone is belongs to us rather than to the set: the set lays it in at a
+fifth of the ink, drawn for dark glyphs on light paper, and on a near-black
+surface a fifth of white at eighteen pixels is nothing at all. That strength is
+`--flux-icon-second-tone` in `flux.css`. `whenActive` still takes a different glyph where the pair
 is a different idea rather than the same idea filled in — a play that becomes a
 pause. A caller may name any of the six weights where a screen needs something
 else.
@@ -59,8 +72,8 @@ they also stop an icon colliding with `File`, `Image` or `Link`.
 
 ### What this gets us
 
-- State that is visible. Filled versus duotone is a change anybody can see.
-- Icons with enough weight to sit over artwork.
+- State that is visible. Filled versus bold is a change anybody can see.
+- Icons with enough weight to sit over artwork, rather than a wireframe.
 - Six weights free, where the previous set charged for the second.
 - Every icon Flux uses, checked one by one before committing: the seventy-seven
   in use all exist, including `Subtitles`, `PictureInPicture`, `Television`,
@@ -101,5 +114,6 @@ they also stop an icon colliding with `File`, `Image` or `Link`.
 - A screen needs a glyph Phosphor does not draw, twice. Once is a workaround;
   twice is a set that does not fit.
 - Phosphor renames its exports again.
-- Flux ships a theme where duotone at rest is wrong — a high-contrast mode, say —
-  at which point the resting weight becomes a token rather than a constant.
+- Flux ships a theme where bold at rest is wrong — a high-contrast mode, say, or
+  a light one — at which point the resting weight becomes a token rather than a
+  constant.

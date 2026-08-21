@@ -35,8 +35,15 @@ describe('Icon', () => {
     expect(quiet.innerHTML).not.toBe(loud.innerHTML);
   });
 
-  it('draws a resting glyph duotone, which is what this set is here for', () => {
-    const { container } = render(<Icon of={HouseIcon} />);
+  it('draws a resting glyph boldly, since a hairline reads as unfinished over artwork', () => {
+    const { container: resting } = render(<Icon of={HouseIcon} />);
+    const { container: thin } = render(<Icon of={HouseIcon} weight="thin" />);
+
+    expect(resting.innerHTML).not.toBe(thin.innerHTML);
+  });
+
+  it('still draws duotone for a caller that asks for it', () => {
+    const { container } = render(<Icon of={HouseIcon} weight="duotone" />);
 
     expect(container.querySelector('svg')?.innerHTML).toContain('opacity');
   });

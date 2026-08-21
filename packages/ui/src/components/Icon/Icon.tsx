@@ -1,7 +1,7 @@
 import { cn } from '@FluxUI/cn';
 import type { IconProps } from './Icon.types';
 
-const RESTING = 'duotone';
+const RESTING = 'bold';
 
 const IN_FORCE = 'fill';
 
@@ -12,14 +12,15 @@ const IN_FORCE = 'fill';
  * and it has already earned itself once: the set behind this changed and the six hundred places that
  * ask for an icon did not.
  *
- * A glyph at rest is drawn duotone: one shape stroked, the shape behind it laid in more faintly.
- * Because both halves are the current colour it takes whatever colour it is given without a second
- * variable being involved.
+ * A glyph at rest is drawn bold, and in force it is filled. Bold rather than the lighter weights
+ * because these glyphs sit over artwork and beside heavy display type, where a hairline reads as
+ * unfinished — and because the set this replaced was drawn with a rounded stroke of about this
+ * weight, which is what the application has always looked like.
  *
- * How faint that second half is belongs to us rather than to the set. The set lays it in at a fifth
- * of the ink, which is drawn for dark glyphs on light paper; on a near-black surface a fifth of white
- * at eighteen pixels is not a tone, it is nothing, and the icon reads as the wireframe this set was
- * chosen to stop drawing. So the strength is a variable, set once in `flux.css`.
+ * Duotone was tried at rest and is not used there. It is a single fixed weight in this set — a
+ * regular-weight outline with a tinted shape behind it — so it cannot be had thicker, and thin is
+ * the thing being avoided. It remains one of the six a caller may name, and suits a large glyph on
+ * an empty screen far better than an eighteen-pixel one in a row of controls.
  *
  * `whenActive` is how a glyph says a thing is in force — the filled twin of an outline. Where no
  * twin is given, the same shape is drawn filled instead, which is a real change of state rather than

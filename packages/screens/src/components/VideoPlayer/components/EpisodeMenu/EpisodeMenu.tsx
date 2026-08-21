@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { FileIcon } from '@phosphor-icons/react';
+import { PlaylistIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
 import { MediaCard } from '@FluxUI/MediaCard';
@@ -65,7 +65,7 @@ const EpisodeMenu = ({
       isDisabled={isDisabled}
       isOpen={isOpen}
       onOpenChange={show}
-      trigger={isOpen ? <Icon of={FileIcon} size={20} /> : <Icon of={FileIcon} size={20} />}
+      trigger={isOpen ? <Icon of={PlaylistIcon} size={20} /> : <Icon of={PlaylistIcon} size={20} />}
       className="w-80 sm:w-96 mb-7.5"
     >
       <ul className="flex flex-col gap-3">
