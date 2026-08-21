@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { deliveredBitrateKbps } from '@FluxClient/playback/deliveredBitrateKbps';
+import { teachShakaOurScheme } from '@FluxScreens/playback/teachShakaOurScheme';
+import type { ShakaNetworking } from '@FluxScreens/playback/teachShakaOurScheme';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 type ShakaVariant = {
@@ -34,6 +36,7 @@ type ShakaPlayer = {
 type ShakaModule = {
   polyfill: { installAll: () => void };
   Player: new () => ShakaPlayer;
+  net?: ShakaNetworking;
 };
 
 const PlaybackFaultSchema = z.object({
@@ -182,6 +185,10 @@ const attachShaka = async ({
   const shaka = await loadShaka();
 
   shaka.polyfill.installAll();
+
+  if (shaka.net !== undefined) {
+    teachShakaOurScheme(shaka.net, globalThis.location.protocol);
+  }
 
   const player = new shaka.Player();
 

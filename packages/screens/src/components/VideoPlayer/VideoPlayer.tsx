@@ -12,6 +12,8 @@ import { useNowPlaying } from '@FluxScreens/playback/useNowPlaying';
 import { useDiscordPresence } from '@FluxScreens/playback/useDiscordPresence';
 import { profileQueries } from '@FluxClient/query/profileQueries';
 import { VideoSurface } from '@FluxUI/VideoSurface';
+import { SubtitleCues } from '@FluxScreens/components/SubtitleCues/SubtitleCues';
+import { isTheDesktopClient } from '@FluxScreens/desktop/theDesktopShell';
 import { detectFromBrowser } from '@FluxScreens/playback/detectDeviceProfile';
 import { qualityStepCostsFor } from '@FluxClient/playback/qualityStepCostsFor';
 import { platformInUse } from '@FluxClient/platform/installPlatform';
@@ -49,7 +51,6 @@ import {
   SUBTITLES_OFF,
 } from '@FluxClient/playback/fetchSubtitles';
 import {
-  toCueCss,
   readCaptionStyle,
   saveCaptionStyle,
   DEFAULT_CAPTION_STYLE,
@@ -64,7 +65,6 @@ import {
   readPlaybackPreferences,
   writePlaybackPreferences,
 } from '@FluxScreens/playback/playbackPreferences';
-import { liftCues, CUE_LINE_CLEAR, CUE_LINE_ABOVE_CONTROLS } from '@FluxScreens/playback/liftCues';
 import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
 import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -146,8 +146,6 @@ const waitingWord = (names: readonly string[]): string => {
 const HEARTBEAT_INTERVAL_MILLISECONDS = 30_000;
 
 const PRESENCE_HEALTH_INTERVAL_MILLISECONDS = 1000;
-
-const REDRAW_AFTER_MILLISECONDS = 150;
 
 const DEFAULT_FRAME_SECONDS = 1 / 25;
 
@@ -249,7 +247,6 @@ const VideoPlayer = ({
   const [captionStyle, setCaptionStyle] = useState(readCaptionStyle);
   const [subtitleOffset, setSubtitleOffset] = useState(0);
 
-  const appliedOffsetRef = useRef(0);
   const [segments, setSegments] = useState<MediaSegment[]>([]);
   const [selectedAudioIndex, setSelectedAudioIndex] = useState<number | null>(null);
   const [request, setRequest] = useState<{
@@ -264,7 +261,12 @@ const VideoPlayer = ({
   });
   const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null);
 
-  const canPopOut = typeof document !== 'undefined' && document.pictureInPictureEnabled === true;
+  const isAWindowOfOurOwn = isTheDesktopClient();
+
+  const canPopOut =
+    !isAWindowOfOurOwn &&
+    typeof document !== 'undefined' &&
+    document.pictureInPictureEnabled === true;
 
   const poppedRef = useRef<PoppedOut | null>(null);
   const [isPoppedOut, setIsPoppedOut] = useState(false);
@@ -505,34 +507,10 @@ const VideoPlayer = ({
   );
 
   useEffect(() => {
-    const element = videoRef.current;
-
-    if (element === null) {
+    if (isAWindowOfOurOwn) {
       return;
     }
 
-    const shift = subtitleOffset - appliedOffsetRef.current;
-
-    if (shift === 0) {
-      return;
-    }
-
-    let moved = false;
-
-    for (const track of Array.from(element.textTracks)) {
-      for (const cue of Array.from(track.cues ?? [])) {
-        cue.startTime = Math.max(0, cue.startTime + shift);
-        cue.endTime = Math.max(0, cue.endTime + shift);
-        moved = true;
-      }
-    }
-
-    if (moved) {
-      appliedOffsetRef.current = subtitleOffset;
-    }
-  }, [subtitleOffset, selectedSubtitleId, position]);
-
-  useEffect(() => {
     let isAbandoned = false;
 
     void loadCastSender().then((context) => {
@@ -567,12 +545,12 @@ const VideoPlayer = ({
   useEffect(() => {
     const element = videoRef.current;
 
-    if (element === null) {
+    if (element === null || isAWindowOfOurOwn) {
       return;
     }
 
     return watchCastState(element, setCastState);
-  }, []);
+  }, [isAWindowOfOurOwn]);
 
   useEffect(() => {
     if (castState !== 'connected') {
@@ -1407,38 +1385,7 @@ const VideoPlayer = ({
 
   const isBarUp = !isIdle || isShowingStats || isMenuOpen;
   const isBarUpRef = useRef(isBarUp);
-  const cuesRef = useRef<{ stop: () => void; apply: () => void } | null>(null);
-
   isBarUpRef.current = isBarUp;
-
-  useEffect(() => {
-    const element = videoRef.current;
-
-    if (element === null || selectedSubtitleId === SUBTITLES_OFF) {
-      return;
-    }
-
-    const lifted = liftCues(element, () =>
-      isBarUpRef.current ? CUE_LINE_ABOVE_CONTROLS : CUE_LINE_CLEAR,
-    );
-
-    cuesRef.current = lifted;
-
-    return () => {
-      cuesRef.current = null;
-      lifted.stop();
-    };
-  }, [selectedSubtitleId, session]);
-
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      cuesRef.current?.apply();
-    }, REDRAW_AFTER_MILLISECONDS);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [isBarUp, captionStyle]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -1563,6 +1510,21 @@ const VideoPlayer = ({
     };
   }, [isImmersive, isFullscreen, onClose]);
 
+  const asItPlays = {
+    onTimeUpdate: (seconds: number) => {
+      setPosition(seconds);
+      setHeldFrame(null);
+      onProgress?.(seconds, duration);
+    },
+    onDurationChange: setReportedDuration,
+    onPlayingChange: setIsPlaying,
+    onBufferingChange: setIsBuffering,
+    onEnded: () => {
+      onProgress?.(duration, duration);
+      onEnded?.();
+    },
+  };
+
   return (
     <section
       className={isImmersive ? 'relative flex h-full flex-col' : 'flex flex-col gap-3'}
@@ -1586,19 +1548,27 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center justify-between gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
+            ? `absolute inset-x-0 top-0 z-10 flex items-center gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
                 isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
-            : 'flex items-center justify-between gap-4'
+            : 'flex items-center gap-4'
         }
       >
-        <h2 className={isImmersive ? 'text-lg font-medium' : 'text-lg font-medium text-text'}>
+        <div className="w-24 shrink-0" aria-hidden />
+
+        <h2
+          className={`flex-1 truncate text-center text-lg font-medium ${
+            isImmersive ? '' : 'text-text'
+          }`}
+        >
           {media.title}
         </h2>
 
-        <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-          <Icon of={Cancel01Icon} size={20} />
-        </Button>
+        <div className="flex w-24 shrink-0 justify-end">
+          <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
+            <Icon of={Cancel01Icon} size={20} />
+          </Button>
+        </div>
       </header>
 
       <div
@@ -1624,21 +1594,18 @@ const VideoPlayer = ({
                   src: subtitleTrackUrl(media.id, selectedTrack.id),
                 },
               })}
-          onTimeUpdate={(seconds) => {
-            const at = seconds;
-
-            setPosition(at);
-            setHeldFrame(null);
-            onProgress?.(at, duration);
-          }}
-          onDurationChange={setReportedDuration}
-          onPlayingChange={setIsPlaying}
-          onBufferingChange={setIsBuffering}
-          onEnded={() => {
-            onProgress?.(duration, duration);
-            onEnded?.();
-          }}
+          isDrawnElsewhere
+          {...asItPlays}
         />
+
+        {selectedTrack === null ? null : (
+          <SubtitleCues
+            src={subtitleTrackUrl(media.id, selectedTrack.id)}
+            atSeconds={position - subtitleOffset}
+            style={captionStyle}
+            isLifted={isBarUp}
+          />
+        )}
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
@@ -1719,8 +1686,6 @@ const VideoPlayer = ({
             />
           </div>
         ) : null}
-
-        <style>{`::cue { ${toCueCss(captionStyle)} }`}</style>
 
         {isShowingStats ? (
           <div className="pointer-events-none absolute inset-x-3 top-16 flex justify-start">
