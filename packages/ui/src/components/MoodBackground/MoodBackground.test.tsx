@@ -117,12 +117,12 @@ describe('MoodBackground', () => {
   it('holds the film to the window rather than to the top of a page being scrolled', () => {
     const { container } = render(<MoodBackground film={() => undefined} />);
 
-    expect(container.firstElementChild?.className).toContain('fixed');
+    expect(container.firstElementChild?.className).toContain('flux-below-the-bar');
   });
 
   it('stays where it was put when there is no film', () => {
     const { container } = render(<MoodBackground hasGrid />);
 
-    expect(container.firstElementChild?.className).not.toContain('fixed');
+    expect(container.firstElementChild?.className).not.toContain('flux-below-the-bar');
   });
 });

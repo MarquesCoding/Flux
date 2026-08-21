@@ -117,6 +117,9 @@
       "@FluxUI/TrendChart": ["./packages/ui/src/components/TrendChart/TrendChart.tsx"],
       "@FluxUI/TrendChart.types": ["./packages/ui/src/components/TrendChart/TrendChart.types.ts"],
       "@FluxUI/VideoSurface": ["./packages/ui/src/components/VideoSurface/VideoSurface.tsx"],
+      "@FluxUI/VideoSurface.types": [
+        "./packages/ui/src/components/VideoSurface/VideoSurface.types.ts"
+      ],
       "@FluxUI/animations/motion": ["./packages/ui/src/animations/motion.ts"],
       "@FluxUI/animations/reveal": ["./packages/ui/src/animations/reveal.ts"],
       "@FluxUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
