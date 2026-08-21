@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { askTheServer } from './askTheServer';
+import { PLACEHOLDER, askTheServer, theAuthBase } from './askTheServer';
 
 const fetchMock = vi.fn<(input: string | Request, init?: RequestInit) => Promise<Response>>();
 
@@ -41,5 +41,38 @@ describe('askTheServer', () => {
     await askTheServer(new URL('http://localhost/api/auth/get-session'));
 
     expect(typeof fetchMock.mock.calls[0]?.[0]).toBe('string');
+  });
+});
+
+describe('theAuthBase', () => {
+  it('hands a browser its own origin, which the library is happy with', () => {
+    vi.stubGlobal('location', { protocol: 'https:', origin: 'https://flux.example' });
+
+    expect(theAuthBase()).toBe('https://flux.example');
+  });
+
+  it('hands a client that serves its own pages a base the library will accept', () => {
+    vi.stubGlobal('location', { protocol: 'flux:', origin: 'flux://app' });
+
+    expect(theAuthBase()).toBe(PLACEHOLDER);
+  });
+});
+
+describe('a request that arrives already built', () => {
+  it('is rebuilt where it carries a host that does not resolve', async () => {
+    await askTheServer(new Request(`${PLACEHOLDER}/api/auth/get-session`));
+
+    const [sent] = fetchMock.mock.calls[0] ?? [];
+    const asked = sent instanceof Request ? sent.url : String(sent);
+
+    expect(asked).not.toContain('flux.invalid');
+  });
+
+  it('is left alone where it is already asking for somewhere real', async () => {
+    const built = new Request('http://localhost:8420/api/auth/get-session');
+
+    await askTheServer(built);
+
+    expect(fetchMock).toHaveBeenCalledWith(built, undefined);
   });
 });
