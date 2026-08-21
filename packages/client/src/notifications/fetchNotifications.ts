@@ -52,6 +52,32 @@ const markNotificationsRead = async (id?: string): Promise<number> => {
 };
 
 /**
+ * Takes one notification off the bell for good, or all of them when given nothing.
+ *
+ * Different from marking read, which leaves it there having been seen. This is for somebody who does
+ * not want the list at all, and it does not come back.
+ *
+ * @param id - The one to take down, or nothing to take them all.
+ * @returns How many are left unread.
+ */
+const clearNotifications = async (id?: string): Promise<number> => {
+  const response = await fetch('/api/notifications/clear', {
+    method: 'POST',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify(id === undefined ? {} : { id }),
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return 0;
+  }
+
+  const read = z.object({ unread: z.number() }).safeParse(await response.json().catch(() => null));
+
+  return read.success ? read.data.unread : 0;
+};
+
+/**
  * Reads what this viewer has asked to be told about, and the key a browser needs before it can be
  * pushed to at all.
  *
@@ -61,6 +87,6 @@ const fetchNotificationSettings = async (): Promise<NotificationSettings> => {
   return readFromServer('/api/notifications/preferences', PreferencesSchema);
 };
 
-export { fetchNotificationSettings, fetchNotifications, markNotificationsRead };
+export { clearNotifications, fetchNotificationSettings, fetchNotifications, markNotificationsRead };
 
 export type { Inbox, Notification };

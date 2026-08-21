@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq, isNull, sql } from 'drizzle-orm';
+import { and, desc, eq, isNull, lt, sql } from 'drizzle-orm';
 import {
   DEFAULT_NOTIFICATION_PREFERENCE,
   NotificationEventSchema,
@@ -13,6 +13,7 @@ import {
 import { toIso } from '@FluxCore/functions/toIso';
 import type { FluxDatabase } from '@FluxServer/db/Database';
 import type { Notification } from '@FluxContracts/schemas/Notification';
+import { A_MINUTE, LASTS_FOR_MINUTES } from './hasExpired';
 import type { NotificationStore } from './NotificationStore';
 
 /**
@@ -39,6 +40,12 @@ const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore =>
           },
         ]
       : [];
+  };
+
+  const sweep = async (): Promise<void> => {
+    await db
+      .delete(notification)
+      .where(lt(notification.createdAt, new Date(Date.now() - LASTS_FOR_MINUTES * A_MINUTE)));
   };
 
   return {
@@ -94,6 +101,8 @@ const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore =>
     },
 
     list: async (userId, limit) => {
+      await sweep();
+
       const rows = await db
         .select()
         .from(notification)
@@ -105,12 +114,25 @@ const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore =>
     },
 
     countUnread: async (userId) => {
+      await sweep();
+
       const rows = await db
         .select({ total: sql<number>`count(*)::int` })
         .from(notification)
         .where(and(eq(notification.userId, userId), isNull(notification.readAt)));
 
       return rows[0]?.total ?? 0;
+    },
+
+    clear: async (userId, notificationId) => {
+      await db
+        .delete(notification)
+        .where(
+          and(
+            eq(notification.userId, userId),
+            ...(notificationId === undefined ? [] : [eq(notification.id, notificationId)]),
+          ),
+        );
     },
 
     markRead: async (userId, notificationId) => {

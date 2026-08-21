@@ -77,6 +77,32 @@ const readNotificationsRoute = createRoute({
   },
 });
 
+const clearNotificationsRoute = createRoute({
+  method: 'post',
+  path: '/api/notifications/clear',
+  tags: ['Notifications'],
+  summary: 'Take notifications off the bell for good',
+  request: {
+    body: {
+      content: {
+        'application/json': { schema: z.object({ id: z.string().uuid().optional() }) },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'How many are left unread',
+      content: {
+        'application/json': { schema: z.object({ unread: z.number().int().nonnegative() }) },
+      },
+    },
+    401: {
+      description: 'Not signed in',
+      content: { 'application/json': { schema: NotificationError } },
+    },
+  },
+});
+
 const readNotificationPreferencesRoute = createRoute({
   method: 'get',
   path: '/api/notifications/preferences',
@@ -165,6 +191,7 @@ const unsubscribeFromPushRoute = createRoute({
 export {
   listNotificationsRoute,
   readNotificationsRoute,
+  clearNotificationsRoute,
   readNotificationPreferencesRoute,
   writeNotificationPreferenceRoute,
   subscribeToPushRoute,
