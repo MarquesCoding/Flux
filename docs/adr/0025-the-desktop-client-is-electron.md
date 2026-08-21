@@ -108,17 +108,29 @@ is now a cost this decision pays rather than the figure it turns on.
 ### Two features share the name "spatial audio"
 
 The first is spatialised PCM: the operating system takes decoded stereo or
-multichannel and renders it to AirPods with head tracking. Any application
-producing multichannel PCM gets it, and Flux gets it today through Safari — and
-will get it in Electron, which produces PCM like anything else.
+multichannel and renders it to AirPods with head tracking. Flux gets it today
+through Safari. **The desktop client does not, and the codec is not why.**
+
+Measured on macOS 27.0 with an M5 Pro and AirPods Pro 3, the same file played both
+ways: Safari offers the spatialisation control in Control Center, and the desktop
+client leaves it greyed out. Producing PCM does not earn it. An application's audio
+output has to opt into spatialisation and Chromium's does not — asking it to is an
+open feature request
+([crbug 339678653](https://issues.chromium.org/issues/339678653)) rather than a
+setting. Nothing Flux ships can reach that decision, because it is made below the
+renderer. Web Audio's `PannerNode` is a different thing wearing the same word: it
+renders a binaural stereo mix in software, replacing the real channels with a
+simulation rather than letting the system spatialise them.
 
 The second is Dolby Atmos proper, where the E-AC-3 bitstream carrying its object
 metadata reaches Apple's renderer, or a receiver, **undecoded**. An application
 that decodes to PCM first has discarded the objects; what comes out is a downmix
 wearing the name.
 
-Electron forecloses the second on the desktop until it can decode E-AC-3 at all.
-It does not touch the first.
+castLabs' build decodes E-AC-3, so the desktop client direct plays it; whether that
+bitstream ever reaches a receiver undecoded is unmeasured here, as it is for
+WKWebView. So the desktop client loses the first outright and leaves the second
+open, against a browser that has the first today.
 
 ## Consequences
 
@@ -163,11 +175,18 @@ per release per platform and not something this project should take on.
 **A much larger client.** Chromium and Node, against a Tauri binary that borrows
 the system WebView.
 
+**Spatial audio is lost, and not only Atmos.** Chromium's audio output does not opt
+into spatialisation, so on a Mac the desktop client leaves the Control Center control
+greyed out where Safari offers it — for ordinary stereo and multichannel, not only
+for object audio. This is not recoverable in the front end and it is not a castLabs
+build flag: it is a different audio output backend, which is a far larger thing to
+ask of somebody else's build than `enable_platform_ac3_eac3_audio` was.
+
 **A weaker case than the ticket assumed.** Most of the codec win landed in the
 browser. What is left for the desktop client is the system integration and
 offline — worth building, but this ADR should not be read as promising a fidelity
-jump for somebody already watching in Safari. On a Mac it is currently a fidelity
-step backwards for Dolby.
+jump for somebody already watching in Safari. On a Mac, with spatialisation lost and
+passthrough unmeasured, it is currently a fidelity step backwards.
 
 **A profile that belongs to the output device.** Audio capability changes mid-film
 when somebody plugs in headphones or connects a receiver, and `DeviceProfile` is
@@ -183,20 +202,25 @@ recorded here because the cost was paid for a package that is gone.
 
 ### What this forecloses
 
-Dolby passthrough on the desktop, until Electron can decode it or Flux ships a
-build that can. FLUX-164 is that path and it is not speculative — castLabs already
-toggle the flag.
+Dolby passthrough on the desktop. FLUX-164 settled the decode half — castLabs'
+stable build decodes AC-3 and E-AC-3, and the client is on it — but decoding is what
+forecloses passthrough rather than what enables it, and whether a bitstream can reach
+a receiver undecoded is still unmeasured.
+
+Spatialised PCM on the desktop, until Chromium's audio output opts into it. No build
+flag turns this on and no front-end change reaches it.
 
 WKWebView, and with it the system integration that only a native shell has. Nobody
 was asking for that.
 
 ## Alternatives considered
 
-**Tauri.** What this ADR first chose. Decodes Dolby on macOS, which Electron does
-not, and has no answer at all for holding a session — every part of that would go
-on being Flux's to write, test and get right, on the path where being wrong is
-worst. The codec advantage is real and recoverable elsewhere; the authentication
-disadvantage is structural.
+**Tauri.** What this ADR first chose. Decodes Dolby on macOS, which mainline
+Electron does not, and spatialises PCM, which Chromium does not — and has no answer
+at all for holding a session, every part of which would go on being Flux's to write,
+test and get right, on the path where being wrong is worst. The codec advantage was
+recovered elsewhere, in castLabs' build; the spatialisation advantage was not, and
+stands. The authentication disadvantage is structural, and still decides this.
 
 **Tauri with the machinery already built.** It existed and it worked: a bearer
 token, a two-factor cookie relay proved end to end against real better-auth, a
