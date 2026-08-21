@@ -112,6 +112,10 @@ const CAST_NOTICE = 'cast-notice';
 
 const JUMP_SECONDS = 30;
 
+const CLEAR_OF_THE_CONTROLS = 12;
+
+const CLEAR_OF_THE_EDGE = 24;
+
 const FINISHED_WITHIN_SECONDS = 90;
 
 const HEALTH_INTERVAL_MILLISECONDS = 500;
@@ -260,6 +264,8 @@ const VideoPlayer = ({
     requestedQuality: readQualityPreference(),
   });
   const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [controlsTall, setControlsTall] = useState(0);
 
   const isAWindowOfOurOwn = isTheDesktopClient();
 
@@ -1383,6 +1389,24 @@ const VideoPlayer = ({
     void target.requestFullscreen?.();
   }, [isFullscreen]);
 
+  useEffect(() => {
+    const controls = controlsRef.current;
+
+    if (controls === null) {
+      return;
+    }
+
+    const watching = new ResizeObserver(([seen]) => {
+      setControlsTall(seen?.contentRect.height ?? 0);
+    });
+
+    watching.observe(controls);
+
+    return () => {
+      watching.disconnect();
+    };
+  }, []);
+
   const isBarUp = !isIdle || isShowingStats || isMenuOpen;
   const isBarUpRef = useRef(isBarUp);
   isBarUpRef.current = isBarUp;
@@ -1716,7 +1740,14 @@ const VideoPlayer = ({
         ) : null}
 
         {skippable === null ? null : (
-          <div className="absolute bottom-24 right-6 z-10">
+          <div
+            className="absolute right-6 z-10 transition-[bottom] duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none"
+            style={{
+              bottom: isBarUp
+                ? controlsTall + CLEAR_OF_THE_EDGE + CLEAR_OF_THE_CONTROLS
+                : CLEAR_OF_THE_EDGE,
+            }}
+          >
             <Button
               size="lg"
               variant="secondary"
@@ -1733,6 +1764,7 @@ const VideoPlayer = ({
         )}
 
         <div
+          ref={controlsRef}
           className={`absolute inset-x-3 bottom-3 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
             isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}
