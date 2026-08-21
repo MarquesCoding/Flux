@@ -1,6 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
+import type { IpcRendererEvent } from 'electron';
 import { markTheDocument } from '@FluxDesktop/preload/markTheDocument';
 import { z } from 'zod';
+import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
 import {
   CHANGE_SERVER,
   NOW_WATCHING,
@@ -13,6 +15,8 @@ import {
 const HeldSchema = z.record(z.string(), z.string()).catch({});
 
 const held = HeldSchema.parse(ipcRenderer.sendSync(READ_EVERYTHING));
+
+const alreadyFound = z.array(z.string()).catch([]).parse(ipcRenderer.sendSync(WHAT_WAS_FOUND));
 
 markTheDocument(document);
 
@@ -36,5 +40,19 @@ contextBridge.exposeInMainWorld('flux', {
   },
   goToTheServer: () => {
     ipcRenderer.send(GO_TO_THE_SERVER);
+  },
+  servers: {
+    alreadyFound,
+    whenFound: (listener: (address: string) => void) => {
+      const told = (_event: IpcRendererEvent, address: string) => {
+        listener(address);
+      };
+
+      ipcRenderer.on(FOUND_A_FLUX, told);
+
+      return () => {
+        ipcRenderer.removeListener(FOUND_A_FLUX, told);
+      };
+    },
   },
 });

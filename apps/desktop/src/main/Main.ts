@@ -13,20 +13,80 @@ import { whatIsPlaying } from '@FluxDesktop/main/whatIsPlaying';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { theWindowsOwnMenu } from '@FluxDesktop/main/theWindowsOwnMenu';
-import { forgetTheServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { forgetTheServerAddress, theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
+import { keepLookingForAFlux, lookForAFlux } from '@FluxDesktop/main/lookForAFlux';
 import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
+import { claimTheScheme, serveTheApplication } from '@FluxDesktop/main/serveTheApplication';
+import { carryTheSessionToTheSocket } from '@FluxDesktop/main/carryTheSessionToTheSocket';
 
 app.setName('Flux');
 
+claimTheScheme();
+
 let theWindow: BrowserWindow | null = null;
+
+let stopLooking: (() => void) | null = null;
+
+let whatWasFound: string[] = [];
+
+/**
+ * Finds this machine's Flux, and offers it rather than deciding with it.
+ *
+ * Nobody should have to type the address of a server running on the machine they are sitting at. But
+ * finding one is not the same as it being theirs — somebody may run two, or be setting one up while
+ * watching another — so what is found is offered on the screen that asks, as something to press
+ * instead of something to type.
+ *
+ * Looked for once on the way up, and then quietly for a minute more while that screen is on show,
+ * because a server started at the same moment as this client has not finished starting when the
+ * client is ready to ask. One that turns up late appears on the screen the moment it does.
+ */
+const findAFlux = async (): Promise<void> => {
+  if (theServerAddress() !== '') {
+    return;
+  }
+
+  const offer = (address: string): void => {
+    if (whatWasFound.includes(address)) {
+      return;
+    }
+
+    whatWasFound = [...whatWasFound, address];
+
+    if (theWindow !== null && !theWindow.isDestroyed()) {
+      theWindow.webContents.send(FOUND_A_FLUX, address);
+    }
+  };
+
+  const here = await lookForAFlux();
+
+  if (here !== null) {
+    offer(here);
+
+    return;
+  }
+
+  stopLooking?.();
+  stopLooking = keepLookingForAFlux(offer);
+};
 
 const start = async (): Promise<void> => {
   await app.whenReady();
 
+  serveTheApplication();
+  carryTheSessionToTheSocket();
+
   answerAboutPreferences(() => {});
+
+  ipcMain.on(WHAT_WAS_FOUND, (event) => {
+    event.returnValue = whatWasFound;
+  });
 
   const changeServer = () => {
     forgetTheServerAddress();
+
+    void findAFlux();
 
     if (theWindow !== null) {
       void showTheApplication(theWindow);
@@ -58,6 +118,7 @@ const start = async (): Promise<void> => {
   theWindow = openTheWindow();
   theWindowsOwnMenu(theWindow, changeServer);
 
+  await findAFlux();
   await showTheApplication(theWindow);
 
   app.on('activate', () => {
