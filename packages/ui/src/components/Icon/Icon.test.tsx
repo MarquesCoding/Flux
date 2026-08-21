@@ -41,6 +41,18 @@ describe('Icon', () => {
     expect(container.querySelector('svg')?.innerHTML).toContain('opacity');
   });
 
+  it('carries the class that decides how strong the second tone is', () => {
+    const { container } = render(<Icon of={HouseIcon} />);
+
+    expect(container.querySelector('svg')).toHaveClass('flux-icon');
+  });
+
+  it('keeps the classes a caller gave it as well', () => {
+    const { container } = render(<Icon of={HouseIcon} className="text-red-500" />);
+
+    expect(container.querySelector('svg')).toHaveClass('flux-icon', 'text-red-500');
+  });
+
   it('draws any other weight a caller asks for', () => {
     const { container: thin } = render(<Icon of={HouseIcon} weight="thin" />);
     const { container: resting } = render(<Icon of={HouseIcon} />);
