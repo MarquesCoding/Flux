@@ -1397,7 +1397,9 @@ const VideoPlayer = ({
     }
 
     const watching = new ResizeObserver(([seen]) => {
-      setControlsTall(seen?.contentRect.height ?? 0);
+      const tall = Math.round(seen?.contentRect.height ?? 0);
+
+      setControlsTall((was) => (was === tall ? was : tall));
     });
 
     watching.observe(controls);
