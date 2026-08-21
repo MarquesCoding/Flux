@@ -19,16 +19,23 @@ import type { ConnectToServerProps } from './ConnectToServer.types';
  * address and told so, rather than an empty box — they came here to correct a detail or to wait, not
  * to remember what they typed months ago.
  *
+ * A server running on this machine is found rather than asked for, and offered as something to
+ * press. Finding one is not the same as it being theirs — somebody may run two, or be setting one up
+ * while watching another — so it is offered rather than assumed, and the box is still there for
+ * anybody whose Flux is somewhere else.
+ *
  * @param onConnected - Told the address, once something answered at it.
  * @param startWith - What to put in the box, for somebody being asked again.
  * @param couldNotReach - The address that stopped answering, where that is why they are here.
  * @param reach - How to ask whether a Flux is there, which a test replaces.
+ * @param found - Servers already found on this machine, which have answered before being offered.
  */
 const ConnectToServer = ({
   onConnected,
   startWith = '',
   couldNotReach,
   reach = reachServer,
+  found = [],
 }: ConnectToServerProps) => {
   const [typed, setTyped] = useState(startWith);
   const [problem, setProblem] = useState<string | null>(
@@ -74,7 +81,7 @@ const ConnectToServer = ({
           void connect();
         }}
       >
-        <Logo className="h-8 self-start" />
+        <Logo size={32} className="self-start" />
 
         <div className="flex flex-col gap-1.5">
           <h1 className="text-xl font-medium text-text">Which Flux is yours?</h1>
@@ -82,6 +89,27 @@ const ConnectToServer = ({
             The address of your server, the same one you would open in a browser.
           </p>
         </div>
+
+        {found.length === 0 ? null : (
+          <div className="flex flex-col gap-2">
+            <p className="text-sm text-text-muted">Found on this machine</p>
+
+            {found.map((address) => (
+              <Button
+                key={address}
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  onConnected(address);
+                }}
+              >
+                {address.replace(/^https?:\/\//, '')}
+              </Button>
+            ))}
+
+            <p className="text-xs text-text-muted/70">Or give a different address.</p>
+          </div>
+        )}
 
         <TextField
           label="Server address"

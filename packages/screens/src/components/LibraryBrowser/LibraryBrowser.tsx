@@ -12,6 +12,7 @@ import { CouldNotRead } from '@FluxUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { BookRail } from '@FluxScreens/components/BookRail/BookRail';
+import { readLastLibrary, rememberLastLibrary } from '@FluxClient/library/lastLibrary';
 import { libraryQueries } from '@FluxClient/query/libraryQueries';
 import { viewingQueries } from '@FluxClient/query/viewingQueries';
 import { pickFeatured } from '@FluxClient/library/pickFeatured';
@@ -65,7 +66,7 @@ const LibraryBrowser = ({
   onLibraryChange,
 }: LibraryBrowserProps) => {
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<string | null>(readLastLibrary);
 
   const go = useNavigate();
   const askedFor = useQuery(libraryQueries.all());
@@ -195,7 +196,7 @@ const LibraryBrowser = ({
         />
       ) : null}
 
-      <section className="flex flex-col gap-5 px-5 sm:px-10">
+      <section className="flex flex-col gap-5 px-4 sm:px-6">
         <header className="flux-rail flex items-center gap-3 overflow-x-auto pb-1">
           <div className="flex shrink-0 items-center gap-2">
             {libraries.map((entry) => (
@@ -206,6 +207,7 @@ const LibraryBrowser = ({
                 variant={entry.id === selectedId ? 'glossy' : 'secondary'}
                 onClick={() => {
                   setChosen(entry.id);
+                  rememberLastLibrary(entry.id);
                   onLibraryChange?.(entry.id);
                 }}
               >
