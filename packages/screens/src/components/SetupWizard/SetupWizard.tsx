@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { SquareLock01Icon, SquareUnlock01Icon } from '@hugeicons/core-free-icons';
+import { LockIcon, LockOpenIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Checkbox } from '@FluxUI/Checkbox';
@@ -124,9 +124,9 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
 
         <p className="flex items-start gap-2 text-sm text-text-muted">
           {cookieSecure ? (
-            <Icon of={SquareLock01Icon} size={16} className="mt-0.5 shrink-0" />
+            <Icon of={LockIcon} size={16} className="mt-0.5 shrink-0" />
           ) : (
-            <Icon of={SquareUnlock01Icon} size={16} className="mt-0.5 shrink-0" />
+            <Icon of={LockOpenIcon} size={16} className="mt-0.5 shrink-0" />
           )}
           {cookieSecure
             ? 'Secure cookies will be used. Login will not work over plain HTTP.'

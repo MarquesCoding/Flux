@@ -1,12 +1,12 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  InformationCircleIcon,
-  Message01Icon,
+  ChatCircleIcon,
+  InfoIcon,
   PauseIcon,
   PlayIcon,
   StopIcon,
-  Tv01Icon,
-} from '@hugeicons/core-free-icons';
+  TelevisionIcon,
+} from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -53,7 +53,7 @@ const SessionCard = ({
             className="h-full w-full object-cover"
           />
         ) : (
-          <Icon of={Tv01Icon} size={20} className="text-text-muted" />
+          <Icon of={TelevisionIcon} size={20} className="text-text-muted" />
         )}
       </span>
 
@@ -161,7 +161,7 @@ const SessionCard = ({
               disabled={isBusy}
               onClick={onMessage}
             >
-              <Icon of={Message01Icon} size={15} />
+              <Icon of={ChatCircleIcon} size={15} />
             </Button>
           </>
         )}
@@ -175,7 +175,7 @@ const SessionCard = ({
             setIsShowingStats(true);
           }}
         >
-          <Icon of={InformationCircleIcon} size={15} />
+          <Icon of={InfoIcon} size={15} />
         </Button>
       </div>
 

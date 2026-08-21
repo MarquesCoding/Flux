@@ -1,21 +1,21 @@
 import { Icon } from '@FluxUI/Icon';
-import { DashboardSquare01Icon, GridViewIcon } from '@hugeicons/core-free-icons';
+import { GridFourIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { SlidingMark } from '@FluxUI/SlidingMark';
 import { cn } from '@FluxUI/cn';
 import type { MediaGridSize } from '@FluxScreens/components/MediaGrid/MediaGrid.types';
-import type { IconSvgElement } from '@hugeicons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { GridSizeChooserProps } from './GridSizeChooser.types';
 
 const SIZES: readonly {
   id: MediaGridSize;
   label: string;
-  glyph: IconSvgElement;
+  glyph: PhosphorIcon;
 }[] = [
-  { id: 'small', label: 'Small cards, more of them', glyph: GridViewIcon },
-  { id: 'medium', label: 'Medium cards', glyph: DashboardSquare01Icon },
-  { id: 'large', label: 'Large cards, fewer of them', glyph: GridViewIcon },
+  { id: 'small', label: 'Small cards, more of them', glyph: GridFourIcon },
+  { id: 'medium', label: 'Medium cards', glyph: SquaresFourIcon },
+  { id: 'large', label: 'Large cards, fewer of them', glyph: GridFourIcon },
 ];
 
 /**

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { PlayIcon } from '@hugeicons/core-free-icons';
+import { PlayIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@FluxUI/cn';

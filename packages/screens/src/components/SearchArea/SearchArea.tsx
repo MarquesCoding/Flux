@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon, FilterHorizontalIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import { FunnelSimpleIcon, MagnifyingGlassIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -170,7 +170,7 @@ const SearchArea = ({
           hasFocusOnMount
           value={search}
           placeholder="Everything you own"
-          icon={<Icon of={Search01Icon} size={28} />}
+          icon={<Icon of={MagnifyingGlassIcon} size={28} />}
           onValueChange={onSearchChange}
         />
       </motion.div>
@@ -204,7 +204,7 @@ const SearchArea = ({
               setIsShowingFilters(!isShowingFilters);
             }}
           >
-            <Icon of={FilterHorizontalIcon} size={16} />
+            <Icon of={FunnelSimpleIcon} size={16} />
             {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
           </Button>
 
@@ -220,7 +220,7 @@ const SearchArea = ({
                 clearFilters();
               }}
             >
-              <Icon of={Cancel01Icon} size={16} />
+              <Icon of={XIcon} size={16} />
               Clear
             </Button>
           )}

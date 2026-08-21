@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { VolumeHighIcon, VolumeMute01Icon } from '@hugeicons/core-free-icons';
+import { SpeakerHighIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { VideoSurface } from '@FluxUI/VideoSurface';
@@ -403,9 +403,9 @@ const MediaPreview = ({
                 className="bg-black/50 text-white backdrop-blur"
               >
                 {isMuted ? (
-                  <Icon of={VolumeMute01Icon} size={18} />
+                  <Icon of={SpeakerSlashIcon} size={18} />
                 ) : (
-                  <Icon of={VolumeHighIcon} size={18} />
+                  <Icon of={SpeakerHighIcon} size={18} />
                 )}
               </Button>
             </>

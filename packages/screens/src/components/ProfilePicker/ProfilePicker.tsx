@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Add01Icon, Delete02Icon, PencilEdit01Icon } from '@hugeicons/core-free-icons';
+import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -88,7 +88,7 @@ const ProfilePicker = ({
                   }}
                   className="bg-surface-raised"
                 >
-                  <Icon of={PencilEdit01Icon} size={16} />
+                  <Icon of={PencilSimpleIcon} size={16} />
                 </Button>
 
                 {profiles.length < 2 ? null : (
@@ -102,7 +102,7 @@ const ProfilePicker = ({
                     }}
                     className="bg-surface-raised"
                   >
-                    <Icon of={Delete02Icon} size={16} />
+                    <Icon of={TrashIcon} size={16} />
                   </Button>
                 )}
               </span>
@@ -121,7 +121,7 @@ const ProfilePicker = ({
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
               <span className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-white/20 text-text-muted">
-                <Icon of={Add01Icon} size={28} />
+                <Icon of={PlusIcon} size={28} />
               </span>
 
               <span className="text-sm text-text-muted">Add</span>

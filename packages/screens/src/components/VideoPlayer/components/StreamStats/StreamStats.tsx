@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon } from '@hugeicons/core-free-icons';
+import { XIcon } from '@phosphor-icons/react';
 import { Button } from '@FluxUI/Button';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import {
@@ -123,7 +123,7 @@ const StreamStats = ({
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
-          <Icon of={Cancel01Icon} size={16} />
+          <Icon of={XIcon} size={16} />
         </Button>
       </header>
 

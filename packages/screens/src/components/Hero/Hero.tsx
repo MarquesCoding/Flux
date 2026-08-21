@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowDown01Icon, InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import { CaretDownIcon, InfoIcon, PlayIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -327,7 +327,7 @@ const Hero = ({
                     onInspect(featured);
                   }}
                 >
-                  <Icon of={InformationCircleIcon} size={18} />
+                  <Icon of={InfoIcon} size={18} />
                   More info
                 </Button>
               )}
@@ -358,7 +358,7 @@ const Hero = ({
               }
               className="pointer-events-none absolute bottom-[calc(2rem+var(--dock-clearance,0px))] left-1/2 -translate-x-1/2 text-text-muted"
             >
-              <Icon of={ArrowDown01Icon} size={24} />
+              <Icon of={CaretDownIcon} size={24} />
             </motion.span>
           )}
         </motion.section>

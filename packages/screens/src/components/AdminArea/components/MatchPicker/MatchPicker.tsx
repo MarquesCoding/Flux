@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowTurnBackwardIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import { ArrowUUpLeftIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
@@ -126,7 +126,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
               void look(query);
             }}
           >
-            <Icon of={Search01Icon} size={16} />
+            <Icon of={MagnifyingGlassIcon} size={16} />
             Search
           </Button>
         </div>
@@ -184,7 +184,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
             void forget();
           }}
         >
-          <Icon of={ArrowTurnBackwardIcon} size={16} />
+          <Icon of={ArrowUUpLeftIcon} size={16} />
           Forget the correction
         </Button>
 

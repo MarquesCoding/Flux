@@ -1,23 +1,30 @@
-import { HugeiconsIcon } from '@hugeicons/react';
 import type { IconProps } from './Icon.types';
+
+const RESTING = 'duotone';
+
+const IN_FORCE = 'fill';
 
 /**
  * Every glyph in Flux, drawn from one set through one component.
  *
- * The set is Hugeicons, which draws its icons as data rather than as a component each — so a caller
- * names the icon it wants and this decides how it is drawn. That indirection is the point: the free
- * set is one style, the licensed set is nine, and swapping between them is a change to this file and
- * the package it imports rather than to six hundred call sites.
+ * A caller names the icon it wants and this decides how it is drawn. That indirection is the point,
+ * and it has already earned itself once: the set behind this changed and the six hundred places that
+ * ask for an icon did not.
  *
- * `whenActive` is how a glyph says a thing is in force — the filled twin of an outline. The free set
- * has no filled twins, so today an active icon is the same shape drawn heavier; the seam is here and
- * ready rather than scattered through the screens that will want it.
+ * A glyph at rest is drawn duotone: one shape stroked, the shape behind it laid in at a fifth of the
+ * ink. It reads as an icon with some weight to it rather than a wireframe, and because both halves
+ * are the current colour it takes whatever colour it is given without a second variable.
+ *
+ * `whenActive` is how a glyph says a thing is in force — the filled twin of an outline. Where no
+ * twin is given, the same shape is drawn filled instead, which is a real change of state rather than
+ * the same glyph slightly heavier. That pairing is the reason for this set: at rest and in force are
+ * two drawings of one icon, not one drawing at two stroke widths.
  *
  * @param of - Which icon, named from the icon package.
- * @param whenActive - The icon to draw instead while what it stands for is in force.
+ * @param whenActive - A different icon to draw while what it stands for is in force.
  * @param isActive - Whether what it stands for is in force.
  * @param size - How large, in pixels.
- * @param strokeWidth - How heavy the stroke is, which is the free set's only way to say emphasis.
+ * @param weight - How it is drawn, where the caller wants something other than the two above.
  * @param className - Extra classes for the caller's own layout.
  * @param label - What it means in words, for a glyph that is not beside its own label.
  */
@@ -26,20 +33,22 @@ const Icon = ({
   whenActive,
   isActive = false,
   size = 18,
-  strokeWidth,
+  weight,
   className,
   label,
-}: IconProps) => (
-  <HugeiconsIcon
-    icon={of}
-    {...(whenActive === undefined ? {} : { altIcon: whenActive, showAlt: isActive })}
-    size={size}
-    {...(strokeWidth === undefined ? { strokeWidth: isActive ? 2.4 : 1.8 } : { strokeWidth })}
-    {...(className === undefined ? {} : { className })}
-    {...(label === undefined ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
-  />
-);
+}: IconProps) => {
+  const Drawn = isActive && whenActive !== undefined ? whenActive : of;
+
+  return (
+    <Drawn
+      size={size}
+      weight={weight ?? (isActive ? IN_FORCE : RESTING)}
+      {...(className === undefined ? {} : { className })}
+      {...(label === undefined ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
+    />
+  );
+};
 
 Icon.displayName = 'Icon';
 
-export { Icon };
+export { IN_FORCE, RESTING, Icon };

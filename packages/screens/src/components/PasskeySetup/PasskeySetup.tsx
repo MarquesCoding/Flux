@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Delete02Icon, Key01Icon, PencilEdit01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { CheckIcon, KeyIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
@@ -149,7 +149,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                   />
 
                   <Button type="submit" size="sm">
-                    <Icon of={Tick02Icon} size={16} />
+                    <Icon of={CheckIcon} size={16} />
                     Save
                   </Button>
 
@@ -167,7 +167,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
               ) : (
                 <>
                   <span className="flex items-center gap-2 text-sm text-text">
-                    <Icon of={Key01Icon} size={16} />
+                    <Icon of={KeyIcon} size={16} />
                     {passkey.name ?? 'Unnamed passkey'}
                   </span>
 
@@ -180,7 +180,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                         setRenameValue(passkey.name ?? '');
                       }}
                     >
-                      <Icon of={PencilEdit01Icon} size={16} />
+                      <Icon of={PencilSimpleIcon} size={16} />
                       Rename
                     </Button>
 
@@ -191,7 +191,7 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
                         void remove(passkey);
                       }}
                     >
-                      <Icon of={Delete02Icon} size={16} />
+                      <Icon of={TrashIcon} size={16} />
                       Remove
                     </Button>
                   </span>

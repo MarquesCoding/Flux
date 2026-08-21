@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Unlink01Icon } from '@hugeicons/core-free-icons';
+import { LinkBreakIcon } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CouldNotRead } from '@FluxUI/CouldNotRead';
@@ -107,7 +107,7 @@ const SharesPanel = () => {
                   setWithdrawing(row.original);
                 }}
               >
-                <Icon of={Unlink01Icon} size={16} />
+                <Icon of={LinkBreakIcon} size={16} />
               </Button>
             </span>
           ),

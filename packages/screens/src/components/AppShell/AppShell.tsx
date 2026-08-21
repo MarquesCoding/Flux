@@ -1,18 +1,18 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  DiceFaces05Icon,
-  Book02Icon,
-  FavouriteIcon,
-  FilmRoll01Icon,
+  BellIcon,
+  BookOpenIcon,
+  DiceFiveIcon,
+  FilmSlateIcon,
   FireIcon,
-  Home01Icon,
-  Cancel01Icon,
-  Notification01Icon,
-  Search01Icon,
-  Settings01Icon,
-  Tv01Icon,
+  GearIcon,
+  HeartIcon,
+  HouseIcon,
+  MagnifyingGlassIcon,
+  TelevisionIcon,
   UserCircleIcon,
-} from '@hugeicons/core-free-icons';
+  XIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
@@ -39,27 +39,27 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
 };
 
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <Icon of={Home01Icon} size={18} />,
-  shows: <Icon of={Tv01Icon} size={18} />,
-  films: <Icon of={FilmRoll01Icon} size={18} />,
+  home: <Icon of={HouseIcon} size={18} />,
+  shows: <Icon of={TelevisionIcon} size={18} />,
+  films: <Icon of={FilmSlateIcon} size={18} />,
   new: <Icon of={FireIcon} size={18} />,
-  favourites: <Icon of={FavouriteIcon} size={18} />,
-  read: <Icon of={Book02Icon} size={18} />,
-  search: <Icon of={Search01Icon} size={18} />,
+  favourites: <Icon of={HeartIcon} size={18} />,
+  read: <Icon of={BookOpenIcon} size={18} />,
+  search: <Icon of={MagnifyingGlassIcon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
-  admin: <Icon of={Settings01Icon} size={18} />,
+  admin: <Icon of={GearIcon} size={18} />,
 };
 
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <Icon of={Home01Icon} size={18} isActive />,
-  shows: <Icon of={Tv01Icon} size={18} isActive />,
-  films: <Icon of={FilmRoll01Icon} size={18} isActive />,
+  home: <Icon of={HouseIcon} size={18} isActive />,
+  shows: <Icon of={TelevisionIcon} size={18} isActive />,
+  films: <Icon of={FilmSlateIcon} size={18} isActive />,
   new: <Icon of={FireIcon} size={18} isActive />,
-  favourites: <Icon of={FavouriteIcon} size={18} isActive />,
-  read: <Icon of={Book02Icon} size={18} isActive />,
-  search: <Icon of={Search01Icon} size={18} isActive />,
+  favourites: <Icon of={HeartIcon} size={18} isActive />,
+  read: <Icon of={BookOpenIcon} size={18} isActive />,
+  search: <Icon of={MagnifyingGlassIcon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
-  admin: <Icon of={Settings01Icon} size={18} isActive />,
+  admin: <Icon of={GearIcon} size={18} isActive />,
 };
 
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
@@ -182,8 +182,8 @@ const AppShell = ({
     {
       id: 'search',
       label: 'Search',
-      icon: <Icon of={Search01Icon} size={20} />,
-      activeIcon: <Icon of={Search01Icon} size={20} />,
+      icon: <Icon of={MagnifyingGlassIcon} size={20} />,
+      activeIcon: <Icon of={MagnifyingGlassIcon} size={20} />,
       gesture: 'settle' as const,
       isCurrent: section === 'search',
       onSelect: () => {
@@ -196,7 +196,7 @@ const AppShell = ({
           {
             id: 'surprise',
             label: 'Randomiser',
-            icon: <Icon of={DiceFaces05Icon} size={20} />,
+            icon: <Icon of={DiceFiveIcon} size={20} />,
             gesture: 'tumble' as const,
             ...(surpriseKinds.length > 1
               ? {
@@ -205,7 +205,7 @@ const AppShell = ({
                       label="Choose something at random"
                       align="center"
                       className="hover:bg-transparent data-[popup-open]:bg-transparent"
-                      trigger={<Icon of={DiceFaces05Icon} size={20} />}
+                      trigger={<Icon of={DiceFiveIcon} size={20} />}
                       groups={[
                         {
                           items: [
@@ -242,7 +242,7 @@ const AppShell = ({
           {
             id: 'notifications',
             label: 'Notifications',
-            icon: <Icon of={Notification01Icon} size={20} />,
+            icon: <Icon of={BellIcon} size={20} />,
             gesture: 'ring' as const,
             control: notifications,
           },
@@ -252,8 +252,8 @@ const AppShell = ({
           {
             id: 'admin',
             label: 'Admin',
-            icon: <Icon of={Settings01Icon} size={20} />,
-            activeIcon: <Icon of={Settings01Icon} size={20} />,
+            icon: <Icon of={GearIcon} size={20} />,
+            activeIcon: <Icon of={GearIcon} size={20} />,
             gesture: 'spin' as const,
             isCurrent: section === 'admin',
             onSelect: () => {
@@ -293,7 +293,7 @@ const AppShell = ({
             className="fixed top-[calc(1rem+var(--flux-window-bar))] right-4 z-50"
           >
             <Button isIconOnly variant="overlay" label="Stop the film" onClick={endFilm}>
-              <Icon of={Cancel01Icon} size={20} />
+              <Icon of={XIcon} size={20} />
             </Button>
           </motion.div>
         ) : null}

@@ -1,14 +1,14 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  Add01Icon,
-  Delete02Icon,
-  Image01Icon,
-  InformationCircleIcon,
-  MoreHorizontalIcon,
-  RefreshIcon,
-  ReloadIcon,
-  Settings01Icon,
-} from '@hugeicons/core-free-icons';
+  ArrowClockwiseIcon,
+  ArrowsClockwiseIcon,
+  DotsThreeIcon,
+  GearIcon,
+  ImageIcon,
+  InfoIcon,
+  PlusIcon,
+  TrashIcon,
+} from '@phosphor-icons/react';
 import { useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
@@ -160,7 +160,7 @@ const LibrariesPanel = ({
                 Reading
               </Badge>
 
-              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
+              <Icon of={InfoIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -173,14 +173,14 @@ const LibrariesPanel = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
+              trigger={<Icon of={DotsThreeIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'scan',
                       label: 'Scan for changes',
-                      icon: <Icon of={RefreshIcon} size={15} />,
+                      icon: <Icon of={ArrowsClockwiseIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id);
@@ -189,7 +189,7 @@ const LibrariesPanel = ({
                     {
                       id: 'reread',
                       label: 'Read every file again',
-                      icon: <Icon of={ReloadIcon} size={15} />,
+                      icon: <Icon of={ArrowClockwiseIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id, true);
@@ -198,7 +198,7 @@ const LibrariesPanel = ({
                     {
                       id: 'previews',
                       label: 'Generate missing previews',
-                      icon: <Icon of={Image01Icon} size={15} />,
+                      icon: <Icon of={ImageIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onRegeneratePreviews(row.original.id);
@@ -211,7 +211,7 @@ const LibrariesPanel = ({
                     {
                       id: 'settings',
                       label: 'Library settings',
-                      icon: <Icon of={Settings01Icon} size={15} />,
+                      icon: <Icon of={GearIcon} size={15} />,
                       onChoose: () => {
                         live.current.setSettingsLibraryId(row.original.id);
                       },
@@ -239,7 +239,7 @@ const LibrariesPanel = ({
             disabled={isBusy}
             onClick={onScanAll}
           >
-            <Icon of={ReloadIcon} size={16} />
+            <Icon of={ArrowClockwiseIcon} size={16} />
             Scan all libraries
           </Button>
 
@@ -253,7 +253,7 @@ const LibrariesPanel = ({
               setIsConfirmingReset(true);
             }}
           >
-            <Icon of={Delete02Icon} size={16} />
+            <Icon of={TrashIcon} size={16} />
             Reset and rebuild
           </Button>
 
@@ -265,7 +265,7 @@ const LibrariesPanel = ({
               setIsAdding(true);
             }}
           >
-            <Icon of={Add01Icon} size={16} />
+            <Icon of={PlusIcon} size={16} />
             Add library
           </Button>
         </div>

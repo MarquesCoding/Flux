@@ -1,10 +1,10 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  Cancel01Icon,
-  CastIcon,
-  NextIcon,
-  PictureInPictureOnIcon,
-} from '@hugeicons/core-free-icons';
+  PictureInPictureIcon,
+  ScreencastIcon,
+  SkipForwardIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
@@ -1566,7 +1566,7 @@ const VideoPlayer = ({
 
         <div className="flex w-24 shrink-0 justify-end">
           <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-            <Icon of={Cancel01Icon} size={20} />
+            <Icon of={XIcon} size={20} />
           </Button>
         </div>
       </header>
@@ -1609,7 +1609,7 @@ const VideoPlayer = ({
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <Icon of={PictureInPictureOnIcon} size={32} className="text-text-muted" />
+            <Icon of={PictureInPictureIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
@@ -1623,7 +1623,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <Icon of={CastIcon} size={32} className="text-text-muted" />
+            <Icon of={ScreencastIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
@@ -1727,7 +1727,7 @@ const VideoPlayer = ({
               }}
             >
               {describeSkip(skippable)}
-              <Icon of={NextIcon} size={18} />
+              <Icon of={SkipForwardIcon} size={18} />
             </Button>
           </div>
         )}

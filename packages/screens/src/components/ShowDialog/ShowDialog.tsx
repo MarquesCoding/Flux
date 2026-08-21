@@ -1,10 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import {
-  Cancel01Icon,
-  InformationCircleIcon,
-  Link01Icon,
-  PlayIcon,
-} from '@hugeicons/core-free-icons';
+import { InfoIcon, LinkIcon, PlayIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -168,7 +163,7 @@ const ShowDialog = ({
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-              <Icon of={Cancel01Icon} size={20} />
+              <Icon of={XIcon} size={20} />
             </Button>
           </div>
 
@@ -262,7 +257,7 @@ const ShowDialog = ({
                   onInspect(carryingOn.episode);
                 }}
               >
-                <Icon of={InformationCircleIcon} size={18} />
+                <Icon of={InfoIcon} size={18} />
                 About this episode
               </Button>
             )}
@@ -276,7 +271,7 @@ const ShowDialog = ({
                   onShare(shown);
                 }}
               >
-                <Icon of={Link01Icon} size={18} />
+                <Icon of={LinkIcon} size={18} />
                 Share
               </Button>
             )}
