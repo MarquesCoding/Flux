@@ -19,6 +19,7 @@ const COUNTED_UP_TO = 9;
  * @param onOpen - Told when the list was opened.
  * @param onRead - Told which notification was read.
  * @param onReadAll - Told to mark everything read.
+ * @param onClearAll - Told to take everything off the bell, which is different from having read it.
  * @param onFollow - Told where a notification leads, when one is pressed.
  */
 const NotificationBell = ({
@@ -28,6 +29,7 @@ const NotificationBell = ({
   onOpen,
   onRead,
   onReadAll,
+  onClearAll,
   onFollow,
 }: NotificationBellProps) => {
   const now = Date.now();
@@ -70,6 +72,17 @@ const NotificationBell = ({
               onClick={onReadAll}
             >
               Mark all read
+            </Button>
+          )}
+
+          {notifications.length === 0 ? null : (
+            <Button
+              variant="bare"
+              size="none"
+              className="text-xs text-text-muted"
+              onClick={onClearAll}
+            >
+              Clear all
             </Button>
           )}
         </div>

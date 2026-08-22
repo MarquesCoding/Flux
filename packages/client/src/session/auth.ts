@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
-import { askTheServer } from '@FluxClient/session/askTheServer';
+import { AUTH_BASE, askTheServer } from '@FluxClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
 import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
@@ -47,6 +47,7 @@ const CANCELLED = new Set(['AUTH_CANCELLED', 'ERROR_CEREMONY_ABORTED']);
  */
 const buildClient = () =>
   createAuthClient({
+    baseURL: AUTH_BASE,
     basePath: '/api/auth',
     fetchOptions: { customFetchImpl: askTheServer },
     plugins: [adminClient(), twoFactorClient(), passkeyClient()],

@@ -2350,3 +2350,30 @@ describe('when the player is in a watch party', () => {
     expect(element instanceof HTMLVideoElement ? element.currentTime : 0).toBe(200);
   });
 });
+
+describe('in a window of our own', () => {
+  afterEach(() => {
+    delete document.documentElement.dataset['fluxDesktop'];
+  });
+
+  it('offers no picture-in-picture, which belongs to a browser', async () => {
+    document.documentElement.dataset['fluxDesktop'] = 'true';
+
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await screen.findByLabelText('Arrival');
+
+    expect(screen.queryByRole('button', { name: /picture in picture/i })).not.toBeInTheDocument();
+  });
+
+  it('offers no casting, and does not go looking for a sender to do it with', async () => {
+    document.documentElement.dataset['fluxDesktop'] = 'true';
+
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    await screen.findByLabelText('Arrival');
+
+    expect(screen.queryByRole('button', { name: /^cast/i })).not.toBeInTheDocument();
+    expect(loadCastSenderMock).not.toHaveBeenCalled();
+  });
+});

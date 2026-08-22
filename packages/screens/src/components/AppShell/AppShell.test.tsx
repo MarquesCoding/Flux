@@ -52,7 +52,7 @@ const enterTheCode = (target: EventTarget = window) => {
 };
 
 const filmOf = (container: HTMLElement): HTMLElement | null =>
-  container.querySelector('[role="presentation"].fixed');
+  container.querySelector('[role="presentation"].flux-below-the-bar');
 
 afterEach(() => {
   vi.unstubAllGlobals();

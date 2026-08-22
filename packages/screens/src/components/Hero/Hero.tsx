@@ -114,7 +114,6 @@ const Hero = ({
     offset: ['start start', 'end end'],
   });
 
-  const inset = useTransform(scrollYProgress, [0, 1], ['0px', '40px']);
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
   const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
   const corner = useTransform(scrollYProgress, [0, 1], ['0px', '10px']);
@@ -170,17 +169,22 @@ const Hero = ({
       className="pointer-events-none relative"
       style={
         fills
-          ? { height: '100svh' }
+          ? { height: 'calc(100svh - var(--flux-window-bar))' }
           : {
               height:
                 prefersReducedMotion === true
-                  ? '100svh'
-                  : `calc(100svh + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
+                  ? 'calc(100svh - var(--flux-window-bar))'
+                  : `calc(100svh - var(--flux-window-bar) + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
               marginBottom: `-${FOOT_OF_THE_CARD}`,
             }
       }
     >
-      <div className={cn('h-svh', fills ? '' : 'sticky top-0')}>
+      <div
+        className={cn(
+          'h-[calc(100svh-var(--flux-window-bar))]',
+          fills ? '' : 'sticky top-[var(--flux-window-bar)]',
+        )}
+      >
         <motion.section
           aria-label="Featured"
           onPointerEnter={hold}
@@ -199,12 +203,12 @@ const Hero = ({
               : prefersReducedMotion === true
                 ? {
                     top: '72px',
-                    left: '40px',
-                    right: '40px',
+                    left: 0,
+                    right: 0,
                     bottom: FOOT_OF_THE_CARD,
                     borderRadius: '10px',
                   }
-                : { top: lift, left: inset, right: inset, bottom: foot, borderRadius: corner }
+                : { top: lift, left: 0, right: 0, bottom: foot, borderRadius: corner }
           }
           className={cn(
             'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',
@@ -244,7 +248,7 @@ const Hero = ({
             variants={staggerVariants}
             initial="hidden"
             animate="shown"
-            className="relative flex flex-col gap-3 px-5 pb-8 pt-24 sm:px-10"
+            className="relative flex flex-col gap-3 px-4 pb-8 pt-24 sm:px-6"
           >
             <motion.h1
               variants={revealVariants(prefersReducedMotion)}
@@ -339,7 +343,7 @@ const Hero = ({
             {...(items.length > 1 && rotateAfterMilliseconds > 0
               ? { fillMilliseconds: rotateAfterMilliseconds, isFillPaused: isHeld }
               : {})}
-            className="mb-8 mr-5 self-end sm:absolute sm:bottom-8 sm:right-10 sm:mb-0 sm:mr-0"
+            className="mb-8 mr-4 self-end sm:absolute sm:bottom-8 sm:right-6 sm:mb-0 sm:mr-0"
           />
 
           {fills ? null : (

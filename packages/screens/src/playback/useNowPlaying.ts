@@ -1,5 +1,9 @@
 import { useEffect } from 'react';
 import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import {
+  artworkFetchedForTheSystem,
+  artworkTheSystemAccepts,
+} from '@FluxScreens/playback/artworkTheSystemAccepts';
 
 const A_SKIP = 10;
 
@@ -80,17 +84,48 @@ const useNowPlaying = ({
       return;
     }
 
-    session.metadata = new MediaMetadata({
-      title,
-      artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Flux',
-      album: episode,
-      artwork: hasPoster === true
-        ? POSTER_SIZES.map((sizes) => ({ src: `/api/media/${id}/image/poster`, sizes }))
-        : [],
-    });
+    const describe = (artwork: { src: string; sizes: string }[]): void => {
+      session.metadata = new MediaMetadata({
+        title,
+        artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Flux',
+        album: episode,
+        artwork,
+      });
+    };
+
+    const poster = `/api/media/${id}/image/poster`;
+    const straight = hasPoster === true ? artworkTheSystemAccepts(poster) : null;
+
+    describe(straight === null ? [] : POSTER_SIZES.map((sizes) => ({ src: straight, sizes })));
+
+    let held: string | null = null;
+    let drawn = true;
+
+    if (hasPoster === true && straight === null) {
+      void artworkFetchedForTheSystem(poster).then((fetched) => {
+        if (fetched === null) {
+          return;
+        }
+
+        if (!drawn) {
+          URL.revokeObjectURL(fetched);
+
+          return;
+        }
+
+        held = fetched;
+
+        describe(POSTER_SIZES.map((sizes) => ({ src: fetched, sizes })));
+      });
+    }
 
     return () => {
+      drawn = false;
       session.metadata = null;
+
+      if (held !== null) {
+        URL.revokeObjectURL(held);
+      }
     };
   }, [id, title, seriesTitle, episode, hasPoster]);
 

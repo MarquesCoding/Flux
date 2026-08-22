@@ -22,6 +22,7 @@ const draw = (overrides: Partial<Parameters<typeof NotificationBell>[0]> = {}) =
     onOpen: vi.fn(),
     onRead: vi.fn(),
     onReadAll: vi.fn(),
+    onClearAll: vi.fn(),
     onFollow: vi.fn(),
     ...overrides,
   };
@@ -145,5 +146,25 @@ describe('NotificationBell', () => {
     await user.click(await screen.findByRole('switch'));
 
     expect(onToggle).toHaveBeenCalled();
+  });
+
+  it('offers a way to take them off the bell entirely, not only to mark them seen', async () => {
+    const user = userEvent.setup();
+    const props = draw({ notifications: [aNotification({})] });
+
+    await open(user);
+    await user.click(screen.getByRole('button', { name: 'Clear all' }));
+
+    expect(props.onClearAll).toHaveBeenCalled();
+  });
+
+  it('offers nothing to clear when there is nothing on it', async () => {
+    const user = userEvent.setup();
+
+    draw({ notifications: [] });
+
+    await open(user);
+
+    expect(screen.queryByRole('button', { name: 'Clear all' })).not.toBeInTheDocument();
   });
 });

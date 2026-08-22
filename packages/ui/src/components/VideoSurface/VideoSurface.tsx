@@ -12,6 +12,9 @@ import type { VideoSurfaceProps } from './VideoSurface.types';
  * @param videoRef - A handle on the element, for the player that drives it.
  * @param poster - A frame to show before playback starts.
  * @param textTrack - The subtitle track to attach, where one is selected.
+ * @param isDrawnElsewhere - Whether somebody above is drawing the subtitles. The track is still
+ *   attached and still loaded, because a picture-in-picture window has no text tracks of its own and
+ *   reads its lines from these — it is only the drawing that is somebody else's.
  * @param onTimeUpdate - Told the position as it moves.
  * @param onDurationChange - Told the length once the file says what it is.
  * @param onPlayingChange - Told when playback starts or stops.
@@ -32,10 +35,10 @@ const VideoSurface = ({
   onBufferingChange,
   onEnded,
   loops = false,
+  isDrawnElsewhere = false,
 }: VideoSurfaceProps) => {
   const trackId = textTrack?.id ?? null;
   const trackRef = useRef<HTMLTrackElement>(null);
-
   useEffect(() => {
     const element = videoRef.current;
 
@@ -51,7 +54,7 @@ const VideoSurface = ({
       const own = trackRef.current?.track;
 
       if (own !== undefined && trackId !== null) {
-        own.mode = 'showing';
+        own.mode = isDrawnElsewhere ? 'hidden' : 'showing';
       }
     };
 
@@ -62,7 +65,7 @@ const VideoSurface = ({
     return () => {
       element.textTracks.removeEventListener('addtrack', show);
     };
-  }, [videoRef, trackId]);
+  }, [videoRef, trackId, isDrawnElsewhere]);
 
   return (
     <video

@@ -7,6 +7,7 @@ type NotificationBellProps = {
   onOpen: () => void;
   onRead: (id: string) => void;
   onReadAll: () => void;
+  onClearAll: () => void;
   onFollow: (link: string) => void;
 };
 

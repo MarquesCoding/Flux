@@ -129,7 +129,7 @@ const MoodBackground = ({
       role="presentation"
       className={cn(
         'pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden',
-        isShowingFilm && 'fixed inset-0 h-screen',
+        isShowingFilm && 'flux-below-the-bar h-[calc(100vh-var(--flux-window-bar))]',
       )}
     >
       <div ref={driftingRef} className="absolute inset-0 will-change-transform">
