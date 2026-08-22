@@ -72,6 +72,8 @@ const MONITOR: Monitor = {
     serviceCpuPercent: 3,
     serviceMemoryBytes: 4,
     children: [{ pid: 42, cpuPercent: 90, memoryBytes: 100 }],
+    deploymentMemory: null,
+    apiMemoryBytes: null,
     loadAverage: 1.5,
     disks: [],
     graphics: null,
@@ -137,6 +139,29 @@ describe('fetchAdminOverview', () => {
 describe('fetchMonitor', () => {
   it('takes one reading, so the page does not open empty', async () => {
     answerWith(MONITOR);
+
+    await expect(fetchMonitor()).resolves.toEqual(MONITOR);
+  });
+
+  it('takes what the deployment is using, and the ceiling it is held to', async () => {
+    answerWith({
+      ...MONITOR,
+      resources: {
+        ...MONITOR.resources,
+        deploymentMemory: { usedBytes: 900, limitBytes: 4096 },
+      },
+    });
+
+    const reading = await fetchMonitor();
+
+    expect(reading.resources.deploymentMemory).toEqual({ usedBytes: 900, limitBytes: 4096 });
+  });
+
+  it('reads a service too old to report the deployment as not reporting it', async () => {
+    const older = { ...MONITOR, resources: { ...MONITOR.resources } };
+
+    Reflect.deleteProperty(older.resources, 'deploymentMemory');
+    answerWith(older);
 
     await expect(fetchMonitor()).resolves.toEqual(MONITOR);
   });

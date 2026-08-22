@@ -2,6 +2,7 @@ import type { ActiveSession, AdminOverview, Monitor } from '@FluxClient/admin/fe
 import type { Library } from '@FluxContracts/schemas/Library';
 import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
+import { memoryEnvelope } from './memoryEnvelope';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 
 type ConcernTone = 'broken' | 'attention' | 'setup';
@@ -111,15 +112,15 @@ const collectConcerns = ({
 
   const resources = monitor?.resources ?? null;
 
-  if (
-    resources !== null &&
-    resources.systemMemoryTotalBytes > 0 &&
-    resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes > MEMORY_PRESSURE
-  ) {
+  const memory = memoryEnvelope(resources);
+
+  if (memory !== null && memory.usedBytes / memory.totalBytes > MEMORY_PRESSURE) {
     concerns.push({
       id: 'memory',
       tone: 'attention',
-      title: 'Memory is nearly full',
+      title: memory.isLimited
+        ? 'Flux is nearly at the memory it is allowed'
+        : 'Memory is nearly full',
       detail: 'Converting several things at once may fail or be killed.',
       panel: 'activity',
     });

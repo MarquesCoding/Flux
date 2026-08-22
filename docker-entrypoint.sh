@@ -1,10 +1,13 @@
 #!/bin/sh
 set -e
 
-# The media service runs as a child of the API server, per ADR-0006: one GPU
-# device mapping, one log stream, one restart policy. If it dies, the whole
-# container should die so the orchestrator restarts both together rather than
-# leaving an API that cannot play anything.
+# Both halves of Flux run in one container, per ADR-0006: one GPU device
+# mapping, one log stream, one restart policy. They are siblings started by
+# this shell, not a parent and a child — neither can find the other by walking
+# the process tree, which is why what Flux costs is read from the cgroup and
+# not from a process walk. If either dies, the whole container dies so the
+# orchestrator restarts both together rather than leaving an API that cannot
+# play anything.
 
 flux-transcoder serve &
 TRANSCODER_PID=$!

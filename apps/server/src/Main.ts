@@ -19,6 +19,7 @@ import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogSto
 import { asJsonLog } from '@FluxServer/logging/asJsonLog';
 import { createLogScope } from '@FluxServer/logging/createLogScope';
 import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderIntake';
+import { withApiMemory } from '@FluxServer/monitor/withApiMemory';
 import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
@@ -1274,7 +1275,7 @@ const app = createApp({
 
     return { cache, artwork, libraryBytes: bytes };
   },
-  monitor: () => transcoder.readMonitor(),
+  monitor: async () => withApiMemory(await transcoder.readMonitor()),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
   transcoderAddress: env.TRANSCODER_URL,
@@ -1421,8 +1422,10 @@ const transcoderIntake = createTranscoderIntake(log);
 void relayMonitor({
   open: () => transcoder.openMonitorStream(),
   publish: (report) => {
-    realtime.publish('monitor', report, { kind: 'everyone' });
-    transcoderIntake.take(report);
+    const reading = withApiMemory(report);
+
+    realtime.publish('monitor', reading, { kind: 'everyone' });
+    transcoderIntake.take(reading);
   },
   wait: (afterMs) => new Promise((resolve) => setTimeout(resolve, afterMs)),
   retryMs: MONITOR_RETRY_MS,
