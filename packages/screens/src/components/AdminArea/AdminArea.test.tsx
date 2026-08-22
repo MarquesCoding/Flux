@@ -39,6 +39,7 @@ const OVERVIEW: AdminOverview = {
   },
   library: { itemCount: 15, libraryCount: 2, bytes: 0 },
   artwork: null,
+  jobs: { stalled: [] },
 };
 
 const MONITOR: Monitor = {

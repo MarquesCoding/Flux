@@ -154,6 +154,7 @@ import { createMemoryJobScheduleService } from '@FluxServer/jobs/createMemoryJob
 import type { JobScheduleService } from '@FluxServer/jobs/JobScheduleService';
 import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JobStall } from '@FluxServer/jobs/createJobHealthWatch';
 import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
 import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
 import type { ProfileService } from '@FluxServer/profiles/ProfileService';
@@ -388,6 +389,7 @@ type CreateAppOptions = {
     rejected?: { encoder: string; reason: string }[];
   }>;
   monitor?: () => Promise<JsonValue>;
+  stalledJobs?: () => (JobStall & { label: string })[];
   artworkUsage?: () => { count: number; bytes: number; atMs: number } | null;
   libraryBytes?: () => Promise<number>;
   measureStorage?: () => Promise<StorageCount>;
@@ -436,6 +438,7 @@ const createApp = ({
   libraryBytes,
   measureStorage,
   monitor,
+  stalledJobs,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
   transcoderAddress = '',
@@ -1610,6 +1613,7 @@ const createApp = ({
           bytes: await (libraryBytes?.() ?? Promise.resolve(0)),
         },
         artwork: artworkUsage?.() ?? null,
+        jobs: { stalled: stalledJobs?.() ?? [] },
       },
       200,
     );
