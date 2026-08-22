@@ -58,6 +58,11 @@ const ProcessUseSchema = z.object({
   memoryBytes: z.number(),
 });
 
+const DeploymentMemorySchema = z.object({
+  usedBytes: z.number(),
+  limitBytes: z.number().nullable().default(null),
+});
+
 const DiskUseSchema = z.object({
   mountPoint: z.string(),
   totalBytes: z.number(),
@@ -85,6 +90,7 @@ const MonitorSchema = z.object({
     serviceCpuPercent: z.number(),
     serviceMemoryBytes: z.number(),
     children: z.array(ProcessUseSchema),
+    deploymentMemory: DeploymentMemorySchema.nullable().default(null),
     loadAverage: z.number(),
     disks: z.array(DiskUseSchema).default([]),
     graphics: GraphicsUseSchema.nullable().default(null),
@@ -538,9 +544,7 @@ type StorageCount = z.infer<typeof StorageCountSchema>;
  * next reading rather than from this call.
  */
 const measureStorage = async (): Promise<StorageCount | null> => {
-  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(
-    () => null,
-  );
+  const response = await fetch('/api/admin/storage/measure', { method: 'POST' }).catch(() => null);
 
   if (response === null || !response.ok) {
     return null;

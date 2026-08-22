@@ -46,9 +46,12 @@ import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
 import { fluxCpuShare } from './fluxCpuShare';
+import { fluxMemoryUse } from './fluxMemoryUse';
+import { memoryEnvelope } from './memoryEnvelope';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
+import { describeFluxMemory } from './describeFluxMemory';
 import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
 import {
@@ -449,10 +452,9 @@ const AdminArea = ({
   }, [historyLength, cache]);
 
   const resources = monitor?.resources ?? null;
-  const memoryFraction =
-    resources === null || resources.systemMemoryTotalBytes === 0
-      ? 0
-      : resources.systemMemoryUsedBytes / resources.systemMemoryTotalBytes;
+  const memory = memoryEnvelope(resources);
+  const memoryFraction = memory === null ? 0 : memory.usedBytes / memory.totalBytes;
+  const fluxMemory = fluxMemoryUse(resources);
 
   const conversions = resources?.children ?? [];
   const cpuShare = fluxCpuShare(resources);
@@ -563,12 +565,12 @@ const AdminArea = ({
               },
               {
                 label: 'Memory',
-                value: resources === null ? '—' : formatBytes(resources.systemMemoryUsedBytes),
+                value: memory === null ? '—' : formatBytes(memory.usedBytes),
                 fraction: memoryFraction,
                 detail:
-                  resources === null
+                  memory === null
                     ? '—'
-                    : `of ${formatBytes(resources.systemMemoryTotalBytes)} · service ${formatBytes(resources.serviceMemoryBytes)}`,
+                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · ${describeFluxMemory(fluxMemory)}`,
               },
               {
                 label: 'Graphics',

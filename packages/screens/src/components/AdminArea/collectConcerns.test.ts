@@ -33,6 +33,7 @@ const healthyMonitor = (
     serviceCpuPercent: 0,
     serviceMemoryBytes: 0,
     children: [],
+    deploymentMemory: null,
     loadAverage: 0,
     disks: [],
     graphics: null,
@@ -307,6 +308,42 @@ describe('collectConcerns', () => {
       const concerns = collectConcerns({
         ...healthy,
         monitor: healthyMonitor([], { used: 80, total: 100 }),
+      });
+
+      expect(concerns).toEqual([]);
+    });
+
+    it('measures a container against what it is allowed rather than the host', () => {
+      const monitor = healthyMonitor([], { used: 4, total: 100 });
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor: {
+          ...monitor,
+          resources: {
+            ...monitor.resources,
+            deploymentMemory: { usedBytes: 99, limitBytes: 100 },
+          },
+        },
+      });
+
+      expect(concerns.map((concern) => concern.title)).toContain(
+        'Flux is nearly at the memory it is allowed',
+      );
+    });
+
+    it('stays quiet about a container with room left, however busy the host is', () => {
+      const monitor = healthyMonitor([], { used: 99, total: 100 });
+
+      const concerns = collectConcerns({
+        ...healthy,
+        monitor: {
+          ...monitor,
+          resources: {
+            ...monitor.resources,
+            deploymentMemory: { usedBytes: 10, limitBytes: 100 },
+          },
+        },
       });
 
       expect(concerns).toEqual([]);
