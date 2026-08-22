@@ -66,7 +66,7 @@ const keyframeInterval = (video: VideoSpec): number =>
 /**
  * The encoder settings that put the keyframes where they were asked for, and open or close the GOP.
  *
- * This is the axis FLUX-124 turned on and the corpus exists to vary. x264 closes its GOPs unless
+ * This is the axis VAL-124 turned on and the corpus exists to vary. x264 closes its GOPs unless
  * told otherwise and x265 opens them, so neither default can be relied on — both are stated.
  *
  * SVT-AV1 and VP9 have no open GOP to ask for, so they take the interval alone and the matrix does

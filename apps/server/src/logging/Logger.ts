@@ -4,7 +4,7 @@ import type {
   LogQuery,
   LogRecord,
   LogSource,
-} from '@FluxContracts/schemas/Log';
+} from '@ValenceContracts/schemas/Log';
 
 type LogAside = {
   detail?: string;

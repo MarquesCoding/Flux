@@ -3,7 +3,7 @@ import type { Job } from 'pg-boss';
 import { scheduleSendOptions } from './scheduleSendOptions';
 import { readJobPayload } from './readJobPayload';
 import type { JobProgress, JobQueue, JobState } from './JobQueue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type JobHandler = (jobId: string, payload: { [key: string]: JsonValue }) => Promise<void>;
 
@@ -33,7 +33,7 @@ const PG_BOSS_STATES: Record<string, JobState> = {
 };
 
 /**
- * Starts the job queue and registers a worker for every kind of background work Flux does — scans,
+ * Starts the job queue and registers a worker for every kind of background work Valence does — scans,
  * previews, thumbnails, artwork, webhook deliveries. Work outlives the request that asked for it and
  * survives a restart, which is the whole reason a queue exists rather than a promise.
  *
@@ -46,7 +46,7 @@ const createJobQueue = async ({
   onProblem,
   onFinished,
 }: CreateJobQueueOptions): Promise<JobQueue> => {
-  const boss = new PgBoss({ connectionString, schema: 'flux_jobs' });
+  const boss = new PgBoss({ connectionString, schema: 'valence_jobs' });
   const kinds = Object.keys(handlers);
 
   const progressByJobId = new Map<string, JobProgress>();

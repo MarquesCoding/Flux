@@ -1,4 +1,4 @@
-import type { HighlightRect } from '@FluxUI/useSlidingHighlight';
+import type { HighlightRect } from '@ValenceUI/useSlidingHighlight';
 
 type HoverHighlightProps = {
   rect: HighlightRect | null;

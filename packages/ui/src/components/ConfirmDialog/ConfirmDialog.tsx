@@ -1,8 +1,8 @@
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
 import type { ConfirmDialogProps } from './ConfirmDialog.types';
 
 /**

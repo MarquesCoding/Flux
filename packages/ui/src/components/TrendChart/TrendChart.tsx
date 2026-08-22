@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { Area, AreaChart, ResponsiveContainer, Tooltip, YAxis } from 'recharts';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { TrendChartProps } from './TrendChart.types';
 
 /**

@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { ApiKeySchema, CreatedApiKeySchema } from '@FluxContracts/schemas/ApiKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { ApiKeySchema, CreatedApiKeySchema } from '@ValenceContracts/schemas/ApiKey';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const KeyListSchema = z.object({ keys: z.array(ApiKeySchema) });
 
@@ -323,6 +323,6 @@ describe('a key against the routes that read an account', () => {
   it('refuses a key that was never issued', async () => {
     const { asKey } = await signedInWith(['account.keys']);
 
-    expect((await asKey('flux_not_a_real_key_at_all', '/api/profiles')).status).toBe(401);
+    expect((await asKey('valence_not_a_real_key_at_all', '/api/profiles')).status).toBe(401);
   });
 });

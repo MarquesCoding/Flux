@@ -1,4 +1,4 @@
-import { findYear } from '@FluxServer/library/readTitleFromPath';
+import { findYear } from '@ValenceServer/library/readTitleFromPath';
 import { bookFormatOf } from './openBookFile';
 
 const BRACKETED = /[([{][^)\]}]*[)\]}]/g;

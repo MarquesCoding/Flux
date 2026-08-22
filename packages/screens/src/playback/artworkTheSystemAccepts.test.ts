@@ -15,7 +15,7 @@ describe('artworkTheSystemAccepts', () => {
   });
 
   it('refuses an address the system would refuse, rather than letting it draw nothing', () => {
-    expect(artworkTheSystemAccepts('flux://app/api/media/an-id/image/poster')).toBeNull();
+    expect(artworkTheSystemAccepts('valence://app/api/media/an-id/image/poster')).toBeNull();
   });
 });
 

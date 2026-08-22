@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   CaretUpDownIcon,
   DotsThreeIcon,
@@ -9,35 +9,40 @@ import {
   XCircleIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useMemo, useState } from 'react';
-import { ActionMenu } from '@FluxUI/ActionMenu';
-import { Badge } from '@FluxUI/Badge';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { DataTable } from '@FluxUI/DataTable';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { OptionMenu } from '@FluxUI/OptionMenu';
-import { TextField } from '@FluxUI/TextField';
-import { describePermission } from '@FluxClient/admin/describePermission';
-import { groupPermissions } from '@FluxClient/admin/groupPermissions';
-import { assignRole, clearOverride, removeRole, setOverride } from '@FluxClient/admin/fetchRoles';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { Badge } from '@ValenceUI/Badge';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { DataTable } from '@ValenceUI/DataTable';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
+import { TextField } from '@ValenceUI/TextField';
+import { describePermission } from '@ValenceClient/admin/describePermission';
+import { groupPermissions } from '@ValenceClient/admin/groupPermissions';
+import {
+  assignRole,
+  clearOverride,
+  removeRole,
+  setOverride,
+} from '@ValenceClient/admin/fetchRoles';
 import {
   banAccount,
   inviteAccount,
   removeAccount,
   unbanAccount,
-} from '@FluxClient/admin/fetchAccounts';
+} from '@ValenceClient/admin/fetchAccounts';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { adminQueries } from '@FluxClient/query/adminQueries';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Account } from '@FluxClient/admin/fetchAccounts';
-import type { Refusal } from '@FluxClient/admin/fetchRoles';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { adminQueries } from '@ValenceClient/query/adminQueries';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { Account } from '@ValenceClient/admin/fetchAccounts';
+import type { Refusal } from '@ValenceClient/admin/fetchRoles';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
@@ -280,7 +285,7 @@ const AccountsPanel = () => {
           />
 
           <p className="text-center font-body text-xs text-text-muted">
-            Flux cannot send email, so tell them this password yourself.
+            Valence cannot send email, so tell them this password yourself.
           </p>
         </DialogContent>
 
@@ -550,7 +555,7 @@ const AccountsPanel = () => {
 
                 {(held?.effective ?? []).includes('administrator') ? (
                   <p className="text-sm text-text-muted">
-                    Everything, including anything added to Flux later.
+                    Everything, including anything added to Valence later.
                   </p>
                 ) : (held?.effective ?? []).length === 0 ? (
                   <p className="text-sm text-text-muted">Nothing at all.</p>

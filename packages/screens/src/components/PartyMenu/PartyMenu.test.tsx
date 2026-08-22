@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PartyMenu } from './PartyMenu';
-import type { PartyMember, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { PartyMember, WatchParty } from '@ValenceContracts/schemas/WatchParty';
 
 const member = (over?: Partial<PartyMember>): PartyMember => ({
   connectionId: 'dan',
@@ -104,10 +104,10 @@ describe('PartyMenu', () => {
   it('offers the invitation to anybody in the party', async () => {
     const actor = userEvent.setup();
 
-    render(<PartyMenu party={party()} meConnectionId="sam" invitation="https://flux.local/x" />);
+    render(<PartyMenu party={party()} meConnectionId="sam" invitation="https://valence.local/x" />);
     await openIt(actor, /Watch party/);
 
-    expect(screen.getByText('https://flux.local/x')).toBeInTheDocument();
+    expect(screen.getByText('https://valence.local/x')).toBeInTheDocument();
   });
 
   it('goes when the bar it hangs from goes, rather than floating over nothing', async () => {

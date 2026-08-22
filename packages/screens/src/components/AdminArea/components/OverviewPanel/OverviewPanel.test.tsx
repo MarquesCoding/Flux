@@ -2,13 +2,13 @@ import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { OverviewPanel } from './OverviewPanel';
-import { measureStorage } from '@FluxClient/admin/fetchAdmin';
-import type * as FetchAdmin from '@FluxClient/admin/fetchAdmin';
-import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import { measureStorage } from '@ValenceClient/admin/fetchAdmin';
+import type * as FetchAdmin from '@ValenceClient/admin/fetchAdmin';
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 
-vi.mock('@FluxClient/admin/fetchAdmin', async (importOriginal) => ({
+vi.mock('@ValenceClient/admin/fetchAdmin', async (importOriginal) => ({
   ...(await importOriginal<typeof FetchAdmin>()),
   measureStorage: vi.fn(),
 }));
@@ -26,11 +26,11 @@ const PLAN: PlaybackPlan = {
 };
 
 const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
-  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],
+  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@valence.local', role: 'admin', createdAt: '' }],
   settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '7.1',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
@@ -245,7 +245,7 @@ describe('OverviewPanel', () => {
           overview={overview({
             transcoder: {
               isReachable: true,
-              address: 'unix:/tmp/flux-transcoder.sock',
+              address: 'unix:/tmp/valence-transcoder.sock',
               ffmpegVersion: '7.1',
               ffmpegSupported: true,
               hardwareAccels: [],
@@ -294,7 +294,7 @@ describe('OverviewPanel', () => {
         overview={overview({
           transcoder: {
             isReachable: true,
-            address: 'unix:/tmp/flux-transcoder.sock',
+            address: 'unix:/tmp/valence-transcoder.sock',
             ffmpegVersion: '8.1.2',
             ffmpegSupported: true,
             hardwareAccels: [],

@@ -4,58 +4,58 @@ import {
   createRouter,
   lazyRouteComponent,
 } from '@tanstack/react-router';
-import { readSearch } from '@FluxClient/navigation/readSearch';
-import { App } from '@FluxScreens/components/App/App';
-import { SignedIn } from '@FluxScreens/components/SignedIn/SignedIn';
-import { FluxShell } from '@FluxScreens/components/FluxShell/FluxShell';
-import { HomePage } from '@FluxScreens/components/HomePage/HomePage';
-import { scrollKeyOf } from '@FluxScreens/routes/scrollKeyOf';
-import { PageProblem } from '@FluxScreens/components/PageProblem/PageProblem';
+import { readSearch } from '@ValenceClient/navigation/readSearch';
+import { App } from '@ValenceScreens/components/App/App';
+import { SignedIn } from '@ValenceScreens/components/SignedIn/SignedIn';
+import { ValenceShell } from '@ValenceScreens/components/ValenceShell/ValenceShell';
+import { HomePage } from '@ValenceScreens/components/HomePage/HomePage';
+import { scrollKeyOf } from '@ValenceScreens/routes/scrollKeyOf';
+import { PageProblem } from '@ValenceScreens/components/PageProblem/PageProblem';
 
 const SharePage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/SharePage/SharePage'),
+  async () => import('@ValenceScreens/components/SharePage/SharePage'),
   'SharePage',
 );
 
 const WatchPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/WatchPage/WatchPage'),
+  async () => import('@ValenceScreens/components/WatchPage/WatchPage'),
   'WatchPage',
 );
 
 const BrowsePage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/BrowsePage/BrowsePage'),
+  async () => import('@ValenceScreens/components/BrowsePage/BrowsePage'),
   'BrowsePage',
 );
 
 const SearchPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/SearchPage/SearchPage'),
+  async () => import('@ValenceScreens/components/SearchPage/SearchPage'),
   'SearchPage',
 );
 
 const AccountPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/AccountPage/AccountPage'),
+  async () => import('@ValenceScreens/components/AccountPage/AccountPage'),
   'AccountPage',
 );
 
 const AdminPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/AdminPage/AdminPage'),
+  async () => import('@ValenceScreens/components/AdminPage/AdminPage'),
   'AdminPage',
 );
 
 const BooksPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/BooksPage/BooksPage'),
+  async () => import('@ValenceScreens/components/BooksPage/BooksPage'),
   'BooksPage',
 );
 
 const ReadPage = lazyRouteComponent(
-  async () => import('@FluxScreens/components/ReadPage/ReadPage'),
+  async () => import('@ValenceScreens/components/ReadPage/ReadPage'),
   'ReadPage',
 );
 
 const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
 
 /**
- * Builds the router: every address Flux serves, what it carries, and what is drawn there.
+ * Builds the router: every address Valence serves, what it carries, and what is drawn there.
  *
  * Three layers, because three things have different lifetimes. The root decides whether this server
  * has been set up at all. Inside it, everything but a share link is behind the way in, and that
@@ -70,7 +70,7 @@ const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
  * @param title - What this instance is called.
  * @returns The router, ready to hand to a provider.
  */
-const buildRouter = (title = 'Flux') => {
+const buildRouter = (title = 'Valence') => {
   const root = createRootRoute({ component: () => <App initialTitle={title} /> });
 
   const carries = { validateSearch: readSearch };
@@ -105,7 +105,7 @@ const buildRouter = (title = 'Flux') => {
   const shell = createRoute({
     getParentRoute: () => signedIn,
     id: 'shell',
-    component: FluxShell,
+    component: ValenceShell,
   });
 
   const sections = [

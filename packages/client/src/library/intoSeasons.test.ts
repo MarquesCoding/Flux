@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { intoSeasons } from './intoSeasons';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const episode = (over: Partial<MediaSummary>): MediaSummary => ({
   id: 'x',

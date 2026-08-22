@@ -1,5 +1,5 @@
-import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { ADMINISTRATOR } from '@ValenceContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 type AccountActionRefusal = 'outranked' | 'self';
 

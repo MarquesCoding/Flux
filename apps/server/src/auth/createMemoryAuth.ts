@@ -1,12 +1,12 @@
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { createAuth } from './Auth';
-import type { FluxAuth } from './Auth';
-import { readEnv } from '@FluxServer/env/Env';
-import type { Env } from '@FluxServer/env/Env';
-import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import type { ValenceAuth } from './Auth';
+import { readEnv } from '@ValenceServer/env/Env';
+import type { Env } from '@ValenceServer/env/Env';
+import { createMemorySettingsStore } from '@ValenceServer/settings/createMemorySettingsStore';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 
-const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars';
+const TEST_SECRET = 'valence-test-secret-value-at-least-32-chars';
 
 type MemoryUserRow = { id: string; role?: string };
 
@@ -52,7 +52,7 @@ const emptyStore = (): {
 const createMemoryAuth = (
   overrides: Partial<NodeJS.ProcessEnv> = {},
 ): {
-  auth: FluxAuth;
+  auth: ValenceAuth;
   settings: SettingsStore;
   profiles: string[];
   resetLinks: { email: string; url: string }[];

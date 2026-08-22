@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { traceJobs } from './traceJobs';
 import { createLogScope } from './createLogScope';
-import type { LogContext } from '@FluxContracts/schemas/Log';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { LogContext } from '@ValenceContracts/schemas/Log';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 describe('traceJobs', () => {
   it('says which job a line deep inside a handler belongs to', async () => {

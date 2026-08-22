@@ -2,13 +2,13 @@ import { describe, expect, it } from 'vitest';
 import { createRealtimeHandler } from './createRealtimeHandler';
 import { createRealtimeRegistry } from './createRealtimeRegistry';
 import { createEntitlements } from './createEntitlements';
-import { FromServerSchema } from '@FluxContracts/schemas/Realtime';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { FromServerSchema } from '@ValenceContracts/schemas/Realtime';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { PresenceBinding, PresenceControl } from './createRealtimeHandler';
 import type { Schedule } from './createCoalescer';
-import type { FromServer } from '@FluxContracts/schemas/Realtime';
-import type { Permission } from '@FluxContracts/schemas/Permission';
-import { createPartyRegistry } from '@FluxServer/parties/createPartyRegistry';
+import type { FromServer } from '@ValenceContracts/schemas/Realtime';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
+import { createPartyRegistry } from '@ValenceServer/parties/createPartyRegistry';
 
 const createWorld = (granted: Permission[] = []) => {
   const due: (() => void)[] = [];

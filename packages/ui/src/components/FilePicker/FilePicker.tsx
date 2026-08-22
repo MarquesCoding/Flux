@@ -1,5 +1,5 @@
 import { useId, useRef } from 'react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { FilePickerProps } from './FilePicker.types';
 
 /**

@@ -17,9 +17,9 @@ describe('downloadText', () => {
       clicked.push(this.download);
     });
 
-    downloadText('flux-log.txt', 'a line');
+    downloadText('valence-log.txt', 'a line');
 
-    expect(clicked).toStrictEqual(['flux-log.txt']);
+    expect(clicked).toStrictEqual(['valence-log.txt']);
   });
 
   it('lets go of the file once it has been handed over', () => {
@@ -29,7 +29,7 @@ describe('downloadText', () => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(released);
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-    downloadText('flux-log.txt', 'a line');
+    downloadText('valence-log.txt', 'a line');
 
     expect(released).toHaveBeenCalledWith('blob:one');
   });
@@ -39,7 +39,7 @@ describe('downloadText', () => {
     vi.spyOn(URL, 'revokeObjectURL').mockImplementation(() => {});
     vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 
-    downloadText('flux-log.txt', 'a line');
+    downloadText('valence-log.txt', 'a line');
 
     expect(document.querySelectorAll('a')).toHaveLength(0);
   });

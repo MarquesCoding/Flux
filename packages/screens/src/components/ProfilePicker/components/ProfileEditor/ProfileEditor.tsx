@@ -1,19 +1,26 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ArrowsClockwiseIcon, ImageSquareIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { FilePicker } from '@FluxUI/FilePicker';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { FilePicker } from '@ValenceUI/FilePicker';
 import {
   PROFILE_COLOURS,
   AVATAR_STYLES,
   profileInitial,
-} from '@FluxContracts/schemas/ViewerProfile';
-import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxClient/profiles/fetchProfiles';
-import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
-import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
+} from '@ValenceContracts/schemas/ViewerProfile';
+import {
+  createProfile,
+  saveProfile,
+  uploadProfilePhoto,
+} from '@ValenceClient/profiles/fetchProfiles';
+import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
+import type { Avatar, AvatarStyle, ProfileColour } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileEditorProps } from './ProfileEditor.types';
-import { STILL_WATCHING_DEFAULT, STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
+import {
+  STILL_WATCHING_DEFAULT,
+  STILL_WATCHING_OFF,
+} from '@ValenceContracts/schemas/StillWatching';
 
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 
@@ -44,7 +51,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const [colour, setColour] = useState<ProfileColour>(profile?.colour ?? PROFILE_COLOURS[0]);
   const [avatar, setAvatar] = useState<Avatar>(profile?.avatar ?? { kind: 'initial' });
   const [seed, setSeed] = useState(
-    profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'flux'),
+    profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'valence'),
   );
   const [photo, setPhoto] = useState<File | null>(null);
   const [askAfter, setAskAfter] = useState(
@@ -241,8 +248,8 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         </legend>
 
         <p className="text-xs leading-relaxed text-text-muted">
-          After this many episodes carry on by themselves, Flux asks before playing another — so a
-          night asleep in front of the telly does not mark half a series as watched.
+          After this many episodes carry on by themselves, Valence asks before playing another — so
+          a night asleep in front of the telly does not mark half a series as watched.
         </p>
 
         <ul className="flex flex-wrap gap-2">

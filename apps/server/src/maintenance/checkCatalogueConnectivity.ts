@@ -1,4 +1,4 @@
-import { isAccessToken } from '@FluxServer/library/createCatalogueMetadataProvider';
+import { isAccessToken } from '@ValenceServer/library/createCatalogueMetadataProvider';
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
 
 type Fetcher = (

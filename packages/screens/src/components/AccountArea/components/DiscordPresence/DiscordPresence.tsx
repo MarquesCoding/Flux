@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { Switch } from '@FluxUI/Switch';
-import { saveProfile } from '@FluxClient/profiles/fetchProfiles';
-import { profileQueries } from '@FluxClient/query/profileQueries';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { Switch } from '@ValenceUI/Switch';
+import { saveProfile } from '@ValenceClient/profiles/fetchProfiles';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
 import type { DiscordPresenceProps } from './DiscordPresence.types';
 
 /**
@@ -68,7 +68,7 @@ const DiscordPresence = ({ onChanged }: DiscordPresenceProps) => {
       <div className="flex flex-col gap-3 p-4">
         <p className="max-w-prose text-sm leading-relaxed text-text-muted">
           The title, and the series and episode where there is one, appear in your Discord status
-          while something is playing — visible to anybody who can see your profile. It needs Flux
+          while something is playing — visible to anybody who can see your profile. It needs Valence
           open on the same machine as Discord, and it shows nothing at all when nothing is playing.
         </p>
 

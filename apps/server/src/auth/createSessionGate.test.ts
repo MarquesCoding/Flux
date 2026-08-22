@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemoryProfileService } from '@ValenceServer/profiles/createMemoryProfileService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';

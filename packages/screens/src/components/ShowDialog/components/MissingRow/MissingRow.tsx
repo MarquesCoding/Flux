@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { DownloadSimpleIcon } from '@phosphor-icons/react';
 import type { MissingRowProps } from './MissingRow.types';
 

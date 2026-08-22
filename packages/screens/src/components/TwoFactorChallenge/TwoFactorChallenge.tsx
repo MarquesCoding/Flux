@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { verifyBackupCode, verifyTotp } from '@FluxClient/session/auth';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { verifyBackupCode, verifyTotp } from '@ValenceClient/session/auth';
 import type { ChallengeMode, TwoFactorChallengeProps } from './TwoFactorChallenge.types';
 
 const TOTP_LENGTH = 6;

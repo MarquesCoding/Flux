@@ -34,14 +34,14 @@ impl HardwareAccel {
 
 /// What a segment is wrapped in.
 ///
-/// A property of the treatment rather than of Flux. Transport streams were the
+/// A property of the treatment rather than of Valence. Transport streams were the
 /// one global answer for a while because a copied open-GOP HEVC film stopped
 /// twenty-three seconds in as fragmented MP4 — but the container was never the
 /// fault. Measured against that same film: HEVC Main 10 in fragmented MP4 plays
 /// every frame when its segments open on an IDR, and stops when they open on a
 /// CRA carrying pictures that reference the GOP before it. See
 /// [`crate::keyframes::Cut::is_safe`], which is where those cuts are refused,
-/// and FLUX-124.
+/// and VAL-124.
 ///
 /// So fragmented MP4 is the default, and the reasons to want it are the ones
 /// transport streams cannot give: AV1 has no practical mapping into TS at all,
@@ -58,7 +58,7 @@ pub enum SegmentContainer {
     ///
     /// Kept reachable rather than kept as the default: a segment carries its
     /// own timing, so there is no initialisation segment to fetch first, and
-    /// some devices accept nothing else. See FLUX-115.
+    /// some devices accept nothing else. See VAL-115.
     MpegTs,
 }
 
@@ -468,7 +468,7 @@ pub enum FrameRoute {
     /// picture that changes a few times a minute, and text is drawn onto a
     /// transparent canvas of the same size — either way the video stays put.
     Composited,
-    /// System memory throughout, which is what Flux did everywhere.
+    /// System memory throughout, which is what Valence did everywhere.
     InSoftware,
 }
 
@@ -488,7 +488,7 @@ impl FrameRoute {
 ///
 /// Text has no framerate of its own, so the canvas needs one chosen for it.
 /// Jellyfin drops plain subtitles to ten a second and follows the video for
-/// `ASS`, which can animate; Flux does not currently carry the subtitle codec
+/// `ASS`, which can animate; Valence does not currently carry the subtitle codec
 /// or the source framerate this far, so it uses the figure Jellyfin falls back
 /// to when it does not know either. Raising it costs software rendering of the
 /// overlay and nothing on the device.
@@ -569,7 +569,7 @@ fn composited_graph(
     ))
 }
 
-/// Which of the filters Flux needs this build actually has.
+/// Which of the filters Valence needs this build actually has.
 ///
 /// Both are properties of how `FFmpeg` was compiled rather than of the
 /// hardware, and having one does not imply the other: a stock macOS build has
@@ -616,7 +616,7 @@ pub fn filter_name(expression: &str) -> &str {
 /// cannot be drawn that way at all: it is a second stream, so without a
 /// compositor there is nowhere for it to go but software.
 ///
-/// Saying `InSoftware` costs what Flux did before. Saying anything else
+/// Saying `InSoftware` costs what Valence did before. Saying anything else
 /// wrongly costs a session that will not start, so each answer is a fact about
 /// the spec rather than a guess about the machine.
 /// The tone mapper this session would use without leaving the device.
@@ -792,7 +792,7 @@ pub struct HardwarePipeline {
     /// `tonemap_*` — no `desat`, and `tonemap_videotoolbox` adds `tonemap_mode`
     /// and `apply_dovi` that neither of the others offers.
     ///
-    /// `VideoToolbox`'s options are read out of the macOS package FLUX-110
+    /// `VideoToolbox`'s options are read out of the macOS package VAL-110
     /// built, and the expression below was run against it on Apple silicon
     /// rather than inferred from the patch.
     pub tone_map: Option<&'static str>,
@@ -808,7 +808,7 @@ impl HardwareAccel {
     ///
     /// `Rkmpp` decodes to `drm_prime` and scales with `scale_rkrga`, the RGA 2D
     /// block that `--enable-rkrga` is in the build for. **No Rockchip board has
-    /// ever run this.** It is here because the alternative was worse: Flux ships
+    /// ever run this.** It is here because the alternative was worse: Valence ships
     /// the RKMPP encoders, so withholding the pipeline left that hardware with a
     /// hardware encoder fed by a full round trip through system memory — the
     /// most expensive arrangement available, and the exact defect this pipeline
@@ -816,7 +816,7 @@ impl HardwareAccel {
     ///
     /// The three values are read out of the shipped arm64 package rather than
     /// guessed, and a wrong one fails loudly: the transcode aborts, software
-    /// takes over, and the rejection is reported. See FLUX-103.
+    /// takes over, and the rejection is reported. See VAL-103.
     #[must_use]
     pub fn pipeline(self) -> Option<HardwarePipeline> {
         match self {
@@ -943,7 +943,7 @@ impl HardwareAccel {
     ///
     /// Measured on both, rather than reasoned from one. `VideoToolbox` on Apple
     /// silicon and `tonemap_cuda` on an RTX 5080 fail identically without this,
-    /// which means `tonemap_cuda` had never once verified: FLUX-111 shipped the
+    /// which means `tonemap_cuda` had never once verified: VAL-111 shipped the
     /// filter and every HDR session on `NVENC` converted in software anyway,
     /// looking exactly like a card that could not do it.
     #[must_use]
@@ -1004,7 +1004,7 @@ const BUFFER_MULTIPLE: u32 = 2;
 ///
 /// So the bitrate becomes a **ceiling** rather than a target, and the encoder is given a quality to
 /// hold instead. It spends what the picture needs and stops. The file size stops being dictated and
-/// becomes a consequence, which is also what FLUX-21 wants for download estimates: `maxrate` times
+/// becomes a consequence, which is also what VAL-21 wants for download estimates: `maxrate` times
 /// duration is an upper bound, and the real file usually comes in under it.
 ///
 /// `bufsize` is what makes the ceiling mean anything. It is the window the cap is measured over —
@@ -1080,7 +1080,7 @@ pub fn fitted_size(source: (u32, u32), max_width: u32, max_height: u32) -> (u32,
 /// `h264_videotoolbox` carries A53 captions through by default and fails
 /// outright on some sources that have them — "Unexpected end of SEI NAL Unit
 /// parsing size" — which kills the whole session for a picture that would
-/// otherwise encode. Flux delivers subtitles as separate tracks, so there was
+/// otherwise encode. Valence delivers subtitles as separate tracks, so there was
 /// never anything to preserve here.
 ///
 /// Passed to every encoder rather than only the ones known to accept it. An
@@ -1094,7 +1094,7 @@ pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 /// `-hls_time` is a request, not an instruction. The muxer can only start a
 /// segment on a keyframe, so asking for four seconds from a source with a ten
 /// second GOP produces ten second segments and no complaint at all. Measured on
-/// a realistic encode — B-frames, ten second GOP — Flux asked for four and got
+/// a realistic encode — B-frames, ten second GOP — Valence asked for four and got
 /// six segments of exactly ten. Forcing them gives fifteen of exactly four, and
 /// drops the first segment from 9.5 MB to 3.7 MB.
 ///
@@ -1110,7 +1110,7 @@ pub const NO_EMBEDDED_CAPTIONS: [&str; 2] = ["-a53cc", "0"];
 /// each of the next few hundred frames, which is a picture nobody asked for
 /// and segments nothing predicted.
 ///
-/// Only meaningful where Flux is encoding. A copied stream keeps the keyframes
+/// Only meaningful where Valence is encoding. A copied stream keeps the keyframes
 /// it already has and there is no encoder to instruct.
 #[must_use]
 fn force_key_frames_argument(segment_seconds: u32, from_seconds: f64) -> String {
@@ -1155,7 +1155,7 @@ pub struct TranscodePlan {
     /// The render node VAAPI and QSV are opened on.
     ///
     /// A property of the host rather than of the output, so it is deliberately
-    /// not part of the session key: pointing Flux at a different card should
+    /// not part of the session key: pointing Valence at a different card should
     /// not orphan every segment already on disk.
     pub device: String,
     /// Which of the filters this backend needs the build actually has.
@@ -1183,7 +1183,7 @@ pub struct TranscodePlan {
     /// muxer can only cut on a keyframe, and its target advances by this much
     /// per cut whether or not a cut lands where the target was — so on a copied
     /// stream, asking for less than the closest pair of keyframes is what makes
-    /// every run cut in the same places wherever it started. Where Flux encodes
+    /// every run cut in the same places wherever it started. Where Valence encodes
     /// it puts the keyframes itself and this is simply the length wanted.
     ///
     /// See [`crate::keyframes::cut_interval`].
@@ -1195,7 +1195,7 @@ pub const MANIFEST_NAME: &str = "index.m3u8";
 
 /// The playlist ffmpeg writes as it goes.
 ///
-/// Deliberately not [`MANIFEST_NAME`]. The playlist Flux serves describes the
+/// Deliberately not [`MANIFEST_NAME`]. The playlist Valence serves describes the
 /// whole film and is written before any of it is transcoded; ffmpeg's own
 /// grows as segments appear and would overwrite it on every run. Only the
 /// segments the run writes are wanted from it — the head of the transcode is
@@ -1998,9 +1998,9 @@ subtitles='/media/film.mkv':si=2,hwupload"
 
     /// A Mac converts HDR on the device too, once the build has the filter.
     ///
-    /// This was the one backend left in software after FLUX-111, because the
+    /// This was the one backend left in software after VAL-111, because the
     /// filter is a flux-ffmpeg patch and there was no macOS package to check
-    /// its options against. FLUX-110 built one, and the expression below was
+    /// its options against. VAL-110 built one, and the expression below was
     /// run against it on Apple silicon.
     #[test]
     fn converts_hdr_on_a_mac_without_leaving_the_device() {
@@ -2952,7 +2952,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
     /// the fault: the segments were opening on cuts a decoder cannot start at,
     /// and those are refused before a copy is agreed to. Measured against the
     /// same film, HEVC Main 10 in fMP4 plays every one of its frames.
-    /// See FLUX-114 and FLUX-124.
+    /// See VAL-114 and VAL-124.
     fn writes_fragmented_mp4_segments_into_the_session_directory() {
         let args = plan(spec()).to_ffmpeg_args();
 
@@ -2967,7 +2967,7 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
     /// The container is a property of the treatment, so asking for transport
     /// streams has to produce them and nothing of fMP4's shape alongside: an
     /// `EXT-X-MAP` pointing at an initialisation segment no run will write is
-    /// a playlist that cannot play. See FLUX-115.
+    /// a playlist that cannot play. See VAL-115.
     #[test]
     fn writes_transport_streams_for_a_client_that_needs_them() {
         let args = plan(SessionSpec {
@@ -3006,11 +3006,11 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         );
     }
 
-    /// The playlist Flux serves describes the whole film, and ffmpeg's does
+    /// The playlist Valence serves describes the whole film, and ffmpeg's does
     /// not. A run that wrote over it would replace the film with the part of
     /// it that had been transcoded so far.
     #[test]
-    fn leaves_the_playlist_flux_writes_alone() {
+    fn leaves_the_playlist_we_write_alone() {
         let args = plan(spec()).to_ffmpeg_args();
 
         assert!(!args.iter().any(|argument| argument.ends_with("index.m3u8")));

@@ -2,25 +2,25 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { book, bookChapter, library, readingProgress } from '@FluxServer/db/Schema';
+import { book, bookChapter, library, readingProgress } from '@ValenceServer/db/Schema';
 import sharp from 'sharp';
 import { z } from 'zod';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import {
   BookFormatSchema,
   BookLayoutSchema,
   ReadingDirectionSchema,
-} from '@FluxContracts/schemas/Book';
+} from '@ValenceContracts/schemas/Book';
 import { imageTypeFor } from './imageTypeFor';
 import { openBookFile } from './openBookFile';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type {
   Book,
   BookDetail,
   ReadingProgress,
   SaveReadingProgress,
-} from '@FluxContracts/schemas/Book';
+} from '@ValenceContracts/schemas/Book';
 import type { BookPageBytes } from './BookFile';
 import type { BookStore } from './scanBookLibrary';
 
@@ -78,7 +78,7 @@ const namesIn = (held: JsonValue): string[] | null => NamesSchema.parse(held);
  * @param cacheDir - Where pages are kept once they have been read.
  * @returns The service, which the scan writes through and the routes read through.
  */
-const createDatabaseBookService = (db: FluxDatabase, cacheDir: string): BookService => {
+const createDatabaseBookService = (db: ValenceDatabase, cacheDir: string): BookService => {
   const chapterFor = async (chapterId: string) => {
     const [found] = await db
       .select({

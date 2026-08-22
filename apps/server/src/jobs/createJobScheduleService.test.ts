@@ -148,7 +148,7 @@ describe('createJobScheduleService', () => {
     expect(clearSchedule).toHaveBeenCalledWith('library.scan.scheduled', 'gone');
   });
 
-  it('leaves a schedule on a queue Flux does not own alone', async () => {
+  it('leaves a schedule on a queue Valence does not own alone', async () => {
     const clearSchedule = vi.fn(() => Promise.resolve());
     const schedules = createJobScheduleService({
       store: createMemoryJobTriggerStore(),

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createTranscoderIntake } from './createTranscoderIntake';
 import type { Logger } from './Logger';
-import type { LogLevel, LogSource } from '@FluxContracts/schemas/Log';
+import type { LogLevel, LogSource } from '@ValenceContracts/schemas/Log';
 
 const createSpy = () => {
   const written: { level: LogLevel; source: LogSource; message: string }[] = [];

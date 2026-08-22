@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DiscordPresence } from './DiscordPresence';
-import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { Avatar, ProfileColour, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 type SaveProfile = (
   profileId: string,
@@ -18,12 +18,12 @@ const saveProfile = vi.fn<SaveProfile>();
 const fetchProfiles = vi.fn<() => Promise<ViewerProfile[]>>();
 const readCurrentProfile = vi.fn<() => string | null>();
 
-vi.mock('@FluxClient/profiles/fetchProfiles', () => ({
+vi.mock('@ValenceClient/profiles/fetchProfiles', () => ({
   saveProfile: (...args: Parameters<SaveProfile>) => saveProfile(...args),
   fetchProfiles: () => fetchProfiles(),
 }));
 
-vi.mock('@FluxClient/profiles/currentProfile', () => ({
+vi.mock('@ValenceClient/profiles/currentProfile', () => ({
   readCurrentProfile: () => readCurrentProfile(),
 }));
 

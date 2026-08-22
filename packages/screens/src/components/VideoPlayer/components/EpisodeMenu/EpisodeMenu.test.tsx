@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { EpisodeMenu } from './EpisodeMenu';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const episodeOf = (number: number, changes: Partial<MediaSummary> = {}): MediaSummary => ({
   id: `00000000-0000-4000-8000-${number.toString().padStart(12, '0')}`,

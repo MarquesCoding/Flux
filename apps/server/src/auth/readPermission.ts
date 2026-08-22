@@ -1,5 +1,5 @@
-import { PermissionSchema } from '@FluxContracts/schemas/Permission';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { PermissionSchema } from '@ValenceContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 /**
  * Reads a permission back out of a text column, through a schema rather than by casting. Rows outlive

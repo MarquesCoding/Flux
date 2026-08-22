@@ -1,9 +1,9 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import { JobRunRequestSchema } from '@FluxServer/jobs/jobDefinitions';
-import { ScheduleTriggerSchema } from '@FluxServer/jobs/scheduleTrigger';
-import { LogPageSchema, LogQuerySchema } from '@FluxContracts/schemas/Log';
-import { SessionMessageSchema } from '@FluxContracts/schemas/SessionMessage';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { JobRunRequestSchema } from '@ValenceServer/jobs/jobDefinitions';
+import { ScheduleTriggerSchema } from '@ValenceServer/jobs/scheduleTrigger';
+import { LogPageSchema, LogQuerySchema } from '@ValenceContracts/schemas/Log';
+import { SessionMessageSchema } from '@ValenceContracts/schemas/SessionMessage';
 import { ScanAccepted } from './LibraryRoute';
 
 const AdminError = z.object({ error: z.string() }).openapi('AdminError');

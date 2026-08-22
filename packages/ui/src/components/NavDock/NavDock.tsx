@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { AnimatedIcon } from '@FluxUI/AnimatedIcon';
-import { Button } from '@FluxUI/Button';
-import { SlidingMark } from '@FluxUI/SlidingMark';
-import { cn } from '@FluxUI/cn';
+import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
+import { Button } from '@ValenceUI/Button';
+import { SlidingMark } from '@ValenceUI/SlidingMark';
+import { cn } from '@ValenceUI/cn';
 import { useOpenAction } from './useOpenAction';
 import type { NavDockProps } from './NavDock.types';
 
@@ -49,7 +49,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
           onBlur={() => {
             setPointedAt(null);
           }}
-          className="flux-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
+          className="valence-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
         >
           {brand === undefined ? null : (
             <span className="relative z-10 flex shrink-0 items-center pl-2 pr-1">{brand}</span>

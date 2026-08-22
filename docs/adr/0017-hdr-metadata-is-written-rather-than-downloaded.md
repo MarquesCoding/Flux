@@ -57,7 +57,7 @@ tier does that where it sits and never copies or redistributes it.
 
 ### What this gets us
 
-The support matrix covers every HDR system Flux claims, on every machine, in
+The support matrix covers every HDR system Valence claims, on every machine, in
 seconds and with no download. `VideoRange::Hdr10Plus` in particular now has a
 file that exercises it — it was unreachable in production for as long as it has
 existed, and the test that covered it passed throughout because it put the
@@ -78,7 +78,7 @@ tool. Those still need a real file.
 
 ### What this forecloses
 
-Any claim that the corpus proves Flux handles _real_ Dolby Vision, as opposed to
+Any claim that the corpus proves Valence handles _real_ Dolby Vision, as opposed to
 valid Dolby Vision. Profiles 5 and 7 are also untouched — 8.1 is the one built —
 and dual-layer profile 7 in particular is a different shape that this approach
 has not been tried against.

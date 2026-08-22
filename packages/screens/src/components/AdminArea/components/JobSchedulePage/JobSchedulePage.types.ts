@@ -1,4 +1,4 @@
-import type { JobTrigger, ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
+import type { JobTrigger, ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
 
 type JobSchedulePageProps = {
   triggers: JobTrigger[];

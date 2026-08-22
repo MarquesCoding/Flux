@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavDock } from './NavDock';
-import { ActionMenu } from '@FluxUI/ActionMenu';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));
@@ -38,7 +38,7 @@ describe('NavDock', () => {
       />,
     );
 
-    expect(container.querySelectorAll('.flux-glass')).toHaveLength(1);
+    expect(container.querySelectorAll('.valence-glass')).toHaveLength(1);
   });
 
   it('says which place is being stood on', () => {
@@ -177,15 +177,15 @@ describe('NavDock', () => {
 
 describe('what a dock can carry besides places', () => {
   it('shows a mark for the instance when it is given one', () => {
-    render(<NavDock {...props} brand={<span>Flux</span>} />);
+    render(<NavDock {...props} brand={<span>Valence</span>} />);
 
-    expect(screen.getByText('Flux')).toBeInTheDocument();
+    expect(screen.getByText('Valence')).toBeInTheDocument();
   });
 
   it('carries no mark at all when it is not given one', () => {
     render(<NavDock {...props} />);
 
-    expect(screen.queryByText('Flux')).not.toBeInTheDocument();
+    expect(screen.queryByText('Valence')).not.toBeInTheDocument();
   });
 
   it('draws the icon a place carries', () => {

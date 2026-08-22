@@ -1,10 +1,10 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShowDialog } from './ShowDialog';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShowDetail, ShowSummary } from '@ValenceContracts/schemas/Show';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));
@@ -16,12 +16,12 @@ vi.mock('motion/react', async () => ({
 
 const fetchShowMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchShows', () => ({
+vi.mock('@ValenceClient/library/fetchShows', () => ({
   fetchShow: fetchShowMock,
   fetchShows: vi.fn(),
 }));
 
-vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
+vi.mock('@ValenceScreens/components/MediaPreview/MediaPreview', () => ({
   MediaPreview: () => <div data-testid="preview" />,
 }));
 

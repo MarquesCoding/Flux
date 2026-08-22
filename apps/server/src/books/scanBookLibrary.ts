@@ -2,9 +2,9 @@ import { basename, dirname, relative, sep } from 'node:path';
 import { bookFormatOf, openBookFile } from './openBookFile';
 import { readBookTitleFromPath } from './readBookTitleFromPath';
 import { readChapterNumberFromPath } from './readChapterNumberFromPath';
-import { directionFor } from '@FluxContracts/schemas/Book';
-import type { BookFormat, BookLayout } from '@FluxContracts/schemas/Book';
-import type { ScanResult } from '@FluxContracts/schemas/Library';
+import { directionFor } from '@ValenceContracts/schemas/Book';
+import type { BookFormat, BookLayout } from '@ValenceContracts/schemas/Book';
+import type { ScanResult } from '@ValenceContracts/schemas/Library';
 
 type ScannedFile = {
   path: string;

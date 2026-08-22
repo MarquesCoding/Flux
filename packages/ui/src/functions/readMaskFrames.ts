@@ -1,4 +1,4 @@
-import type { MaskFrames } from '@FluxUI/MaskFrames.types';
+import type { MaskFrames } from '@ValenceUI/MaskFrames.types';
 
 const HEADER = 10;
 

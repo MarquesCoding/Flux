@@ -1,6 +1,6 @@
 import { QueryCache, QueryClient } from '@tanstack/react-query';
-import { RequestFailed } from '@FluxClient/query/RequestFailed';
-import { sessionQueries } from '@FluxClient/query/sessionQueries';
+import { RequestFailed } from '@ValenceClient/query/RequestFailed';
+import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 
 const STALE_FOR_MS = 60_000;
 

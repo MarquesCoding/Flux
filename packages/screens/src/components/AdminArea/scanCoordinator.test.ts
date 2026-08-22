@@ -11,7 +11,7 @@ import {
   resumeRunning,
   resetForTests,
 } from './scanCoordinator';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 const scanLibraryMock = vi.hoisted(() => vi.fn());
 const resetLibraryMock = vi.hoisted(() => vi.fn());
@@ -20,14 +20,14 @@ const readScanStateMock = vi.hoisted(() => vi.fn());
 const runJobMock = vi.hoisted(() => vi.fn());
 const fetchRunningScansMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   scanLibrary: scanLibraryMock,
   resetLibrary: resetLibraryMock,
   regenerateLibraryPreviews: regenerateLibraryPreviewsMock,
   readScanState: readScanStateMock,
 }));
 
-vi.mock('@FluxClient/admin/fetchAdmin', () => ({
+vi.mock('@ValenceClient/admin/fetchAdmin', () => ({
   runJob: runJobMock,
   fetchRunningScans: fetchRunningScansMock,
 }));

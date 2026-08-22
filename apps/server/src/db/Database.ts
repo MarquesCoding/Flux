@@ -1,10 +1,10 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { authSchema, fluxSchema } from '@FluxServer/db/Schema';
+import { authSchema, valenceSchema } from '@ValenceServer/db/Schema';
 
-const schema = { ...authSchema, ...fluxSchema };
+const schema = { ...authSchema, ...valenceSchema };
 
-type FluxDatabase = ReturnType<typeof createDatabase>['db'];
+type ValenceDatabase = ReturnType<typeof createDatabase>['db'];
 
 /**
  * Opens the connection pool and binds the schema to it, which is the one place the server learns
@@ -20,6 +20,6 @@ const createDatabase = (databaseUrl: string) => {
   return { db, pool, schema };
 };
 
-export type { FluxDatabase };
+export type { ValenceDatabase };
 
 export { createDatabase, schema };

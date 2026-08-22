@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { matchesLogQuery } from './matchesLogQuery';
-import type { LogRecord } from '@FluxContracts/schemas/Log';
+import type { LogRecord } from '@ValenceContracts/schemas/Log';
 
 const aRecord = (over?: Partial<LogRecord>): LogRecord => ({
   id: 'one',

@@ -1,5 +1,5 @@
 import { createReachabilityWatch } from './createReachabilityWatch';
-import type { DiskUse } from '@FluxServer/maintenance/DiskUse';
+import type { DiskUse } from '@ValenceServer/maintenance/DiskUse';
 
 type CreateDiskPressureWatchOptions = {
   onLow: (disk: DiskUse) => void;
@@ -7,7 +7,7 @@ type CreateDiskPressureWatchOptions = {
 };
 
 /**
- * Watches every filesystem Flux writes to, and speaks up when one crosses.
+ * Watches every filesystem Valence writes to, and speaks up when one crosses.
  *
  * @param onLow Called once, when a filesystem crosses into running out.
  * @param onRecovered Called once, when one that was low has room again.

@@ -1,5 +1,5 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
 import type { Reach } from './createRealtimeRegistry';
 
 type RealtimePublisher = {

@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { BookShelf } from '@FluxScreens/components/BookShelf/BookShelf';
+import { BookShelf } from '@ValenceScreens/components/BookShelf/BookShelf';
 
 /**
  * Everything there is to read.

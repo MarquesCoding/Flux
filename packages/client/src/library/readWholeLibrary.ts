@@ -1,5 +1,5 @@
-import { fetchLibraryItems } from '@FluxClient/library/fetchLibrary';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import { fetchLibraryItems } from '@ValenceClient/library/fetchLibrary';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const PAGE_SIZE = 200;
 const MOST_PAGES = 100;

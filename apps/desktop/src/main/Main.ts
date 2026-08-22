@@ -1,26 +1,47 @@
+import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
+import { answerAboutPreferences } from '@ValenceDesktop/main/answerAboutPreferences';
 import {
   CHANGE_SERVER,
   GO_TO_THE_SERVER,
   NOW_WATCHING,
-} from '@FluxDesktop/main/preferenceChannels';
-import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
-import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
-import { theDockIcon } from '@FluxDesktop/main/theDockIcon';
-import { tellDiscord } from '@FluxDesktop/main/tellDiscord';
-import { whatIsPlaying } from '@FluxDesktop/main/whatIsPlaying';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { theWindowsOwnMenu } from '@FluxDesktop/main/theWindowsOwnMenu';
-import { forgetTheServerAddress, theServerAddress } from '@FluxDesktop/main/theServerAddress';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
-import { keepLookingForAFlux, lookForAFlux } from '@FluxDesktop/main/lookForAFlux';
-import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
-import { claimTheScheme, serveTheApplication } from '@FluxDesktop/main/serveTheApplication';
-import { carryTheSessionToTheSocket } from '@FluxDesktop/main/carryTheSessionToTheSocket';
+} from '@ValenceDesktop/main/preferenceChannels';
+import { openTheWindow } from '@ValenceDesktop/main/openTheWindow';
+import { theApplicationMenu } from '@ValenceDesktop/main/theApplicationMenu';
+import { theDockIcon } from '@ValenceDesktop/main/theDockIcon';
+import { tellDiscord } from '@ValenceDesktop/main/tellDiscord';
+import { whatIsPlaying } from '@ValenceDesktop/main/whatIsPlaying';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
+import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
+import { FOUND_A_VALENCE, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
+import { keepLookingForAValence, lookForAValence } from '@ValenceDesktop/main/lookForAValence';
+import { carryOldKeysOver } from '@ValenceClient/platform/carryOldKeysOver';
+import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
+import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
+import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
+import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
 
-app.setName('Flux');
+const WHERE_IT_HAS_ALWAYS_BEEN = 'Valence';
+
+app.setName('Valence');
+
+/**
+ * Keeps this client's own files where they already are, under the name it used to have.
+ *
+ * The application's name decides where Electron puts its user data, and its user data is where the
+ * session cookie lives. Renaming it therefore signs everybody out and forgets which server they had
+ * chosen — quietly, at the moment they open a version that is only supposed to look different.
+ *
+ * So the name changes and the path does not. Moving it is a decision of its own, wants a migration
+ * that carries the old directory across, and is not this.
+ */
+const keepThisClientsFilesWhereTheyAre = (): void => {
+  app.setPath('userData', join(app.getPath('appData'), WHERE_IT_HAS_ALWAYS_BEEN));
+};
+
+keepThisClientsFilesWhereTheyAre();
 
 claimTheScheme();
 
@@ -31,7 +52,7 @@ let stopLooking: (() => void) | null = null;
 let whatWasFound: string[] = [];
 
 /**
- * Finds this machine's Flux, and offers it rather than deciding with it.
+ * Finds this machine's Valence, and offers it rather than deciding with it.
  *
  * Nobody should have to type the address of a server running on the machine they are sitting at. But
  * finding one is not the same as it being theirs — somebody may run two, or be setting one up while
@@ -42,7 +63,7 @@ let whatWasFound: string[] = [];
  * because a server started at the same moment as this client has not finished starting when the
  * client is ready to ask. One that turns up late appears on the screen the moment it does.
  */
-const findAFlux = async (): Promise<void> => {
+const findAValence = async (): Promise<void> => {
   if (theServerAddress() !== '') {
     return;
   }
@@ -55,11 +76,11 @@ const findAFlux = async (): Promise<void> => {
     whatWasFound = [...whatWasFound, address];
 
     if (theWindow !== null && !theWindow.isDestroyed()) {
-      theWindow.webContents.send(FOUND_A_FLUX, address);
+      theWindow.webContents.send(FOUND_A_VALENCE, address);
     }
   };
 
-  const here = await lookForAFlux();
+  const here = await lookForAValence();
 
   if (here !== null) {
     offer(here);
@@ -68,11 +89,29 @@ const findAFlux = async (): Promise<void> => {
   }
 
   stopLooking?.();
-  stopLooking = keepLookingForAFlux(offer);
+  stopLooking = keepLookingForAValence(offer);
+};
+
+/**
+ * Carries what this machine already remembers to the names it is remembered under now.
+ *
+ * The window does this for itself as it installs its platform, and this process cannot wait for it:
+ * it reads which server was chosen before there is a window at all, to know what to open. Read a
+ * moment too early, that key is absent and the client asks all over again for something it was
+ * already told.
+ *
+ * The same file either way, so whichever gets there first does the work and the other finds it done.
+ */
+const carryWhatThisMachineRemembers = (): void => {
+  const file = thePreferenceFile();
+
+  carryOldKeysOver({ read: file.read, write: file.write, forget: file.forget });
 };
 
 const start = async (): Promise<void> => {
   await app.whenReady();
+
+  carryWhatThisMachineRemembers();
 
   serveTheApplication();
   carryTheSessionToTheSocket();
@@ -86,7 +125,7 @@ const start = async (): Promise<void> => {
   const changeServer = () => {
     forgetTheServerAddress();
 
-    void findAFlux();
+    void findAValence();
 
     if (theWindow !== null) {
       void showTheApplication(theWindow);
@@ -118,7 +157,7 @@ const start = async (): Promise<void> => {
   theWindow = openTheWindow();
   theWindowsOwnMenu(theWindow, changeServer);
 
-  await findAFlux();
+  await findAValence();
   await showTheApplication(theWindow);
 
   app.on('activate', () => {

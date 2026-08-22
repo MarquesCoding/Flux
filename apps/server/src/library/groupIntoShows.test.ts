@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const episode = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',

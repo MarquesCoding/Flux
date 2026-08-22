@@ -12,7 +12,7 @@ const present = FETCHED.filter((fixture) => existsSync(join(directory, fixture.f
 
 const streamsOf = (path: string): string =>
   spawnSync(
-    process.env['FLUX_FFPROBE'] ?? 'ffprobe',
+    process.env['VALENCE_FFPROBE'] ?? 'ffprobe',
     ['-v', 'error', '-show_entries', 'stream=codec_name,profile', '-of', 'csv=p=0', path],
     { encoding: 'utf8' },
   ).stdout;

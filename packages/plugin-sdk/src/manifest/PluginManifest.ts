@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { JsonObjectSchema } from '@FluxContracts/schemas/JsonValue';
+import { JsonObjectSchema } from '@ValenceContracts/schemas/JsonValue';
 
 const SEMVER_RANGE = /^[\^~]?\d+(\.\d+)?(\.\d+)?(\s*-\s*\d+(\.\d+)?(\.\d+)?)?$/;
 

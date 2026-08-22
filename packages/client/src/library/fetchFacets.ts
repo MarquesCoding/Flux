@@ -1,6 +1,6 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { LibraryFacetsSchema } from '@FluxContracts/schemas/Library';
-import type { LibraryFacets } from '@FluxContracts/schemas/Library';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { LibraryFacetsSchema } from '@ValenceContracts/schemas/Library';
+import type { LibraryFacets } from '@ValenceContracts/schemas/Library';
 
 /**
  * What the libraries actually hold that is worth filtering by — the genres present, the decades

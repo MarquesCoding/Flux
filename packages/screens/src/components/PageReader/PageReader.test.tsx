@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
 import { PageReader } from './PageReader';
-import type { Book, BookChapter } from '@FluxContracts/schemas/Book';
+import type { Book, BookChapter } from '@ValenceContracts/schemas/Book';
 
 const held = new Map<string, string>();
 
@@ -73,7 +73,7 @@ beforeEach(() => {
         held.delete(key);
       },
     },
-    describeThisClient: () => 'Flux',
+    describeThisClient: () => 'Valence',
     thisClientId: () => 'a-client',
     openSocket: () => ({ send: () => {}, close: () => {} }),
   });
@@ -197,6 +197,6 @@ describe('PageReader', () => {
     await userEvent.click(screen.getByRole('button', { name: 'How to read' }));
     await userEvent.click(screen.getByText('Two pages'));
 
-    expect(held.get('flux.reader')).toContain('"isDouble":true');
+    expect(held.get('valence.reader')).toContain('"isDouble":true');
   });
 });

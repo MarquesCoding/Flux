@@ -7,22 +7,22 @@
 //!
 //! Nothing here is committed and nothing is fetched. The library is read where
 //! it sits, and the test skips loudly when there is nothing in it. See
-//! FLUX-132.
+//! VAL-132.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 
 use std::path::PathBuf;
 
-use flux_transcoder::media::VideoRange;
-use flux_transcoder::probe::probe_media;
+use valence_transcoder::media::VideoRange;
+use valence_transcoder::probe::probe_media;
 
 mod common;
 
 use common::ffprobe;
 
 fn library() -> Vec<PathBuf> {
-    let root = std::env::var("FLUX_LOCAL_MEDIA").map_or_else(
-        |_| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join("Flux"),
+    let root = std::env::var("VALENCE_LOCAL_MEDIA").map_or_else(
+        |_| PathBuf::from(std::env::var("HOME").unwrap_or_default()).join("Valence"),
         PathBuf::from,
     );
 
@@ -64,7 +64,7 @@ async fn reads_the_range_of_every_real_file() {
 
     if files.is_empty() {
         eprintln!(
-            "skipping: no media found. Point FLUX_LOCAL_MEDIA at a library, or put files in ~/Flux."
+            "skipping: no media found. Point VALENCE_LOCAL_MEDIA at a library, or put files in ~/Valence."
         );
 
         return;

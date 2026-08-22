@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
+import { PERMISSIONS } from '@ValenceContracts/schemas/Permission';
 
 const ApiKeyError = z.object({ error: z.string() }).openapi('ApiKeyError');
 

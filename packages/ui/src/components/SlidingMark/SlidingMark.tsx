@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { SlidingMarkProps } from './SlidingMark.types';
 
 const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;

@@ -1,4 +1,4 @@
-import type { PermissionService } from '@FluxServer/auth/PermissionService';
+import type { PermissionService } from '@ValenceServer/auth/PermissionService';
 
 type PermissionWatcher = {
   accountChanged: (userId: string) => void;

@@ -4,7 +4,7 @@ import type {
   NewShare,
   Share,
   ShareKind,
-} from '@FluxContracts/schemas/Share';
+} from '@ValenceContracts/schemas/Share';
 
 type ResolvedShare = {
   id: string;

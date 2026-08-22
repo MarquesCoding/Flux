@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { ConcernsBanner } from './ConcernsBanner';
-import type { Concern } from '@FluxScreens/components/AdminArea/collectConcerns';
+import type { Concern } from '@ValenceScreens/components/AdminArea/collectConcerns';
 
 const concern = (over: Partial<Concern> = {}): Concern => ({
   id: 'transcoder-unreachable',

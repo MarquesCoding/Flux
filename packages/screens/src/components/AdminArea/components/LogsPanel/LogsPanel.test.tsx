@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { LogsPanel } from './LogsPanel';
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
 
 const aRecord = (over?: Partial<LogRecord>): LogRecord => ({
   id: 'one',
@@ -152,7 +152,7 @@ describe('LogsPanel', () => {
     await screen.findByText('could not read the file');
     await actor.click(screen.getByRole('button', { name: /Download what is shown/ }));
 
-    expect(world.downloaded[0]?.name).toBe('flux-log.txt');
+    expect(world.downloaded[0]?.name).toBe('valence-log.txt');
   });
 
   it('says how many times a repeat happened rather than listing it again', async () => {
@@ -247,7 +247,7 @@ describe('LogsPanel', () => {
   });
 });
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},

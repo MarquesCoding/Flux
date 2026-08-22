@@ -3,35 +3,35 @@ import {
   LOOK_AGAIN_EVERY_MS,
   STOP_LOOKING_AFTER_MS,
   WHERE_ONE_USUALLY_IS,
-  keepLookingForAFlux,
-  lookForAFlux,
-} from './lookForAFlux';
+  keepLookingForAValence,
+  lookForAValence,
+} from './lookForAValence';
 
 afterEach(() => {
   vi.useRealTimers();
 });
 
-describe('lookForAFlux', () => {
+describe('lookForAValence', () => {
   it('finds the one running on this machine, so nobody is asked where it is', async () => {
     const reach = vi.fn().mockResolvedValue(true);
 
-    expect(await lookForAFlux(reach)).toBe(WHERE_ONE_USUALLY_IS[0]);
+    expect(await lookForAValence(reach)).toBe(WHERE_ONE_USUALLY_IS[0]);
   });
 
   it('tries the next address where the first says nothing', async () => {
     const reach = vi.fn().mockResolvedValueOnce(false).mockResolvedValueOnce(true);
 
-    expect(await lookForAFlux(reach)).toBe(WHERE_ONE_USUALLY_IS[1]);
+    expect(await lookForAValence(reach)).toBe(WHERE_ONE_USUALLY_IS[1]);
   });
 
   it('finds nothing where nothing is running, rather than guessing', async () => {
-    expect(await lookForAFlux(vi.fn().mockResolvedValue(false))).toBeNull();
+    expect(await lookForAValence(vi.fn().mockResolvedValue(false))).toBeNull();
   });
 
   it('looks only at this machine, never at anybody else on the network', async () => {
     const reach = vi.fn().mockResolvedValue(false);
 
-    await lookForAFlux(reach);
+    await lookForAValence(reach);
 
     for (const [address] of reach.mock.calls) {
       expect(address).toMatch(/^http:\/\/(localhost|127\.0\.0\.1):/);
@@ -39,14 +39,14 @@ describe('lookForAFlux', () => {
   });
 });
 
-describe('keepLookingForAFlux', () => {
+describe('keepLookingForAValence', () => {
   it('answers for somebody whose server was still starting', async () => {
     vi.useFakeTimers();
 
     const found = vi.fn();
     const reach = vi.fn().mockResolvedValue(true);
 
-    keepLookingForAFlux(found, reach);
+    keepLookingForAValence(found, reach);
 
     await vi.advanceTimersByTimeAsync(LOOK_AGAIN_EVERY_MS);
 
@@ -58,7 +58,7 @@ describe('keepLookingForAFlux', () => {
 
     const found = vi.fn();
 
-    keepLookingForAFlux(found, vi.fn().mockResolvedValue(false));
+    keepLookingForAValence(found, vi.fn().mockResolvedValue(false));
 
     await vi.advanceTimersByTimeAsync(LOOK_AGAIN_EVERY_MS * 3);
 
@@ -70,7 +70,7 @@ describe('keepLookingForAFlux', () => {
 
     const reach = vi.fn().mockResolvedValue(false);
 
-    keepLookingForAFlux(vi.fn(), reach);
+    keepLookingForAValence(vi.fn(), reach);
 
     await vi.advanceTimersByTimeAsync(STOP_LOOKING_AFTER_MS + LOOK_AGAIN_EVERY_MS * 2);
 
@@ -86,7 +86,7 @@ describe('keepLookingForAFlux', () => {
 
     const found = vi.fn();
 
-    keepLookingForAFlux(found, vi.fn().mockResolvedValue(true))();
+    keepLookingForAValence(found, vi.fn().mockResolvedValue(true))();
 
     await vi.advanceTimersByTimeAsync(LOOK_AGAIN_EVERY_MS * 2);
 
@@ -98,7 +98,7 @@ describe('keepLookingForAFlux', () => {
 
     const found = vi.fn();
 
-    keepLookingForAFlux(found, vi.fn().mockResolvedValue(true));
+    keepLookingForAValence(found, vi.fn().mockResolvedValue(true));
 
     await vi.advanceTimersByTimeAsync(LOOK_AGAIN_EVERY_MS * 4);
 

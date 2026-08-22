@@ -1,5 +1,5 @@
-import { SetupStatusSchema } from '@FluxContracts/schemas/Setup';
-import type { SetupStatus } from '@FluxContracts/schemas/Setup';
+import { SetupStatusSchema } from '@ValenceContracts/schemas/Setup';
+import type { SetupStatus } from '@ValenceContracts/schemas/Setup';
 
 /**
  * Asks whether this server has been set up yet, which decides whether the application shows the

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeAxis, describeVideoAxis, describeAudioAxis } from './describePlaybackAxis';
-import type { AudioDecision, Reason, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan';
+import type { AudioDecision, Reason, VideoDecision } from '@ValenceContracts/schemas/PlaybackPlan';
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 

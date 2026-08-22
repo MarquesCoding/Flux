@@ -8,7 +8,7 @@
 
 ## Context
 
-[FLUX-8](https://linear.app/flux-streaming/issue/FLUX-8/featclient-desktop-application)
+[VAL-8](https://linear.app/valence-streaming/issue/VAL-8/featclient-desktop-application)
 exists to settle what a desktop client is built on, and asks for an ADR rather
 than a preference. It names the codec question as the thing to settle first: "if
 a bundled player is needed either way, Electron's main advantage disappears."
@@ -19,9 +19,9 @@ holds, so that nothing is encoded on either machine — "declare a wider, honest
 measured `DeviceProfile` so `negotiatePlayback` picks direct play more often."
 
 **Most of that turned out to be achievable without a client.** Four values in
-`detectDeviceProfile` were numbers Flux had decided on a browser's behalf and
-then reported as capability. Removing them, over FLUX-145, FLUX-148, FLUX-152 and
-FLUX-153, moved the web application most of the way to the profile this ticket
+`detectDeviceProfile` were numbers Valence had decided on a browser's behalf and
+then reported as capability. Removing them, over VAL-145, VAL-148, VAL-152 and
+VAL-153, moved the web application most of the way to the profile this ticket
 wanted a desktop client for:
 
 - a twenty megabit ceiling nobody measured, so every larger file was re-encoded;
@@ -32,7 +32,7 @@ wanted a desktop client for:
 - three codec probes asking about WebM while the profile claimed MP4.
 
 The result is that Safari today direct plays multichannel E-AC-3, and macOS
-spatialises it. That is the greater part of what FLUX-8 promised, delivered in
+spatialises it. That is the greater part of what VAL-8 promised, delivered in
 the browser.
 
 So the client's case is narrower than the ticket assumed. What remains out of the
@@ -50,7 +50,7 @@ asked what a desktop window can hold.**
 A Tauri window is WKWebView, and WKWebView will not send a cookie to a server whose
 pages it did not serve. Intelligent Tracking Prevention does not relax for a custom
 scheme, and no server configuration reaches it — so a session had to be carried
-some other way, and every piece of that was Flux's to invent.
+some other way, and every piece of that was Valence's to invent.
 
 Electron's Chromium has no such objection, and its main process can reach what a
 page cannot. That is what makes
@@ -65,7 +65,7 @@ architecture are the same choice.
 **The desktop client is Electron**, chosen on authentication rather than on
 codecs.
 
-**No bundled libmpv.** FLUX-8 assumes a build ships one for codec breadth. mpv has
+**No bundled libmpv.** VAL-8 assumes a build ships one for codec breadth. mpv has
 no spatial audio on Apple platforms —
 [mpv#9252](https://github.com/mpv-player/mpv/issues/9252) was closed without
 resolution and would need `AVSampleBufferAudioRenderer` — so bundling it to widen
@@ -109,7 +109,7 @@ is now a cost this decision pays rather than the figure it turns on.
 
 The first is spatialised PCM: the operating system takes decoded stereo or
 multichannel and renders it to AirPods with head tracking. Any application
-producing multichannel PCM gets it, and Flux gets it today through Safari — and
+producing multichannel PCM gets it, and Valence gets it today through Safari — and
 will get it in Electron, which produces PCM like anything else.
 
 The second is Dolby Atmos proper, where the E-AC-3 bitstream carrying its object
@@ -155,7 +155,7 @@ worse than an honest refusal: it is a film with no sound rather than a transcode
 that works. `detectDeviceProfile` therefore drops both Dolby codecs on Linux and
 ChromeOS whatever the engine claims.
 
-**A dependency on somebody else's build.** Flux's desktop client now tracks
+**A dependency on somebody else's build.** Valence's desktop client now tracks
 castLabs' release cadence rather than Electron's. If they stop enabling the flag,
 this is back to transcoding — or to building Chromium, which is hours of compute
 per release per platform and not something this project should take on.
@@ -171,7 +171,7 @@ step backwards for Dolby.
 
 **A profile that belongs to the output device.** Audio capability changes mid-film
 when somebody plugs in headphones or connects a receiver, and `DeviceProfile` is
-negotiated per session. FLUX-152 removed the sharpest edge of this by making the
+negotiated per session. VAL-152 removed the sharpest edge of this by making the
 channel count a target rather than a gate; a client that ever passes an Atmos
 bitstream through will have to care where the browser did not.
 
@@ -183,8 +183,8 @@ recorded here because the cost was paid for a package that is gone.
 
 ### What this forecloses
 
-Dolby passthrough on the desktop, until Electron can decode it or Flux ships a
-build that can. FLUX-164 is that path and it is not speculative — castLabs already
+Dolby passthrough on the desktop, until Electron can decode it or Valence ships a
+build that can. VAL-164 is that path and it is not speculative — castLabs already
 toggle the flag.
 
 WKWebView, and with it the system integration that only a native shell has. Nobody
@@ -194,7 +194,7 @@ was asking for that.
 
 **Tauri.** What this ADR first chose. Decodes Dolby on macOS, which Electron does
 not, and has no answer at all for holding a session — every part of that would go
-on being Flux's to write, test and get right, on the path where being wrong is
+on being Valence's to write, test and get right, on the path where being wrong is
 worst. The codec advantage is real and recoverable elsewhere; the authentication
 disadvantage is structural.
 

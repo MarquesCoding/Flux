@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
+import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
 
 type NavDockItem = {
   id: string;

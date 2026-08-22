@@ -1,4 +1,4 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 /**
  * Reads what a job was enqueued with as something a handler can look fields up on. A scheduled job

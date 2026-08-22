@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import { SubtitleCues } from './SubtitleCues';
-import { DEFAULT_CAPTION_STYLE } from '@FluxScreens/playback/captionStyle';
+import { DEFAULT_CAPTION_STYLE } from '@ValenceScreens/playback/captionStyle';
 
 const A_FILE = `WEBVTT
 

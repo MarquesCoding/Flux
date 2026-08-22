@@ -1,4 +1,4 @@
-import type { AudioDecision, VideoDecision } from '@FluxContracts/schemas/PlaybackPlan';
+import type { AudioDecision, VideoDecision } from '@ValenceContracts/schemas/PlaybackPlan';
 
 /**
  * Writes one axis of a playback plan as a line an operator can read: the decision taken, and the

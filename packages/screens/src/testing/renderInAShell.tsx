@@ -1,10 +1,10 @@
 import { render } from '@testing-library/react';
-import { AddressScope } from '@FluxScreens/testing/AddressScope';
-import { shellContext } from '@FluxClient/shell/shellContext';
-import { aShell } from '@FluxClient/testing/aShell';
+import { AddressScope } from '@ValenceScreens/testing/AddressScope';
+import { shellContext } from '@ValenceClient/shell/shellContext';
+import { aShell } from '@ValenceClient/testing/aShell';
 import type { ReactElement } from 'react';
 import type { RenderResult } from '@testing-library/react';
-import type { Shell } from '@FluxClient/shell/shell.types';
+import type { Shell } from '@ValenceClient/shell/shell.types';
 
 /**
  * Renders a page inside a shell, which is the only place a page can be rendered: it reads who is

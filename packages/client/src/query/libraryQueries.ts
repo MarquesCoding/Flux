@@ -3,11 +3,11 @@ import {
   fetchLibraries,
   fetchLibraryItems,
   fetchMediaDetail,
-} from '@FluxClient/library/fetchLibrary';
-import { fetchShows, fetchShow } from '@FluxClient/library/fetchShows';
-import { fetchFacets } from '@FluxClient/library/fetchFacets';
-import { fetchPerson, fetchPersonCredits } from '@FluxClient/library/fetchPerson';
-import type { ListItemsOptions } from '@FluxClient/library/fetchLibrary';
+} from '@ValenceClient/library/fetchLibrary';
+import { fetchShows, fetchShow } from '@ValenceClient/library/fetchShows';
+import { fetchFacets } from '@ValenceClient/library/fetchFacets';
+import { fetchPerson, fetchPersonCredits } from '@ValenceClient/library/fetchPerson';
+import type { ListItemsOptions } from '@ValenceClient/library/fetchLibrary';
 
 const LIBRARY = ['library'] as const;
 

@@ -52,7 +52,7 @@ that provenance.**
   bitmap subtitle formats are reached — inherit the licence of their source and
   are treated as generated for verification, since we produced the bytes.
 
-The corpus is generated against the FFmpeg Flux ships, not the host's.
+The corpus is generated against the FFmpeg Valence ships, not the host's.
 
 ## Consequences
 

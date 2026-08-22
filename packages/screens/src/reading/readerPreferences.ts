@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
-import type { ReadingDirection } from '@FluxContracts/schemas/Book';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
+import type { ReadingDirection } from '@ValenceContracts/schemas/Book';
 
-const STORAGE_KEY = 'flux.reader';
+const STORAGE_KEY = 'valence.reader';
 
 const FITS = ['width', 'height', 'both'] as const;
 

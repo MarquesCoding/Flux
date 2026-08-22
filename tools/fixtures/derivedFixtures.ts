@@ -18,7 +18,7 @@ const DERIVED: readonly DerivedFixture[] = [
     from: 'pgs-subtitles.mkv',
     subtitleEncoder: 'dvdsub',
     licence: 'Derived from a fetched fixture; never redistributed',
-    covers: 'DVD bitmap subtitles, which Flux must burn in rather than convert',
+    covers: 'DVD bitmap subtitles, which Valence must burn in rather than convert',
   },
   {
     name: 'dvbsub-subtitles',

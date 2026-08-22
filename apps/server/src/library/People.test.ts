@@ -1,16 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { PersonCreditsSchema, PersonSchema } from '@FluxContracts/schemas/Person';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryProfileService } from '@ValenceServer/profiles/createMemoryProfileService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { PersonCreditsSchema, PersonSchema } from '@ValenceContracts/schemas/Person';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const BASE = 'http://localhost:8420';
 const LIBRARY_ID = '2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f';
@@ -21,7 +21,7 @@ const EPISODE_ID = '7b2c1d0e-3f4a-4b5c-8d6e-9f0a1b2c3d4e';
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 

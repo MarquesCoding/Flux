@@ -1,8 +1,8 @@
-import { LibraryBrowser } from '@FluxScreens/components/LibraryBrowser/LibraryBrowser';
-import { showSlug } from '@FluxCore/functions/showSlug';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
-import { useFavourites } from '@FluxClient/library/useFavourites';
+import { LibraryBrowser } from '@ValenceScreens/components/LibraryBrowser/LibraryBrowser';
+import { showSlug } from '@ValenceCore/functions/showSlug';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
+import { useFavourites } from '@ValenceClient/library/useFavourites';
 
 /**
  * The front of the server: a hero drawn from every library, and the rows of one of them.

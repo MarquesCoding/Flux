@@ -1,10 +1,10 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
 import {
   NotificationPreferenceSchema,
   NotificationSchema,
-} from '@FluxContracts/schemas/Notification';
-import type { Notification } from '@FluxContracts/schemas/Notification';
+} from '@ValenceContracts/schemas/Notification';
+import type { Notification } from '@ValenceContracts/schemas/Notification';
 
 const InboxSchema = z.object({
   notifications: z.array(NotificationSchema),

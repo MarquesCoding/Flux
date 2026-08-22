@@ -1,14 +1,17 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';
-import { WebhookDeliverySchema, WebhookSubscriptionSchema } from '@FluxContracts/schemas/Webhook';
+import {
+  WebhookDeliverySchema,
+  WebhookSubscriptionSchema,
+} from '@ValenceContracts/schemas/Webhook';
 import type {
   WebhookDelivery,
   WebhookEvent,
   WebhookPreset,
   WebhookSubscription,
-} from '@FluxContracts/schemas/Webhook';
+} from '@ValenceContracts/schemas/Webhook';
 
 const CreatedWebhookSchema = WebhookSubscriptionSchema.extend({ secret: z.string() });
 
@@ -142,13 +145,10 @@ const fetchWebhookDeliveries = async (id: string): Promise<WebhookDelivery[]> =>
  * @param deliveryId - The delivery to send again.
  */
 const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal> => {
-  const response = await fetch(
-    `/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`,
-    {
-      method: 'POST',
-      credentials: 'same-origin',
-    },
-  ).catch(() => null);
+  const response = await fetch(`/api/webhooks/${id}/deliveries/${deliveryId}/redeliver`, {
+    method: 'POST',
+    credentials: 'same-origin',
+  }).catch(() => null);
 
   return response === null
     ? { message: 'The server could not be reached.' }

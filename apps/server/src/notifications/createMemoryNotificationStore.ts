@@ -2,8 +2,8 @@ import { randomUUID } from 'node:crypto';
 import {
   DEFAULT_NOTIFICATION_PREFERENCE,
   NOTIFICATION_EVENTS,
-} from '@FluxContracts/schemas/Notification';
-import type { Notification } from '@FluxContracts/schemas/Notification';
+} from '@ValenceContracts/schemas/Notification';
+import type { Notification } from '@ValenceContracts/schemas/Notification';
 import { hasExpired } from './hasExpired';
 import type { NotificationStore, PushEndpoint } from './NotificationStore';
 

@@ -1,7 +1,7 @@
-import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
-import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
-import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import { negotiatePlayback } from '@ValenceCore/functions/negotiatePlayback';
+import { resolveQualityStep } from '@ValenceCore/functions/resolveQualityStep';
+import { describePlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 import type { PlaybackService } from './PlaybackService';
 
 type MemoryPlaybackState = {

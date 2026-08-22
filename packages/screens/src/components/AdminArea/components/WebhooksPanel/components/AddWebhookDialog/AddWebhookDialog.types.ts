@@ -1,4 +1,4 @@
-import type { NewWebhook, Refusal } from '@FluxClient/admin/fetchWebhooks';
+import type { NewWebhook, Refusal } from '@ValenceClient/admin/fetchWebhooks';
 
 type AddWebhookDialogProps = {
   isOpen: boolean;

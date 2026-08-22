@@ -1,6 +1,6 @@
 import { ipcMain } from 'electron';
-import { thePreferenceFile } from '@FluxDesktop/main/thePreferenceFile';
-import { FORGET_ONE, READ_EVERYTHING, WRITE_ONE } from '@FluxDesktop/main/preferenceChannels';
+import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
+import { FORGET_ONE, READ_EVERYTHING, WRITE_ONE } from '@ValenceDesktop/main/preferenceChannels';
 
 /**
  * Lets the window read and change what the machine remembers.

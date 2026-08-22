@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const STORAGE_KEY = 'flux.playback';
+const STORAGE_KEY = 'valence.playback';
 
 const SUBTITLES_OFF = 'off';
 

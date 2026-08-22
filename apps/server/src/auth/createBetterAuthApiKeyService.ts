@@ -1,11 +1,11 @@
 import { z } from 'zod';
-import { PermissionSchema } from '@FluxContracts/schemas/Permission';
+import { PermissionSchema } from '@ValenceContracts/schemas/Permission';
 import type { ApiKeyService } from './ApiKeyService';
-import type { FluxAuth } from './Auth';
-import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { ValenceAuth } from './Auth';
+import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
-const NAMESPACE = 'flux';
+const NAMESPACE = 'valence';
 
 const A_DAY = 86_400_000;
 
@@ -47,8 +47,8 @@ const asIsoString = (value: Date | string | null | undefined): string =>
   value instanceof Date ? value.toISOString() : (value ?? '');
 
 /**
- * Reads the Flux permissions stored against an API key, through a schema rather than trusting the
- * column, since what is stored there was written by an earlier version of Flux.
+ * Reads the Valence permissions stored against an API key, through a schema rather than trusting the
+ * column, since what is stored there was written by an earlier version of Valence.
  *
  * @param raw - The permissions column as stored.
  * @returns The permissions the key was restricted to, or null where it was not restricted.
@@ -68,14 +68,14 @@ const readPermissions = (raw: Record<string, string[]> | null | undefined): Perm
 };
 
 /**
- * API keys, kept where the authentication layer already keeps them rather than in a table of Flux's
+ * API keys, kept where the authentication layer already keeps them rather than in a table of Valence's
  * own — issuing, listing and revoking, with each key's permissions narrowed to whatever its account
  * still holds.
  *
  * @param auth - The authentication layer that owns the keys.
  * @returns The key service.
  */
-const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
+const createBetterAuthApiKeyService = (auth: ValenceAuth): ApiKeyService => {
   const describe = (candidate: z.input<typeof RowSchema>): ApiKey => {
     const row = RowSchema.parse(candidate);
 

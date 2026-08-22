@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { CacheScope } from '@FluxClient/testing/CacheScope';
+import { CacheScope } from '@ValenceClient/testing/CacheScope';
 import type { RenderHookOptions, RenderHookResult } from '@testing-library/react';
 
 /**

@@ -1,8 +1,8 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretRightIcon, InfoIcon, WarningIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import type { ConcernTone } from '@FluxScreens/components/AdminArea/collectConcerns';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import type { ConcernTone } from '@ValenceScreens/components/AdminArea/collectConcerns';
 import type { ConcernsBannerProps } from './ConcernsBanner.types';
 
 const TONE_CLASSES: Record<ConcernTone, string> = {

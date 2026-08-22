@@ -45,8 +45,8 @@ if (plan.kind === 'skip') {
 }
 
 const notice = planFfmpegNotice({
-  ffmpeg: process.env['FLUX_FFMPEG'],
-  ffprobe: process.env['FLUX_FFPROBE'],
+  ffmpeg: process.env['VALENCE_FFMPEG'],
+  ffprobe: process.env['VALENCE_FFPROBE'],
   exists: existsSync,
 });
 
@@ -54,7 +54,7 @@ if (notice !== undefined) {
   process.stderr.write(`${notice}\n`);
 }
 
-const child = spawn('cargo', ['run', '--quiet', '--bin', 'flux-transcoder', '--', 'serve'], {
+const child = spawn('cargo', ['run', '--quiet', '--bin', 'valence-transcoder', '--', 'serve'], {
   cwd: ROOT,
   stdio: 'inherit',
   env: process.env,

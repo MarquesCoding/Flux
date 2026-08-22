@@ -79,7 +79,7 @@ pub struct AppState {
     ///
     /// Previews share an output path derived from the request, so concurrent
     /// renders truncate each other's file and every one of them fails to
-    /// verify. See FLUX-104.
+    /// verify. See VAL-104.
     pub previews: PreviewRegistry,
     /// Where background work waits its turn.
     ///
@@ -176,7 +176,7 @@ pub struct SessionResponse {
     /// A copy is refused when the source's own keyframes cannot produce
     /// segments a player will take. The caller decided to copy and will tell a
     /// viewer so, and this is how it learns that what it decided is not what is
-    /// happening. See FLUX-125.
+    /// happening. See VAL-125.
     pub encodes_video: bool,
 }
 
@@ -466,7 +466,7 @@ async fn capabilities(State(state): State<AppState>) -> Json<Capabilities> {
 /// asked of it. See [`crate::boundaries::can_copy_segments`].
 const PROBE_SEGMENT_SECONDS: f64 = 4.0;
 
-/// Everything Flux needs to know about a file, including whether it can be
+/// Everything Valence needs to know about a file, including whether it can be
 /// copied.
 ///
 /// Copyability costs a read of the whole packet index — about a second on a six

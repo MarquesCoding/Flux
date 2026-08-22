@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import { cueAt, parseWebVtt } from '@FluxScreens/playback/parseWebVtt';
-import { toCueDeclarations } from '@FluxScreens/playback/captionStyle';
-import type { Cue } from '@FluxScreens/playback/parseWebVtt';
+import { cueAt, parseWebVtt } from '@ValenceScreens/playback/parseWebVtt';
+import { toCueDeclarations } from '@ValenceScreens/playback/captionStyle';
+import type { Cue } from '@ValenceScreens/playback/parseWebVtt';
 import type { SubtitleCuesProps } from './SubtitleCues.types';
 
 const CLEAR_OF_THE_CONTROLS = '18%';

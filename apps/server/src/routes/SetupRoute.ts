@@ -4,7 +4,7 @@ import {
   SetupRequestSchema,
   SetupResultSchema,
   SetupErrorSchema,
-} from '@FluxContracts/schemas/Setup';
+} from '@ValenceContracts/schemas/Setup';
 
 const StatusResponse = SetupStatusSchema.openapi('SetupStatus');
 const SetupRequest = SetupRequestSchema.openapi('SetupRequest');

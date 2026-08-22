@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { fetchLogs, watchLogs } from './fetchLogs';
-import type { LogRecord } from '@FluxContracts/schemas/Log';
-import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
+import type { LogRecord } from '@ValenceContracts/schemas/Log';
+import type { RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
 const fetchMock = vi.fn();
 

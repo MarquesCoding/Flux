@@ -1,4 +1,4 @@
-import type { ScanResult } from '@FluxContracts/schemas/Library';
+import type { ScanResult } from '@ValenceContracts/schemas/Library';
 
 /**
  * Says what a scan changed in the few words a table cell has room for. "Scanned an hour ago" and

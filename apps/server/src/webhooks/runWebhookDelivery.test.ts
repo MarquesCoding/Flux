@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_PAYLOAD_VERSION } from '@ValenceContracts/schemas/Webhook';
 import { createMemoryWebhookStore } from './createMemoryWebhookStore';
 import { runWebhookDelivery } from './runWebhookDelivery';
 import type { WebhookFetcher } from './deliverWebhook';

@@ -1,6 +1,6 @@
 //! Whether the decode check actually catches a broken file.
 //!
-//! The unit tests prove the arguments are the ones Flux meant to pass. They
+//! The unit tests prove the arguments are the ones Valence meant to pass. They
 //! cannot prove the check works, and that distinction is the whole reason this
 //! file exists: the fault it guards against reached a library because previews
 //! were verified on frame counts and file sizes, both of which a corrupt clip
@@ -12,7 +12,7 @@ use std::io::{Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use flux_transcoder::integrity::decodes;
+use valence_transcoder::integrity::decodes;
 
 mod common;
 
@@ -26,7 +26,7 @@ fn has_ffmpeg() -> bool {
 }
 
 fn directory() -> PathBuf {
-    let path = std::env::temp_dir().join("flux-integrity");
+    let path = std::env::temp_dir().join("valence-integrity");
 
     std::fs::create_dir_all(&path).expect("creates the fixture directory");
 

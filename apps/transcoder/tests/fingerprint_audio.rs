@@ -16,12 +16,12 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::trickplay::TrickplayRegistry;
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::trickplay::TrickplayRegistry;
 
 mod common;
 
@@ -73,10 +73,10 @@ fn episode(name: &str, filler_seed: u32, bitrate: &str) -> PathBuf {
 fn app() -> axum::Router {
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
-            cache_root: std::env::temp_dir().join("flux-test-fingerprint"),
+            cache_root: std::env::temp_dir().join("valence-test-fingerprint"),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),
@@ -167,10 +167,10 @@ async fn two_encodes_of_the_same_theme_fingerprint_alike() {
 async fn refuses_a_file_outside_the_media_roots() {
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
-            cache_root: std::env::temp_dir().join("flux-test-fingerprint-confined"),
+            cache_root: std::env::temp_dir().join("valence-test-fingerprint-confined"),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),

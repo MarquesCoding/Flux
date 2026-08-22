@@ -1,8 +1,8 @@
 import * as RadixPopover from '@radix-ui/react-popover';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { Tooltip } from '@FluxUI/Tooltip';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { Tooltip } from '@ValenceUI/Tooltip';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
@@ -69,7 +69,7 @@ const PopoverPanel = ({
           collisionPadding={12}
           data-slot="popover-content"
           className={cn(
-            'z-50 flux-glass flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
+            'z-50 valence-glass flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
             'outline-none',
             POPUP_MOTION,
             className,
@@ -79,7 +79,7 @@ const PopoverPanel = ({
             <h3 className="shrink-0 px-1 pb-3 text-base font-medium tracking-tight">{heading}</h3>
           )}
 
-          <div className="flux-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
+          <div className="valence-rail min-h-0 flex-1 overflow-y-auto">{children}</div>
         </RadixPopover.Content>
       </RadixPopover.Portal>
     </RadixPopover.Root>

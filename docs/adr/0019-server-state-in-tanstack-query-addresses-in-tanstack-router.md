@@ -68,7 +68,7 @@ changed, so being told replaces polling, and a reconnection invalidates
 everything because a sleeping tab missed whatever happened.
 
 **The router owns the address and the history.** `buildRouter` declares every
-address Flux serves and validates what each carries through one Zod schema,
+address Valence serves and validates what each carries through one Zod schema,
 `readSearch`. `usePlace` reads the router's history and turns it into the
 `Place` the application reasons in; nothing touches `window.location` or
 `history.pushState` directly.
@@ -159,7 +159,7 @@ cache can answer it first.
 
 Route loaders are available and not used. A loader fetches before the route
 renders, which is the right shape for a page whose whole content is one query —
-but Flux's pages compose several, and the cache already shows the last answer
+but Valence's pages compose several, and the cache already shows the last answer
 while it checks. The gain would be smaller than the coupling.
 
 ## Alternatives considered
@@ -175,7 +175,7 @@ the other leaves the codebase with two answers to "where does state live".
 
 **Keep polling instead of invalidating from the socket.** The socket already
 carries the news; a timer that guesses is strictly worse than being told, and
-Flux already pays for the connection.
+Valence already pays for the connection.
 
 **Keep the sections in one component and lazily import them by hand.** That
 would have bought the code splitting without the route tree, and left the

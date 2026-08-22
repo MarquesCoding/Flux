@@ -1,4 +1,4 @@
-import type { ActiveSession } from '@FluxClient/admin/fetchAdmin';
+import type { ActiveSession } from '@ValenceClient/admin/fetchAdmin';
 
 type SessionStatsDialogProps = {
   session: ActiveSession;

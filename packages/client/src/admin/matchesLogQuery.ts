@@ -1,4 +1,4 @@
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
 
 /**
  * Whether a record belongs in what is on screen.

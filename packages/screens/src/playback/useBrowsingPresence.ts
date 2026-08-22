@@ -1,13 +1,13 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { profileQueries } from '@FluxClient/query/profileQueries';
-import { isTheDesktopClient, nowWatching } from '@FluxScreens/desktop/theDesktopShell';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
+import { isTheDesktopClient, nowWatching } from '@ValenceScreens/desktop/theDesktopShell';
 
 /**
- * Says that somebody has Flux open, so their status stands between the things they watch.
+ * Says that somebody has Valence open, so their status stands between the things they watch.
  *
  * This sits above the player rather than inside it, because it has to outlive one: somebody who
- * finishes an episode and goes back to the library has not stopped using Flux, and a status that
+ * finishes an episode and goes back to the library has not stopped using Valence, and a status that
  * appeared and vanished around each episode would say less than one that stays.
  *
  * The player says something more specific while it is playing, and says this again on its way out.

@@ -1,10 +1,10 @@
-import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import { previewRequestFor } from '@ValenceServer/library/previewRequestFor';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import type {
   PreviewSweepSubject,
   SweepReport,
   TrickplayRequest,
-} from '@FluxServer/transcoder/TranscoderClient';
+} from '@ValenceServer/transcoder/TranscoderClient';
 
 type LiveItem = {
   path: string;

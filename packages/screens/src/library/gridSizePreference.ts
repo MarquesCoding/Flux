@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import type { MediaGridSize } from '@FluxScreens/components/MediaGrid/MediaGrid.types';
+import type { MediaGridSize } from '@ValenceScreens/components/MediaGrid/MediaGrid.types';
 
 const GridSizePreferenceSchema = z.enum(['small', 'medium', 'large']);
 
-const STORAGE_KEY = 'flux.gridSize';
+const STORAGE_KEY = 'valence.gridSize';
 
 const DEFAULT_GRID_SIZE: MediaGridSize = 'medium';
 

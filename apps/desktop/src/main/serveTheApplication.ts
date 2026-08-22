@@ -1,15 +1,15 @@
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { app, net, protocol } from 'electron';
-import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 
-const SCHEME = 'flux';
+const SCHEME = 'valence';
 
 const HOST = 'app';
 
 const ORIGIN = `${SCHEME}://${HOST}`;
 
-const CARRIED = ['accept', 'content-type', 'range', 'x-flux-profile', 'authorization'];
+const CARRIED = ['accept', 'content-type', 'range', 'x-valence-profile', 'authorization'];
 
 const POLICY = [
   "default-src 'self'",
@@ -100,7 +100,7 @@ const worthCarrying = (from: Headers): Record<string, string> => {
  * A server that could not be reached is answered as unavailable rather than as a bad gateway,
  * because the two are retried differently and the first is usually a moment rather than a fault: a
  * client and a server started together race, and the client asks first. Saying so lets the screen
- * that asked try again instead of reporting that Flux is broken.
+ * that asked try again instead of reporting that Valence is broken.
  *
  * @param status - What to say went wrong.
  * @param error - Why, in the shape the rest of the API says it.
@@ -138,16 +138,16 @@ const aPage = (page: Buffer): Response =>
   });
 
 /**
- * Serves this client's own pages, and passes everything it asks of Flux through to the server.
+ * Serves this client's own pages, and passes everything it asks of Valence through to the server.
  *
  * This is what makes the application a host rather than a window onto somebody else's pages, and it
  * is the answer to the thing that made the previous attempt painful. Every request the page makes —
  * an API call, a poster, a subtitle, a segment of video — leaves on the same origin, so nothing is
  * cross-origin, no preflight happens, and no cookie is dropped for being third-party. The requests
- * that go on to Flux are made out here in the main process, where none of those rules exist at all
+ * that go on to Valence are made out here in the main process, where none of those rules exist at all
  * and where one session holds the cookie for every one of them.
  *
- * A path that belongs to Flux is proxied. Everything else is this client's own bundle, and a path
+ * A path that belongs to Valence is proxied. Everything else is this client's own bundle, and a path
  * that names nothing gets the document, because the router in the page owns the address.
  *
  * An address on any other host is fetched as itself over https. A page written for a browser names
@@ -181,7 +181,7 @@ const serveTheApplication = (): void => {
 
     if (asked.pathname.startsWith('/api/')) {
       if (server === '') {
-        return said(503, 'No Flux has been chosen yet.');
+        return said(503, 'No Valence has been chosen yet.');
       }
 
       const onward = new URL(asked.pathname + asked.search, server);
@@ -196,7 +196,7 @@ const serveTheApplication = (): void => {
           credentials: 'include',
         });
       } catch {
-        return said(503, `Flux could not be reached at ${server}.`);
+        return said(503, `Valence could not be reached at ${server}.`);
       }
     }
 

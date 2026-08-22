@@ -1,4 +1,4 @@
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 const PHASE_ORDER: readonly string[] = ['probing', 'previews', 'trickplay', 'segments'];
 

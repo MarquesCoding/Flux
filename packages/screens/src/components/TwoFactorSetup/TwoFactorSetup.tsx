@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { QrCode } from '@FluxUI/QrCode';
-import { TextField } from '@FluxUI/TextField';
-import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@FluxClient/session/auth';
+import { Button } from '@ValenceUI/Button';
+import { QrCode } from '@ValenceUI/QrCode';
+import { TextField } from '@ValenceUI/TextField';
+import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@ValenceClient/session/auth';
 import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
 import type { Enrollment, SetupStage, TwoFactorSetupProps } from './TwoFactorSetup.types';
 

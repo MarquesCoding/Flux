@@ -1,5 +1,5 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShowDetail } from '@ValenceContracts/schemas/Show';
 
 type PickedUp = {
   episode: MediaSummary;

@@ -1,9 +1,9 @@
 //! What the artefact cache is holding.
 //!
-//! Flux writes a preview clip and a set of scrub sheets per item and keeps a
+//! Valence writes a preview clip and a set of scrub sheets per item and keeps a
 //! working directory per live transcode. None of it is small, all of it is
 //! rebuildable, and until now none of it was visible: the sweep that reclaims
-//! it reports into a log, so the only way to learn what Flux was hoarding was
+//! it reports into a log, so the only way to learn what Valence was hoarding was
 //! to go and look at the disk.
 //!
 //! Measured by walking directories, which is real I/O against a cache that can
@@ -144,7 +144,7 @@ mod tests {
     }
 
     fn root(name: &str) -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!("flux-usage-{name}"));
+        let path = std::env::temp_dir().join(format!("valence-usage-{name}"));
 
         std::fs::remove_dir_all(&path).ok();
 

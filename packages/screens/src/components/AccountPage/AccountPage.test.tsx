@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { AccountPage } from './AccountPage';
-import type { AccountAreaProps } from '@FluxScreens/components/AccountArea/AccountArea.types';
+import type { AccountAreaProps } from '@ValenceScreens/components/AccountArea/AccountArea.types';
 
 const drawn = vi.hoisted((): { props: AccountAreaProps | null } => ({ props: null }));
 const signOut = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/session/auth', () => ({ signOut }));
+vi.mock('@ValenceClient/session/auth', () => ({ signOut }));
 
-vi.mock('@FluxScreens/components/AccountArea/AccountArea', () => ({
+vi.mock('@ValenceScreens/components/AccountArea/AccountArea', () => ({
   AccountArea: (props: AccountAreaProps) => {
     drawn.props = props;
 

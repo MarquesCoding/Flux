@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
-import { cn } from '@FluxUI/cn';
-import { profileInitial, profileAvatarUrl } from '@FluxContracts/schemas/ViewerProfile';
+import { cn } from '@ValenceUI/cn';
+import { profileInitial, profileAvatarUrl } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileFaceProps } from './ProfileFace.types';
 
 /**

@@ -4,7 +4,7 @@ import { fetchApiKeys, createApiKey, setApiKeyEnabled, revokeApiKey } from './fe
 const KEY = {
   id: 'key-1',
   name: 'Home Assistant',
-  start: 'flux_abc',
+  start: 'valence_abc',
   enabled: true,
   expiresAt: null,
   lastRequestAt: null,
@@ -63,16 +63,16 @@ describe('fetchApiKeys', () => {
 
 describe('createApiKey', () => {
   it('answers with the key at the one moment it can be read', async () => {
-    answers({ ...KEY, key: 'flux_secret' }, 201);
+    answers({ ...KEY, key: 'valence_secret' }, 201);
 
     expect(
       (await createApiKey({ name: 'A', expiresInDays: null, permissions: null, rateLimit: null }))
         ?.key,
-    ).toBe('flux_secret');
+    ).toBe('valence_secret');
   });
 
   it('sends what it was asked for', async () => {
-    const sent = answers({ ...KEY, key: 'flux_secret' }, 201);
+    const sent = answers({ ...KEY, key: 'valence_secret' }, 201);
 
     await createApiKey({
       name: 'A',

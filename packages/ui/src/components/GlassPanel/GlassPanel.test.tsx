@@ -12,13 +12,13 @@ describe('GlassPanel', () => {
   it('floats over content by default', () => {
     const { container } = render(<GlassPanel>Contents</GlassPanel>);
 
-    expect(container.firstElementChild).toHaveClass('flux-glass');
+    expect(container.firstElementChild).toHaveClass('valence-glass');
   });
 
   it('sits in the page when asked to', () => {
     const { container } = render(<GlassPanel elevation="inset">Contents</GlassPanel>);
 
-    expect(container.firstElementChild).not.toHaveClass('flux-glass');
+    expect(container.firstElementChild).not.toHaveClass('valence-glass');
   });
 
   it('renders as whatever the content actually is', () => {
@@ -34,7 +34,7 @@ describe('GlassPanel', () => {
   it('takes extra classes without losing its material', () => {
     const { container } = render(<GlassPanel className="p-8">Contents</GlassPanel>);
 
-    expect(container.firstElementChild).toHaveClass('flux-glass', 'p-8');
+    expect(container.firstElementChild).toHaveClass('valence-glass', 'p-8');
   });
 
   it('sets a display name so devtools can identify it', () => {

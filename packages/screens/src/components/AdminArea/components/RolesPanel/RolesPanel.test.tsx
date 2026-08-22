@@ -1,5 +1,5 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RolesPanel } from './RolesPanel';
@@ -12,7 +12,7 @@ const mocks = vi.hoisted(() => ({
   deleteRole: vi.fn(),
 }));
 
-vi.mock('@FluxClient/admin/fetchRoles', () => mocks);
+vi.mock('@ValenceClient/admin/fetchRoles', () => mocks);
 
 const ADMINISTRATOR = {
   id: 'role_1',

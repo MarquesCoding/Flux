@@ -1,7 +1,7 @@
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
-import type { PlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
-import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { PlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
+import type { QualityStepId } from '@ValenceContracts/schemas/QualityStep';
 type Explanation = {
   mode: PlaybackMode;
   plan: PlaybackPlan;

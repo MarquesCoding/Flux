@@ -1,10 +1,10 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import { ScanJobSchema } from '@FluxClient/library/fetchLibrary';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
-import type { ScanJob } from '@FluxClient/library/fetchLibrary';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { ScanJobSchema } from '@ValenceClient/library/fetchLibrary';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
+import type { ScanJob } from '@ValenceClient/library/fetchLibrary';
 
 const AdminUserSchema = z.object({
   id: z.string(),
@@ -572,7 +572,7 @@ const measureStorage = async (): Promise<StorageCount | null> => {
 };
 
 /**
- * Sets which encoder transcodes should use, or leaves it to Flux. Takes effect on the next session
+ * Sets which encoder transcodes should use, or leaves it to Valence. Takes effect on the next session
  * rather than on the ones already running, which keep the encoder they started with.
  *
  * @param hardwareAccel - The encoder to force, or an empty string for automatic.
@@ -589,7 +589,7 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
 };
 
 /**
- * Sets the key Flux reads metadata with. Without one, titles, artwork and years come from filenames
+ * Sets the key Valence reads metadata with. Without one, titles, artwork and years come from filenames
  * alone.
  *
  * @param catalogueApiKey - The key to use.

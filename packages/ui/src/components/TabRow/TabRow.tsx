@@ -1,6 +1,6 @@
 import * as RadixTabs from '@radix-ui/react-tabs';
-import { cn } from '@FluxUI/cn';
-import { SlidingMark } from '@FluxUI/SlidingMark';
+import { cn } from '@ValenceUI/cn';
+import { SlidingMark } from '@ValenceUI/SlidingMark';
 import type { TabRowProps } from './TabRow.types';
 
 /**
@@ -17,7 +17,7 @@ const TabRow = ({ label, groups, value, className }: TabRowProps) => (
   <RadixTabs.List
     aria-label={label}
     className={cn(
-      'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+      'valence-rail valence-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
       className,
     )}
   >

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { decideWhatFollows } from './decideWhatFollows';
-import { STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
+import { STILL_WATCHING_OFF } from '@ValenceContracts/schemas/StillWatching';
 
 const episode = { id: 'two', title: 'The Second One' };
 

@@ -1,17 +1,17 @@
 import { act, waitFor } from '@testing-library/react';
-import { renderHookInACache } from '@FluxClient/testing/renderHookInACache';
+import { renderHookInACache } from '@ValenceClient/testing/renderHookInACache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useQuery } from '@tanstack/react-query';
-import { viewingQueries } from '@FluxClient/query/viewingQueries';
+import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { useRatings } from './useRatings';
-import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
-import type { RatingSubject } from '@FluxClient/library/fetchRatings';
+import type { HouseholdRating, Rating } from '@ValenceContracts/schemas/Rating';
+import type { RatingSubject } from '@ValenceClient/library/fetchRatings';
 
 const fetchRatings = vi.fn<() => Promise<Rating[]>>();
 const setRating = vi.fn<(subject: RatingSubject, stars: number | null) => Promise<boolean>>();
 const fetchHouseholdRating = vi.fn<() => Promise<HouseholdRating>>();
 
-vi.mock('@FluxClient/library/fetchRatings', () => ({
+vi.mock('@ValenceClient/library/fetchRatings', () => ({
   fetchRatings: () => fetchRatings(),
   setRating: (subject: RatingSubject, stars: number | null) => setRating(subject, stars),
   fetchHouseholdRating: () => fetchHouseholdRating(),

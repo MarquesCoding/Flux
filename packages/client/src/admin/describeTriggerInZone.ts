@@ -1,4 +1,4 @@
-import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
+import type { ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
 
 type DescribeTriggerInZoneOptions = {
   trigger: ScheduleTrigger;

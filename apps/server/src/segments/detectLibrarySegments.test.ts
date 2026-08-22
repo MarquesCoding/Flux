@@ -3,8 +3,8 @@ import { detectLibrarySegments, groupBySeason } from './detectLibrarySegments';
 import { createMemorySegmentService } from './createMemorySegmentService';
 import type { GroupedCandidate } from './detectLibrarySegments';
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaProbe } from '@ValenceServer/transcoder/TranscoderClient';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 const LIBRARY_ID = 'library-1';
 

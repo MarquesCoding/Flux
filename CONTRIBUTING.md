@@ -1,4 +1,4 @@
-# Contributing to Flux
+# Contributing to Valence
 
 Thanks for considering a contribution. This document covers process. The coding
 rules themselves live in [`docs/code-standards.md`](docs/code-standards.md) and
@@ -21,13 +21,13 @@ that ADR-0007's brokered model does not become a wall.
 ```bash
 pnpm install
 docker compose up -d db  # Postgres
-pnpm ffmpeg:sync         # Flux's own FFmpeg
+pnpm ffmpeg:sync         # Valence's own FFmpeg
 pnpm dev
 ```
 
 `pnpm ffmpeg:sync` fetches the build the shipped image carries — the version
 pinned in the `Dockerfile`, so it is the same one — and points your `.env` at
-it. It never overwrites `FLUX_FFMPEG` or `FLUX_FFPROBE` if you have set them
+it. It never overwrites `VALENCE_FFMPEG` or `VALENCE_FFPROBE` if you have set them
 somewhere deliberate.
 
 Skipping it is not fatal and is worse than it looks. The media service falls
@@ -37,10 +37,10 @@ and HDR quietly leave the hardware and nothing says so. A machine with no
 `ffmpeg` at all reports every capability as absent, which reads exactly like
 hardware that cannot do anything.
 
-Running Flux in the container instead? Nothing to do — the image installs the
+Running Valence in the container instead? Nothing to do — the image installs the
 same build itself.
 
-Adding a FluxUI component? Add its alias line to `tsconfig.paths.json` — see
+Adding a ValenceUI component? Add its alias line to `tsconfig.paths.json` — see
 [`docs/code-standards.md`](docs/code-standards.md) section 3 for why the map is
 explicit rather than wildcarded.
 

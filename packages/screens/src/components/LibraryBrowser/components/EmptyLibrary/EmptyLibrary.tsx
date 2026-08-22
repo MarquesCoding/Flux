@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
@@ -39,7 +39,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
 
       <p className="max-w-sm text-sm text-text-muted">
         {hasContentElsewhere
-          ? 'Your other libraries have media in them. Scan this one from the admin area, or check that its folder is where Flux expects.'
+          ? 'Your other libraries have media in them. Scan this one from the admin area, or check that its folder is where Valence expects.'
           : 'Add a library pointing at a folder of media and scan it, and what it finds will show up here.'}
       </p>
     </div>

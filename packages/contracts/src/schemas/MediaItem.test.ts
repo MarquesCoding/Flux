@@ -48,11 +48,11 @@ describe('MediaItemSchema', () => {
     expect(() => MediaItemSchema.parse({ ...validItem, audioStreams: [] })).toThrow();
   });
 
-  it('accepts a container Flux has no name for', () => {
+  it('accepts a container Valence has no name for', () => {
     expect(MediaItemSchema.parse({ ...validItem, container: 'rmvb' }).container).toBe('rmvb');
   });
 
-  it('accepts a video codec Flux has never heard of', () => {
+  it('accepts a video codec Valence has never heard of', () => {
     expect(MediaItemSchema.parse({ ...validItem, videoCodec: 'theora' }).videoCodec).toBe('theora');
   });
 
@@ -62,7 +62,7 @@ describe('MediaItemSchema', () => {
     }
   });
 
-  it('accepts an audio codec Flux has never heard of', () => {
+  it('accepts an audio codec Valence has never heard of', () => {
     const result = MediaItemSchema.parse({
       ...validItem,
       audioStreams: [{ index: 1, codec: 'mp2', channels: 2, isAtmos: false }],

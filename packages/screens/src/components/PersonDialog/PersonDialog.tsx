@@ -1,19 +1,19 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { UserIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { ReadMore } from '@FluxUI/ReadMore';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { Rail } from '@FluxUI/Rail';
-import { RevealItem } from '@FluxUI/RevealItem';
-import { Skeleton } from '@FluxUI/Skeleton';
-import { hasAnythingToShow } from '@FluxContracts/schemas/Person';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { Button } from '@ValenceUI/Button';
+import { ReadMore } from '@ValenceUI/ReadMore';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { Rail } from '@ValenceUI/Rail';
+import { RevealItem } from '@ValenceUI/RevealItem';
+import { Skeleton } from '@ValenceUI/Skeleton';
+import { hasAnythingToShow } from '@ValenceContracts/schemas/Person';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { RailCard } from '@FluxScreens/components/RailCard/RailCard';
-import type { PersonCredits } from '@FluxContracts/schemas/Person';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
+import type { PersonCredits } from '@ValenceContracts/schemas/Person';
 import type { PersonDialogProps } from './PersonDialog.types';
 
 const NOTHING: PersonCredits = { films: [], shows: [], episodes: [] };
@@ -42,7 +42,7 @@ const describeBirth = (bornOn: string | null): string | null => {
 };
 
 /**
- * Everything Flux knows about somebody in its cast, and everything of theirs this server can play.
+ * Everything Valence knows about somebody in its cast, and everything of theirs this server can play.
  * Opened from a name in a cast list, which is the moment the question arises — somebody recognises a
  * face and wants to know what else of theirs is here.
  *

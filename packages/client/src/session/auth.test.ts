@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
-import { readCurrentProfile, writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
+import { readCurrentProfile, writeCurrentProfile } from '@ValenceClient/profiles/currentProfile';
 import {
   authenticateWithPasskey,
   deletePasskey,
@@ -21,7 +21,7 @@ const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>
 const AN_ACCOUNT = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'Operator',
-  email: 'operator@flux.test',
+  email: 'operator@valence.test',
   emailVerified: true,
   image: null,
   role: 'admin',
@@ -219,18 +219,18 @@ describe('passkeys', () => {
 describe('two-factor', () => {
   it('starts enrolment, and hands back the secret and the backup codes', async () => {
     fetchMock.mockResolvedValue(
-      said({ method: 'totp', totpURI: 'otpauth://totp/Flux', backupCodes: ['aaaa-1111'] }),
+      said({ method: 'totp', totpURI: 'otpauth://totp/Valence', backupCodes: ['aaaa-1111'] }),
     );
 
     await expect(enableTwoFactor('a-long-enough-password')).resolves.toEqual({
-      totpURI: 'otpauth://totp/Flux',
+      totpURI: 'otpauth://totp/Valence',
       backupCodes: ['aaaa-1111'],
     });
 
     expect(asked()).toBe('/api/auth/two-factor/enable');
   });
 
-  it('hands back nothing where the server enrolled a code by mail, which Flux does not offer', async () => {
+  it('hands back nothing where the server enrolled a code by mail, which Valence does not offer', async () => {
     fetchMock.mockResolvedValue(said({ method: 'otp' }));
 
     await expect(enableTwoFactor('a-long-enough-password')).resolves.toBeNull();
@@ -274,5 +274,3 @@ describe('two-factor', () => {
     await expect(disableTwoFactor('wrong')).resolves.toBe(false);
   });
 });
-
-

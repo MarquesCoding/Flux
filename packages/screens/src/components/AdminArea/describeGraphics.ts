@@ -1,5 +1,5 @@
-import type { Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Stat } from '@FluxScreens/components/AdminArea/components/StatStrip/StatStrip.types';
+import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Stat } from '@ValenceScreens/components/AdminArea/components/StatStrip/StatStrip.types';
 
 /**
  * Decides what the graphics tile says, and is careful about what it refuses to say. Cards report
@@ -11,7 +11,7 @@ import type { Stat } from '@FluxScreens/components/AdminArea/components/StatStri
  */
 const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat, 'label'> => {
   if (graphics === null) {
-    return { value: '—', detail: 'No card Flux can read' };
+    return { value: '—', detail: 'No card Valence can read' };
   }
 
   if (graphics.encoderPercent !== null) {

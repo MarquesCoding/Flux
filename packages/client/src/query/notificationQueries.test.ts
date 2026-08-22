@@ -5,7 +5,7 @@ import { notificationQueries } from './notificationQueries';
 const fetchNotifications = vi.hoisted(() => vi.fn());
 const fetchNotificationSettings = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/notifications/fetchNotifications', () => ({
+vi.mock('@ValenceClient/notifications/fetchNotifications', () => ({
   fetchNotifications,
   fetchNotificationSettings,
 }));

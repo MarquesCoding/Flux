@@ -1,5 +1,5 @@
-import { ADMINISTRATOR, PERMISSIONS } from '@FluxContracts/schemas/Permission';
-import type { Permission, PermissionGrant } from '@FluxContracts/schemas/Permission';
+import { ADMINISTRATOR, PERMISSIONS } from '@ValenceContracts/schemas/Permission';
+import type { Permission, PermissionGrant } from '@ValenceContracts/schemas/Permission';
 
 type ResolvePermissionsOptions = {
   roles: readonly { permissions: readonly Permission[] }[];

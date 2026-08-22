@@ -1,10 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { readSocketPath, createTranscoderClient } from './TranscoderClient';
 
 describe('readSocketPath', () => {
   it('reads a unix socket address', () => {
-    expect(readSocketPath('unix:/run/flux-transcoder.sock')).toBe('/run/flux-transcoder.sock');
+    expect(readSocketPath('unix:/run/valence-transcoder.sock')).toBe(
+      '/run/valence-transcoder.sock',
+    );
   });
 
   it('reports nothing for an http address', () => {
@@ -89,7 +91,7 @@ describe('createTranscoderClient', () => {
     const calls: string[] = [];
 
     const client = createTranscoderClient({
-      baseUrl: 'unix:/run/flux-transcoder.sock',
+      baseUrl: 'unix:/run/valence-transcoder.sock',
       fetchImpl: (url) => {
         calls.push(url);
 
@@ -111,7 +113,7 @@ describe('createTranscoderClient', () => {
 
   it('reports an unreachable service rather than throwing', async () => {
     const client = createTranscoderClient({
-      baseUrl: 'unix:/run/flux-transcoder.sock',
+      baseUrl: 'unix:/run/valence-transcoder.sock',
       fetchImpl: () => Promise.reject(new Error('ENOENT')),
     });
 

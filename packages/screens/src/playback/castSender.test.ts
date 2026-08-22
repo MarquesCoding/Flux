@@ -154,7 +154,7 @@ describe('castStream', () => {
 
     await expect(
       castStream(context, {
-        url: 'https://flux.local:5173/api/playback/session/abc/index.m3u8',
+        url: 'https://valence.local:5173/api/playback/session/abc/index.m3u8',
         title: 'Arrival',
         startSeconds: 812,
       }),
@@ -164,7 +164,7 @@ describe('castStream', () => {
 
     expect(request?.currentTime).toBe(812);
     expect(request?.media.contentId).toBe(
-      'https://flux.local:5173/api/playback/session/abc/index.m3u8',
+      'https://valence.local:5173/api/playback/session/abc/index.m3u8',
     );
     expect(request?.media.metadata?.title).toBe('Arrival');
 
@@ -183,7 +183,7 @@ describe('castStream', () => {
 
     await expect(
       castStream(context, {
-        url: 'https://flux.local/a.m3u8',
+        url: 'https://valence.local/a.m3u8',
         title: 'Arrival',
         startSeconds: 0,
       }),
@@ -199,7 +199,7 @@ describe('castStream', () => {
 
     await expect(
       castStream(context, {
-        url: 'https://flux.local/a.m3u8',
+        url: 'https://valence.local/a.m3u8',
         title: 'Arrival',
         startSeconds: 0,
       }),

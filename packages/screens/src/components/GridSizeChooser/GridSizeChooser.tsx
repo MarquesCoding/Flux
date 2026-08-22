@@ -1,10 +1,10 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { GridFourIcon, SquaresFourIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { SlidingMark } from '@FluxUI/SlidingMark';
-import { cn } from '@FluxUI/cn';
-import type { MediaGridSize } from '@FluxScreens/components/MediaGrid/MediaGrid.types';
+import { Button } from '@ValenceUI/Button';
+import { SlidingMark } from '@ValenceUI/SlidingMark';
+import { cn } from '@ValenceUI/cn';
+import type { MediaGridSize } from '@ValenceScreens/components/MediaGrid/MediaGrid.types';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { GridSizeChooserProps } from './GridSizeChooser.types';
 
@@ -43,7 +43,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
       onBlur={() => {
         setPointedAt(null);
       }}
-      className={cn('flux-glass flex items-center gap-1 rounded-full p-1', className)}
+      className={cn('valence-glass flex items-center gap-1 rounded-full p-1', className)}
     >
       {SIZES.map(({ id, label, glyph }) => (
         <Button

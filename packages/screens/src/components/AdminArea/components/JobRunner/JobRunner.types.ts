@@ -1,6 +1,6 @@
-import type { Job, JobDefinition } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+import type { Job, JobDefinition } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 type JobRunnerProps = {
   definitions: JobDefinition[];

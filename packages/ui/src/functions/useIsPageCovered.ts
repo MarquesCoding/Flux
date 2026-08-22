@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from 'react';
-import { isPageCovered, watchPageCover } from '@FluxUI/pageCover';
+import { isPageCovered, watchPageCover } from '@ValenceUI/pageCover';
 
 /**
  * Whether a dialog or anything else is standing over the page, for the parts of a screen that

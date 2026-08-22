@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import * as RadixSlider from '@radix-ui/react-slider';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { SliderProps, SliderTone } from './Slider.types';
 
 const TRACK_CLASSES: Record<SliderTone, string> = {

@@ -1,13 +1,13 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretUpDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { OptionMenu } from '@FluxUI/OptionMenu';
-import { TextField } from '@FluxUI/TextField';
-import { saveCatalogueKey, saveHardwareAccel } from '@FluxClient/admin/fetchAdmin';
-import { accelerationOptions } from '@FluxScreens/components/AdminArea/accelerationOptions';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
+import { TextField } from '@ValenceUI/TextField';
+import { saveCatalogueKey, saveHardwareAccel } from '@ValenceClient/admin/fetchAdmin';
+import { accelerationOptions } from '@ValenceScreens/components/AdminArea/accelerationOptions';
 import type { SettingsPanelProps } from './SettingsPanel.types';
 
 /**
@@ -36,9 +36,9 @@ const SettingsPanel = ({
 
         <div className="flex flex-col gap-4 p-4">
           <p className="text-sm text-text-muted">
-            Flux picks whichever backend the machine proves it can use. Choose one here to insist,
-            which also uses an encoder that failed that check — for when the check is wrong and the
-            card plainly works. Software encoding stays available either way.
+            Valence picks whichever backend the machine proves it can use. Choose one here to
+            insist, which also uses an encoder that failed that check — for when the check is wrong
+            and the card plainly works. Software encoding stays available either way.
           </p>
 
           <OptionMenu

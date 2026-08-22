@@ -2,7 +2,7 @@
 //!
 //! A viewer scrubbing a two hour film wants to see where they are landing. The
 //! only way to answer that instantly is to have decoded the frames in advance,
-//! so Flux renders one small image every few seconds into tiled sheets and
+//! so Valence renders one small image every few seconds into tiled sheets and
 //! indexes them with `WebVTT`, which every player already understands.
 //!
 //! Sheets rather than one file per thumbnail: a film of two hours at one frame

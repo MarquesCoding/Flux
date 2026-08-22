@@ -1,4 +1,4 @@
-import { shouldAskStillWatching } from '@FluxContracts/schemas/StillWatching';
+import { shouldAskStillWatching } from '@ValenceContracts/schemas/StillWatching';
 
 type Following<Episode> =
   { kind: 'nothing' } | { kind: 'ask'; episode: Episode } | { kind: 'play'; episode: Episode };

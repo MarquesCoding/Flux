@@ -56,7 +56,7 @@ the browser's heuristic survives this dialog's restore intact.
 ### What this gets us
 
 Keyboard and remote navigation has a visible focus indicator in a rail again,
-which is the surface Flux is mostly used on.
+which is the surface Valence is mostly used on.
 
 0021's open item stops steering work. It carried a warning — that the obvious
 fix breaks the exit animation — which would have sent the next person chasing a

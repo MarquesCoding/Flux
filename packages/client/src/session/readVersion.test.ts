@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readVersion, describeVersion, LOCAL } from './readVersion';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const fetchMock = vi.fn();
 

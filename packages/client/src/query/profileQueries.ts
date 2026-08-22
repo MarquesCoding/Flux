@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchProfiles } from '@FluxClient/profiles/fetchProfiles';
-import { readCurrentProfile } from '@FluxClient/profiles/currentProfile';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { fetchProfiles } from '@ValenceClient/profiles/fetchProfiles';
+import { readCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const PROFILES = ['profiles'] as const;
 

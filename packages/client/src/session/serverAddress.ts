@@ -1,6 +1,6 @@
-import { platformInUse } from '@FluxClient/platform/installPlatform';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
-const KEY = 'flux.server.address';
+const KEY = 'valence.server.address';
 
 /**
  * Reads the server a client with a window of its own was told to watch.
@@ -20,7 +20,7 @@ const serverAddress = (): string | null => {
 /**
  * Remembers the server a viewer named, so they are asked once rather than at every launch.
  *
- * @param address - Where their Flux is, or nothing to forget it.
+ * @param address - Where their Valence is, or nothing to forget it.
  */
 const rememberServerAddress = (address: string | null): void => {
   if (address === null || address === '') {

@@ -21,7 +21,7 @@ beforeEach(() => {
 });
 
 describe('theDockIcon', () => {
-  it('puts Flux in the dock, which otherwise shows the engine it was run with', () => {
+  it('puts Valence in the dock, which otherwise shows the engine it was run with', () => {
     theDockIcon();
 
     expect(setIcon).toHaveBeenCalledWith('/an/app/build/icon.png');

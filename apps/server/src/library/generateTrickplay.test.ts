@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { generateTrickplay } from './generateTrickplay';
 import type { TrickplayParams, TrickplayStore } from './generateTrickplay';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 

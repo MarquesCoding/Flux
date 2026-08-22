@@ -12,7 +12,7 @@ describe('deliveredBitrateKbps', () => {
     ).toBe(4500);
   });
 
-  it('measures a window where the manifest declares nothing, which is what Flux serves', () => {
+  it('measures a window where the manifest declares nothing, which is what Valence serves', () => {
     expect(
       deliveredBitrateKbps({
         declaredBandwidth: 0,

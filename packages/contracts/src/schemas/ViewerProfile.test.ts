@@ -133,7 +133,7 @@ describe('profileInitial', () => {
 });
 
 describe('profileAvatarUrl', () => {
-  it('serves a picture through Flux rather than from wherever it was drawn', () => {
+  it('serves a picture through Valence rather than from wherever it was drawn', () => {
     expect(profileAvatarUrl(PROFILE).startsWith('/api/profiles/')).toBe(true);
   });
 

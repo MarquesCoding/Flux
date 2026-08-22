@@ -11,7 +11,7 @@
 [0022](0022-the-application-is-a-package-and-a-client-is-a-host.md) moved the
 portable front end into `packages/client` and stopped there, on purpose:
 "`components/` is still in `apps/web` — 185 files and 20,796 lines, the larger
-half. That is the next split." [FLUX-147](https://linear.app/flux-streaming/issue/FLUX-147/refactorweb-separate-the-application-from-the-browser-it-happens-to)
+half. That is the next split." [VAL-147](https://linear.app/valence-streaming/issue/VAL-147/refactorweb-separate-the-application-from-the-browser-it-happens-to)
 said the same in advance, that sorting the screens out was "its own piece of
 work once the seams below them exist". The seams now exist.
 
@@ -21,7 +21,7 @@ is to say it gets a data layer and a blank window. The half that was moved is
 the half that was already easy.
 
 The question is whether a screen is a browser thing. It is not. A screen draws
-with FluxUI, which draws with `className` and HTML elements, and reads through
+with ValenceUI, which draws with `className` and HTML elements, and reads through
 `packages/client`, which reaches a browser only through `Platform`. What made
 the screens browser-shaped was the directory they sat in and two habits that
 directory permitted.
@@ -32,15 +32,15 @@ directory permitted.
 what a browser is and nothing else: the entry point, the four platform ports,
 the realtime socket and the service worker. Eight source files and five tests.
 
-**ESLint refuses `@FluxWeb/*` inside `packages/screens`,** as it already does
+**ESLint refuses `@ValenceWeb/*` inside `packages/screens`,** as it already does
 inside `packages/client`. Anything a screen needs from a client is a port on
-`Platform`, or becomes one. `@FluxUI/*` stays allowed — unlike the application
+`Platform`, or becomes one. `@ValenceUI/*` stays allowed — unlike the application
 layer, screens are what draws.
 
 **The route tree moves with the screens.** It is composed entirely of them; the
 only host-shaped thing in it is scroll restoration, which TanStack does
 generically. A host chooses a history and mounts a router. It does not decide
-which addresses Flux serves.
+which addresses Valence serves.
 
 ## Consequences
 
@@ -74,7 +74,7 @@ it. Both it and `packages/screens` are listed now.
 
 **A build step before a typecheck.** `apps/web` references `packages/screens`,
 so the package has to be built before the host typechecks. `tsc --build` does it,
-but a clean checkout that runs `pnpm --filter @flux/web typecheck` first will see
+but a clean checkout that runs `pnpm --filter @valence/web typecheck` first will see
 a TS6305 rather than a helpful message.
 
 **A second long test setup.** `packages/screens` needs the same jsdom shims the

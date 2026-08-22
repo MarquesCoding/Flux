@@ -1,7 +1,16 @@
-import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
+import { readFromServerOrAbsent } from '@ValenceClient/query/readFromServerOrAbsent';
 import { z } from 'zod';
-import { LibrarySchema, MediaPageSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
-import type { Library, LibraryKind, MediaDetail, MediaPage } from '@FluxContracts/schemas/Library';
+import {
+  LibrarySchema,
+  MediaPageSchema,
+  MediaDetailSchema,
+} from '@ValenceContracts/schemas/Library';
+import type {
+  Library,
+  LibraryKind,
+  MediaDetail,
+  MediaPage,
+} from '@ValenceContracts/schemas/Library';
 
 const LibraryListSchema = z.array(LibrarySchema);
 const ErrorBodySchema = z.object({ error: z.string() });

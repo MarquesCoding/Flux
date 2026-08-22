@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
+import { PERMISSIONS } from '@ValenceContracts/schemas/Permission';
 import { resolvePermissions } from './resolvePermissions';
 
 describe('resolvePermissions', () => {

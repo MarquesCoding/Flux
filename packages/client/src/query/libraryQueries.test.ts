@@ -11,15 +11,15 @@ const fetchFacets = vi.hoisted(() => vi.fn());
 const fetchPerson = vi.hoisted(() => vi.fn());
 const fetchPersonCredits = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchLibraries,
   fetchLibraryItems,
   fetchMediaDetail,
 }));
 
-vi.mock('@FluxClient/library/fetchShows', () => ({ fetchShows, fetchShow }));
-vi.mock('@FluxClient/library/fetchFacets', () => ({ fetchFacets }));
-vi.mock('@FluxClient/library/fetchPerson', () => ({ fetchPerson, fetchPersonCredits }));
+vi.mock('@ValenceClient/library/fetchShows', () => ({ fetchShows, fetchShow }));
+vi.mock('@ValenceClient/library/fetchFacets', () => ({ fetchFacets }));
+vi.mock('@ValenceClient/library/fetchPerson', () => ({ fetchPerson, fetchPersonCredits }));
 
 const aCache = (): QueryClient =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } });

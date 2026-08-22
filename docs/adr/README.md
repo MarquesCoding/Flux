@@ -39,12 +39,12 @@ more valuable than a tidy directory.
 | [0010](0010-codec-container-hdr-support.md)                                 | Codec, container, subtitle and HDR support targets                                        | Accepted                           |
 | [0011](0011-streaming-delivery-and-device-profiles.md)                      | Streaming delivery and device profile negotiation                                         | Accepted                           |
 | [0012](0012-media-test-corpus-external-fixtures.md)                         | Media test corpus as external fixture download                                            | Accepted                           |
-| [0013](0013-fluxui-component-stack.md)                                      | FluxUI built on Base UI + Tailwind, not shadcn                                            | Superseded by 0018                 |
+| [0013](0013-valenceui-component-stack.md)                                   | ValenceUI built on Base UI + Tailwind, not shadcn                                         | Superseded by 0018                 |
 | [0014](0014-lint-and-commit-enforcement.md)                                 | Lint and commit enforcement with oxlint, ESLint and husky                                 | Accepted                           |
 | [0015](0015-casting-to-devices.md)                                          | Cast by handing devices an address, with Google's sender                                  | Accepted                           |
 | [0016](0016-fixture-provenance-decides-how-it-is-verified.md)               | Where a fixture came from decides how it is checked                                       | Accepted                           |
 | [0017](0017-realtime-one-socket-two-feeds.md)                               | One realtime socket, with a viewer feed and an admin feed                                 | Accepted                           |
-| [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions                                            | Accepted, superseded by 0020, 0021 |
+| [0018](0018-valenceui-on-radix-and-shadcn-conventions.md)                   | ValenceUI moves to Radix and shadcn's conventions                                         | Accepted, superseded by 0020, 0021 |
 | [0019](0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) | Server state in TanStack Query, addresses in TanStack Router                              | Accepted                           |
 | [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component                                         | Superseded by 0028                 |
 | [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                                              | Accepted, amended by 0024          |

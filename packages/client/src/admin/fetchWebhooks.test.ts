@@ -70,7 +70,7 @@ describe('createWebhook', () => {
   it('carries back why an address was refused rather than saying it went wrong', async () => {
     vi.stubGlobal(
       'fetch',
-      answering({ error: 'Flux will not send deliveries to that address.' }, 400),
+      answering({ error: 'Valence will not send deliveries to that address.' }, 400),
     );
 
     const { created, refusal } = await createWebhook({

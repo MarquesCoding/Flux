@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { installPlatform } from '@FluxClient/platform/installPlatform';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
 import { STORAGE_KEY, readLastLibrary, rememberLastLibrary } from './lastLibrary';
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 const held = new Map<string, string>();
 

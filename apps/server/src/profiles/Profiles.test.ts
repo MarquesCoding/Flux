@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
 import { createMemoryProfileService } from './createMemoryProfileService';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { makeAdministrator } from '@FluxServer/auth/signUpForTest';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { makeAdministrator } from '@ValenceServer/auth/signUpForTest';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const BASE = 'http://localhost:8420';
 
@@ -22,7 +22,7 @@ const ShowsWhatIamWatchingSchema = z.object({
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 
@@ -270,7 +270,7 @@ describe('profiles over HTTP', () => {
 
     const body = await (await app.request(`${BASE}/api/profiles/everyone`)).text();
 
-    expect(body).not.toContain('marques@flux.local');
+    expect(body).not.toContain('marques@valence.local');
   });
 
   it('serves a drawn face as a picture', async () => {
@@ -407,7 +407,7 @@ describe('giving a profile an account of its own', () => {
     context.app.request(`${BASE}/api/admin/profiles/${profileId}/promote`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie, origin: BASE },
-      body: JSON.stringify({ email: 'dan@flux.local', password: 'a-long-enough-password' }),
+      body: JSON.stringify({ email: 'dan@valence.local', password: 'a-long-enough-password' }),
     });
 
   it('hands back the profile once it has an account', async () => {

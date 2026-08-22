@@ -1,19 +1,19 @@
 import { z } from 'zod';
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signedInApp } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signedInApp } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
 import { createMemoryLibraryService } from './createMemoryLibraryService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { MediaSummarySchema } from '@FluxContracts/schemas/Library';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { MediaSummarySchema } from '@ValenceContracts/schemas/Library';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const BASE = 'http://localhost:8420';
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
@@ -692,7 +692,7 @@ describe('library routes', () => {
     expect(body).toHaveProperty(['paths', '/api/media/{id}', 'get']);
   });
 
-  it('serves artwork from Flux rather than sending the browser to a catalogue', async () => {
+  it('serves artwork from Valence rather than sending the browser to a catalogue', async () => {
     const { auth, settings, store } = createMemoryAuth();
     const app = signedInApp(
       createApp({

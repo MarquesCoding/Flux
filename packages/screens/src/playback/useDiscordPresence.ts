@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
-import { isTheDesktopClient, nowWatching } from '@FluxScreens/desktop/theDesktopShell';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import { isTheDesktopClient, nowWatching } from '@ValenceScreens/desktop/theDesktopShell';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const A_SECOND = 1000;
 

@@ -1,5 +1,5 @@
 import { createRealtimeClient } from './createRealtimeClient';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
 import { realtimeBackoffMs } from './realtimeBackoffMs';
 import type { RealtimeClient } from './createRealtimeClient';
 

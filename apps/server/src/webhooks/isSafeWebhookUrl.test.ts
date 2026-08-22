@@ -7,13 +7,13 @@ describe('isSafeWebhookUrl', () => {
   });
 
   it('allows ntfy on the same box, which is the common setup', () => {
-    expect(isSafeWebhookUrl('http://localhost:2586/flux')).toBe(true);
-    expect(isSafeWebhookUrl('http://127.0.0.1:2586/flux')).toBe(true);
-    expect(isSafeWebhookUrl('http://[::1]:2586/flux')).toBe(true);
+    expect(isSafeWebhookUrl('http://localhost:2586/valence')).toBe(true);
+    expect(isSafeWebhookUrl('http://127.0.0.1:2586/valence')).toBe(true);
+    expect(isSafeWebhookUrl('http://[::1]:2586/valence')).toBe(true);
   });
 
   it('allows something across the landing', () => {
-    expect(isSafeWebhookUrl('http://192.168.1.40:8123/api/webhook/flux')).toBe(true);
+    expect(isSafeWebhookUrl('http://192.168.1.40:8123/api/webhook/valence')).toBe(true);
     expect(isSafeWebhookUrl('http://10.0.0.5/hook')).toBe(true);
     expect(isSafeWebhookUrl('http://172.16.4.4/hook')).toBe(true);
   });

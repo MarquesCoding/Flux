@@ -2,14 +2,14 @@ use std::env;
 use std::path::PathBuf;
 use std::time::Duration;
 
-use flux_transcoder::monitor::{record, LogLevel};
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::{capability, probe};
+use valence_transcoder::monitor::{record, LogLevel};
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::{capability, probe};
 
 const DEFAULT_FFMPEG: &str = "ffmpeg";
 const DEFAULT_FFPROBE: &str = "ffprobe";
-const DEFAULT_SOCKET: &str = "/run/flux-transcoder.sock";
+const DEFAULT_SOCKET: &str = "/run/valence-transcoder.sock";
 const UNIX_PREFIX: &str = "unix:";
 const REAP_INTERVAL: Duration = Duration::from_secs(30);
 
@@ -49,7 +49,7 @@ fn socket_from_url(url: &str) -> Option<&str> {
 ///
 /// `TRANSCODER_URL` is the variable the server already dials, so leaving both
 /// ends to it is what stops them disagreeing: there is no second setting to
-/// forget. `FLUX_TRANSCODER_ADDR` and `FLUX_TRANSCODER_SOCKET` stay for a
+/// forget. `VALENCE_TRANSCODER_ADDR` and `VALENCE_TRANSCODER_SOCKET` stay for a
 /// deployment that puts the two halves on different machines, where the two
 /// addresses genuinely are different things.
 ///
@@ -59,11 +59,11 @@ fn socket_from_url(url: &str) -> Option<&str> {
 fn listen_target(read: &impl Fn(&str) -> Option<String>) -> ListenTarget {
     let configured = |variable: &str| read(variable).filter(|value| !value.trim().is_empty());
 
-    if let Some(address) = configured("FLUX_TRANSCODER_ADDR") {
+    if let Some(address) = configured("VALENCE_TRANSCODER_ADDR") {
         return ListenTarget::Address(address);
     }
 
-    if let Some(socket) = configured("FLUX_TRANSCODER_SOCKET") {
+    if let Some(socket) = configured("VALENCE_TRANSCODER_SOCKET") {
         return ListenTarget::Socket(socket);
     }
 
@@ -79,13 +79,13 @@ fn session_config(ffmpeg: String, ffprobe: String) -> SessionConfig {
     SessionConfig {
         ffmpeg,
         ffprobe,
-        device: from_env("FLUX_VAAPI_DEVICE").unwrap_or(defaults.device),
-        cache_root: env::var("FLUX_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
-        idle_timeout: env::var("FLUX_SESSION_IDLE_SECONDS")
+        device: from_env("VALENCE_VAAPI_DEVICE").unwrap_or(defaults.device),
+        cache_root: env::var("VALENCE_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
+        idle_timeout: env::var("VALENCE_SESSION_IDLE_SECONDS")
             .ok()
             .and_then(|value| value.parse().ok())
             .map_or(defaults.idle_timeout, Duration::from_secs),
-        max_concurrent: env::var("FLUX_MAX_CONCURRENT_TRANSCODES")
+        max_concurrent: env::var("VALENCE_MAX_CONCURRENT_TRANSCODES")
             .ok()
             .and_then(|value| value.parse().ok())
             .unwrap_or(defaults.max_concurrent),
@@ -132,11 +132,11 @@ fn spawn_sweeper(registry: SessionRegistry) {
     let root = registry.config().cache_root.clone();
 
     tokio::spawn(async move {
-        let budget = flux_transcoder::session_sweep::Budget::default();
+        let budget = valence_transcoder::session_sweep::Budget::default();
 
         loop {
             let live = registry.live_ids().await;
-            let report = flux_transcoder::session_sweep::evict(&root, &live, &budget).await;
+            let report = valence_transcoder::session_sweep::evict(&root, &live, &budget).await;
 
             if report.removed > 0 {
                 record(
@@ -155,9 +155,9 @@ fn spawn_sweeper(registry: SessionRegistry) {
 }
 
 async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
-    let journal = flux_transcoder::monitor::Journal::new();
+    let journal = valence_transcoder::monitor::Journal::new();
 
-    flux_transcoder::monitor::install_journal(journal.clone());
+    valence_transcoder::monitor::install_journal(journal.clone());
 
     record(
         LogLevel::Info,
@@ -168,11 +168,11 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     let state = AppState {
         registry: registry.clone(),
         ffprobe,
-        trickplay: flux_transcoder::trickplay::TrickplayRegistry::new(),
-        previews: flux_transcoder::preview::PreviewRegistry::new(),
-        monitor: flux_transcoder::monitor::Monitor::new(journal),
-        queue: flux_transcoder::queue::WorkQueue::new(background_jobs()),
-        media_roots: env::var("FLUX_MEDIA_ROOTS")
+        trickplay: valence_transcoder::trickplay::TrickplayRegistry::new(),
+        previews: valence_transcoder::preview::PreviewRegistry::new(),
+        monitor: valence_transcoder::monitor::Monitor::new(journal),
+        queue: valence_transcoder::queue::WorkQueue::new(background_jobs()),
+        media_roots: env::var("VALENCE_MEDIA_ROOTS")
             .map(|value| value.split(':').map(PathBuf::from).collect())
             .unwrap_or_default(),
     };
@@ -205,7 +205,7 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
                 Ok(listener) => axum::serve(listener, router).await,
                 Err(error) => {
                     eprintln!("could not bind {address}: {error}");
-                    eprintln!("set FLUX_TRANSCODER_ADDR to an interface this process can bind");
+                    eprintln!("set VALENCE_TRANSCODER_ADDR to an interface this process can bind");
                     return;
                 }
             }
@@ -246,7 +246,7 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
 fn background_jobs() -> usize {
     const CEILING: usize = 4;
 
-    if let Some(asked) = env::var("FLUX_BACKGROUND_JOBS")
+    if let Some(asked) = env::var("VALENCE_BACKGROUND_JOBS")
         .ok()
         .and_then(|value| value.parse().ok())
     {
@@ -260,15 +260,15 @@ fn background_jobs() -> usize {
 
 #[tokio::main]
 async fn main() {
-    let ffmpeg = setting("FLUX_FFMPEG", DEFAULT_FFMPEG);
-    let ffprobe = setting("FLUX_FFPROBE", DEFAULT_FFPROBE);
+    let ffmpeg = setting("VALENCE_FFMPEG", DEFAULT_FFMPEG);
+    let ffprobe = setting("VALENCE_FFPROBE", DEFAULT_FFPROBE);
 
     let arguments: Vec<String> = env::args().skip(1).collect();
 
     match arguments.split_first() {
         Some((command, rest)) if command == "probe" => {
             let Some(path) = rest.first() else {
-                eprintln!("usage: flux-transcoder probe <file>");
+                eprintln!("usage: valence-transcoder probe <file>");
                 return;
             };
 
@@ -298,7 +298,7 @@ async fn main() {
             serve(registry, ffmpeg, ffprobe).await;
         }
         _ => {
-            println!("flux-transcoder {}", env!("CARGO_PKG_VERSION"));
+            println!("valence-transcoder {}", env!("CARGO_PKG_VERSION"));
             println!("commands: serve, probe <file>, capabilities");
         }
     }
@@ -325,8 +325,8 @@ mod tests {
     #[test]
     fn takes_the_socket_the_server_dials() {
         assert_eq!(
-            socket_from_url("unix:/tmp/flux.sock"),
-            Some("/tmp/flux.sock")
+            socket_from_url("unix:/tmp/valence.sock"),
+            Some("/tmp/valence.sock")
         );
     }
 
@@ -337,9 +337,9 @@ mod tests {
 
     #[test]
     fn binds_the_socket_the_server_was_told_to_dial() {
-        let target = listen_target(&reading(&[("TRANSCODER_URL", "unix:/tmp/flux.sock")]));
+        let target = listen_target(&reading(&[("TRANSCODER_URL", "unix:/tmp/valence.sock")]));
 
-        assert_eq!(target, ListenTarget::Socket("/tmp/flux.sock".to_owned()));
+        assert_eq!(target, ListenTarget::Socket("/tmp/valence.sock".to_owned()));
     }
 
     #[test]
@@ -359,8 +359,8 @@ mod tests {
     #[test]
     fn lets_an_explicit_address_win() {
         let target = listen_target(&reading(&[
-            ("TRANSCODER_URL", "unix:/tmp/flux.sock"),
-            ("FLUX_TRANSCODER_ADDR", "0.0.0.0:9000"),
+            ("TRANSCODER_URL", "unix:/tmp/valence.sock"),
+            ("VALENCE_TRANSCODER_ADDR", "0.0.0.0:9000"),
         ]));
 
         assert_eq!(target, ListenTarget::Address("0.0.0.0:9000".to_owned()));
@@ -370,7 +370,7 @@ mod tests {
     fn lets_an_explicit_socket_win() {
         let target = listen_target(&reading(&[
             ("TRANSCODER_URL", "unix:/tmp/dialled.sock"),
-            ("FLUX_TRANSCODER_SOCKET", "/tmp/bound.sock"),
+            ("VALENCE_TRANSCODER_SOCKET", "/tmp/bound.sock"),
         ]));
 
         assert_eq!(target, ListenTarget::Socket("/tmp/bound.sock".to_owned()));
@@ -379,11 +379,11 @@ mod tests {
     #[test]
     fn treats_a_variable_set_to_nothing_as_unset() {
         let target = listen_target(&reading(&[
-            ("FLUX_TRANSCODER_ADDR", ""),
-            ("FLUX_TRANSCODER_SOCKET", "   "),
-            ("TRANSCODER_URL", "unix:/tmp/flux.sock"),
+            ("VALENCE_TRANSCODER_ADDR", ""),
+            ("VALENCE_TRANSCODER_SOCKET", "   "),
+            ("TRANSCODER_URL", "unix:/tmp/valence.sock"),
         ]));
 
-        assert_eq!(target, ListenTarget::Socket("/tmp/flux.sock".to_owned()));
+        assert_eq!(target, ListenTarget::Socket("/tmp/valence.sock".to_owned()));
     }
 }

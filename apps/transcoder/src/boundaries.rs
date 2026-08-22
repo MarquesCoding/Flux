@@ -50,7 +50,7 @@ const OFFERED_SEGMENT_SECONDS: f64 = 4.0;
 /// the size of a request by the film's bitrate — which across a library runs
 /// from a couple of megabits to a hundred. Chrome ended the stream with
 /// `QUOTA_EXCEEDED` on ten second segments of the measured remux, 17.5MB at
-/// 14.5 Mbps, so seconds are the wrong unit to hold a request to. See FLUX-125.
+/// 14.5 Mbps, so seconds are the wrong unit to hold a request to. See VAL-125.
 ///
 /// Twelve leaves room under the size that failed. Where a film's bitrate makes
 /// four seconds cost more than this, the groups are shorter and there are more
@@ -74,11 +74,11 @@ fn offered_ceiling(bitrate_kbps: Option<u32>) -> f64 {
     OFFERED_SEGMENT_BYTES / (f64::from(kbps) * 125.0)
 }
 
-/// What this version of Flux writes into a plan's directory.
+/// What this version of Valence writes into a plan's directory.
 ///
 /// Bumped whenever the segments themselves change shape — a different
 /// container, a different way of choosing boundaries — because a directory
-/// written by an older Flux describes files that will never be produced now,
+/// written by an older Valence describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
 const LAYOUT: u32 = 7;
@@ -94,7 +94,7 @@ const LAYOUT: u32 = 7;
 /// Sixteen seconds is four times the length ordinarily asked for. Past it a
 /// source is not being delivered as HLS in any useful sense, and encoding —
 /// which puts a keyframe on every boundary and yields segments of a few
-/// megabytes — is the only thing that plays. See FLUX-125.
+/// megabytes — is the only thing that plays. See VAL-125.
 const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
 
 /// Whether a source's own keyframes can yield segments a player will take.
@@ -125,7 +125,7 @@ const LONGEST_COPYABLE_SEGMENT: f64 = 16.0;
 ///
 /// Asked by the media service before it starts a session, and by the library
 /// scan through the probe, so that both reach the same answer from the same
-/// rule. See FLUX-125 and FLUX-145.
+/// rule. See VAL-125 and VAL-145.
 #[must_use]
 pub fn can_copy_segments(keyframes: &Keyframes, cut_seconds: f64) -> bool {
     longest_segment(&segment_lengths(keyframes, cut_seconds)) <= LONGEST_COPYABLE_SEGMENT
@@ -166,7 +166,7 @@ pub struct Boundaries {
     /// One apiece for everything but a copied source whose keyframes crowd
     /// together, where a few of the muxer's segments are too short to be worth
     /// a request of their own and are offered together instead. Empty for
-    /// boundaries written before Flux grouped anything, which are read as one
+    /// boundaries written before Valence grouped anything, which are read as one
     /// apiece.
     #[serde(default)]
     pub groups: Vec<u32>,
@@ -181,7 +181,7 @@ impl Boundaries {
 
     /// How many of the muxer's segments make up each one the playlist offers.
     ///
-    /// One apiece for boundaries cached before Flux grouped anything, which
+    /// One apiece for boundaries cached before Valence grouped anything, which
     /// carry none and describe a playlist that offered every segment alone.
     ///
     /// The counts are checked against the segments they claim to cover rather
@@ -267,7 +267,7 @@ async fn cached_boundaries(directory: &Path) -> Option<Boundaries> {
 ///
 /// Transport streams round forward to the next keyframe; MP4 and Matroska round
 /// back to the previous one. Measured across H.264 and HEVC transport streams
-/// with keyframes two and five seconds apart, which agree. See FLUX-132.
+/// with keyframes two and five seconds apart, which agree. See VAL-132.
 #[must_use]
 fn seeks_forward(container: crate::media::Container) -> bool {
     matches!(
@@ -278,7 +278,7 @@ fn seeks_forward(container: crate::media::Container) -> bool {
 
 /// Works out where every segment of a plan begins and ends.
 ///
-/// Encoded video cuts where Flux tells it to. Copied video cuts where the
+/// Encoded video cuts where Valence tells it to. Copied video cuts where the
 /// source allows, which is what the keyframes say — and if they cannot be read,
 /// equal lengths are a worse answer than the truth but a better one than
 /// refusing to play the film.
@@ -369,7 +369,7 @@ pictures, which is copied anyway",
 ///
 /// Boundaries are only worked out afresh when none were cached, which means
 /// either nothing has played this yet or the ones on disk were written by a
-/// Flux that cut differently. In the second case every segment beside them is
+/// Valence that cut differently. In the second case every segment beside them is
 /// the wrong length and the completion marker is a lie: a source that used to
 /// be copied in ten second pieces and is now encoded in four second ones would
 /// otherwise serve the old pieces against the new playlist, or serve nothing at
@@ -532,7 +532,7 @@ mod tests {
     /// was written against — sequential play lost no frames with 15 of 24
     /// segments opened on such a keyframe, and ten seeks onto them landed on
     /// frames matching a correct decode, through Chromium and through Safari's
-    /// own HLS alike. See FLUX-145.
+    /// own HLS alike. See VAL-145.
     #[test]
     fn copies_a_source_whose_keyframes_carry_leading_pictures() {
         let mut open_gop = every(4.0, 15, 60.0);
@@ -545,7 +545,7 @@ mod tests {
         assert!(can_copy_segments(&open_gop, 4.0));
     }
 
-    /// to prevent, whatever put it there. See FLUX-132.
+    /// to prevent, whatever put it there. See VAL-132.
     #[test]
     fn refuses_a_source_whose_safe_keyframes_are_still_too_far_apart() {
         assert!(!can_copy_segments(&every(60.0, 5, 300.0), 4.0));

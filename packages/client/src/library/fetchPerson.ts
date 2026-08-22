@@ -1,7 +1,7 @@
-import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { PersonCreditsSchema, PersonSchema } from '@FluxContracts/schemas/Person';
-import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
+import { readFromServerOrAbsent } from '@ValenceClient/query/readFromServerOrAbsent';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { PersonCreditsSchema, PersonSchema } from '@ValenceContracts/schemas/Person';
+import type { Person, PersonCredits } from '@ValenceContracts/schemas/Person';
 
 /**
  * Reads what the catalogue knows about somebody — their portrait, their biography, where and when

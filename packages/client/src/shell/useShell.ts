@@ -1,5 +1,5 @@
 import { useContext } from 'react';
-import { shellContext } from '@FluxClient/shell/shellContext';
+import { shellContext } from '@ValenceClient/shell/shellContext';
 import type { Shell } from './shell.types';
 
 /**

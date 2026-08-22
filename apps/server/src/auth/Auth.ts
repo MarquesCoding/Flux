@@ -10,9 +10,9 @@ import {
 } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
-import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
-import type { Env } from '@FluxServer/env/Env';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { trustedOriginsFor } from '@ValenceServer/auth/trustedOriginsFor';
+import type { Env } from '@ValenceServer/env/Env';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 
 type AuthDatabase = DBAdapter | DBAdapterInstance;
 
@@ -26,11 +26,11 @@ type CreateAuthOptions = {
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
 
-const FLUX_APP_NAME = 'Flux';
+const VALENCE_APP_NAME = 'Valence';
 
 /**
  * Builds the authentication layer: accounts, sessions, cookies, password resets and API keys, wired
- * to Flux's own database and settings. Everything about who somebody is comes from here rather than
+ * to Valence's own database and settings. Everything about who somebody is comes from here rather than
  * being reimplemented per route.
  *
  * @param options - The environment, the database, the settings store, whether cookies are secure,
@@ -47,7 +47,7 @@ const createAuth = ({
   onPasswordResetRequested,
 }: CreateAuthOptions) => {
   return betterAuth({
-    appName: FLUX_APP_NAME,
+    appName: VALENCE_APP_NAME,
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
@@ -97,8 +97,8 @@ const createAuth = ({
       max: env.AUTH_RATE_LIMIT_MAX,
     },
     plugins: [
-      twoFactor({ issuer: FLUX_APP_NAME }),
-      passkey({ rpName: FLUX_APP_NAME }),
+      twoFactor({ issuer: VALENCE_APP_NAME }),
+      passkey({ rpName: VALENCE_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
       jwt(),
       apiKey({ enableSessionForAPIKeys: true }),
@@ -109,8 +109,8 @@ const createAuth = ({
   });
 };
 
-type FluxAuth = ReturnType<typeof createAuth>;
+type ValenceAuth = ReturnType<typeof createAuth>;
 
-export type { FluxAuth };
+export type { ValenceAuth };
 
 export { createAuth };

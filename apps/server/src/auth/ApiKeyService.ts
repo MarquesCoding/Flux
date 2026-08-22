@@ -1,5 +1,5 @@
-import type { ApiKey, CreatedApiKey } from '@FluxContracts/schemas/ApiKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { ApiKey, CreatedApiKey } from '@ValenceContracts/schemas/ApiKey';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 type ApiKeyService = {
   list: (headers: Headers) => Promise<ApiKey[]>;

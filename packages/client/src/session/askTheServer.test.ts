@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('askTheServer', () => {
-  it('asks the page its own origin, which is where every Flux client is served from', async () => {
+  it('asks the page its own origin, which is where every Valence client is served from', async () => {
     await askTheServer('/api/auth/get-session');
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/get-session');
@@ -46,13 +46,13 @@ describe('askTheServer', () => {
 
 describe('theAuthBase', () => {
   it('hands a browser its own origin, which the library is happy with', () => {
-    vi.stubGlobal('location', { protocol: 'https:', origin: 'https://flux.example' });
+    vi.stubGlobal('location', { protocol: 'https:', origin: 'https://valence.example' });
 
-    expect(theAuthBase()).toBe('https://flux.example');
+    expect(theAuthBase()).toBe('https://valence.example');
   });
 
   it('hands a client that serves its own pages a base the library will accept', () => {
-    vi.stubGlobal('location', { protocol: 'flux:', origin: 'flux://app' });
+    vi.stubGlobal('location', { protocol: 'valence:', origin: 'valence://app' });
 
     expect(theAuthBase()).toBe(PLACEHOLDER);
   });
@@ -65,7 +65,7 @@ describe('a request that arrives already built', () => {
     const [sent] = fetchMock.mock.calls[0] ?? [];
     const asked = sent instanceof Request ? sent.url : String(sent);
 
-    expect(asked).not.toContain('flux.invalid');
+    expect(asked).not.toContain('valence.invalid');
   });
 
   it('is left alone where it is already asking for somewhere real', async () => {

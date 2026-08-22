@@ -1,4 +1,4 @@
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 /**
  * A platform that keeps things in memory and answers the same way every time, for tests about what

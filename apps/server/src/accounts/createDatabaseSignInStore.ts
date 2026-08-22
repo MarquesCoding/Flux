@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
-import { accountActivity } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { accountActivity } from '@ValenceServer/db/Schema';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { SignInStore } from './recordSignIn';
 
 /**
@@ -11,7 +11,7 @@ import type { SignInStore } from './recordSignIn';
  * @returns The sign-in store.
  */
 const createDatabaseSignInStore = (
-  db: FluxDatabase,
+  db: ValenceDatabase,
 ): SignInStore & { lastSignInAt: (userId: string) => Promise<Date | null> } => ({
   lastSignInAt: async (userId) => {
     const [found] = await db

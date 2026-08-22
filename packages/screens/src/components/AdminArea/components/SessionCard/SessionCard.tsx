@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   ChatCircleIcon,
   InfoIcon,
@@ -8,12 +8,12 @@ import {
   TelevisionIcon,
 } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import { deviceIconFor } from './deviceIcon';
-import { SessionStatsDialog } from '@FluxScreens/components/AdminArea/components/SessionStatsDialog/SessionStatsDialog';
+import { SessionStatsDialog } from '@ValenceScreens/components/AdminArea/components/SessionStatsDialog/SessionStatsDialog';
 import type { SessionCardProps } from './SessionCard.types';
 
 /**

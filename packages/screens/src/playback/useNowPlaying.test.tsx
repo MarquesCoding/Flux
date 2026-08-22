@@ -13,7 +13,12 @@ class FakeMetadata {
   album: string;
   artwork: { src: string; sizes: string }[];
 
-  constructor(init: { title: string; artist: string; album: string; artwork: { src: string; sizes: string }[] }) {
+  constructor(init: {
+    title: string;
+    artist: string;
+    album: string;
+    artwork: { src: string; sizes: string }[];
+  }) {
     this.title = init.title;
     this.artist = init.artist;
     this.album = init.album;
@@ -36,7 +41,6 @@ const session: Session = {
     handlers.set(action, handler);
   }),
 };
-
 
 const AN_EPISODE = {
   id: 'a-media-id',
@@ -101,10 +105,10 @@ describe('useNowPlaying', () => {
     expect(session.metadata).toMatchObject({ album: 'Series 2, Episode 12' });
   });
 
-  it('says Flux for a film, which belongs to no programme', () => {
+  it('says Valence for a film, which belongs to no programme', () => {
     playing({ media: { id: 'a-film', title: 'A Film', hasPoster: true } });
 
-    expect(session.metadata).toMatchObject({ artist: 'Flux', album: '' });
+    expect(session.metadata).toMatchObject({ artist: 'Valence', album: '' });
   });
 
   it('offers the poster to draw, since the alternative is a blank square', () => {

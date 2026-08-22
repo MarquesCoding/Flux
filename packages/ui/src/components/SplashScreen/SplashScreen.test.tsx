@@ -40,7 +40,7 @@ describe('SplashScreen', () => {
   it('shows a still bar rather than a travelling one when less motion was asked for', () => {
     motion.isReduced = true;
 
-    render(<SplashScreen name="Flux" label="Loading" />);
+    render(<SplashScreen name="Valence" label="Loading" />);
 
     expect(screen.getByRole('status', { name: 'Loading' })).toBeInTheDocument();
   });

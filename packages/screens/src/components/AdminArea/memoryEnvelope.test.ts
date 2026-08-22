@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
 import { memoryEnvelope } from './memoryEnvelope';
 
 const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['resources'] => ({

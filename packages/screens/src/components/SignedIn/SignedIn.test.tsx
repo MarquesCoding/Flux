@@ -1,10 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderTheApp } from '@FluxScreens/testing/renderTheApp';
+import { renderTheApp } from '@ValenceScreens/testing/renderTheApp';
 
 const fetchMock = vi.fn();
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => undefined,
     stop: () => undefined,
@@ -31,7 +31,7 @@ const SETUP = {
 const OPERATOR = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'Operator',
-  email: 'operator@flux.test',
+  email: 'operator@valence.test',
   emailVerified: true,
   role: 'admin',
 };
@@ -98,7 +98,7 @@ describe('SignedIn', () => {
     renderTheApp();
 
     expect(
-      await screen.findByRole('heading', { name: 'Flux is not reachable' }),
+      await screen.findByRole('heading', { name: 'Valence is not reachable' }),
     ).toBeInTheDocument();
   });
 

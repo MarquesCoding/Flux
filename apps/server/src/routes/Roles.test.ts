@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signUpForTest, makeAdministrator, TEST_ORIGIN } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const RoleListSchema = z.object({
   roles: z.array(z.object({ id: z.string(), name: z.string(), position: z.number() })),

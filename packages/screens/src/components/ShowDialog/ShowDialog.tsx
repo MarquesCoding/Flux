@@ -1,27 +1,27 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { InfoIcon, LinkIcon, PlayIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { nameSeason } from '@FluxClient/library/nameSeason';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { BackdropScrim } from '@FluxUI/BackdropScrim';
-import { Badge } from '@FluxUI/Badge';
-import { Spinner } from '@FluxUI/Spinner';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { Button } from '@ValenceUI/Button';
+import { nameSeason } from '@ValenceClient/library/nameSeason';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { BackdropScrim } from '@ValenceUI/BackdropScrim';
+import { Badge } from '@ValenceUI/Badge';
+import { Spinner } from '@ValenceUI/Spinner';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { MediaPreview } from '@FluxScreens/components/MediaPreview/MediaPreview';
-import { scrollToTopOf } from '@FluxScreens/navigation/scrollToTopOf';
-import { RatingPanel } from '@FluxScreens/components/RatingPanel/RatingPanel';
+import { useHeldWhileLeaving } from '@ValenceClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { MediaPreview } from '@ValenceScreens/components/MediaPreview/MediaPreview';
+import { scrollToTopOf } from '@ValenceScreens/navigation/scrollToTopOf';
+import { RatingPanel } from '@ValenceScreens/components/RatingPanel/RatingPanel';
 import { pickUpFrom } from './pickUpFrom';
 import { EpisodeRow } from './components/EpisodeRow/EpisodeRow';
 import { MissingRow } from './components/MissingRow/MissingRow';
-import { findGaps } from '@FluxCore/functions/findGaps';
+import { findGaps } from '@ValenceCore/functions/findGaps';
 import type { ShowDialogProps } from './ShowDialog.types';
 
 /**
@@ -295,7 +295,7 @@ const ShowDialog = ({
               </h3>
 
               {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
-                <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
+                <ul className="valence-rail flex items-center gap-2 overflow-x-auto">
                   {chooseFrom.map((one) => (
                     <li key={one.seasonNumber ?? 'specials'}>
                       <Button

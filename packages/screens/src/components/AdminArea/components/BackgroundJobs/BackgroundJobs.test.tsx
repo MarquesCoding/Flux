@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { BackgroundJobs } from './BackgroundJobs';
-import type { Job, Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { Job, Monitor } from '@ValenceClient/admin/fetchAdmin';
 
 const job = (overrides: Partial<Job> = {}): Job => ({
   id: 1,

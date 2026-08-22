@@ -1,5 +1,5 @@
-import type { PartyRole, WatchParty } from '@FluxContracts/schemas/WatchParty';
-import type { Askable } from '@FluxScreens/components/PartyPanel/PartyPanel.types';
+import type { PartyRole, WatchParty } from '@ValenceContracts/schemas/WatchParty';
+import type { Askable } from '@ValenceScreens/components/PartyPanel/PartyPanel.types';
 
 type PartyMenuProps = {
   party: WatchParty | null;

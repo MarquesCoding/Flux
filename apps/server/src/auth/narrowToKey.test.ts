@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { narrowToKey } from './narrowToKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const held = (...permissions: Permission[]): ReadonlySet<Permission> => new Set(permissions);
 

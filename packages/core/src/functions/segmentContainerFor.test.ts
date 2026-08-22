@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import { segmentContainerFor } from './segmentContainerFor';
 
 const profile = (transcodingProfiles: DeviceProfile['transcodingProfiles']): DeviceProfile => ({

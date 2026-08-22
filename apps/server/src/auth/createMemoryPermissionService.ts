@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
-import { resolvePermissions } from '@FluxCore/functions/resolvePermissions';
-import { DEFAULT_ROLES } from '@FluxCore/functions/defaultRoles';
-import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
-import type { PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
+import { resolvePermissions } from '@ValenceCore/functions/resolvePermissions';
+import { DEFAULT_ROLES } from '@ValenceCore/functions/defaultRoles';
+import { ADMINISTRATOR } from '@ValenceContracts/schemas/Permission';
+import type { PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
 import type { PermissionService } from './PermissionService';
 
 type MemoryState = {

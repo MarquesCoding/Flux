@@ -1,4 +1,4 @@
-import type { Connect } from '@FluxClient/realtime/createRealtimeClient';
+import type { Connect } from '@ValenceClient/realtime/createRealtimeClient';
 
 const PATH = '/api/realtime';
 

@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { watchPresence } from './watchPresence';
 import { onPresenceEvent } from './presenceEvents';
-import type { RealtimeClient, Identity } from '@FluxClient/realtime/createRealtimeClient';
-import type { RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
+import type { RealtimeClient, Identity } from '@ValenceClient/realtime/createRealtimeClient';
+import type { RealtimeEvent, RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 
 const createFakeClient = () => {
   const listeners = new Map<RealtimeTopic, (event: RealtimeEvent) => void>();

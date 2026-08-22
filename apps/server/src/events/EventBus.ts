@@ -1,4 +1,4 @@
-import type { WebhookPayload } from '@FluxContracts/schemas/Webhook';
+import type { WebhookPayload } from '@ValenceContracts/schemas/Webhook';
 
 type WebhookOccurrence<TPayload = WebhookPayload> = TPayload extends WebhookPayload
   ? Omit<TPayload, 'version' | 'id' | 'occurredAt'>

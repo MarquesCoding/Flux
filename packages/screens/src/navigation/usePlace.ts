@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useSyncExternalStore } from 'react';
 import { useRouter } from '@tanstack/react-router';
-import { placeIn, writeLocation } from '@FluxClient/navigation/readLocation';
-import type { Place } from '@FluxClient/navigation/readLocation';
+import { placeIn, writeLocation } from '@ValenceClient/navigation/readLocation';
+import type { Place } from '@ValenceClient/navigation/readLocation';
 
 /**
  * Where the application is, read from the router rather than held in state, so that every place in
- * Flux is somewhere the browser can go back to, reload into, or have a link sent to.
+ * Valence is somewhere the browser can go back to, reload into, or have a link sent to.
  *
  * The router owns the address and the history; this turns what it holds into the shape the shell
  * reasons in, and turns a change to that shape back into an address. It reads the router's history

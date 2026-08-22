@@ -1,4 +1,4 @@
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
 
 type ProgressReport = {
   mediaId: string;

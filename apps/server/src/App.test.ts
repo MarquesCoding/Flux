@@ -2,11 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createApp } from './App';
 import { createMemoryAuth } from './auth/createMemoryAuth';
 import { createMemoryLibraryService } from './library/createMemoryLibraryService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
 import { createMemoryPlaybackService } from './playback/createMemoryPlaybackService';
 import { createMemoryPermissionService } from './auth/createMemoryPermissionService';
 import { signedInApp, TEST_ORIGIN } from './auth/signUpForTest';
@@ -70,7 +70,7 @@ describe('createApp', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ openapi: '3.1.0', info: { title: 'Flux API' } });
+    expect(body).toMatchObject({ openapi: '3.1.0', info: { title: 'Valence API' } });
   });
 
   it('documents the playback endpoints in the specification', async () => {

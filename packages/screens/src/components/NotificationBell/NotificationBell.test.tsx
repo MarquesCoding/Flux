@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { NotificationBell } from './NotificationBell';
-import type { Notification } from '@FluxContracts/schemas/Notification';
+import type { Notification } from '@ValenceContracts/schemas/Notification';
 
 const aNotification = (overrides: Partial<Notification> = {}): Notification => ({
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

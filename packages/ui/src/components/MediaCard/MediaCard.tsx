@@ -1,11 +1,11 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { PlayIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { hasFinePointer } from '@FluxUI/hasFinePointer';
-import { Badge } from '@FluxUI/Badge';
-import { revealTransition } from '@FluxUI/animations/reveal';
+import { cn } from '@ValenceUI/cn';
+import { hasFinePointer } from '@ValenceUI/hasFinePointer';
+import { Badge } from '@ValenceUI/Badge';
+import { revealTransition } from '@ValenceUI/animations/reveal';
 import type { MediaCardProps, MediaCardShape } from './MediaCard.types';
 
 const SHAPE_CLASSES: Record<MediaCardShape, string> = {
@@ -96,7 +96,7 @@ const MediaCard = ({
         <span className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-90" />
 
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-100">
-          <span className="flux-glass flex size-14 items-center justify-center rounded-full transition-transform duration-[var(--duration-base)] ease-[var(--ease-spring)] motion-reduce:transition-none hover-hover:group-hover:scale-100 scale-90">
+          <span className="valence-glass flex size-14 items-center justify-center rounded-full transition-transform duration-[var(--duration-base)] ease-[var(--ease-spring)] motion-reduce:transition-none hover-hover:group-hover:scale-100 scale-90">
             <Icon of={PlayIcon} size={22} className="text-white" />
           </span>
         </span>

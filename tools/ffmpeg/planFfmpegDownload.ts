@@ -69,7 +69,7 @@ const planFfmpegDownload = ({
     kind: 'unsupported',
     message: [
       `flux-ffmpeg publishes Linux and macOS builds, and this machine is ${platform}.`,
-      'Run Flux in the container, which carries the build already.',
+      'Run Valence in the container, which carries the build already.',
     ].join('\n'),
   };
 };

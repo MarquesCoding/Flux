@@ -1,5 +1,5 @@
 import { act, waitFor } from '@testing-library/react';
-import { renderHookInAnAddress } from '@FluxScreens/testing/renderHookInAnAddress';
+import { renderHookInAnAddress } from '@ValenceScreens/testing/renderHookInAnAddress';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { usePlace } from './usePlace';
 

@@ -30,7 +30,7 @@ const planTranscoderDev = ({
       kind: 'stop',
       message: [
         'TRANSCODER_URL is not set, so the server and the media service have no address to agree on.',
-        'Copy .env.example to .env, or set TRANSCODER_URL=unix:/tmp/flux-transcoder.sock.',
+        'Copy .env.example to .env, or set TRANSCODER_URL=unix:/tmp/valence-transcoder.sock.',
       ].join('\n'),
     };
   }

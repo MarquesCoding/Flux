@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import { negotiatePlayback } from './negotiatePlayback';
 
 const media: MediaItem = {
@@ -729,7 +729,7 @@ describe('negotiatePlayback', () => {
       expect(plan.audio.reason.code).toBe('AudioCodecNotSupported');
     });
 
-    it('remuxes a container Flux could not name', () => {
+    it('remuxes a container Valence could not name', () => {
       const plan = negotiatePlayback({ ...media, container: 'unknown' }, profile);
 
       expect(plan.container.kind).not.toBe('directPlay');

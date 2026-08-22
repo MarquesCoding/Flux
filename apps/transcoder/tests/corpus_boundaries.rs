@@ -20,8 +20,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use flux_transcoder::boundaries::can_copy_segments;
-use flux_transcoder::keyframes::{
+use valence_transcoder::boundaries::can_copy_segments;
+use valence_transcoder::keyframes::{
     cut_interval, longest_segment, parse_cuts, seek_into, segment_lengths, segment_starts,
     Keyframes,
 };
@@ -30,7 +30,7 @@ mod common;
 
 use common::{ffmpeg, ffprobe, first_pts};
 
-/// What Flux asks for, and what the rules are tuned around.
+/// What Valence asks for, and what the rules are tuned around.
 const REQUESTED_SEGMENT_SECONDS: f64 = 4.0;
 
 /// How far a predicted boundary may sit from the one ffmpeg wrote.
@@ -42,7 +42,7 @@ const TOLERANCE_SECONDS: f64 = 0.02;
 
 /// Where the corpus lives, matching `fixturesDirectory` on the TypeScript side.
 fn corpus_directory() -> PathBuf {
-    if let Ok(configured) = std::env::var("FLUX_FIXTURES_DIR") {
+    if let Ok(configured) = std::env::var("VALENCE_FIXTURES_DIR") {
         if !configured.trim().is_empty() {
             return PathBuf::from(configured);
         }
@@ -50,7 +50,7 @@ fn corpus_directory() -> PathBuf {
 
     let home = std::env::var("HOME").unwrap_or_default();
 
-    PathBuf::from(home).join(".cache").join("flux-fixtures")
+    PathBuf::from(home).join(".cache").join("valence-fixtures")
 }
 
 /// Whether a file has a video stream at all.
@@ -287,7 +287,7 @@ fn tells_an_open_gop_from_a_closed_one() {
     }
 }
 
-/// The lengths Flux declares are the lengths ffmpeg writes.
+/// The lengths Valence declares are the lengths ffmpeg writes.
 ///
 /// This is the claim the whole playlist rests on, and the one measured against
 /// a single film. A playlist that declares boundaries the muxer does not
@@ -302,7 +302,7 @@ fn predicts_the_segments_ffmpeg_actually_writes() {
         return;
     }
 
-    let scratch = std::env::temp_dir().join(format!("flux-corpus-{}", std::process::id()));
+    let scratch = std::env::temp_dir().join(format!("valence-corpus-{}", std::process::id()));
     let mut disagreements: Vec<String> = Vec::new();
 
     for path in fixtures {
@@ -361,8 +361,8 @@ fn predicts_the_segments_ffmpeg_actually_writes() {
 /// keyframe whether or not that keyframe carries leading pictures. This test
 /// used to measure the other thing — the lengths left after passing those
 /// keyframes over — and a fixture with open GOPs far apart failed it at 60s
-/// while its real segments are well inside the limit. Flux no longer passes
-/// them over, so neither does this. See FLUX-145.
+/// while its real segments are well inside the limit. Valence no longer passes
+/// them over, so neither does this. See VAL-145.
 ///
 /// A closed-GOP source with keyframes every two seconds should never trip it.
 #[test]
@@ -425,7 +425,7 @@ fn starts_a_run_at_the_segment_it_was_aimed_at() {
         return;
     }
 
-    let scratch = std::env::temp_dir().join(format!("flux-seek-{}", std::process::id()));
+    let scratch = std::env::temp_dir().join(format!("valence-seek-{}", std::process::id()));
     let mut wrong: Vec<String> = Vec::new();
 
     for path in fixtures {

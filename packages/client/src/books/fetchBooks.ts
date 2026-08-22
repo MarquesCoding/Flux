@@ -1,9 +1,13 @@
 import { z } from 'zod';
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
-import { profileHeaders } from '@FluxClient/profiles/currentProfile';
-import { BookDetailSchema, BookSchema, ReadingProgressSchema } from '@FluxContracts/schemas/Book';
-import type { Book, BookDetail, ReadingProgress } from '@FluxContracts/schemas/Book';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { readFromServerOrAbsent } from '@ValenceClient/query/readFromServerOrAbsent';
+import { profileHeaders } from '@ValenceClient/profiles/currentProfile';
+import {
+  BookDetailSchema,
+  BookSchema,
+  ReadingProgressSchema,
+} from '@ValenceContracts/schemas/Book';
+import type { Book, BookDetail, ReadingProgress } from '@ValenceContracts/schemas/Book';
 
 const BookListSchema = z.object({ books: z.array(BookSchema) });
 
@@ -40,7 +44,7 @@ const fetchReadingProgress = async (bookId: string): Promise<ReadingProgress[]> 
  * Remembers where somebody is up to.
  *
  * Sent without waiting on it and without minding whether it lands. Somebody turning a page is
- * telling Flux something, not asking it: a page that stopped to be sure the place had been written
+ * telling Valence something, not asking it: a page that stopped to be sure the place had been written
  * would be a page that stutters, and a place that failed to save costs a reader one turn next time.
  *
  * @param bookId - The book.

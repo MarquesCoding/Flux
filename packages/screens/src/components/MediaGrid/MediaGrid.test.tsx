@@ -1,8 +1,8 @@
 import { screen } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import { describe, expect, it, vi } from 'vitest';
 import { MediaGrid } from './MediaGrid';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const item = (id: string, title: string): MediaSummary => ({
   id,

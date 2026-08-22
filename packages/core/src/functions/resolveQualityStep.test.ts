@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 import { resolveQualityStep, frameRateAllowance } from './resolveQualityStep';
 
 const media: MediaItem = {

@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { WebhookDelivery, WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { WebhookDelivery, WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
 /**

@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createRealtimeClient } from './createRealtimeClient';
-import { FromClientSchema } from '@FluxContracts/schemas/Realtime';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { FromClientSchema } from '@ValenceContracts/schemas/Realtime';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { Connect, Handlers } from './createRealtimeClient';
-import type { FromClient, FromServer, RealtimeEvent } from '@FluxContracts/schemas/Realtime';
+import type { FromClient, FromServer, RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
 const createWorld = () => {
   const waits: { run: () => void; afterMs: number; cancelled: boolean }[] = [];

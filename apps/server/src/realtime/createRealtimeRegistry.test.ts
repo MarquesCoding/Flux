@@ -3,8 +3,8 @@ import { createRealtimeRegistry } from './createRealtimeRegistry';
 import { createEntitlements } from './createEntitlements';
 import type { RealtimeConnection } from './createRealtimeRegistry';
 import type { Schedule } from './createCoalescer';
-import type { Permission } from '@FluxContracts/schemas/Permission';
-import type { FromServer } from '@FluxContracts/schemas/Realtime';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
+import type { FromServer } from '@ValenceContracts/schemas/Realtime';
 
 const createClock = () => {
   const due: (() => void)[] = [];

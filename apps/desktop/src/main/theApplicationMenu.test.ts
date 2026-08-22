@@ -40,7 +40,9 @@ describe('theApplicationMenu', () => {
     const changeServer = vi.fn();
 
     theApplicationMenu(changeServer);
-    built().find((item) => item.label === 'Change server…')?.click?.();
+    built()
+      .find((item) => item.label === 'Change server…')
+      ?.click?.();
 
     expect(changeServer).toHaveBeenCalledOnce();
   });
@@ -57,7 +59,7 @@ describe('theApplicationMenu', () => {
     expect(built().some((item) => item.role === 'reload')).toBe(true);
   });
 
-  it('offers it under File, since the application menu is named by the bundle and may not say Flux', () => {
+  it('offers it under File, since the application menu is named by the bundle and may not say Valence', () => {
     theApplicationMenu(vi.fn());
 
     const file = buildFromTemplate.mock.calls[0]?.[0].find((item) => item.label === 'File');

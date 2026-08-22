@@ -1,4 +1,4 @@
-import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { Avatar, ProfileColour, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 type ProfileRequest = {
   name: string;

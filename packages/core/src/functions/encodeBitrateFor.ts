@@ -1,4 +1,4 @@
-import type { VideoCodec } from '@FluxContracts/schemas/MediaItem';
+import type { VideoCodec } from '@ValenceContracts/schemas/MediaItem';
 
 type EncodeBitrateOptions = {
   sourceBitrateKbps: number;

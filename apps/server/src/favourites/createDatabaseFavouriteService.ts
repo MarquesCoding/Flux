@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { favourite } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { favourite } from '@ValenceServer/db/Schema';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { FavouriteService } from './FavouriteService';
 
 const LIMIT = 500;
@@ -12,7 +12,7 @@ const LIMIT = 500;
  * @param db - The database to read and write.
  * @returns The favourite service.
  */
-const createDatabaseFavouriteService = (db: FluxDatabase): FavouriteService => ({
+const createDatabaseFavouriteService = (db: ValenceDatabase): FavouriteService => ({
   list: async (profileId) => {
     const rows = await db
       .select()

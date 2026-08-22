@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { handOverToDevice } from './handOverToDevice';
 
-const REACHABLE = 'http://flux.local:5173';
+const REACHABLE = 'http://valence.local:5173';
 
 /**
  * A video element that can be handed to a device, as Chrome presents one.
@@ -38,7 +38,7 @@ describe('handOverToDevice', () => {
       origin: REACHABLE,
     });
 
-    expect(element.src).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8');
+    expect(element.src).toBe('http://valence.local:5173/api/playback/session/abc/index.m3u8');
   });
 
   it('lets go of the media engine', async () => {

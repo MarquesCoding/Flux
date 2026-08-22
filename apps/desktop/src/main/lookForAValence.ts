@@ -14,17 +14,17 @@ const LOOK_AGAIN_EVERY_MS = 2000;
 const STOP_LOOKING_AFTER_MS = 60_000;
 
 /**
- * Asks an address whether there is a Flux behind it.
+ * Asks an address whether there is a Valence behind it.
  *
  * Health is the one thing a server answers to nobody in particular, so it can be asked before there
  * is a session or any reason to believe the address is right at all. Asked from this process rather
  * than from the page, because the page is served from a scheme of its own and a browser would refuse
  * the request for being somebody else's origin long before any server saw it.
  *
- * @param address - Where a Flux might be.
+ * @param address - Where a Valence might be.
  * @returns Whether one answered.
  */
-const isAFlux = async (address: string): Promise<boolean> => {
+const isAValence = async (address: string): Promise<boolean> => {
   try {
     const answered = await net.fetch(`${address}/api/health`, {
       headers: { accept: 'application/json' },
@@ -38,7 +38,7 @@ const isAFlux = async (address: string): Promise<boolean> => {
 };
 
 /**
- * Looks for a Flux on this machine, so that nobody has to be asked where their own server is.
+ * Looks for a Valence on this machine, so that nobody has to be asked where their own server is.
  *
  * The overwhelmingly common case is a server running on the same machine as the client, on the port
  * it uses unless told otherwise. Asking somebody to type that is asking them to tell the application
@@ -47,14 +47,14 @@ const isAFlux = async (address: string): Promise<boolean> => {
  *
  * Only this machine is looked at. Sweeping a network for open ports is a different kind of act
  * altogether — it is what a scanner does, it takes far longer than anybody will wait, and on a
- * shared network it means knocking on machines that are not ours to knock on. Somebody whose Flux is
+ * shared network it means knocking on machines that are not ours to knock on. Somebody whose Valence is
  * elsewhere is asked, which is the one case worth asking about.
  *
- * @param reach - How to ask whether a Flux is there, which a test replaces.
+ * @param reach - How to ask whether a Valence is there, which a test replaces.
  * @returns The address of the one it found, or nothing.
  */
-const lookForAFlux = async (
-  reach: (address: string) => Promise<boolean> = isAFlux,
+const lookForAValence = async (
+  reach: (address: string) => Promise<boolean> = isAValence,
 ): Promise<string | null> => {
   for (const address of WHERE_ONE_USUALLY_IS) {
     if (await reach(address)) {
@@ -74,17 +74,17 @@ const lookForAFlux = async (
  * quietly while they read the screen, and answers it for them if one turns up.
  *
  * @param found - Told the address, if one turns up.
- * @param reach - How to ask whether a Flux is there, which a test replaces.
+ * @param reach - How to ask whether a Valence is there, which a test replaces.
  * @returns How to stop looking.
  */
-const keepLookingForAFlux = (
+const keepLookingForAValence = (
   found: (address: string) => void,
-  reach: (address: string) => Promise<boolean> = isAFlux,
+  reach: (address: string) => Promise<boolean> = isAValence,
 ): (() => void) => {
   let stopped = false;
 
   const timer = setInterval(() => {
-    void lookForAFlux(reach).then((address) => {
+    void lookForAValence(reach).then((address) => {
       if (address !== null && !stopped) {
         stop();
         found(address);
@@ -111,7 +111,7 @@ export {
   LOOK_AGAIN_EVERY_MS,
   STOP_LOOKING_AFTER_MS,
   WHERE_ONE_USUALLY_IS,
-  isAFlux,
-  keepLookingForAFlux,
-  lookForAFlux,
+  isAValence,
+  keepLookingForAValence,
+  lookForAValence,
 };

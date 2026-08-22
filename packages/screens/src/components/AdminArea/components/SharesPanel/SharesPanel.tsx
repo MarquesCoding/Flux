@@ -1,23 +1,23 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { LinkBreakIcon } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
-import { DataTable } from '@FluxUI/DataTable';
-import { Spinner } from '@FluxUI/Spinner';
-import { revokeAnybodysShare } from '@FluxClient/sharing/fetchShares';
-import { adminQueries } from '@FluxClient/query/adminQueries';
-import { saidWhen } from '@FluxClient/format/saidWhen';
-import { standingOf } from '@FluxScreens/sharing/standingOf';
-import { untilWhen } from '@FluxClient/sharing/untilWhen';
-import { saidOpened } from '@FluxClient/sharing/saidOpened';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { AdminShare } from '@FluxContracts/schemas/Share';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { DataTable } from '@ValenceUI/DataTable';
+import { Spinner } from '@ValenceUI/Spinner';
+import { revokeAnybodysShare } from '@ValenceClient/sharing/fetchShares';
+import { adminQueries } from '@ValenceClient/query/adminQueries';
+import { saidWhen } from '@ValenceClient/format/saidWhen';
+import { standingOf } from '@ValenceScreens/sharing/standingOf';
+import { untilWhen } from '@ValenceClient/sharing/untilWhen';
+import { saidOpened } from '@ValenceClient/sharing/saidOpened';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { AdminShare } from '@ValenceContracts/schemas/Share';
 
 /**
  * Every link this server has handed out, whoever handed it out: what each points at, who made it,

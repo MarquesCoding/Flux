@@ -2,11 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { askForADifferentServer, isTheDesktopClient } from './theDesktopShell';
 
 const insideTheWindow = (): void => {
-  document.documentElement.dataset['fluxDesktop'] = 'true';
+  document.documentElement.dataset['valenceDesktop'] = 'true';
 };
 
 afterEach(() => {
-  delete document.documentElement.dataset['fluxDesktop'];
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('isTheDesktopClient', () => {
@@ -21,7 +21,7 @@ describe('isTheDesktopClient', () => {
   });
 
   it('says no for a mark that says anything else, rather than for merely being present', () => {
-    document.documentElement.dataset['fluxDesktop'] = 'maybe';
+    document.documentElement.dataset['valenceDesktop'] = 'maybe';
 
     expect(isTheDesktopClient()).toBe(false);
   });
@@ -30,13 +30,13 @@ describe('isTheDesktopClient', () => {
 describe('askForADifferentServer', () => {
   it('asks the window, which is the only thing that can point itself somewhere else', () => {
     const heard = vi.fn();
-    document.addEventListener('flux:change-server', heard);
+    document.addEventListener('valence:change-server', heard);
 
     askForADifferentServer();
 
     expect(heard).toHaveBeenCalledOnce();
 
-    document.removeEventListener('flux:change-server', heard);
+    document.removeEventListener('valence:change-server', heard);
   });
 
   it('asks nothing in particular in a browser, where nobody is listening', () => {

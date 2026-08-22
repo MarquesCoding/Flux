@@ -1,10 +1,12 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { LogoProps } from './Logo.types';
 
-const MARK = '/flux-logo.svg';
+const MARK = '/valence-logo.svg';
+
+const MARK_IS_WIDER_BY = 624 / 458;
 
 /**
- * The Flux mark, painted rather than drawn.
+ * The Valence mark, painted rather than drawn.
  *
  * The file is a mask rather than an image, which is what lets the mark take a colour at all: an
  * `<img>` is whatever colour it was exported as, while a mask is a hole through which anything can
@@ -29,9 +31,11 @@ const MARK = '/flux-logo.svg';
  *   screens already do behind their own dots. The grid is set in pixels rather than in fractions of
  *   the mark, so the dots are the same size wherever the mark is used. Worth asking for where the
  *   mark is large; at the size it sits in a dock the dots turn to mush.
- * @param size - How large the mark is, in pixels, square; omit to size it from the class, which is
- *   what a mark set beside type wants — `h-[0.72em]` puts it at the cap height of whatever it sits
- *   next to, and it then grows and shrinks with the type rather than being set twice.
+ * @param size - How tall the mark is, in pixels; its width follows from its own proportions, since
+ *   this mark is wider than it is tall and a square box would sit it in a letterbox with dead space
+ *   above and below. Omit it to size the mark from the class instead, in which case the proportion
+ *   is held by `aspect-ratio` so a height alone is still enough — which is what a mark set beside
+ *   type wants, growing and shrinking with it rather than being set twice.
  * @param isAnimated - Whether the light turns, which is for screens somebody waits on.
  * @param label - What it is, for anybody who cannot see it; omit where a name sits beside it.
  * @param className - Extra classes for the caller's own layout.
@@ -60,14 +64,18 @@ const Logo = ({
   return (
     <span
       {...(label === undefined ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
-      style={size === undefined ? {} : { width: size, height: size }}
+      style={
+        size === undefined
+          ? { aspectRatio: MARK_IS_WIDER_BY.toString() }
+          : { width: size * MARK_IS_WIDER_BY, height: size }
+      }
       className={cn('relative inline-block shrink-0 align-baseline', className)}
     >
       {hasEdge ? (
         <span
           aria-hidden
           style={cutToTheMark}
-          className="flux-logo-edge absolute inset-0 bg-accent"
+          className="valence-logo-edge absolute inset-0 bg-accent"
         />
       ) : null}
 
@@ -76,7 +84,7 @@ const Logo = ({
         style={cutToTheMark}
         className={cn('absolute inset-0 overflow-hidden', hasEdge ? 'bg-surface' : '')}
       >
-        <span className={isDotted ? 'flux-logo-dots' : 'absolute inset-0 overflow-hidden'}>
+        <span className={isDotted ? 'valence-logo-dots' : 'absolute inset-0 overflow-hidden'}>
           <span
             className={cn(
               'absolute -inset-1/2 bg-[conic-gradient(from_140deg,#ffffff,#ffffff_25%,var(--color-accent)_55%,#ffffff_85%,#ffffff)]',
@@ -87,7 +95,7 @@ const Logo = ({
             )}
           />
 
-          {isDotted && isAnimated ? <span className="flux-logo-wave" /> : null}
+          {isDotted && isAnimated ? <span className="valence-logo-wave" /> : null}
         </span>
       </span>
     </span>

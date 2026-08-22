@@ -1,14 +1,14 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ArrowsClockwiseIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useCallback, useMemo, useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { DataTable } from '@FluxUI/DataTable';
-import { TextField } from '@FluxUI/TextField';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { DataTable } from '@ValenceUI/DataTable';
+import { TextField } from '@ValenceUI/TextField';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaPanelProps } from './MediaPanel.types';
 
 /**

@@ -8,14 +8,14 @@
 
 ## Context
 
-Flux reads one medium. `media_item` says so in its columns: `durationSeconds`,
+Valence reads one medium. `media_item` says so in its columns: `durationSeconds`,
 `videoCodec`, `videoRange`, `width`, `height`, `audioStreams` and
 `subtitleStreams` are all `NOT NULL`, and the only way the scanner learns
 anything about a file is to hand it to FFmpeg and read the probe back.
 
 `library.kind` has allowed `'music'` since libraries were added and nothing has
 ever implemented it, so there is no precedent here to follow — manga and ebooks
-are the first medium in Flux that is genuinely not video.
+are the first medium in Valence that is genuinely not video.
 
 Almost nothing carries over. A book has no duration, no codec, and no streams. A
 chapter of a manga has a page count instead, and an EPUB has neither: it has

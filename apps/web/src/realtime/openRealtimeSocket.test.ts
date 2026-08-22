@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openRealtimeSocket } from './openRealtimeSocket';
-import type { Handlers } from '@FluxClient/realtime/createRealtimeClient';
+import type { Handlers } from '@ValenceClient/realtime/createRealtimeClient';
 
 class FakeSocket {
   static last: FakeSocket | null = null;
@@ -63,11 +63,11 @@ describe('openRealtimeSocket', () => {
   });
 
   it('follows the page onto TLS, rather than being fixed to one scheme', () => {
-    servedFrom('https:', 'flux.example.com');
+    servedFrom('https:', 'valence.example.com');
 
     openRealtimeSocket(nothingListening());
 
-    expect(FakeSocket.last?.url).toBe('wss://flux.example.com/api/realtime');
+    expect(FakeSocket.last?.url).toBe('wss://valence.example.com/api/realtime');
   });
 
   it('passes on the moments the client cares about', () => {

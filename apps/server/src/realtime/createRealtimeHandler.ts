@@ -1,10 +1,10 @@
-import { FromClientSchema } from '@FluxContracts/schemas/Realtime';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { FromServer } from '@FluxContracts/schemas/Realtime';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { handlePartyMessage, tellEveryone } from '@FluxServer/parties/handlePartyMessage';
+import { FromClientSchema } from '@ValenceContracts/schemas/Realtime';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { FromServer } from '@ValenceContracts/schemas/Realtime';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { handlePartyMessage, tellEveryone } from '@ValenceServer/parties/handlePartyMessage';
 import type { RealtimeRegistry } from './createRealtimeRegistry';
-import type { PartyBinding } from '@FluxServer/parties/handlePartyMessage';
+import type { PartyBinding } from '@ValenceServer/parties/handlePartyMessage';
 
 type RealtimeSocket = {
   send: (raw: string) => void;

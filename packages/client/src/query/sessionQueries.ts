@@ -1,9 +1,9 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchSession } from '@FluxClient/session/auth';
-import { readVersion } from '@FluxClient/session/readVersion';
-import { fetchProfiles } from '@FluxClient/profiles/fetchProfiles';
-import { fetchEveryone } from '@FluxClient/profiles/fetchEveryone';
-import { fetchSetupStatus } from '@FluxClient/setup/fetchSetupStatus';
+import { fetchSession } from '@ValenceClient/session/auth';
+import { readVersion } from '@ValenceClient/session/readVersion';
+import { fetchProfiles } from '@ValenceClient/profiles/fetchProfiles';
+import { fetchEveryone } from '@ValenceClient/profiles/fetchEveryone';
+import { fetchSetupStatus } from '@ValenceClient/setup/fetchSetupStatus';
 
 const SESSION = ['session'] as const;
 

@@ -49,7 +49,7 @@ const standard = (state: string, isAvailable = true) => {
 
 describe('isReachableOrigin', () => {
   it('agrees where a device could follow the address', () => {
-    expect(isReachableOrigin('http://flux.local:5173')).toBe(true);
+    expect(isReachableOrigin('http://valence.local:5173')).toBe(true);
     expect(isReachableOrigin('http://192.168.1.20:5173')).toBe(true);
   });
 
@@ -66,13 +66,13 @@ describe('isReachableOrigin', () => {
 describe('absoluteStreamUrl', () => {
   it('says where a stream is in terms a device can use', () => {
     expect(
-      absoluteStreamUrl('/api/playback/session/abc/index.m3u8', 'http://flux.local:5173'),
-    ).toBe('http://flux.local:5173/api/playback/session/abc/index.m3u8');
+      absoluteStreamUrl('/api/playback/session/abc/index.m3u8', 'http://valence.local:5173'),
+    ).toBe('http://valence.local:5173/api/playback/session/abc/index.m3u8');
   });
 
   it('leaves an address that is already whole alone', () => {
-    expect(absoluteStreamUrl('http://flux.local/a.mkv', 'http://flux.local:5173')).toBe(
-      'http://flux.local/a.mkv',
+    expect(absoluteStreamUrl('http://valence.local/a.mkv', 'http://valence.local:5173')).toBe(
+      'http://valence.local/a.mkv',
     );
   });
 

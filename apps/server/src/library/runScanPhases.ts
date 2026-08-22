@@ -1,4 +1,4 @@
-import type { ScanResult } from '@FluxContracts/schemas/Library';
+import type { ScanResult } from '@ValenceContracts/schemas/Library';
 
 type ScanPhaseWork = {
   scan: () => Promise<ScanResult | null>;

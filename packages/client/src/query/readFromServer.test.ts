@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { readFromServer } from './readFromServer';
 import { RequestFailed } from './RequestFailed';
 

@@ -1,4 +1,4 @@
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 type ProfileFaceProps = {
   profile: ViewerProfile;

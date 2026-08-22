@@ -74,7 +74,7 @@ describe('Button', () => {
   it('offers a glossy treatment for the controls that matter most', () => {
     render(<Button variant="glossy">Play</Button>);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('flux-gloss');
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('valence-gloss');
   });
 
   it('squares off a pill of text, since a lozenge reads as soft where this reads as precise', () => {

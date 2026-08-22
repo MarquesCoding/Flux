@@ -3,8 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { StreamStats } from './StreamStats';
 import type { PlaybackHealth, StreamStatsProps } from './StreamStats.types';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const reason: Reason = {
   code: 'VideoCodecNotSupported',

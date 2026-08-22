@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createPartyRegistry } from './createPartyRegistry';
 import { handlePartyMessage } from './handlePartyMessage';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { FromClient, FromServer } from '@FluxContracts/schemas/Realtime';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { FromClient, FromServer } from '@ValenceContracts/schemas/Realtime';
 
 const NOW_MS = 1_700_000_000_000;
 

@@ -1,8 +1,8 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { ApiKeySchema, CreatedApiKeySchema } from '@FluxContracts/schemas/ApiKey';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { ApiKeySchema, CreatedApiKeySchema } from '@ValenceContracts/schemas/ApiKey';
 import { z } from 'zod';
-import type { ApiKey, CreatedApiKey } from '@FluxContracts/schemas/ApiKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { ApiKey, CreatedApiKey } from '@ValenceContracts/schemas/ApiKey';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const ApiKeyListSchema = z.object({ keys: z.array(ApiKeySchema) });
 

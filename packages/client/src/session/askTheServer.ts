@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-const PLACEHOLDER = 'http://flux.invalid';
+const PLACEHOLDER = 'http://valence.invalid';
 
 const WhereWeAreSchema = z.object({ protocol: z.string(), origin: z.string() });
 
@@ -15,7 +15,7 @@ const ACCEPTED = new Set(['http:', 'https:']);
  * A browser has one already: the page's own origin, which is the server that served it, and which
  * the library is perfectly happy with. It is handed that.
  *
- * A client that serves its own pages has an origin of its own making — `flux://app` — which the
+ * A client that serves its own pages has an origin of its own making — `valence://app` — which the
  * library refuses outright, so that one is handed a base it accepts and never asked to fetch. What
  * it builds on top is turned back into a path on the way out.
  *
@@ -43,7 +43,7 @@ const AUTH_BASE = theAuthBase();
  * Turns whatever better-auth built into an address this client can actually ask for.
  *
  * The library insists on a base beginning `http` and reads the page's own origin where it is not
- * told one. A client that serves its own pages has an origin of its own making — `flux://app` —
+ * told one. A client that serves its own pages has an origin of its own making — `valence://app` —
  * which the library refuses outright. So it is handed a base it accepts and never asked to fetch it:
  * what it builds on top is turned back into a path here, on the way out, and the request goes to the
  * page's own origin like every other.

@@ -1,9 +1,9 @@
-import type { ActiveSession, AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
-import { fluxCpuShare } from './fluxCpuShare';
+import type { ActiveSession, AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import { valenceCpuShare } from './valenceCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { memoryEnvelope } from './memoryEnvelope';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 
 type ConcernTone = 'broken' | 'attention' | 'setup';
 
@@ -34,7 +34,7 @@ const ENCODER_PRESSURE = 90;
 
 const DISK_PRESSURE = 0.95;
 
-const FLUX_BLAME = 50;
+const VALENCE_BLAME = 50;
 
 const STARVED_SECONDS = 2;
 
@@ -89,7 +89,7 @@ const collectConcerns = ({
     concerns.push({
       id: 'ffmpeg-version',
       tone: 'attention',
-      title: 'The media service is running an FFmpeg older than Flux supports',
+      title: 'The media service is running an FFmpeg older than Valence supports',
       detail:
         version === null
           ? 'Everything still plays, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.'
@@ -137,7 +137,7 @@ const collectConcerns = ({
       id: 'memory',
       tone: 'attention',
       title: memory.isLimited
-        ? 'Flux is nearly at the memory it is allowed'
+        ? 'Valence is nearly at the memory it is allowed'
         : 'Memory is nearly full',
       detail: 'Converting several things at once may fail or be killed.',
       panel: 'activity',
@@ -166,7 +166,7 @@ const collectConcerns = ({
   const recent = history.slice(-CPU_READINGS);
 
   if (recent.length === CPU_READINGS && recent.every((reading) => reading > CPU_PRESSURE)) {
-    const share = fluxCpuShare(resources);
+    const share = valenceCpuShare(resources);
 
     concerns.push({
       id: 'cpu',
@@ -175,9 +175,9 @@ const collectConcerns = ({
       detail:
         share === null
           ? 'Playback that needs converting may stutter while it lasts.'
-          : share >= FLUX_BLAME
-            ? `Flux is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
-            : `Flux is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
+          : share >= VALENCE_BLAME
+            ? `Valence is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
+            : `Valence is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
       panel: 'activity',
     });
   }

@@ -1,12 +1,12 @@
-import { partyAllows, powersOf, whoKeepsTime } from '@FluxContracts/schemas/WatchParty';
-import { whoIsHoldingUp } from '@FluxCore/functions/whoIsHoldingUp';
+import { partyAllows, powersOf, whoKeepsTime } from '@ValenceContracts/schemas/WatchParty';
+import { whoIsHoldingUp } from '@ValenceCore/functions/whoIsHoldingUp';
 import type {
   PartyCommand,
   PartyMember,
   PartyRole,
   SequencedCommand,
   WatchParty,
-} from '@FluxContracts/schemas/WatchParty';
+} from '@ValenceContracts/schemas/WatchParty';
 
 type Joining = {
   partyId: string;

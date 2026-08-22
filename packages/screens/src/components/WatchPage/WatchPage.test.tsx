@@ -1,13 +1,13 @@
 import { screen, act } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
-import { aShell } from '@FluxClient/testing/aShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
+import { aShell } from '@ValenceClient/testing/aShell';
 import { WatchPage } from './WatchPage';
-import type { VideoPlayerProps } from '@FluxScreens/components/VideoPlayer/VideoPlayer.types';
+import type { VideoPlayerProps } from '@ValenceScreens/components/VideoPlayer/VideoPlayer.types';
 
 const drawn = vi.hoisted((): { player: VideoPlayerProps | null } => ({ player: null }));
 
-vi.mock('@FluxScreens/components/VideoPlayer/VideoPlayer', () => ({
+vi.mock('@ValenceScreens/components/VideoPlayer/VideoPlayer', () => ({
   VideoPlayer: (props: VideoPlayerProps) => {
     drawn.player = props;
 

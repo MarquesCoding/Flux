@@ -1,4 +1,4 @@
-import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack';
+import { describeLanguage, readLanguage } from '@ValenceCore/functions/describeTrack';
 
 const SUBTITLE_EXTENSIONS = new Set(['srt', 'vtt', 'ass', 'ssa']);
 

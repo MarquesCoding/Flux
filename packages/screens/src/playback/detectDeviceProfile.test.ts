@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
+import { DeviceProfileSchema } from '@ValenceContracts/schemas/DeviceProfile';
 import { detectDeviceProfile, detectFromBrowser } from './detectDeviceProfile';
 
 const supporting =
@@ -205,7 +205,7 @@ describe('the ceilings a browser cannot be asked about', () => {
   });
 });
 
-describe('claiming a codec only in the container Flux actually sends', () => {
+describe('claiming a codec only in the container Valence actually sends', () => {
   const takingOnly =
     (...types: string[]) =>
     (mimeType: string) =>
@@ -349,9 +349,9 @@ describe('a build that claims Dolby it cannot decode', () => {
   });
 
   it('refuses ChromeOS too, which is the same engine on the same platform decoders', () => {
-    expect(build(dolby, { platform: 'CrOS x86_64' }).directPlayProfiles[0]?.audioCodecs).not.toContain(
-      'eac3',
-    );
+    expect(
+      build(dolby, { platform: 'CrOS x86_64' }).directPlayProfiles[0]?.audioCodecs,
+    ).not.toContain('eac3');
   });
 
   it('keeps everything else it said it could play, since only Dolby is in question', () => {

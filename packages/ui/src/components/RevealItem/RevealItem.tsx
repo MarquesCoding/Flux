@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { revealItemVariants } from '@FluxUI/animations/reveal';
+import { revealItemVariants } from '@ValenceUI/animations/reveal';
 import type { RevealItemProps } from './RevealItem.types';
 
 /**

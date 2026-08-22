@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { DotFieldFilm, DotFieldFrame } from '@FluxUI/DotField.types';
+import type { DotFieldFilm, DotFieldFrame } from '@ValenceUI/DotField.types';
 
 const TAIL = 0.25;
 
@@ -29,7 +29,7 @@ const useDotFilm = (isPlaying: boolean, onEnd: () => void): DotFieldFrame | null
 
     let wanted = true;
 
-    void import('@FluxUI/badAppleFilm')
+    void import('@ValenceUI/badAppleFilm')
       .then(async (loaded) => loaded.loadBadAppleFilm())
       .then((loaded) => {
         if (wanted) {

@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@FluxServer/db/Schema';
-import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@ValenceServer/db/Schema';
+import { AudioStreamSchema } from '@ValenceContracts/schemas/MediaItem';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import { resolveSeriesKey } from './resolveSeriesKey';
 import type { MediaStore } from './scanLibrary';
 
@@ -17,7 +17,7 @@ import type { MediaStore } from './scanLibrary';
  * @returns The store, plus the operations only a real library performs.
  */
 const createMediaStore = (
-  db: FluxDatabase,
+  db: ValenceDatabase,
 ): MediaStore & {
   clear: (libraryId: string) => Promise<number>;
   saveOverride: (row: {
@@ -234,7 +234,7 @@ const createMediaStore = (
  * @returns The items still outstanding, with what each needs to be worked on.
  */
 const listOutstandingFor = async (
-  db: FluxDatabase,
+  db: ValenceDatabase,
   libraryId: string,
   kind: string,
 ): Promise<{ id: string; path: string; audioStreams: AudioStream[] }[]> => {
@@ -262,7 +262,7 @@ const listOutstandingFor = async (
  * @param kind - The job that finished.
  */
 const markJobComplete = async (
-  db: FluxDatabase,
+  db: ValenceDatabase,
   mediaItemId: string,
   kind: string,
 ): Promise<void> => {
@@ -279,7 +279,7 @@ const markJobComplete = async (
  * @param kind - The job whose completions to forget.
  */
 const clearJobCompletions = async (
-  db: FluxDatabase,
+  db: ValenceDatabase,
   libraryId: string,
   kind: string,
 ): Promise<void> => {

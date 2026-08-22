@@ -1,14 +1,14 @@
 import { screen } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShareArea } from './ShareArea';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShareOutcome } from '@FluxClient/sharing/fetchShares';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShareOutcome } from '@ValenceClient/sharing/fetchShares';
 
 const openMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/sharing/fetchShares', () => ({ openShare: openMock }));
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({ openShare: openMock }));
 
 const item = (over: Partial<MediaSummary> = {}): MediaSummary => ({
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',

@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { XIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { Button } from '@ValenceUI/Button';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import {
   describeAxis as axis,
   describeVideoAxis as videoAxis,
   describeAudioAxis as audioAxis,
-} from '@FluxCore/functions/describePlaybackAxis';
+} from '@ValenceCore/functions/describePlaybackAxis';
 import type { StreamStatsProps } from './StreamStats.types';
 
 /**
@@ -49,7 +49,7 @@ type GroupProps = {
  *
  * The panel reads top to bottom as the stream's own journey — what it is, what arrived, what was
  * decided, what came out, how it is faring — and the headings are what make that order legible
- * rather than a list of everything Flux happens to know.
+ * rather than a list of everything Valence happens to know.
  *
  * @param name - What this group of facts is about.
  * @param children - The facts.
@@ -78,7 +78,7 @@ const size = (width: number | null, height: number | null): string =>
     : `${width.toString()}x${height.toString()}`;
 
 /**
- * Everything Flux knows about what is on screen and how it got there: what the file is, what the
+ * Everything Valence knows about what is on screen and how it got there: what the file is, what the
  * session did to it, how the machine is coping, and how far ahead the buffer runs. For anybody
  * working out why a stream looks or behaves as it does, which is a different question from anything
  * the ordinary controls answer.
@@ -117,7 +117,7 @@ const StreamStats = ({
   return (
     <section
       aria-label="Stats for nerds"
-      className="flux-rail flux-glass pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-white"
+      className="valence-rail valence-glass pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-white"
     >
       <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>

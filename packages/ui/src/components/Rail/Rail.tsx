@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { groupVariants } from '@FluxUI/animations/reveal';
-import { usePagedScroller } from '@FluxUI/usePagedScroller';
-import { Button } from '@FluxUI/Button';
-import { PageDots } from '@FluxUI/PageDots';
+import { cn } from '@ValenceUI/cn';
+import { groupVariants } from '@ValenceUI/animations/reveal';
+import { usePagedScroller } from '@ValenceUI/usePagedScroller';
+import { Button } from '@ValenceUI/Button';
+import { PageDots } from '@ValenceUI/PageDots';
 import type { RailProps } from './Rail.types';
 
 /**
@@ -53,7 +53,7 @@ const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) =>
           variants={groupVariants}
           initial="hidden"
           animate="shown"
-          className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+          className="valence-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
         >
           {children}
         </motion.ul>

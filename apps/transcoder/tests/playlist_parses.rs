@@ -11,8 +11,8 @@
 use std::path::Path;
 use std::process::Command;
 
-use flux_transcoder::playlist::build_vod_playlist;
-use flux_transcoder::transcode_plan::SegmentContainer;
+use valence_transcoder::playlist::build_vod_playlist;
+use valence_transcoder::transcode_plan::SegmentContainer;
 
 mod common;
 
@@ -85,14 +85,14 @@ fn ffprobe_reads_a_generated_playlist_as_a_film() {
         return;
     }
 
-    let directory = std::env::temp_dir().join(format!("flux-playlist-{}", std::process::id()));
+    let directory = std::env::temp_dir().join(format!("valence-playlist-{}", std::process::id()));
     std::fs::create_dir_all(&directory).expect("made a directory");
 
     let lengths = segment_a_film(&directory);
 
     assert!(!lengths.is_empty(), "ffmpeg wrote no segments");
 
-    let path = directory.join("flux.m3u8");
+    let path = directory.join("valence.m3u8");
     std::fs::write(&path, build_vod_playlist(&lengths, SegmentContainer::Fmp4))
         .expect("wrote the playlist");
 

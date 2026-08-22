@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { splitPersonCredits } from './splitPersonCredits';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const item = (over: Partial<MediaSummary> = {}): MediaSummary => ({
   id: 'one',

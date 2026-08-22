@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { planToSessionSpec, selectEncoder } from './planToSessionSpec';
 import type { Capabilities } from './planToSessionSpec';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 

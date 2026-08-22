@@ -65,7 +65,7 @@ const dolbyVisionConfig = (frames: number): DolbyVisionConfig => ({
  *
  * Also written rather than measured. The values describe a plausible tone curve and are not meant
  * to flatter the picture — what matters is that the SEI is present, well formed and read back as
- * SMPTE 2094-40, because that is the branch Flux could not reach before it had a file with it.
+ * SMPTE 2094-40, because that is the branch Valence could not reach before it had a file with it.
  *
  * The shape is not guessable and was taken from what `hdr10plus_tool` itself writes: `ToolInfo` at
  * the top level, and scenes that carry their index rather than their extent.
@@ -96,7 +96,7 @@ const hdr10PlusMetadata = (frames: number): Hdr10PlusMetadata => ({
     TargetedSystemDisplayMaximumLuminance: FRAME_AVERAGE_NITS,
   })),
   SceneInfoSummary: { SceneFirstFrameIndex: [0], SceneFrameNumbers: [frames] },
-  ToolInfo: { Tool: 'flux-fixtures', Version: '1.0' },
+  ToolInfo: { Tool: 'valence-fixtures', Version: '1.0' },
 });
 
 export type { DolbyVisionConfig, Hdr10PlusMetadata };

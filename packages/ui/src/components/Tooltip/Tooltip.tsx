@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
-import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
-import { cn } from '@FluxUI/cn';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { tooltipScopeContext } from '@ValenceUI/tooltipScopeContext';
+import { cn } from '@ValenceUI/cn';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { TooltipProps } from './Tooltip.types';
 
 const DELAY_MILLISECONDS = 450;
@@ -69,7 +69,7 @@ const Tooltip = ({
           collisionPadding={8}
           data-slot="tooltip-content"
           className={cn(
-            'z-50 flux-glass rounded-md px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-lifted)]',
+            'z-50 valence-glass rounded-md px-2 py-1 text-xs font-medium text-white shadow-[var(--shadow-lifted)]',
             POPUP_MOTION,
           )}
         >

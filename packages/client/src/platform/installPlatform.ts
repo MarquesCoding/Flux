@@ -1,4 +1,5 @@
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import { carryOldKeysOver } from '@ValenceClient/platform/carryOldKeysOver';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 let installed: Platform | null = null;
 
@@ -15,10 +16,17 @@ let installed: Platform | null = null;
  * rather than components — a reader called from a query has no context to reach into. A test
  * installs whatever it wants to pretend to be.
  *
+ * Installing is also the moment anything this device already remembers is carried to the names it is
+ * remembered under now. It happens here because here is the first point at which there is a store to
+ * read, and it is before anything has asked it a question — a preference read before its value had
+ * been carried across would read as absent, and absent means the default.
+ *
  * @param platform - What this client can do.
  */
 const installPlatform = (platform: Platform): void => {
   installed = platform;
+
+  carryOldKeysOver(platform.store);
 };
 
 /**

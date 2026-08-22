@@ -1,8 +1,8 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { WatchProgressListSchema } from '@FluxContracts/schemas/WatchProgress';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { WatchProgressListSchema } from '@ValenceContracts/schemas/WatchProgress';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
 
-import { profileHeaders } from '@FluxClient/profiles/currentProfile';
+import { profileHeaders } from '@ValenceClient/profiles/currentProfile';
 
 const REPORT_EVERY_MILLISECONDS = 10_000;
 

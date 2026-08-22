@@ -1,10 +1,10 @@
 import { useMemo, useRef } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { DataTable } from '@FluxUI/DataTable';
-import { describeElapsed } from '@FluxScreens/components/AdminArea/describeElapsed';
-import { describeQueueKind } from '@FluxScreens/components/AdminArea/describeQueueKind';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Job } from '@FluxClient/admin/fetchAdmin';
+import { Badge } from '@ValenceUI/Badge';
+import { DataTable } from '@ValenceUI/DataTable';
+import { describeElapsed } from '@ValenceScreens/components/AdminArea/describeElapsed';
+import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describeQueueKind';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { Job } from '@ValenceClient/admin/fetchAdmin';
 import type { BackgroundJobsProps } from './BackgroundJobs.types';
 
 /**

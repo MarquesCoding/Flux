@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { Variants } from 'motion/react';
 import type { AnimatedIconProps, IconGesture } from './AnimatedIcon.types';
 

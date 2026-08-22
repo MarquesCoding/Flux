@@ -50,7 +50,7 @@ const aComic = async (path: string, pages: number): Promise<void> => {
 };
 
 beforeAll(async () => {
-  where = await mkdtemp(join(tmpdir(), 'flux-scan-'));
+  where = await mkdtemp(join(tmpdir(), 'valence-scan-'));
 
   await mkdir(join(where, 'Rent-A-Girlfriend (Digital)'), { recursive: true });
   await aComic(join(where, 'Rent-A-Girlfriend (Digital)', 'Rent-A-Girlfriend v01 (2020).cbz'), 3);

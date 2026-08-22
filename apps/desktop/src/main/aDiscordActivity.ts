@@ -51,12 +51,12 @@ type DiscordActivity = {
  */
 const theBadgeFor = (playing: WhatIsPlaying): { image: string; text: string } => {
   if (playing.kind === 'browsing') {
-    return { image: 'fluxsearch', text: 'Browsing' };
+    return { image: 'valencesearch', text: 'Browsing' };
   }
 
   return playing.isPaused
-    ? { image: 'fluxpause', text: 'Paused' }
-    : { image: 'fluxplay', text: 'Playing' };
+    ? { image: 'valencepause', text: 'Paused' }
+    : { image: 'valenceplay', text: 'Playing' };
 };
 
 /**
@@ -109,16 +109,16 @@ const theArtworkFor = (artwork: string | null): string | undefined => {
  * The programme goes on the top line and the episode below it, because that is the order Discord
  * draws them in and the order somebody would say them. A film has only the top line.
  *
- * The times are sent rather than a progress figure, so Discord's own clock counts down without Flux
+ * The times are sent rather than a progress figure, so Discord's own clock counts down without Valence
  * telling it anything again — a presence that had to be pushed every second would be a presence that
  * stutters whenever the machine is busy.
  *
  * The poster is not sent. Discord draws artwork only from images registered against the application
  * in advance, and a self-hosted library's posters are neither registered nor reachable from the
- * internet — sending a URL to one would either fail or publish somebody's server address. The Flux
+ * internet — sending a URL to one would either fail or publish somebody's server address. The Valence
  * logo is what is left, and it is the honest answer rather than a compromise.
  *
- * Somebody who has Flux open but is not watching anything gets the top line and the logo and nothing
+ * Somebody who has Valence open but is not watching anything gets the top line and the logo and nothing
  * else. No clock, because there is nothing to count towards, and no button, because there is nothing
  * in particular to send anybody to.
  *
@@ -139,7 +139,7 @@ const theArtworkFor = (artwork: string | null): string | undefined => {
  * nothing, and wherever Discord does draw it, it will be right.
  *
  * @param playing - What is happening, or nothing where the status should come down.
- * @param version - Which Flux this is, which is what the picture says when somebody rests on it.
+ * @param version - Which Valence this is, which is what the picture says when somebody rests on it.
  * @returns The activity to send, or nothing to clear it.
  */
 const aDiscordActivity = (
@@ -151,7 +151,7 @@ const aDiscordActivity = (
   }
 
   const badge = theBadgeFor(playing);
-  const named = `Flux v${version}`;
+  const named = `Valence v${version}`;
 
   if (playing.kind === 'browsing') {
     return {

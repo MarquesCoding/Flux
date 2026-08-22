@@ -86,19 +86,19 @@ describe('readCaptionStyle', () => {
   });
 
   it('falls back to the defaults rather than throwing on a stale setting', () => {
-    window.localStorage.setItem('flux.captionStyle', '{"fontScale":"enormous"}');
+    window.localStorage.setItem('valence.captionStyle', '{"fontScale":"enormous"}');
 
     expect(readCaptionStyle()).toEqual(DEFAULT_CAPTION_STYLE);
   });
 
   it('falls back to the defaults when the stored value is not even JSON', () => {
-    window.localStorage.setItem('flux.captionStyle', 'not json');
+    window.localStorage.setItem('valence.captionStyle', 'not json');
 
     expect(readCaptionStyle()).toEqual(DEFAULT_CAPTION_STYLE);
   });
 
   it('refuses a size outside what is readable', () => {
-    window.localStorage.setItem('flux.captionStyle', '{"fontScale":5000}');
+    window.localStorage.setItem('valence.captionStyle', '{"fontScale":5000}');
 
     expect(readCaptionStyle()).toEqual(DEFAULT_CAPTION_STYLE);
   });

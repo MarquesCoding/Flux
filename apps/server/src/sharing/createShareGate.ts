@@ -1,13 +1,13 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
-import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@ValenceContracts/schemas/Share';
 import { covers, reachOf } from './shareReach';
 import type { ShareService } from './ShareService';
 import type { ShareSessions } from './createShareSessions';
 
-const SHARE_COOKIE = 'flux_share';
+const SHARE_COOKIE = 'valence_share';
 
-const SHARE_JOINER = 'flux_share_joiner';
+const SHARE_JOINER = 'valence_share_joiner';
 
 type ShareGateOptions = {
   shares: ShareService;
