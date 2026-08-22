@@ -1,7 +1,5 @@
 import { useMemo } from 'react';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
-import { Card } from '@ValenceUI/Card';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -86,8 +84,8 @@ const JobsPanel = ({
         )}
       </Dialog>
 
-      <Card as="section" padding="none" className="flex flex-col overflow-hidden">
-        <CardHeader title="Background jobs">
+      <section className="flex flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
           <span className="text-xs text-text-muted">
             {monitor === null
               ? '—'
@@ -95,14 +93,12 @@ const JobsPanel = ({
                   failures === 0 ? '' : ` · ${failures.toString()} failed`
                 }`}
           </span>
-        </CardHeader>
+        </div>
 
         <BackgroundJobs monitor={monitor} isUnreachable={isUnreachable} pageSize={10} />
-      </Card>
+      </section>
 
-      <Card as="section" padding="none" className="flex flex-col overflow-hidden">
-        <CardHeader title="Server jobs" />
-
+      <section className="flex flex-col overflow-hidden">
         <JobRunner
           working={working}
           definitions={definitions}
@@ -112,7 +108,7 @@ const JobsPanel = ({
           onStop={onStop}
           onOpenSchedule={onOpenSchedule}
         />
-      </Card>
+      </section>
     </div>
   );
 };

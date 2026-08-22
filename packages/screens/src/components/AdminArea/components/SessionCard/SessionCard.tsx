@@ -99,7 +99,7 @@ const SessionCard = ({
 
               <span
                 role="presentation"
-                className="absolute inset-y-0 left-0 rounded-full bg-accent"
+                className="absolute inset-y-0 left-0 rounded-full bg-primary"
                 style={{
                   width: `${(
                     Math.min(health.positionSeconds / health.durationSeconds, 1) * 100

@@ -83,14 +83,16 @@
 
   --font-body: 'Manrope', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
 
-  --color-surface: oklch(0.99 0 0);
-  --color-surface-raised: oklch(0.97 0.002 260);
-  --color-border: oklch(0.9 0.004 260);
-  --color-text: oklch(0.21 0.01 260);
-  --color-text-muted: oklch(0.52 0.012 260);
+  --color-surface: oklch(0.985 0.006 170);
+  --color-surface-raised: oklch(0.9555 0.0118 170);
+  --color-border: oklch(0.87 0.016 200);
+  --color-text: oklch(0.3548 0.0401 261);
+  --color-text-muted: oklch(0.53 0.03 252);
   --color-accent: oklch(0.58 0.17 258);
   --color-accent-contrast: oklch(0.99 0 0);
-  --color-danger: oklch(0.55 0.19 27);
+  --color-highlight: oklch(0.8 0.115 85);
+  --color-highlight-contrast: oklch(0.3548 0.0401 261);
+  --color-danger: oklch(0.55 0.17 25);
 
   --color-scrim: color-mix(in oklab, black 55%, transparent);
   --color-on-scrim: oklch(0.99 0 0);
@@ -113,16 +115,16 @@
   --color-destructive: var(--color-danger);
   --color-destructive-foreground: oklch(0.99 0 0);
   --color-input: var(--color-border);
-  --color-ring: var(--color-accent);
+  --color-ring: var(--color-highlight);
 
-  --radius: 0.5rem;
-  --radius-xs: calc(var(--radius) - 4px);
-  --radius-sm: calc(var(--radius) - 2px);
-  --radius-md: var(--radius);
-  --radius-lg: calc(var(--radius) + 2px);
-  --radius-xl: calc(var(--radius) + 6px);
-  --radius-2xl: calc(var(--radius) + 10px);
-  --radius-3xl: calc(var(--radius) + 16px);
+  --radius: 0.75rem;
+  --radius-xs: 0.375rem;
+  --radius-sm: 0.5rem;
+  --radius-md: 0.75rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
+  --radius-2xl: 1.5rem;
+  --radius-3xl: 2rem;
   --radius-pill: 999px;
 
   --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
@@ -150,9 +152,9 @@
   --surface-active: color-mix(in oklab, var(--color-text) 12%, transparent);
   --surface-divider: color-mix(in oklab, var(--color-text) 18%, transparent);
 
-  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 62%, transparent);
-  --glass-edge: color-mix(in oklab, white 22%, transparent);
-  --glass-shadow: 0 24px 60px -24px rgb(0 0 0 / 0.65);
+  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 72%, transparent);
+  --glass-edge: color-mix(in oklab, white 40%, transparent);
+  --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
 }
 
 @layer theme {
@@ -162,14 +164,16 @@
       --color-surface: oklch(0.14 0.012 265);
       --color-surface-raised: oklch(0.19 0.016 265);
       --color-border: oklch(0.3 0.02 265);
-      --color-text: oklch(0.97 0.004 265);
+      --color-text: oklch(0.9555 0.0118 170);
       --color-text-muted: oklch(0.72 0.014 265);
       --color-accent: oklch(0.7 0.16 262);
       --color-accent-contrast: oklch(0.14 0.012 265);
-      --color-danger: oklch(0.68 0.19 25);
-      --glass-tint: color-mix(in oklab, white 8%, transparent);
+      --color-highlight: oklch(0.8834 0.1013 87);
+      --color-highlight-contrast: oklch(0.14 0.012 265);
+      --color-danger: oklch(0.68 0.16 25);
+      --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
       --glass-edge: color-mix(in oklab, white 16%, transparent);
-      --glass-brightness: 0.5;
+      --glass-brightness: 0.55;
       --surface-line: color-mix(in oklab, white 10%, transparent);
       --surface-hover: color-mix(in oklab, white 10%, transparent);
       --surface-active: color-mix(in oklab, white 20%, transparent);
@@ -183,14 +187,16 @@
     --color-surface: oklch(0.14 0.012 265);
     --color-surface-raised: oklch(0.19 0.016 265);
     --color-border: oklch(0.3 0.02 265);
-    --color-text: oklch(0.97 0.004 265);
+    --color-text: oklch(0.9555 0.0118 170);
     --color-text-muted: oklch(0.72 0.014 265);
     --color-accent: oklch(0.7 0.16 262);
     --color-accent-contrast: oklch(0.14 0.012 265);
-    --color-danger: oklch(0.68 0.19 25);
-    --glass-tint: color-mix(in oklab, white 8%, transparent);
+    --color-highlight: oklch(0.8834 0.1013 87);
+    --color-highlight-contrast: oklch(0.14 0.012 265);
+    --color-danger: oklch(0.68 0.16 25);
+    --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
     --glass-edge: color-mix(in oklab, white 16%, transparent);
-    --glass-brightness: 0.5;
+    --glass-brightness: 0.55;
     --surface-line: color-mix(in oklab, white 10%, transparent);
     --surface-hover: color-mix(in oklab, white 10%, transparent);
     --surface-active: color-mix(in oklab, white 20%, transparent);
@@ -380,14 +386,35 @@ body {
 }
 
 .valence-glass {
-  background: var(--glass-tint);
-  backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
-  -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
+  background:
+    linear-gradient(
+      160deg,
+      color-mix(in oklab, white 10%, transparent),
+      transparent 42%,
+      color-mix(in oklab, black 6%, transparent)
+    ),
+    var(--glass-tint);
+  backdrop-filter: blur(32px) saturate(180%) brightness(var(--glass-brightness));
+  -webkit-backdrop-filter: blur(32px) saturate(180%) brightness(var(--glass-brightness));
   border: 1px solid var(--glass-edge);
   box-shadow:
-    inset 0 1px 0 0 color-mix(in oklab, white 28%, transparent),
-    inset 0 -1px 0 0 rgb(0 0 0 / 0.25),
+    inset 0 1px 0 0 color-mix(in oklab, white 30%, transparent),
+    inset 0 -1px 0 0 rgb(0 0 0 / 0.22),
     var(--glass-shadow);
+}
+
+.valence-glass--seam {
+  border-top: 0;
+  border-inline: 0;
+  box-shadow:
+    inset 0 -1px 0 0 rgb(0 0 0 / 0.22),
+    var(--glass-shadow);
+}
+
+.valence-glass--popover {
+  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 46%, transparent);
+  --glass-edge: color-mix(in oklab, white 26%, transparent);
+  --glass-brightness: 1;
 }
 
 .valence-glass--film {
@@ -397,7 +424,7 @@ body {
 }
 
 .valence-surface {
-  background: var(--color-surface-raised);
+  background: color-mix(in oklab, var(--color-surface-raised) 88%, transparent);
   border: 1px solid var(--surface-line);
   box-shadow: var(--shadow-raised);
 }

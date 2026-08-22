@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { readLocation, writeLocation, HOME } from './readLocation';
+import { readLocation, writeLocation, placeIn, HOME } from './readLocation';
 
 const at = (path: string) => readLocation(`http://valence.local${path}`);
 
@@ -9,7 +9,7 @@ describe('readLocation', () => {
   });
 
   it('reads a section from the path', () => {
-    expect(at('/admin').section).toBe('admin');
+    expect(at('/films').section).toBe('films');
   });
 
   it('lands on home rather than failing on a section that does not exist', () => {
@@ -45,19 +45,19 @@ describe('readLocation', () => {
   });
 
   it('reads which admin panel was open', () => {
-    expect(at('/admin?panel=work').adminPanel).toBe('work');
+    expect(at('/?admin=work').admin).toBe('work');
   });
 
   it('has no admin panel when the address does not name one', () => {
-    expect(at('/admin').adminPanel).toBeNull();
+    expect(at('/films').admin).toBeNull();
   });
 
   it('reads which job schedule page was open', () => {
-    expect(at('/admin?panel=work&job=library.scan').adminJob).toBe('library.scan');
+    expect(at('/?admin=work&job=library.scan').adminJob).toBe('library.scan');
   });
 
   it('has no admin job when the address does not name one', () => {
-    expect(at('/admin').adminJob).toBeNull();
+    expect(at('/films').adminJob).toBeNull();
   });
 });
 
@@ -126,31 +126,37 @@ describe('writeLocation', () => {
       party: null,
       genre: null,
       library: null,
-      adminPanel: null,
       adminJob: null,
+      account: null,
+      admin: null,
     } as const;
 
     expect(readLocation(`http://valence.local${writeLocation(place)}`)).toEqual(place);
   });
 
   it('writes which admin panel is open', () => {
-    expect(writeLocation({ ...HOME, section: 'admin', adminPanel: 'work' })).toBe(
-      '/admin?panel=work',
-    );
+    expect(writeLocation({ ...HOME, section: 'films', admin: 'work' })).toBe('/films?admin=work');
   });
 
-  it('leaves the panel out of any other section, since only admin has one', () => {
-    expect(writeLocation({ ...HOME, section: 'home', adminPanel: 'work' })).toBe('/');
+  it('opens over whichever section it was opened from', () => {
+    expect(writeLocation({ ...HOME, section: 'home', admin: 'work' })).toBe('/?admin=work');
+  });
+
+  it('still answers the address it used to be a page at, so held links keep working', () => {
+    const place = placeIn('/admin', {});
+
+    expect(place.section).toBe('home');
+    expect(place.admin).toBe('overview');
   });
 
   it('writes which job schedule page is open', () => {
-    expect(writeLocation({ ...HOME, section: 'admin', adminJob: 'library.scan' })).toBe(
-      '/admin?job=library.scan',
+    expect(writeLocation({ ...HOME, admin: 'jobs', adminJob: 'library.scan' })).toBe(
+      '/?admin=jobs&job=library.scan',
     );
   });
 
-  it('leaves the job out of any other section', () => {
-    expect(writeLocation({ ...HOME, section: 'home', adminJob: 'library.scan' })).toBe('/');
+  it('leaves the job out while the server dialog is shut, since it belongs to it', () => {
+    expect(writeLocation({ ...HOME, adminJob: 'library.scan' })).toBe('/');
   });
 });
 
@@ -266,5 +272,28 @@ describe('a watch party in the address', () => {
 
     expect(back.playing).toBe('a-film');
     expect(back.party).toBe('party-1');
+  });
+});
+
+describe('the account, which is a dialog rather than a section', () => {
+  it('opens over whichever section it was opened from', () => {
+    expect(writeLocation({ ...HOME, section: 'films', account: 'security' })).toBe(
+      '/films?account=security',
+    );
+  });
+
+  it('is shut when nothing in the address says otherwise', () => {
+    expect(placeIn('/films', {}).account).toBeNull();
+  });
+
+  it('still answers the address it used to be a page at, so held links keep working', () => {
+    const place = placeIn('/account', {});
+
+    expect(place.section).toBe('home');
+    expect(place.account).toBe('profile');
+  });
+
+  it('lets that old address name a panel, rather than always landing on the first', () => {
+    expect(placeIn('/account', { account: 'devices' }).account).toBe('devices');
   });
 });

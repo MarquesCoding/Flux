@@ -41,7 +41,7 @@ const StatTile = ({ label, value, detail, icon, fraction, history, className }: 
           >
             <span
               role="presentation"
-              className="block h-full rounded-full bg-accent transition-[width] duration-[var(--duration-slow)] ease-[var(--ease-soft)]"
+              className="block h-full rounded-full bg-primary transition-[width] duration-[var(--duration-slow)] ease-[var(--ease-soft)]"
               style={{ width: `${(Math.min(1, Math.max(0, fraction)) * 100).toString()}%` }}
             />
           </span>

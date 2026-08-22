@@ -41,7 +41,7 @@ const ScanProgressBar = ({ label, phase, processed, total }: ScanProgressBarProp
         <span
           style={isKnown && !isEmpty ? { width: `${(fraction * 100).toString()}%` } : undefined}
           className={cn(
-            'block h-full rounded-full bg-accent',
+            'block h-full rounded-full bg-primary',
             isKnown ? 'transition-[width] duration-300' : 'w-full animate-pulse',
             isEmpty ? 'w-full' : '',
           )}

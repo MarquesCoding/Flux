@@ -161,7 +161,7 @@ describe('SessionCard', () => {
       />,
     );
 
-    expect(container.querySelector('.bg-accent')).not.toBeInTheDocument();
+    expect(container.querySelector('.bg-primary')).not.toBeInTheDocument();
   });
 
   it('draws the position and buffer as widths of how far through the film they are', () => {
@@ -193,7 +193,7 @@ describe('SessionCard', () => {
       />,
     );
 
-    const position = container.querySelector('.bg-accent');
+    const position = container.querySelector('.bg-primary');
     const buffer = container.querySelector('.bg-text\\/25');
 
     expect(position).toHaveStyle({ width: '25%' });

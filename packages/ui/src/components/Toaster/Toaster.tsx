@@ -32,18 +32,18 @@ const Toaster = ({ theme = 'system', id, position = 'bottom-right' }: ToasterPro
       duration: 5000,
       classNames: {
         toast: [
-          'group !valence-glass !rounded-md !border !border-[var(--surface-line)]',
-          '!bg-[var(--color-card)] !text-[var(--color-card-foreground)]',
-          '!shadow-[var(--shadow-lifted)] !font-body',
+          'group !valence-glass !rounded-xl !border !border-[var(--glass-edge)]',
+          '!bg-[var(--glass-tint)] !text-text',
+          '!shadow-[var(--glass-shadow)] !font-body',
         ].join(' '),
         title: '!text-sm !font-medium',
         description: '!text-xs !text-[var(--color-muted-foreground)]',
         actionButton:
-          '!rounded-md !bg-[var(--color-primary)] !text-[var(--color-primary-foreground)] !text-xs !font-medium',
+          '!rounded-pill !bg-[var(--color-primary)] !text-[var(--color-primary-foreground)] !text-xs !font-medium',
         cancelButton:
-          '!rounded-md !bg-[var(--surface-hover)] !text-[var(--color-foreground)] !text-xs',
+          '!rounded-pill !bg-[var(--surface-hover)] !text-[var(--color-foreground)] !text-xs',
         closeButton:
-          '!rounded-md !border-[var(--surface-line)] !bg-[var(--color-card)] !text-[var(--color-muted-foreground)]',
+          '!rounded-pill !border-[var(--glass-edge)] !bg-[var(--surface-hover)] !text-[var(--color-muted-foreground)]',
         error: '!text-[var(--color-destructive)]',
       },
     }}

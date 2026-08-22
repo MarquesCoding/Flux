@@ -10,7 +10,7 @@ const TRACK_CLASSES: Record<SliderTone, string> = {
 };
 
 const FILL_CLASSES: Record<SliderTone, string> = {
-  default: 'bg-accent',
+  default: 'bg-primary',
   overlay: 'bg-white',
 };
 
@@ -135,9 +135,9 @@ const Slider = ({
           aria-label={label}
           aria-disabled={max <= 0}
           className={cn(
-            'block size-3.5 rounded-full shadow outline-none select-none',
+            'block size-3.5 w-8 rounded-full shadow outline-none select-none',
             'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',
-            'motion-reduce:transition-none hover-hover:hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'motion-reduce:transition-none hover-hover:hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring',
             FILL_CLASSES[tone],
           )}
         />

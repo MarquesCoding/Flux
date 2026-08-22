@@ -64,7 +64,7 @@ const MediaCard = ({
       transition={revealTransition(prefersReducedMotion)}
       className={cn(
         'group flex w-full flex-col gap-3 rounded-md text-left outline-none',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+        'focus-visible:ring-[3px] focus-visible:ring-ring',
         className,
       )}
     >

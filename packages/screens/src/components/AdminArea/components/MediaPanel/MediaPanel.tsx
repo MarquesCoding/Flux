@@ -3,8 +3,6 @@ import { ArrowsClockwiseIcon, MagnifyingGlassIcon } from '@phosphor-icons/react'
 import { useCallback, useMemo, useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { DataTable } from '@ValenceUI/DataTable';
 import { TextField } from '@ValenceUI/TextField';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
@@ -160,8 +158,8 @@ const MediaPanel = ({
   );
 
   return (
-    <Card as="section" padding="none" className="flex flex-col">
-      <CardHeader title="Everything in the libraries">
+    <section className="flex flex-col">
+      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
         <TextField
           label="Find a programme or film"
           isLabelHidden
@@ -173,7 +171,7 @@ const MediaPanel = ({
           onValueChange={setSearch}
           className="w-64 max-w-full"
         />
-      </CardHeader>
+      </div>
 
       {isUnreachable ? (
         <p className="px-5 pb-6 text-sm text-text-muted">
@@ -190,7 +188,7 @@ const MediaPanel = ({
           }
         />
       )}
-    </Card>
+    </section>
   );
 };
 

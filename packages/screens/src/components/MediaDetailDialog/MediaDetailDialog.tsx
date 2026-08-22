@@ -14,6 +14,10 @@ import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
+import { ActionBar } from '@ValenceUI/ActionBar';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
+import { ScrolledTitle } from '@ValenceScreens/components/ScrolledTitle/ScrolledTitle';
 import { BackdropScrim } from '@ValenceUI/BackdropScrim';
 import { Badge } from '@ValenceUI/Badge';
 import { Skeleton } from '@ValenceUI/Skeleton';
@@ -97,6 +101,7 @@ const MediaDetailDialog = ({
   });
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
+  const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -136,14 +141,24 @@ const MediaDetailDialog = ({
 
   return (
     <Dialog label={shown.title} isOpen={media !== null} onClose={onClose} size="stage">
-      <DialogContent className="p-0">
+      <DialogContent className="p-3 sm:p-4">
+        <ScrolledTitle
+          title={shown.title}
+          artwork={shown.hasPoster ? artworkUrl(shown.id, 'poster') : null}
+          isShowing={hasScrolledPast}
+        >
+          <Button isIconOnly variant="ghost" size="sm" isPill label="Close" onClick={onClose}>
+            <Icon of={XIcon} size={16} />
+          </Button>
+        </ScrolledTitle>
+
         <motion.div
           key={shown.id}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: prefersReducedMotion === true ? 0 : 0.35, ease: 'easeOut' }}
         >
-          <div ref={topRef} className="relative">
+          <div ref={topRef} className="relative overflow-hidden rounded-2xl">
             <div className="h-[42vh] min-h-[16rem] sm:h-[26rem]">
               <MediaPreview
                 mediaId={shown.id}
@@ -249,63 +264,9 @@ const MediaDetailDialog = ({
             </motion.div>
           </div>
 
-          <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
-            <div className="flex flex-wrap items-center gap-3">
-              <Button
-                variant="glossy"
-                size="lg"
-                isPill
-                onClick={() => {
-                  onPlay(shown, shownResume ?? 0);
-                }}
-              >
-                <Icon of={PlayIcon} size={18} />
-                {shownResume === undefined ? 'Play' : `Resume from ${formatDuration(shownResume)}`}
-              </Button>
+          <span ref={pastTheArtwork} aria-hidden className="block h-px" />
 
-              {shownResume === undefined ? null : (
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  isPill
-                  onClick={() => {
-                    onPlay(shown, 0);
-                  }}
-                >
-                  <Icon of={ArrowUUpRightIcon} size={18} />
-                  Start again
-                </Button>
-              )}
-
-              {onShare === undefined ? null : (
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  isPill
-                  onClick={() => {
-                    onShare(shown);
-                  }}
-                >
-                  <Icon of={ShareNetworkIcon} size={18} />
-                  Share
-                </Button>
-              )}
-
-              {onStartParty === undefined ? null : (
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  isPill
-                  onClick={() => {
-                    onStartParty(shown);
-                  }}
-                >
-                  <Icon of={UsersThreeIcon} size={18} />
-                  Watch together
-                </Button>
-              )}
-            </div>
-
+          <div className="flex flex-col gap-8 px-2 pb-4 pt-7 sm:px-4">
             {onRate === undefined ? null : (
               <RatingPanel
                 subject={{ mediaId: shown.id }}
@@ -436,6 +397,63 @@ const MediaDetailDialog = ({
           </div>
         </motion.div>
       </DialogContent>
+
+      <DialogFooter>
+        <ActionBar
+          label="More to do with this"
+          primary={
+            <Button
+              variant="glossy"
+              size="lg"
+              isPill
+              onClick={() => {
+                onPlay(shown, shownResume ?? 0);
+              }}
+            >
+              <Icon of={PlayIcon} size={18} />
+              {shownResume === undefined ? 'Play' : `Resume from ${formatDuration(shownResume)}`}
+            </Button>
+          }
+          actions={[
+            ...(shownResume === undefined
+              ? []
+              : [
+                  {
+                    id: 'again',
+                    label: 'Start again',
+                    icon: <Icon of={ArrowUUpRightIcon} size={18} />,
+                    onChoose: () => {
+                      onPlay(shown, 0);
+                    },
+                  },
+                ]),
+            ...(onShare === undefined
+              ? []
+              : [
+                  {
+                    id: 'share',
+                    label: 'Share',
+                    icon: <Icon of={ShareNetworkIcon} size={18} />,
+                    onChoose: () => {
+                      onShare(shown);
+                    },
+                  },
+                ]),
+            ...(onStartParty === undefined
+              ? []
+              : [
+                  {
+                    id: 'party',
+                    label: 'Watch together',
+                    icon: <Icon of={UsersThreeIcon} size={18} />,
+                    onChoose: () => {
+                      onStartParty(shown);
+                    },
+                  },
+                ]),
+          ]}
+        />
+      </DialogFooter>
     </Dialog>
   );
 };

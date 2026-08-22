@@ -6,7 +6,6 @@ import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Card } from '@ValenceUI/Card';
 import { cn } from '@ValenceUI/cn';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
 import { CacheBreakdown } from '@ValenceScreens/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
 import { TrendChart } from '@ValenceUI/TrendChart';
@@ -330,8 +329,8 @@ const OverviewPanel = ({
           />
         </Region>
 
-        <Card as="section" padding="none" className="flex flex-col overflow-hidden lg:col-span-4">
-          <CardHeader title="Work">
+        <section className="flex flex-col overflow-hidden lg:col-span-4">
+          <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
             <Button
               variant="ghost"
               size="sm"
@@ -344,10 +343,10 @@ const OverviewPanel = ({
               All work
               <Icon of={CaretRightIcon} size={14} />
             </Button>
-          </CardHeader>
+          </div>
 
           <BackgroundJobs monitor={monitor} pageSize={5} />
-        </Card>
+        </section>
       </div>
     </div>
   );

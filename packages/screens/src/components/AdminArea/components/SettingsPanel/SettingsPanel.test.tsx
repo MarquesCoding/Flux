@@ -71,7 +71,7 @@ describe('SettingsPanel', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Save key' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeDisabled();
   });
 
   it('saves what was typed', async () => {
@@ -85,7 +85,7 @@ describe('SettingsPanel', () => {
     );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     expect(saveCatalogueKey).toHaveBeenCalledWith('a-key');
   });
@@ -101,7 +101,7 @@ describe('SettingsPanel', () => {
     );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Catalogue key')).toHaveValue('');
@@ -120,7 +120,7 @@ describe('SettingsPanel', () => {
     );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(onCatalogueKeySaved).toHaveBeenCalled();
@@ -141,7 +141,7 @@ describe('SettingsPanel', () => {
     );
 
     await user.type(screen.getByLabelText('Catalogue key'), 'a-key');
-    await user.click(screen.getByRole('button', { name: 'Save key' }));
+    await user.click(screen.getByRole('button', { name: 'Save' }));
 
     await waitFor(() => {
       expect(screen.getByLabelText('Catalogue key')).toHaveValue('a-key');
@@ -171,7 +171,7 @@ describe('SettingsPanel', () => {
       />,
     );
 
-    expect(screen.getByText(/Cookies are secure/)).toBeInTheDocument();
+    expect(screen.getByText('secure')).toBeInTheDocument();
     expect(screen.getByText(/localhost:8420/)).toBeInTheDocument();
   });
 

@@ -1,7 +1,7 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen } from '@testing-library/react';
 import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
-import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { Tabs } from '@ValenceUI/Tabs';
 import { AccountArea } from './AccountArea';
 import type { SessionUser } from '@ValenceContracts/schemas/Session';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
@@ -28,6 +28,35 @@ const PROFILE: ViewerProfile = {
 
 const fetchMock = vi.fn();
 
+/**
+ * Draws the panels on the tab the caller names, standing in for the dialog that normally holds
+ * which one is open.
+ *
+ * @param panel - The panel to show.
+ * @param handlers - What to tell about a change.
+ * @returns What was rendered.
+ */
+const drawOn = (panel: string, handlers: { onChanged?: () => void } = {}) =>
+  renderInAnAddress(
+    <Tabs value={panel} onValueChange={() => {}}>
+      <AccountArea
+        user={USER}
+        panel={panel}
+        profile={PROFILE}
+        draft={{
+          name: PROFILE.name,
+          colour: PROFILE.colour,
+          avatar: PROFILE.avatar,
+          askStillWatchingAfter: PROFILE.askStillWatchingAfter,
+          showsWhatIamWatching: PROFILE.showsWhatIamWatching,
+          photo: null,
+        }}
+        onDraft={vi.fn()}
+        onChanged={handlers.onChanged ?? vi.fn()}
+      />
+    </Tabs>,
+  );
+
 beforeEach(() => {
   fetchMock.mockReset();
   fetchMock.mockResolvedValue({
@@ -45,127 +74,41 @@ afterEach(() => {
 });
 
 describe('AccountArea', () => {
-  it('says who the account belongs to', async () => {
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+  it('shows how somebody appears on the panel about appearing', () => {
+    drawOn('profile');
 
-    expect(await screen.findByRole('heading', { name: 'Marques' })).toBeInTheDocument();
+    expect(screen.getByText('Profile picture')).toBeInTheDocument();
+    expect(screen.getByText('Colour')).toBeInTheDocument();
   });
 
-  it('says which address signs in', () => {
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+  it('keeps how somebody appears apart from how they get in', () => {
+    const { unmount } = drawOn('profile');
 
-    expect(screen.getByText('marques@valence.local')).toBeInTheDocument();
+    expect(screen.getByText('Profile picture')).toBeInTheDocument();
+    expect(screen.queryByText('Two-step sign in')).not.toBeInTheDocument();
+
+    unmount();
+
+    drawOn('security');
+
+    expect(screen.getByText('Two-step sign in')).toBeInTheDocument();
+    expect(screen.queryByText('Profile picture')).not.toBeInTheDocument();
   });
 
-  it('marks an account that runs the server', () => {
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
+  it('changes how somebody appears where they stand, rather than in a dialog of its own', () => {
+    drawOn('profile');
 
-    expect(screen.getByText('admin')).toBeInTheDocument();
+    expect(screen.getByLabelText('Display name')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Change/ })).not.toBeInTheDocument();
   });
 
-  it('does not call an ordinary account an admin', () => {
-    renderInAnAddress(
-      <AccountArea user={{ ...USER, role: 'user' }} onChanged={vi.fn()} onSignOut={vi.fn()} />,
-    );
+  it('says nothing about saving, since the dialog around it holds the one button that does', () => {
+    drawOn('profile');
 
-    expect(screen.queryByText('admin')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
-  it('keeps how somebody appears apart from how they get in', async () => {
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    expect(screen.getByText('How you appear')).toBeInTheDocument();
-
-    await actor.click(screen.getByRole('tab', { name: 'Security' }));
-
-    expect(screen.queryByText('How you appear')).not.toBeInTheDocument();
-    expect(screen.getByText('Getting in')).toBeInTheDocument();
-  });
-
-  it('opens the editor on the profile it read', async () => {
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    await actor.click(await screen.findByRole('button', { name: /Change/ }));
-
-    expect(screen.getByLabelText('Name')).toHaveValue('Marques');
-  });
-
-  it('reads the profile again once it has been changed, so the face is the new one', async () => {
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    await actor.click(await screen.findByRole('button', { name: /Change/ }));
-
-    const reads = fetchMock.mock.calls.length;
-
-    await actor.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(fetchMock.mock.calls.length).toBeGreaterThan(reads + 1);
-    });
-  });
-
-  it('tells the rest of the application when something it shows has changed', async () => {
-    const onChanged = vi.fn();
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={onChanged} onSignOut={vi.fn()} />);
-
-    await actor.click(await screen.findByRole('button', { name: /Change/ }));
-    await actor.click(screen.getByRole('button', { name: 'Save' }));
-
-    await waitFor(() => {
-      expect(onChanged).toHaveBeenCalledOnce();
-    });
-  });
-
-  it('closes the editor when the change is abandoned', async () => {
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    await actor.click(await screen.findByRole('button', { name: /Change/ }));
-    await actor.click(screen.getByRole('button', { name: 'Cancel' }));
-
-    expect(screen.queryByLabelText('Name')).not.toBeInTheDocument();
-  });
-
-  it('signs out', async () => {
-    const onSignOut = vi.fn();
-    const actor = userEvent.setup();
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={onSignOut} />);
-
-    await actor.click(screen.getByRole('button', { name: /Sign out/ }));
-
-    expect(onSignOut).toHaveBeenCalledOnce();
-  });
-
-  it('says nothing about viewing being lost, because it is not', () => {
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    expect(screen.getByText(/Nothing about what you have watched is lost/)).toBeInTheDocument();
-  });
-
-  it('says the profile could not be read, rather than reading it forever', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('could not be read');
-    expect(screen.queryByText('Reading your profile…')).not.toBeInTheDocument();
-  });
-
-  it('offers to read it again', async () => {
-    fetchMock.mockResolvedValue({ ok: false, status: 401, json: () => Promise.resolve(null) });
-
-    renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
-
-    expect(await screen.findByRole('button', { name: 'Try again' })).toBeInTheDocument();
+  it('sets a display name so devtools can identify it', () => {
+    expect(AccountArea.displayName).toBe('AccountArea');
   });
 });

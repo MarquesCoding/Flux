@@ -194,7 +194,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
         </Button>
 
         <Button
-          variant="glossy"
+          variant="primary"
           isPill
           isLoading={isSaving}
           disabled={built === null || isSaving}

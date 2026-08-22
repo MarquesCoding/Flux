@@ -24,7 +24,7 @@ afterEach(() => {
 });
 
 const startEnrollment = async (actor: ReturnType<typeof userEvent.setup>) => {
-  await actor.click(screen.getByRole('button', { name: 'Set up two-factor' }));
+  await actor.click(screen.getByRole('button', { name: 'Set up' }));
   await actor.type(screen.getByLabelText('Password'), 'a-long-enough-password');
   await actor.click(screen.getByRole('button', { name: 'Continue' }));
 };
@@ -33,14 +33,14 @@ describe('TwoFactorSetup when disabled', () => {
   it('offers to set up two-factor', () => {
     render(<TwoFactorSetup isEnabled={false} onChanged={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Set up two-factor' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Set up' })).toBeInTheDocument();
   });
 
   it('asks for the password before revealing a secret', async () => {
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled={false} onChanged={vi.fn()} />);
 
-    await actor.click(screen.getByRole('button', { name: 'Set up two-factor' }));
+    await actor.click(screen.getByRole('button', { name: 'Set up' }));
 
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(disableTwoFactor).not.toHaveBeenCalled();
@@ -134,14 +134,14 @@ describe('TwoFactorSetup when enabled', () => {
   it('offers to turn two-factor off', () => {
     render(<TwoFactorSetup isEnabled onChanged={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Turn off two-factor' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Turn off' })).toBeInTheDocument();
   });
 
   it('requires the password to turn it off', async () => {
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled onChanged={vi.fn()} />);
 
-    await actor.click(screen.getByRole('button', { name: 'Turn off two-factor' }));
+    await actor.click(screen.getByRole('button', { name: 'Turn off' }));
 
     expect(screen.getByLabelText('Password')).toBeInTheDocument();
     expect(disableTwoFactor).not.toHaveBeenCalled();
@@ -152,7 +152,7 @@ describe('TwoFactorSetup when enabled', () => {
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled onChanged={onChanged} />);
 
-    await actor.click(screen.getByRole('button', { name: 'Turn off two-factor' }));
+    await actor.click(screen.getByRole('button', { name: 'Turn off' }));
     await actor.type(screen.getByLabelText('Password'), 'a-long-enough-password');
     await actor.click(screen.getByRole('button', { name: 'Continue' }));
 
@@ -168,7 +168,7 @@ describe('TwoFactorSetup when enabled', () => {
     const actor = userEvent.setup();
     render(<TwoFactorSetup isEnabled onChanged={onChanged} />);
 
-    await actor.click(screen.getByRole('button', { name: 'Turn off two-factor' }));
+    await actor.click(screen.getByRole('button', { name: 'Turn off' }));
     await actor.type(screen.getByLabelText('Password'), 'wrong-password');
     await actor.click(screen.getByRole('button', { name: 'Continue' }));
 

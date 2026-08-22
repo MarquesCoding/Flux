@@ -319,7 +319,7 @@ describe('MediaPreview', () => {
     expect(screen.queryByRole('button', { name: /sound/i })).not.toBeInTheDocument();
   });
 
-  it('offers nothing but sound, since a preview is not something to scrub through', async () => {
+  it('offers sound and stopping, which is as much control as a preview needs', async () => {
     render(
       <MediaPreview
         mediaId={MEDIA_ID}
@@ -333,8 +333,9 @@ describe('MediaPreview', () => {
     await settle();
     await startPlaying();
 
-    expect(screen.queryByRole('button', { name: /preview/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pause the preview' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Turn sound on' })).toBeInTheDocument();
+    expect(screen.queryByRole('slider')).not.toBeInTheDocument();
   });
 
   it('puts the controls where a full-screen preview has room for them', async () => {

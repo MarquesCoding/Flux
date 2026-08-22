@@ -108,7 +108,7 @@ const SettingsMenu = ({
             'inline-flex size-10 shrink-0 items-center justify-center rounded-md outline-none',
             'text-current hover:bg-[var(--surface-hover)]',
             'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
-            'motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring',
             'data-[state=open]:bg-[var(--surface-active)] disabled:cursor-not-allowed disabled:opacity-50',
             className,
           )}
@@ -128,7 +128,7 @@ const SettingsMenu = ({
           collisionPadding={12}
           data-slot="settings-menu"
           className={cn(
-            'z-50 valence-glass flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
+            'z-50 valence-glass valence-glass--popover flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
             POPUP_MOTION,
           )}
         >
