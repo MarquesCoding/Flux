@@ -75,7 +75,7 @@ const Logo = ({
         <span
           aria-hidden
           style={cutToTheMark}
-          className="flux-logo-edge absolute inset-0 bg-accent"
+          className="valence-logo-edge absolute inset-0 bg-accent"
         />
       ) : null}
 
@@ -84,7 +84,7 @@ const Logo = ({
         style={cutToTheMark}
         className={cn('absolute inset-0 overflow-hidden', hasEdge ? 'bg-surface' : '')}
       >
-        <span className={isDotted ? 'flux-logo-dots' : 'absolute inset-0 overflow-hidden'}>
+        <span className={isDotted ? 'valence-logo-dots' : 'absolute inset-0 overflow-hidden'}>
           <span
             className={cn(
               'absolute -inset-1/2 bg-[conic-gradient(from_140deg,#ffffff,#ffffff_25%,var(--color-accent)_55%,#ffffff_85%,#ffffff)]',
@@ -95,7 +95,7 @@ const Logo = ({
             )}
           />
 
-          {isDotted && isAnimated ? <span className="flux-logo-wave" /> : null}
+          {isDotted && isAnimated ? <span className="valence-logo-wave" /> : null}
         </span>
       </span>
     </span>

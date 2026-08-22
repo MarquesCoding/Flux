@@ -238,7 +238,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
       />
 
       <motion.p
-        layoutId="flux-mark"
+        layoutId="valence-mark"
         initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 0.94 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{

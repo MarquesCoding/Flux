@@ -52,7 +52,7 @@ const OVERVIEW = {
   },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '9.0',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],

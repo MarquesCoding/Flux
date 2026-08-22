@@ -197,7 +197,7 @@ const LibraryBrowser = ({
       ) : null}
 
       <section className="flex flex-col gap-5 px-4 sm:px-6">
-        <header className="flux-rail flex items-center gap-3 overflow-x-auto pb-1">
+        <header className="valence-rail flex items-center gap-3 overflow-x-auto pb-1">
           <div className="flex shrink-0 items-center gap-2">
             {libraries.map((entry) => (
               <Button

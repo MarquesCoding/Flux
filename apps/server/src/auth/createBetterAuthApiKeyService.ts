@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { PermissionSchema } from '@ValenceContracts/schemas/Permission';
 import type { ApiKeyService } from './ApiKeyService';
-import type { FluxAuth } from './Auth';
+import type { ValenceAuth } from './Auth';
 import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
 
@@ -75,7 +75,7 @@ const readPermissions = (raw: Record<string, string[]> | null | undefined): Perm
  * @param auth - The authentication layer that owns the keys.
  * @returns The key service.
  */
-const createBetterAuthApiKeyService = (auth: FluxAuth): ApiKeyService => {
+const createBetterAuthApiKeyService = (auth: ValenceAuth): ApiKeyService => {
   const describe = (candidate: z.input<typeof RowSchema>): ApiKey => {
     const row = RowSchema.parse(candidate);
 

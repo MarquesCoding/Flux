@@ -10,7 +10,7 @@ import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
  * @param resources - The latest readings, or null before any have arrived.
  * @returns The bytes Valence is holding, or null where it cannot be worked out.
  */
-const fluxMemoryUse = (resources: Monitor['resources'] | null): number | null => {
+const valenceMemoryUse = (resources: Monitor['resources'] | null): number | null => {
   if (resources === null) {
     return null;
   }
@@ -29,4 +29,4 @@ const fluxMemoryUse = (resources: Monitor['resources'] | null): number | null =>
   return Number.isFinite(bytes) ? Math.max(0, bytes) : null;
 };
 
-export { fluxMemoryUse };
+export { valenceMemoryUse };

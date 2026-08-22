@@ -22,7 +22,7 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
-  TRANSCODER_URL: z.string().min(1).default('unix:/run/flux-transcoder.sock'),
+  TRANSCODER_URL: z.string().min(1).default('unix:/run/valence-transcoder.sock'),
   MEDIA_JOBS: z.coerce.number().int().positive().default(DEFAULT_MEDIA_JOBS),
   CATALOGUE_API_KEY: z.string().default(''),
   IMAGE_CACHE_DIR: z.string().default('/cache/images'),

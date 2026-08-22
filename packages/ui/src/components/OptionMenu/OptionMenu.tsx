@@ -62,7 +62,7 @@ const OptionMenu = ({
           aria-label={label}
           {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
           className={cn(
-            'flux-glass z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
+            'valence-glass z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
             POPUP_MOTION,
           )}
         >

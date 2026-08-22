@@ -9,7 +9,7 @@ const HOST = 'app';
 
 const ORIGIN = `${SCHEME}://${HOST}`;
 
-const CARRIED = ['accept', 'content-type', 'range', 'x-flux-profile', 'authorization'];
+const CARRIED = ['accept', 'content-type', 'range', 'x-valence-profile', 'authorization'];
 
 const POLICY = [
   "default-src 'self'",

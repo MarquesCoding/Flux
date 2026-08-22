@@ -276,7 +276,7 @@ const AppShell = ({
   ];
 
   return (
-    <div className="flux-docked relative min-h-[calc(100vh-var(--flux-window-bar))] text-text">
+    <div className="valence-docked relative min-h-[calc(100vh-var(--valence-window-bar))] text-text">
       <MoodBackground lights={moodLights} hasGrid={section === 'home'} film={film} />
 
       <AnimatePresence>
@@ -290,7 +290,7 @@ const AppShell = ({
               duration: prefersReducedMotion === true ? 0 : FADING,
               ease: 'easeInOut',
             }}
-            className="fixed top-[calc(1rem+var(--flux-window-bar))] right-4 z-50"
+            className="fixed top-[calc(1rem+var(--valence-window-bar))] right-4 z-50"
           >
             <Button isIconOnly variant="overlay" label="Stop the film" onClick={endFilm}>
               <Icon of={XIcon} size={20} />
@@ -322,7 +322,7 @@ const AppShell = ({
           variants={staggerVariants}
           initial="hidden"
           animate="shown"
-          className="min-h-[calc(100vh-var(--flux-window-bar))] pb-28"
+          className="min-h-[calc(100vh-var(--valence-window-bar))] pb-28"
         >
           <motion.div
             variants={revealVariants(prefersReducedMotion)}

@@ -169,20 +169,20 @@ const Hero = ({
       className="pointer-events-none relative"
       style={
         fills
-          ? { height: 'calc(100svh - var(--flux-window-bar))' }
+          ? { height: 'calc(100svh - var(--valence-window-bar))' }
           : {
               height:
                 prefersReducedMotion === true
-                  ? 'calc(100svh - var(--flux-window-bar))'
-                  : `calc(100svh - var(--flux-window-bar) + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
+                  ? 'calc(100svh - var(--valence-window-bar))'
+                  : `calc(100svh - var(--valence-window-bar) + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
               marginBottom: `-${FOOT_OF_THE_CARD}`,
             }
       }
     >
       <div
         className={cn(
-          'h-[calc(100svh-var(--flux-window-bar))]',
-          fills ? '' : 'sticky top-[var(--flux-window-bar)]',
+          'h-[calc(100svh-var(--valence-window-bar))]',
+          fills ? '' : 'sticky top-[var(--valence-window-bar)]',
         )}
       >
         <motion.section

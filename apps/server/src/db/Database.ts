@@ -4,7 +4,7 @@ import { authSchema, fluxSchema } from '@ValenceServer/db/Schema';
 
 const schema = { ...authSchema, ...fluxSchema };
 
-type FluxDatabase = ReturnType<typeof createDatabase>['db'];
+type ValenceDatabase = ReturnType<typeof createDatabase>['db'];
 
 /**
  * Opens the connection pool and binds the schema to it, which is the one place the server learns
@@ -20,6 +20,6 @@ const createDatabase = (databaseUrl: string) => {
   return { db, pool, schema };
 };
 
-export type { FluxDatabase };
+export type { ValenceDatabase };
 
 export { createDatabase, schema };

@@ -13,7 +13,7 @@ import {
 } from '@ValenceContracts/schemas/Book';
 import { imageTypeFor } from './imageTypeFor';
 import { openBookFile } from './openBookFile';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type {
   Book,
@@ -78,7 +78,7 @@ const namesIn = (held: JsonValue): string[] | null => NamesSchema.parse(held);
  * @param cacheDir - Where pages are kept once they have been read.
  * @returns The service, which the scan writes through and the routes read through.
  */
-const createDatabaseBookService = (db: FluxDatabase, cacheDir: string): BookService => {
+const createDatabaseBookService = (db: ValenceDatabase, cacheDir: string): BookService => {
   const chapterFor = async (chapterId: string) => {
     const [found] = await db
       .select({

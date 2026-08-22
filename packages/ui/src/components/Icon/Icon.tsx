@@ -50,7 +50,7 @@ const Icon = ({
     <Drawn
       size={size}
       weight={weight ?? (isActive ? IN_FORCE : RESTING)}
-      className={cn('flux-icon', className)}
+      className={cn('valence-icon', className)}
       {...(label === undefined ? { 'aria-hidden': true } : { role: 'img', 'aria-label': label })}
     />
   );

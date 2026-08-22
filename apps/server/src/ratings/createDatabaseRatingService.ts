@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, avg, count, desc, eq, inArray, isNull } from 'drizzle-orm';
 import { rating } from '@ValenceServer/db/Schema';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { HouseholdRating } from '@ValenceContracts/schemas/Rating';
 import type { RatingService, RatingSubject } from './RatingService';
 
@@ -46,7 +46,7 @@ const readAverage = (reported: string | null, howMany: number): HouseholdRating 
  * @param db - The database to read and write.
  * @returns The rating service.
  */
-const createDatabaseRatingService = (db: FluxDatabase): RatingService => ({
+const createDatabaseRatingService = (db: ValenceDatabase): RatingService => ({
   list: async (profileId) => {
     const rows = await db
       .select()

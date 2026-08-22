@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
-import { fluxMemoryUse } from './fluxMemoryUse';
+import { valenceMemoryUse } from './valenceMemoryUse';
 
 const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['resources'] => ({
   atMs: 0,
@@ -21,14 +21,14 @@ const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['reso
 
 const conversion = (memoryBytes: number) => ({ pid: 1, cpuPercent: 0, memoryBytes });
 
-describe('fluxMemoryUse', () => {
+describe('valenceMemoryUse', () => {
   it('has nothing to say before the first reading', () => {
-    expect(fluxMemoryUse(null)).toBeNull();
+    expect(valenceMemoryUse(null)).toBeNull();
   });
 
   it('counts the conversions, not just the service', () => {
     expect(
-      fluxMemoryUse(
+      valenceMemoryUse(
         resources({
           serviceMemoryBytes: 16 * 1024 ** 2,
           children: [conversion(200 * 1024 ** 2), conversion(140 * 1024 ** 2)],
@@ -39,7 +39,7 @@ describe('fluxMemoryUse', () => {
 
   it('counts the API server, which is the half that allocates most', () => {
     expect(
-      fluxMemoryUse(
+      valenceMemoryUse(
         resources({ serviceMemoryBytes: 16 * 1024 ** 2, apiMemoryBytes: 300 * 1024 ** 2 }),
       ),
     ).toBe(316 * 1024 ** 2);
@@ -47,7 +47,7 @@ describe('fluxMemoryUse', () => {
 
   it('takes the deployment whole rather than adding its parts up twice', () => {
     expect(
-      fluxMemoryUse(
+      valenceMemoryUse(
         resources({
           serviceMemoryBytes: 16 * 1024 ** 2,
           apiMemoryBytes: 300 * 1024 ** 2,
@@ -59,16 +59,16 @@ describe('fluxMemoryUse', () => {
   });
 
   it('reports an idle Valence as idle rather than as unmeasured', () => {
-    expect(fluxMemoryUse(resources())).toBe(0);
+    expect(valenceMemoryUse(resources())).toBe(0);
   });
 
   it('refuses a reading it cannot make sense of', () => {
-    expect(fluxMemoryUse(resources({ serviceMemoryBytes: Number.NaN }))).toBeNull();
+    expect(valenceMemoryUse(resources({ serviceMemoryBytes: Number.NaN }))).toBeNull();
   });
 
   it('falls back to the processes it can see when the deployment reading makes no sense', () => {
     expect(
-      fluxMemoryUse(
+      valenceMemoryUse(
         resources({
           serviceMemoryBytes: 5,
           deploymentMemory: { usedBytes: Number.NaN, limitBytes: null },

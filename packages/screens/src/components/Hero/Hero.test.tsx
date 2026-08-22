@@ -77,7 +77,7 @@ describe('Hero', () => {
     );
     const runway = container.firstElementChild;
 
-    expect(runway).toHaveStyle({ height: 'calc(100svh - var(--flux-window-bar))' });
+    expect(runway).toHaveStyle({ height: 'calc(100svh - var(--valence-window-bar))' });
     expect(runway).not.toHaveStyle({ marginBottom: '-24svh' });
     expect(container.querySelector('.sticky')).toBeNull();
   });

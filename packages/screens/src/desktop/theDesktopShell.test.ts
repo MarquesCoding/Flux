@@ -2,11 +2,11 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { askForADifferentServer, isTheDesktopClient } from './theDesktopShell';
 
 const insideTheWindow = (): void => {
-  document.documentElement.dataset['fluxDesktop'] = 'true';
+  document.documentElement.dataset['valenceDesktop'] = 'true';
 };
 
 afterEach(() => {
-  delete document.documentElement.dataset['fluxDesktop'];
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('isTheDesktopClient', () => {
@@ -21,7 +21,7 @@ describe('isTheDesktopClient', () => {
   });
 
   it('says no for a mark that says anything else, rather than for merely being present', () => {
-    document.documentElement.dataset['fluxDesktop'] = 'maybe';
+    document.documentElement.dataset['valenceDesktop'] = 'maybe';
 
     expect(isTheDesktopClient()).toBe(false);
   });

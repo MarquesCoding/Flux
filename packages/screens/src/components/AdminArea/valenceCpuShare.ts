@@ -8,7 +8,7 @@ import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
  * @param resources - The latest readings, or null before any have arrived.
  * @returns Valence's share of the machine as a percentage, or null where it cannot be worked out.
  */
-const fluxCpuShare = (resources: Monitor['resources'] | null): number | null => {
+const valenceCpuShare = (resources: Monitor['resources'] | null): number | null => {
   if (resources === null || resources.cpuCount <= 0) {
     return null;
   }
@@ -25,4 +25,4 @@ const fluxCpuShare = (resources: Monitor['resources'] | null): number | null => 
   return Math.min(100, Math.max(0, cores / resources.cpuCount));
 };
 
-export { fluxCpuShare };
+export { valenceCpuShare };

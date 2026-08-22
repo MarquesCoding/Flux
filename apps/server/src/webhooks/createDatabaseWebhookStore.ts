@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { toIso } from '@ValenceCore/functions/toIso';
 import { webhookDelivery, webhookSubscription } from '@ValenceServer/db/Schema';
 import { WebhookEventSchema, WebhookPresetSchema } from '@ValenceContracts/schemas/Webhook';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
@@ -21,7 +21,7 @@ const StoredEventsSchema = z.array(WebhookEventSchema);
  * @param db - The database to read and write.
  * @returns The webhook store.
  */
-const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
+const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
   const readRow = (row: typeof webhookSubscription.$inferSelect): WebhookSubscription[] => {
     const events = StoredEventsSchema.safeParse(row.events);
     const preset = WebhookPresetSchema.safeParse(row.preset);

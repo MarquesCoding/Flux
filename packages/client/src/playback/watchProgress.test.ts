@@ -52,7 +52,7 @@ describe('fetchWatchProgress', () => {
 
     await fetchWatchProgress();
 
-    expect(fetchMock.mock.calls.at(-1)?.[1]?.headers).toMatchObject({ 'x-flux-profile': 'abc' });
+    expect(fetchMock.mock.calls.at(-1)?.[1]?.headers).toMatchObject({ 'x-valence-profile': 'abc' });
   });
 
   it('says so when the server refuses, rather than answering with nothing', async () => {

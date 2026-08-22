@@ -24,7 +24,7 @@ const STOP_LOOKING_AFTER_MS = 60_000;
  * @param address - Where a Valence might be.
  * @returns Whether one answered.
  */
-const isAFlux = async (address: string): Promise<boolean> => {
+const isAValence = async (address: string): Promise<boolean> => {
   try {
     const answered = await net.fetch(`${address}/api/health`, {
       headers: { accept: 'application/json' },
@@ -53,8 +53,8 @@ const isAFlux = async (address: string): Promise<boolean> => {
  * @param reach - How to ask whether a Valence is there, which a test replaces.
  * @returns The address of the one it found, or nothing.
  */
-const lookForAFlux = async (
-  reach: (address: string) => Promise<boolean> = isAFlux,
+const lookForAValence = async (
+  reach: (address: string) => Promise<boolean> = isAValence,
 ): Promise<string | null> => {
   for (const address of WHERE_ONE_USUALLY_IS) {
     if (await reach(address)) {
@@ -77,14 +77,14 @@ const lookForAFlux = async (
  * @param reach - How to ask whether a Valence is there, which a test replaces.
  * @returns How to stop looking.
  */
-const keepLookingForAFlux = (
+const keepLookingForAValence = (
   found: (address: string) => void,
-  reach: (address: string) => Promise<boolean> = isAFlux,
+  reach: (address: string) => Promise<boolean> = isAValence,
 ): (() => void) => {
   let stopped = false;
 
   const timer = setInterval(() => {
-    void lookForAFlux(reach).then((address) => {
+    void lookForAValence(reach).then((address) => {
       if (address !== null && !stopped) {
         stop();
         found(address);
@@ -111,7 +111,7 @@ export {
   LOOK_AGAIN_EVERY_MS,
   STOP_LOOKING_AFTER_MS,
   WHERE_ONE_USUALLY_IS,
-  isAFlux,
-  keepLookingForAFlux,
-  lookForAFlux,
+  isAValence,
+  keepLookingForAValence,
+  lookForAValence,
 };

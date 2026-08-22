@@ -68,7 +68,7 @@ const readContent = (event: PushMessage) => {
 addEventListener('push', (event) => {
   const { title, body, link } = readContent(event);
 
-  const tag = 'flux-media-added';
+  const tag = 'valence-media-added';
 
   event.waitUntil(
     registration.showNotification(title, {

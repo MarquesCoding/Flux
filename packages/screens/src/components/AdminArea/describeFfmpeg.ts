@@ -27,7 +27,7 @@ const describeFfmpeg = (reported: string | null): string => {
   }
 
   return FLUX_BUILD.test(version)
-    ? `flux-ffmpeg ${version.replace(FLUX_BUILD, '')}`
+    ? `valence-ffmpeg ${version.replace(FLUX_BUILD, '')}`
     : `ffmpeg ${version}`;
 };
 

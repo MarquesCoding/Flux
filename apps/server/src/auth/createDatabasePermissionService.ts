@@ -4,7 +4,7 @@ import { resolvePermissions } from '@ValenceCore/functions/resolvePermissions';
 import { ADMINISTRATOR } from '@ValenceContracts/schemas/Permission';
 import type { Permission, PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
 import { role, rolePermission, userPermissionOverride, userRole } from '@ValenceServer/db/Schema';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import { readPermission } from './readPermission';
 import type { PermissionService } from './PermissionService';
 
@@ -34,7 +34,7 @@ const readGrants = (rows: readonly { permission: string; effect: string }[]): Pe
  * @param db - The database to read and write.
  * @returns The permission service.
  */
-const createDatabasePermissionService = (db: FluxDatabase): PermissionService => {
+const createDatabasePermissionService = (db: ValenceDatabase): PermissionService => {
   const permissionsByRole = async (
     roleIds: readonly string[],
   ): Promise<Map<string, Permission[]>> => {

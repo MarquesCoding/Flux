@@ -1,7 +1,7 @@
 import { and, count, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
 import { logRecord } from '@ValenceServer/db/Schema';
 import { LogLevelSchema, LogSourceSchema } from '@ValenceContracts/schemas/Log';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
 import type { LogStore, StoredLog } from './Logger';
 
@@ -36,7 +36,7 @@ const asRecord = (row: Row): LogRecord => ({
  * @param db - The database.
  * @returns The store.
  */
-const createDatabaseLogStore = (db: FluxDatabase): LogStore => ({
+const createDatabaseLogStore = (db: ValenceDatabase): LogStore => ({
   save: async (records: readonly StoredLog[]) => {
     if (records.length === 0) {
       return;

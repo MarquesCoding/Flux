@@ -312,7 +312,7 @@ const MediaPreview = ({
       <VideoSurface
         label="Preview"
         videoRef={videoRef}
-        className={`flux-preview h-full w-full object-cover transition-opacity duration-700 ${
+        className={`valence-preview h-full w-full object-cover transition-opacity duration-700 ${
           isShowingFrame ? 'opacity-0' : 'opacity-100'
         }`}
         onTimeUpdate={(seconds) => {

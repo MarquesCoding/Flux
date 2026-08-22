@@ -209,7 +209,7 @@ const LogsPanel = ({
             label="Download what is shown"
             hasTooltip
             onClick={() => {
-              download('flux-log.txt', asText());
+              download('valence-log.txt', asText());
             }}
           >
             <Icon of={DownloadSimpleIcon} size={15} />

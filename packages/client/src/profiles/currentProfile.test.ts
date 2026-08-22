@@ -51,7 +51,7 @@ describe('profileHeaders', () => {
   it('says who is watching', () => {
     writeCurrentProfile('abc');
 
-    expect(profileHeaders()).toEqual({ 'x-flux-profile': 'abc' });
+    expect(profileHeaders()).toEqual({ 'x-valence-profile': 'abc' });
   });
 
   it('says nothing when nobody has been chosen, rather than naming nobody', () => {

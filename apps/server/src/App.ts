@@ -4,7 +4,7 @@ import type { CatalogueMatch } from '@ValenceServer/library/MetadataProvider';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
 import { suggestTrustedOrigins } from '@ValenceServer/setup/suggestTrustedOrigins';
-import type { FluxAuth } from '@ValenceServer/auth/Auth';
+import type { ValenceAuth } from '@ValenceServer/auth/Auth';
 import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 import { allowCrossOriginClients } from '@ValenceServer/auth/allowCrossOriginClients';
 import { DEFAULT_LIMIT } from '@ValenceServer/library/LibraryService';
@@ -241,7 +241,7 @@ import {
 import type { HistoryService } from '@ValenceServer/history/HistoryService';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
 
-const PROFILE_HEADER = 'x-flux-profile';
+const PROFILE_HEADER = 'x-valence-profile';
 
 /**
  * Picks the headers worth carrying from a media file the server is forwarding — the type, the
@@ -332,7 +332,7 @@ type StorageCount = {
 };
 
 type CreateAppOptions = {
-  auth: FluxAuth;
+  auth: ValenceAuth;
   settings: SettingsStore;
   trustedOrigins?: () => Promise<readonly string[]>;
   countUsers: () => Promise<number>;

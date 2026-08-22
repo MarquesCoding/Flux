@@ -58,13 +58,13 @@ const watching = (overrides: Partial<DiscordPresence> = {}) => {
 
 beforeEach(() => {
   seen.length = 0;
-  document.documentElement.dataset['fluxDesktop'] = 'true';
+  document.documentElement.dataset['valenceDesktop'] = 'true';
   document.addEventListener('flux:now-watching', heard);
 });
 
 afterEach(() => {
   document.removeEventListener('flux:now-watching', heard);
-  delete document.documentElement.dataset['fluxDesktop'];
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('useDiscordPresence', () => {
@@ -115,7 +115,7 @@ describe('useDiscordPresence', () => {
   });
 
   it('says nothing in a browser, which has no window to publish it', () => {
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
 
     watching();
 

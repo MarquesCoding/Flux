@@ -1,6 +1,6 @@
-import type { FluxAuth } from './Auth';
+import type { ValenceAuth } from './Auth';
 
-type Session = Awaited<ReturnType<FluxAuth['api']['getSession']>>;
+type Session = Awaited<ReturnType<ValenceAuth['api']['getSession']>>;
 
 type ResolvesSessions = {
   api: { getSession: (options: { headers: Headers }) => Promise<Session> };

@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, desc, eq, lt } from 'drizzle-orm';
 import { watchHistory, mediaItem } from '@ValenceServer/db/Schema';
 import { decideViewing } from './decideViewing';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { HistoryService, Viewing } from './HistoryService';
 
 type Row = {
@@ -41,7 +41,7 @@ const shown = (row: Row): Viewing => ({
  * @param db - The database to read and write.
  * @returns The history service.
  */
-const createDatabaseHistoryService = (db: FluxDatabase): HistoryService => ({
+const createDatabaseHistoryService = (db: ValenceDatabase): HistoryService => ({
   record: async (profileId, mediaItemId, seen) => {
     const [open] = await db
       .select({

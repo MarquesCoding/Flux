@@ -45,13 +45,13 @@ import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
-import { fluxCpuShare } from './fluxCpuShare';
-import { fluxMemoryUse } from './fluxMemoryUse';
+import { valenceCpuShare } from './valenceCpuShare';
+import { valenceMemoryUse } from './valenceMemoryUse';
 import { memoryEnvelope } from './memoryEnvelope';
 import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
-import { describeFluxMemory } from './describeFluxMemory';
+import { describeValenceMemory } from './describeValenceMemory';
 import { describeFfmpeg } from './describeFfmpeg';
 import { describeAcceleration } from './describeAcceleration';
 import {
@@ -454,10 +454,10 @@ const AdminArea = ({
   const resources = monitor?.resources ?? null;
   const memory = memoryEnvelope(resources);
   const memoryFraction = memory === null ? 0 : memory.usedBytes / memory.totalBytes;
-  const fluxMemory = fluxMemoryUse(resources);
+  const valenceMemory = valenceMemoryUse(resources);
 
   const conversions = resources?.children ?? [];
-  const cpuShare = fluxCpuShare(resources);
+  const cpuShare = valenceCpuShare(resources);
   const acceleration =
     overview === null
       ? null
@@ -570,7 +570,7 @@ const AdminArea = ({
                 detail:
                   memory === null
                     ? '—'
-                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Valence ${describeFluxMemory(fluxMemory)}`,
+                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Valence ${describeValenceMemory(valenceMemory)}`,
               },
               {
                 label: 'Graphics',

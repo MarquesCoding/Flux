@@ -219,24 +219,24 @@ body {
 }
 
 :root {
-  --flux-window-bar: 0px;
+  --valence-window-bar: 0px;
 }
 
 [data-window-bar='on'] {
-  --flux-window-bar: 2.25rem;
+  --valence-window-bar: 2.25rem;
 }
 
-.flux-below-the-bar {
+.valence-below-the-bar {
   position: fixed;
-  inset: var(--flux-window-bar) 0 0 0;
+  inset: var(--valence-window-bar) 0 0 0;
 }
 
-[data-flux-desktop='true'] body {
+[data-valence-desktop='true'] body {
   user-select: none;
   -webkit-user-select: none;
 }
 
-[data-flux-desktop='true'] :is(img, svg, a) {
+[data-valence-desktop='true'] :is(img, svg, a) {
   -webkit-user-drag: none;
 }
 
@@ -249,12 +249,12 @@ body {
   height: 0;
 }
 
-[data-flux-desktop='true'] :is(input, textarea, [contenteditable]) {
+[data-valence-desktop='true'] :is(input, textarea, [contenteditable]) {
   user-select: text;
   -webkit-user-select: text;
 }
 
-.flux-bloom {
+.valence-bloom {
   position: absolute;
   inset: 0;
   background-repeat: no-repeat;
@@ -262,11 +262,11 @@ body {
   background-position: 50% 50%;
 }
 
-.flux-bloom--drift {
-  animation: flux-bloom-drift 40s ease-in-out infinite alternate;
+.valence-bloom--drift {
+  animation: valence-bloom-drift 40s ease-in-out infinite alternate;
 }
 
-@keyframes flux-bloom-drift {
+@keyframes valence-bloom-drift {
   0% {
     background-position: 34% 32%;
   }
@@ -281,11 +281,11 @@ body {
   }
 }
 
-.flux-dot-fill {
-  animation: flux-dot-fill linear forwards;
+.valence-dot-fill {
+  animation: valence-dot-fill linear forwards;
 }
 
-@keyframes flux-dot-fill {
+@keyframes valence-dot-fill {
   from {
     transform: scaleX(0);
   }
@@ -294,12 +294,12 @@ body {
   }
 }
 
-.flux-logo-edge {
+.valence-logo-edge {
   filter: drop-shadow(1px 0 0 var(--color-accent)) drop-shadow(-1px 0 0 var(--color-accent))
     drop-shadow(0 1px 0 var(--color-accent)) drop-shadow(0 -1px 0 var(--color-accent));
 }
 
-.flux-logo-dots {
+.valence-logo-dots {
   position: absolute;
   inset: 0;
   overflow: hidden;
@@ -313,7 +313,7 @@ body {
   -webkit-mask-position: center;
 }
 
-.flux-logo-wave {
+.valence-logo-wave {
   position: absolute;
   inset: -50%;
   background: radial-gradient(
@@ -322,11 +322,11 @@ body {
     rgb(255 255 255 / 0.6) 24%,
     rgb(255 255 255 / 0) 48%
   );
-  animation: flux-logo-wave 3.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
+  animation: valence-logo-wave 3.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
   will-change: transform, opacity;
 }
 
-@keyframes flux-logo-wave {
+@keyframes valence-logo-wave {
   from {
     transform: scale(0.12);
     opacity: 0;
@@ -340,46 +340,46 @@ body {
   }
 }
 
-.flux-mood-fade {
+.valence-mood-fade {
   position: absolute;
   inset: 0;
   background: linear-gradient(180deg, transparent 0%, transparent 38%, var(--color-surface) 96%);
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-logo-wave {
+  .valence-logo-wave {
     animation: none;
     opacity: 0.35;
     transform: scale(1);
   }
 
-  .flux-dot-fill {
+  .valence-dot-fill {
     animation: none;
     transform: scaleX(1);
   }
 
-  .flux-bloom {
+  .valence-bloom {
     transition: none;
   }
 
-  .flux-bloom--drift {
+  .valence-bloom--drift {
     animation: none;
   }
 }
 
-.flux-docked {
+.valence-docked {
   --dock-clearance: 4rem;
 }
 
 :root {
-  --flux-icon-second-tone: 0.42;
+  --valence-icon-second-tone: 0.42;
 }
 
-.flux-icon [opacity] {
-  opacity: var(--flux-icon-second-tone);
+.valence-icon [opacity] {
+  opacity: var(--valence-icon-second-tone);
 }
 
-.flux-glass {
+.valence-glass {
   background: var(--glass-tint);
   backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
   -webkit-backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));
@@ -390,27 +390,27 @@ body {
     var(--glass-shadow);
 }
 
-.flux-glass--film {
+.valence-glass--film {
   --glass-tint: color-mix(in oklab, black 45%, transparent);
   --glass-edge: color-mix(in oklab, white 16%, transparent);
   --glass-brightness: 0.5;
 }
 
-.flux-surface {
+.valence-surface {
   background: var(--color-surface-raised);
   border: 1px solid var(--surface-line);
   box-shadow: var(--shadow-raised);
 }
 
-.flux-surface--flat {
+.valence-surface--flat {
   box-shadow: none;
 }
 
-.flux-surface--lifted {
+.valence-surface--lifted {
   box-shadow: var(--shadow-lifted);
 }
 
-.flux-hoverable {
+.valence-hoverable {
   transition:
     background-color var(--duration-fast) var(--ease-soft),
     border-color var(--duration-fast) var(--ease-soft),
@@ -418,23 +418,23 @@ body {
     transform var(--duration-base) var(--ease-soft);
 }
 
-.flux-hoverable:hover {
+.valence-hoverable:hover {
   background-color: var(--surface-hover);
 }
 
-.flux-lift:hover {
+.valence-lift:hover {
   box-shadow: var(--shadow-lifted);
 }
 
 @media (hover: hover) and (pointer: fine) {
-  .flux-lift:hover {
+  .valence-lift:hover {
     transform: translateY(-2px);
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .flux-hoverable,
-  .flux-lift:hover {
+  .valence-hoverable,
+  .valence-lift:hover {
     transform: none;
     transition-duration: 1ms;
   }
@@ -446,17 +446,17 @@ body {
   [data-slot='hover-card-content'],
   [data-slot='menu-content'],
   [data-slot='settings-menu'] {
-    animation-name: flux-fade;
+    animation-name: valence-fade;
   }
 }
 
-@keyframes flux-fade {
+@keyframes valence-fade {
   from {
     opacity: 0;
   }
 }
 
-.flux-gloss {
+.valence-gloss {
   background-image: linear-gradient(
     180deg,
     color-mix(in oklab, white 24%, transparent),
@@ -467,11 +467,11 @@ body {
     0 8px 20px -8px rgb(0 0 0 / 0.55);
 }
 
-.flux-rail {
+.valence-rail {
   scrollbar-width: none;
 }
 
-.flux-rail::-webkit-scrollbar {
+.valence-rail::-webkit-scrollbar {
   display: none;
 }
 
@@ -480,20 +480,20 @@ body {
   outline: none;
 }
 
-.flux-field::-webkit-search-cancel-button {
+.valence-field::-webkit-search-cancel-button {
   cursor: pointer;
   filter: grayscale(1) brightness(3);
   opacity: 0.6;
   transition: opacity var(--duration-fast) var(--ease-soft);
 }
 
-.flux-field::-webkit-search-cancel-button:hover {
+.valence-field::-webkit-search-cancel-button:hover {
   opacity: 1;
 }
 
-.flux-field:-webkit-autofill,
-.flux-field:-webkit-autofill:hover,
-.flux-field:-webkit-autofill:focus {
+.valence-field:-webkit-autofill,
+.valence-field:-webkit-autofill:hover,
+.valence-field:-webkit-autofill:focus {
   -webkit-text-fill-color: var(--color-text);
   -webkit-box-shadow: 0 0 0 1000px color-mix(in oklab, var(--color-surface) 92%, white) inset;
   caret-color: var(--color-text);
@@ -512,7 +512,7 @@ button:disabled,
   cursor: not-allowed;
 }
 
-.flux-preview::cue {
+.valence-preview::cue {
   background: rgb(0 0 0 / 0.78);
   color: #fff;
   font-size: 0.85em;

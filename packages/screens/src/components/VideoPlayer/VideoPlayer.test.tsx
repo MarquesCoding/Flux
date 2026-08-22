@@ -2357,11 +2357,11 @@ describe('when the player is in a watch party', () => {
 
 describe('in a window of our own', () => {
   afterEach(() => {
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
   });
 
   it('offers no picture-in-picture, which belongs to a browser', async () => {
-    document.documentElement.dataset['fluxDesktop'] = 'true';
+    document.documentElement.dataset['valenceDesktop'] = 'true';
 
     renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
@@ -2371,7 +2371,7 @@ describe('in a window of our own', () => {
   });
 
   it('offers no casting, and does not go looking for a sender to do it with', async () => {
-    document.documentElement.dataset['fluxDesktop'] = 'true';
+    document.documentElement.dataset['valenceDesktop'] = 'true';
 
     renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 

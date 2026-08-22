@@ -53,7 +53,7 @@ const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) =>
           variants={groupVariants}
           initial="hidden"
           animate="shown"
-          className="flux-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+          className="valence-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
         >
           {children}
         </motion.ul>

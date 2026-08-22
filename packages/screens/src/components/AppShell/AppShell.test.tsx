@@ -52,7 +52,7 @@ const enterTheCode = (target: EventTarget = window) => {
 };
 
 const filmOf = (container: HTMLElement): HTMLElement | null =>
-  container.querySelector('[role="presentation"].flux-below-the-bar');
+  container.querySelector('[role="presentation"].valence-below-the-bar');
 
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -103,7 +103,7 @@ describe('AppShell', () => {
   it('lights the page with the colour of what is being shown', () => {
     const { view } = draw({ moodLights: [{ color: '#5a3c8c', at: '20% 30%' }] });
 
-    const bloom = view.container.querySelector<HTMLElement>('.flux-bloom');
+    const bloom = view.container.querySelector<HTMLElement>('.valence-bloom');
 
     expect(bloom?.style.background).toContain('#5a3c8c');
     expect(bloom?.style.background).toContain('20% 30%');

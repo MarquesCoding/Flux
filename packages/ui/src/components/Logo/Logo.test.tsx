@@ -53,8 +53,8 @@ describe('Logo', () => {
     const { container: plain } = render(<Logo />);
 
     expect(layersOf(edged)).toHaveLength(2);
-    expect(edged.innerHTML).toContain('flux-logo-edge');
-    expect(plain.innerHTML).not.toContain('flux-logo-edge');
+    expect(edged.innerHTML).toContain('valence-logo-edge');
+    expect(plain.innerHTML).not.toContain('valence-logo-edge');
   });
 
   it('gives an edged mark a solid body, since a keyline behind dots would show through', () => {
@@ -76,14 +76,14 @@ describe('Logo', () => {
   it('fills itself with dots where asked, inside the shape it is cut to', () => {
     const { container } = render(<Logo isDotted />);
 
-    expect(container.innerHTML).toContain('flux-logo-dots');
+    expect(container.innerHTML).toContain('valence-logo-dots');
     expect(layersOf(container)[0]?.style.maskImage).toContain('valence-logo.svg');
   });
 
   it('is solid ink otherwise, since dots turn to mush at the size of a dock', () => {
     const { container } = render(<Logo />);
 
-    expect(container.innerHTML).not.toContain('flux-logo-dots');
+    expect(container.innerHTML).not.toContain('valence-logo-dots');
     expect(container.innerHTML).toContain('conic-gradient');
   });
 
@@ -91,8 +91,8 @@ describe('Logo', () => {
     const { container: still } = render(<Logo isDotted />);
     const { container: waving } = render(<Logo isDotted isAnimated />);
 
-    expect(still.innerHTML).not.toContain('flux-logo-wave');
-    expect(waving.innerHTML).toContain('flux-logo-wave');
+    expect(still.innerHTML).not.toContain('valence-logo-wave');
+    expect(waving.innerHTML).toContain('valence-logo-wave');
   });
 
   it('keeps its colour when it is made of dots, since dots are still the mark', () => {
@@ -113,7 +113,7 @@ describe('Logo', () => {
     const { container } = render(<Logo />);
 
     expect(container.innerHTML).not.toContain('animate-');
-    expect(container.innerHTML).not.toContain('flux-logo-wave');
+    expect(container.innerHTML).not.toContain('valence-logo-wave');
   });
 });
 

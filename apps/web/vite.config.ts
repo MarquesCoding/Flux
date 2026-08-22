@@ -32,7 +32,7 @@ const WORKER_PATH = '/push-worker.js';
  * one installed and in charge.
  */
 const pushWorker = (): Plugin => ({
-  name: 'flux-push-worker',
+  name: 'valence-push-worker',
 
   configureServer: (server) => {
     server.middlewares.use((request, response, next) => {

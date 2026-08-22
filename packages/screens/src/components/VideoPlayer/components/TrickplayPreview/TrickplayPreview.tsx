@@ -20,7 +20,7 @@ const TrickplayPreview = ({ trickplay, seconds }: TrickplayPreviewProps) => {
   const thumbnail = trickplay === null ? null : thumbnailAt(trickplay.thumbnails, seconds);
 
   return (
-    <figure className="flux-glass mb-2 flex flex-col gap-1 rounded-lg px-2 py-2 text-white">
+    <figure className="valence-glass mb-2 flex flex-col gap-1 rounded-lg px-2 py-2 text-white">
       {thumbnail === null ? null : (
         <div
           role="img"

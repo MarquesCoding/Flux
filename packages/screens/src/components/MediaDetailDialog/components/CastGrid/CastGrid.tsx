@@ -51,7 +51,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
         <ul
           ref={trackRef}
           onScroll={measure}
-          className="flux-rail flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth"
+          className="valence-rail flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth"
         >
           {members.map((member) => (
             <li

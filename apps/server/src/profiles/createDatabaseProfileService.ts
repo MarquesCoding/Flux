@@ -9,7 +9,7 @@ import {
   StillWatchingSchema,
 } from '@ValenceContracts/schemas/StillWatching';
 import { ProfileColourSchema, PROFILE_COLOURS } from '@ValenceContracts/schemas/ViewerProfile';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { ProfileService } from './ProfileService';
 import type { ProfileColour, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
@@ -147,7 +147,10 @@ const COLUMNS = {
  * @param photoDirectory - Where uploaded photographs are kept.
  * @returns The profile service.
  */
-const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
+const createDatabaseProfileService = (
+  db: ValenceDatabase,
+  photoDirectory: string,
+): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
       .select(COLUMNS)

@@ -30,7 +30,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '7.1',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
@@ -245,7 +245,7 @@ describe('OverviewPanel', () => {
           overview={overview({
             transcoder: {
               isReachable: true,
-              address: 'unix:/tmp/flux-transcoder.sock',
+              address: 'unix:/tmp/valence-transcoder.sock',
               ffmpegVersion: '7.1',
               ffmpegSupported: true,
               hardwareAccels: [],
@@ -294,7 +294,7 @@ describe('OverviewPanel', () => {
         overview={overview({
           transcoder: {
             isReachable: true,
-            address: 'unix:/tmp/flux-transcoder.sock',
+            address: 'unix:/tmp/valence-transcoder.sock',
             ffmpegVersion: '8.1.2',
             ffmpegSupported: true,
             hardwareAccels: [],

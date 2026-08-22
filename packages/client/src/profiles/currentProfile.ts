@@ -2,7 +2,7 @@ import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
 const STORAGE_KEY = 'flux.profile';
 
-const PROFILE_HEADER = 'x-flux-profile';
+const PROFILE_HEADER = 'x-valence-profile';
 
 /**
  * Who is watching on this device, where somebody has chosen. Held on the device rather than in the

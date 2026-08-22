@@ -16,7 +16,7 @@ import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
 import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
-import { keepLookingForAFlux, lookForAFlux } from '@ValenceDesktop/main/lookForAFlux';
+import { keepLookingForAValence, lookForAValence } from '@ValenceDesktop/main/lookForAValence';
 import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
 import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
 import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
@@ -78,7 +78,7 @@ const findAFlux = async (): Promise<void> => {
     }
   };
 
-  const here = await lookForAFlux();
+  const here = await lookForAValence();
 
   if (here !== null) {
     offer(here);
@@ -87,7 +87,7 @@ const findAFlux = async (): Promise<void> => {
   }
 
   stopLooking?.();
-  stopLooking = keepLookingForAFlux(offer);
+  stopLooking = keepLookingForAValence(offer);
 };
 
 const start = async (): Promise<void> => {

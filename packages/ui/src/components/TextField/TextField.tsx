@@ -90,7 +90,7 @@ const TextField = ({
           }}
           autoFocus={hasFocusOnMount}
           className={cn(
-            'flux-field text-text outline-none',
+            'valence-field text-text outline-none',
             'transition-[color,border-color,box-shadow] duration-[var(--duration-instant)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none placeholder:text-text-muted',
             'focus-visible:ring-[3px] focus-visible:ring-ring/40',

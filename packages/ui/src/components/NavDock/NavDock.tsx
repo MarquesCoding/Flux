@@ -49,7 +49,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
           onBlur={() => {
             setPointedAt(null);
           }}
-          className="flux-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
+          className="valence-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
         >
           {brand === undefined ? null : (
             <span className="relative z-10 flex shrink-0 items-center pl-2 pr-1">{brand}</span>

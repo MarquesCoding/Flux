@@ -402,7 +402,7 @@ const MediaDetailDialog = ({
                     : `More from season ${season.toString()}`}
                 </h3>
 
-                <ul className="flux-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
+                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
                   {shownSiblings.map((sibling) => (
                     <li key={sibling.id} className="w-56 shrink-0 sm:w-64">
                       <MediaCard

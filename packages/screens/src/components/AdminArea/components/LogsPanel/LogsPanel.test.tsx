@@ -152,7 +152,7 @@ describe('LogsPanel', () => {
     await screen.findByText('could not read the file');
     await actor.click(screen.getByRole('button', { name: /Download what is shown/ }));
 
-    expect(world.downloaded[0]?.name).toBe('flux-log.txt');
+    expect(world.downloaded[0]?.name).toBe('valence-log.txt');
   });
 
   it('says how many times a repeat happened rather than listing it again', async () => {

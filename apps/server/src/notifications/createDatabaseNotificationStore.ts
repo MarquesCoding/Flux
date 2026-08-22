@@ -11,7 +11,7 @@ import {
   user,
 } from '@ValenceServer/db/Schema';
 import { toIso } from '@ValenceCore/functions/toIso';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { Notification } from '@ValenceContracts/schemas/Notification';
 import { A_MINUTE, LASTS_FOR_MINUTES } from './hasExpired';
 import type { NotificationStore } from './NotificationStore';
@@ -23,7 +23,7 @@ import type { NotificationStore } from './NotificationStore';
  * @param db - The database to read and write.
  * @returns The notification store.
  */
-const createDatabaseNotificationStore = (db: FluxDatabase): NotificationStore => {
+const createDatabaseNotificationStore = (db: ValenceDatabase): NotificationStore => {
   const readRow = (row: typeof notification.$inferSelect): Notification[] => {
     const event = NotificationEventSchema.safeParse(row.event);
 

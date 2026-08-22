@@ -7,7 +7,7 @@ import {
 import { readSearch } from '@ValenceClient/navigation/readSearch';
 import { App } from '@ValenceScreens/components/App/App';
 import { SignedIn } from '@ValenceScreens/components/SignedIn/SignedIn';
-import { FluxShell } from '@ValenceScreens/components/FluxShell/FluxShell';
+import { ValenceShell } from '@ValenceScreens/components/ValenceShell/ValenceShell';
 import { HomePage } from '@ValenceScreens/components/HomePage/HomePage';
 import { scrollKeyOf } from '@ValenceScreens/routes/scrollKeyOf';
 import { PageProblem } from '@ValenceScreens/components/PageProblem/PageProblem';
@@ -105,7 +105,7 @@ const buildRouter = (title = 'Valence') => {
   const shell = createRoute({
     getParentRoute: () => signedIn,
     id: 'shell',
-    component: FluxShell,
+    component: ValenceShell,
   });
 
   const sections = [

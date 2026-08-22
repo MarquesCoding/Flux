@@ -11,7 +11,7 @@ describe('markTheDocument', () => {
 
     markTheDocument(within);
 
-    expect(within.querySelector('html')?.dataset['fluxDesktop']).toBe('true');
+    expect(within.querySelector('html')?.dataset['valenceDesktop']).toBe('true');
   });
 
   it('does not throw where the page has not been parsed yet, which is when a preload runs', () => {
@@ -31,7 +31,7 @@ describe('markTheDocument', () => {
       setTimeout(settle, 0);
     });
 
-    expect(within.querySelector('html')?.dataset['fluxDesktop']).toBe('true');
+    expect(within.querySelector('html')?.dataset['valenceDesktop']).toBe('true');
   });
 
   it('stops watching once it has marked one, so nothing is left observing the document', async () => {
@@ -53,6 +53,6 @@ describe('markTheDocument', () => {
       setTimeout(settle, 0);
     });
 
-    expect(within.querySelector('html')?.dataset['fluxDesktop']).toBeUndefined();
+    expect(within.querySelector('html')?.dataset['valenceDesktop']).toBeUndefined();
   });
 });

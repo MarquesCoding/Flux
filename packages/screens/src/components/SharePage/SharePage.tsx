@@ -61,7 +61,7 @@ const SharePage = ({ name, askEveryMilliseconds = ASK_EVERY_MILLISECONDS }: Shar
 
   if (playing !== null) {
     return (
-      <main className="flux-below-the-bar z-40 flex flex-col bg-black">
+      <main className="valence-below-the-bar z-40 flex flex-col bg-black">
         <VideoPlayer
           media={playing}
           startSeconds={reached.get(playing.id) ?? 0}

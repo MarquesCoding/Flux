@@ -2,7 +2,7 @@ import { createMiddleware } from 'hono/factory';
 import { isPublicRoute } from '@ValenceServer/auth/isPublicRoute';
 import { readSessionOnce } from '@ValenceServer/auth/readSessionOnce';
 import type { MiddlewareHandler } from 'hono';
-import type { FluxAuth } from '@ValenceServer/auth/Auth';
+import type { ValenceAuth } from '@ValenceServer/auth/Auth';
 
 /**
  * Middleware that requires a session for everything the allowlist does not excuse.
@@ -16,7 +16,7 @@ import type { FluxAuth } from '@ValenceServer/auth/Auth';
  * @param shareGate - What to try for a request carrying no session, where sharing is enabled.
  * @returns The middleware.
  */
-const createSessionGate = (auth: FluxAuth, shareGate?: MiddlewareHandler) =>
+const createSessionGate = (auth: ValenceAuth, shareGate?: MiddlewareHandler) =>
   createMiddleware(async (context, next) => {
     if (isPublicRoute(context.req.method, context.req.path)) {
       await next();

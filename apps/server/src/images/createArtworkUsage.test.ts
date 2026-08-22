@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createArtworkUsage } from './createArtworkUsage';
 
 const withArtwork = async (files: Record<string, number>): Promise<string> => {
-  const directory = await mkdtemp(join(tmpdir(), 'flux-artwork-'));
+  const directory = await mkdtemp(join(tmpdir(), 'valence-artwork-'));
 
   for (const [name, bytes] of Object.entries(files)) {
     await writeFile(join(directory, name), Buffer.alloc(bytes));

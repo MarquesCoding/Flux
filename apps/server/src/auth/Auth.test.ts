@@ -240,7 +240,7 @@ describe('createAuth', () => {
   it('exposes the device authorization endpoint for keyboard-less clients', async () => {
     const { auth } = createMemoryAuth();
 
-    const response = await auth.handler(post('/api/auth/device/code', { client_id: 'flux-tv' }));
+    const response = await auth.handler(post('/api/auth/device/code', { client_id: 'valence-tv' }));
 
     expect(response.status).toBe(200);
 

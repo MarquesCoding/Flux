@@ -17,7 +17,7 @@ const TabBar = ({ tabs, label, value, className }: TabBarProps) => (
   <RadixTabs.List
     aria-label={label}
     className={cn(
-      'flux-rail relative flex items-center gap-6 overflow-x-auto px-5 sm:px-10',
+      'valence-rail relative flex items-center gap-6 overflow-x-auto px-5 sm:px-10',
       className,
     )}
   >

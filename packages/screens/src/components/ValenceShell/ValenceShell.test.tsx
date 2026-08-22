@@ -143,7 +143,7 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe('FluxShell', () => {
+describe('ValenceShell', () => {
   it('draws the dock every section sits inside', async () => {
     renderTheApp();
 

@@ -9,7 +9,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
   settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '7.1',
     ffmpegSupported: true,
     hardwareAccels: [],
@@ -127,7 +127,7 @@ describe('collectConcerns', () => {
         overview: healthyOverview({
           transcoder: {
             isReachable: false,
-            address: 'unix:/tmp/flux-transcoder.sock',
+            address: 'unix:/tmp/valence-transcoder.sock',
             ffmpegVersion: null,
             ffmpegSupported: true,
             hardwareAccels: [],
@@ -146,7 +146,7 @@ describe('collectConcerns', () => {
         overview: healthyOverview({
           transcoder: {
             isReachable: false,
-            address: 'unix:/tmp/flux-transcoder.sock',
+            address: 'unix:/tmp/valence-transcoder.sock',
             ffmpegVersion: null,
             ffmpegSupported: true,
             hardwareAccels: [],
@@ -155,7 +155,7 @@ describe('collectConcerns', () => {
         }),
       });
 
-      expect(concerns[0]?.detail).toContain('unix:/tmp/flux-transcoder.sock');
+      expect(concerns[0]?.detail).toContain('unix:/tmp/valence-transcoder.sock');
     });
 
     it('says only what it knows when the address was not reported', () => {
@@ -212,7 +212,7 @@ describe('collectConcerns', () => {
       healthyOverview({
         transcoder: {
           isReachable: true,
-          address: 'unix:/tmp/flux-transcoder.sock',
+          address: 'unix:/tmp/valence-transcoder.sock',
           ffmpegVersion: version,
           ffmpegSupported: false,
           hardwareAccels: [],

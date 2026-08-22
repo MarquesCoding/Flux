@@ -20,7 +20,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
   },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: null,
     ffmpegSupported: true,
     hardwareAccels: [],

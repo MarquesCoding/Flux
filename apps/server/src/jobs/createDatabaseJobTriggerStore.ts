@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto';
 import { and, asc, eq } from 'drizzle-orm';
 import { jobTrigger } from '@ValenceServer/db/Schema';
 import { ScheduleTriggerSchema } from './scheduleTrigger';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { JobTriggerStore } from './JobTriggerStore';
 
 /**
@@ -12,7 +12,7 @@ import type { JobTriggerStore } from './JobTriggerStore';
  * @param db - The database to read and write.
  * @returns The trigger store.
  */
-const createDatabaseJobTriggerStore = (db: FluxDatabase): JobTriggerStore => ({
+const createDatabaseJobTriggerStore = (db: ValenceDatabase): JobTriggerStore => ({
   list: async () => {
     const rows = await db.select().from(jobTrigger).orderBy(asc(jobTrigger.createdAt));
 

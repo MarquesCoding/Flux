@@ -1,6 +1,6 @@
 import type { ActiveSession, AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
 import type { Library } from '@ValenceContracts/schemas/Library';
-import { fluxCpuShare } from './fluxCpuShare';
+import { valenceCpuShare } from './valenceCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { memoryEnvelope } from './memoryEnvelope';
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
@@ -166,7 +166,7 @@ const collectConcerns = ({
   const recent = history.slice(-CPU_READINGS);
 
   if (recent.length === CPU_READINGS && recent.every((reading) => reading > CPU_PRESSURE)) {
-    const share = fluxCpuShare(resources);
+    const share = valenceCpuShare(resources);
 
     concerns.push({
       id: 'cpu',

@@ -38,7 +38,7 @@ describe('NavDock', () => {
       />,
     );
 
-    expect(container.querySelectorAll('.flux-glass')).toHaveLength(1);
+    expect(container.querySelectorAll('.valence-glass')).toHaveLength(1);
   });
 
   it('says which place is being stood on', () => {

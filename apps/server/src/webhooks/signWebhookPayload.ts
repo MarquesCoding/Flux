@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 
 const WEBHOOK_SIGNATURE_PREFIX = 'sha256=';
 
-const WEBHOOK_SIGNATURE_HEADER = 'x-flux-signature';
+const WEBHOOK_SIGNATURE_HEADER = 'x-valence-signature';
 
 /**
  * Signs a delivery with the subscription's own secret, so a receiver can tell that what arrived came

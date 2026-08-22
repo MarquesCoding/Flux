@@ -1,4 +1,4 @@
-const MARK = 'fluxDesktop';
+const MARK = 'valenceDesktop';
 
 /**
  * Marks a document as one this client is showing, as soon as there is a document to mark.

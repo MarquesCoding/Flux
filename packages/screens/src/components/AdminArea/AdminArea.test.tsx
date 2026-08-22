@@ -31,7 +31,7 @@ const OVERVIEW: AdminOverview = {
   },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '9.0.1',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
@@ -403,7 +403,7 @@ describe('AdminArea', () => {
         ...OVERVIEW,
         transcoder: {
           isReachable: false,
-          address: 'unix:/tmp/flux-transcoder.sock',
+          address: 'unix:/tmp/valence-transcoder.sock',
           ffmpegVersion: null,
           ffmpegSupported: true,
           hardwareAccels: [],

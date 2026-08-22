@@ -57,13 +57,13 @@ beforeEach(() => {
   seen.length = 0;
   fetchProfiles.mockReset().mockResolvedValue([aProfile(true)]);
   readCurrentProfile.mockReset().mockReturnValue('profile-1');
-  document.documentElement.dataset['fluxDesktop'] = 'true';
+  document.documentElement.dataset['valenceDesktop'] = 'true';
   document.addEventListener('flux:now-watching', heard);
 });
 
 afterEach(() => {
   document.removeEventListener('flux:now-watching', heard);
-  delete document.documentElement.dataset['fluxDesktop'];
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('useBrowsingPresence', () => {
@@ -88,7 +88,7 @@ describe('useBrowsingPresence', () => {
   });
 
   it('says nothing in a browser, which has no window to say it to', async () => {
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
 
     draw();
 

@@ -78,7 +78,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
         setPointedAt(null);
       }}
       className={cn(
-        'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+        'valence-rail valence-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
         className,
       )}
     >
@@ -133,7 +133,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                     align="start"
                     aria-label={group.label}
                     className={cn(
-                      'flux-glass flex min-w-44 flex-col rounded-lg p-1.5 text-sm text-text',
+                      'valence-glass flex min-w-44 flex-col rounded-lg p-1.5 text-sm text-text',
                       POPUP_MOTION,
                     )}
                   >

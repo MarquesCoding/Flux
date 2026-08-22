@@ -295,7 +295,7 @@ const ShowDialog = ({
               </h3>
 
               {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
-                <ul className="flux-rail flex items-center gap-2 overflow-x-auto">
+                <ul className="valence-rail flex items-center gap-2 overflow-x-auto">
                   {chooseFrom.map((one) => (
                     <li key={one.seasonNumber ?? 'specials'}>
                       <Button

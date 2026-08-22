@@ -38,7 +38,7 @@ const aBook = async (name: string, files: Record<string, Uint8Array>): Promise<s
 };
 
 beforeAll(async () => {
-  where = await mkdtemp(join(tmpdir(), 'flux-epub-'));
+  where = await mkdtemp(join(tmpdir(), 'valence-epub-'));
   path = await aBook('moby.epub', {
     'META-INF/container.xml': CONTAINER,
     'OEBPS/content.opf': PACKAGE,

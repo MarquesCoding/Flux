@@ -7,7 +7,7 @@ import { formatBytes } from '@ValenceCore/functions/formatBytes';
  * @param bytes - What Valence is holding, or null where it could not be worked out.
  * @returns The phrase to show.
  */
-const describeFluxMemory = (bytes: number | null): string =>
+const describeValenceMemory = (bytes: number | null): string =>
   bytes === null ? 'not measured' : formatBytes(bytes);
 
-export { describeFluxMemory };
+export { describeValenceMemory };

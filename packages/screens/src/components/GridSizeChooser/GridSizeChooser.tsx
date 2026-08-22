@@ -43,7 +43,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
       onBlur={() => {
         setPointedAt(null);
       }}
-      className={cn('flux-glass flex items-center gap-1 rounded-full p-1', className)}
+      className={cn('valence-glass flex items-center gap-1 rounded-full p-1', className)}
     >
       {SIZES.map(({ id, label, glyph }) => (
         <Button

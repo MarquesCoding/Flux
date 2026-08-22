@@ -17,7 +17,7 @@ const TabRow = ({ label, groups, value, className }: TabRowProps) => (
   <RadixTabs.List
     aria-label={label}
     className={cn(
-      'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+      'valence-rail valence-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
       className,
     )}
   >

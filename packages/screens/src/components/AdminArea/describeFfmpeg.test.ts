@@ -7,7 +7,7 @@ const HOMEBREW = 'ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg develo
 
 describe('describeFfmpeg', () => {
   it('names Valence own build, without repeating the stamp the name already carries', () => {
-    expect(describeFfmpeg(FLUX)).toBe('flux-ffmpeg 8.1.2');
+    expect(describeFfmpeg(FLUX)).toBe('valence-ffmpeg 8.1.2');
   });
 
   it('does not claim a stock build is Valence own', () => {
@@ -22,7 +22,7 @@ describe('describeFfmpeg', () => {
 
   it('drops the paragraph of build configuration that follows the version', () => {
     expect(describeFfmpeg(`${FLUX}\nconfiguration: --prefix=/ffbuild --enable-gpl`)).toBe(
-      'flux-ffmpeg 8.1.2',
+      'valence-ffmpeg 8.1.2',
     );
   });
 

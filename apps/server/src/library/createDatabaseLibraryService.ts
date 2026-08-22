@@ -41,7 +41,7 @@ import {
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
 } from '@ValenceServer/playback/PlaybackService';
-import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type {
   Library,
   MediaDetail,
@@ -67,7 +67,7 @@ import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
   atOnce?: number;
-  db: FluxDatabase;
+  db: ValenceDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
   jobs: JobQueue;

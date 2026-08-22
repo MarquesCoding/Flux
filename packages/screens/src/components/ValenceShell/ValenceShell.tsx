@@ -43,7 +43,7 @@ const NOTHING_WAITING = { notifications: [], unread: 0 };
  * sit over whichever section is showing. The dialogs live here rather than in the pages because they
  * are opened from the address and outlive the page that opened them.
  */
-const FluxShell = () => {
+const ValenceShell = () => {
   const cache = useQueryClient();
   const { place, go } = usePlace();
 
@@ -357,6 +357,6 @@ const FluxShell = () => {
   );
 };
 
-FluxShell.displayName = 'FluxShell';
+ValenceShell.displayName = 'ValenceShell';
 
-export { FluxShell };
+export { ValenceShell };

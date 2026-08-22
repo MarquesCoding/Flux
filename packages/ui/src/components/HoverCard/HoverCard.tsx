@@ -39,7 +39,7 @@ const HoverCard = ({
           sideOffset={8}
           data-slot="hover-card-content"
           className={cn(
-            'z-50 flux-glass w-72 rounded-lg p-4 text-sm text-text outline-none',
+            'z-50 valence-glass w-72 rounded-lg p-4 text-sm text-text outline-none',
             POPUP_MOTION,
             className,
           )}

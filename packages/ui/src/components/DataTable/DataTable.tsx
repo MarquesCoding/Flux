@@ -93,7 +93,7 @@ const DataTable = <Row extends RowData>({
         }}
         className={cn(
           'relative overflow-x-auto',
-          growsOnScroll ? 'flux-rail max-h-[28rem] overflow-y-auto' : '',
+          growsOnScroll ? 'valence-rail max-h-[28rem] overflow-y-auto' : '',
         )}
       >
         <HoverHighlight rect={rect} radius="md" className="bg-[var(--surface-hover)]" />

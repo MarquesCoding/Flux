@@ -129,7 +129,7 @@ const MoodBackground = ({
       role="presentation"
       className={cn(
         'pointer-events-none absolute inset-x-0 top-0 -z-10 h-[140svh] overflow-hidden',
-        isShowingFilm && 'flux-below-the-bar h-[calc(100vh-var(--flux-window-bar))]',
+        isShowingFilm && 'valence-below-the-bar h-[calc(100vh-var(--valence-window-bar))]',
       )}
     >
       <div ref={driftingRef} className="absolute inset-0 will-change-transform">
@@ -141,8 +141,8 @@ const MoodBackground = ({
             }}
             className={
               isDrifting && prefersReducedMotion !== true
-                ? 'flux-bloom flux-bloom--drift'
-                : 'flux-bloom'
+                ? 'valence-bloom valence-bloom--drift'
+                : 'valence-bloom'
             }
             style={{
               background: paint(heldRef.current[at] ?? light, at),
@@ -154,7 +154,7 @@ const MoodBackground = ({
         {hasGrid || isShowingFilm ? <DotField {...gridProps} /> : null}
       </div>
 
-      <span className="flux-mood-fade" />
+      <span className="valence-mood-fade" />
     </div>
   );
 };

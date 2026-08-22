@@ -109,8 +109,8 @@ const createAuth = ({
   });
 };
 
-type FluxAuth = ReturnType<typeof createAuth>;
+type ValenceAuth = ReturnType<typeof createAuth>;
 
-export type { FluxAuth };
+export type { ValenceAuth };
 
 export { createAuth };

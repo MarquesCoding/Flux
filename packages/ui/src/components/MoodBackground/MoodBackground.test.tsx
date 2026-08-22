@@ -14,7 +14,7 @@ vi.mock('motion/react', async () => ({
  * The lights themselves, one per colour the page was given.
  */
 const blooms = (container: HTMLElement): HTMLElement[] =>
-  Array.from(container.querySelectorAll('.flux-bloom')).filter(
+  Array.from(container.querySelectorAll('.valence-bloom')).filter(
     (found): found is HTMLElement => found instanceof HTMLElement,
   );
 
@@ -75,19 +75,19 @@ describe('MoodBackground', () => {
   it('keeps the page under the light, so the foot of the screen is the page', () => {
     const { container } = render(<MoodBackground lights={[{ color: '#112233' }]} />);
 
-    expect(container.querySelector('.flux-mood-fade')).not.toBeNull();
+    expect(container.querySelector('.valence-mood-fade')).not.toBeNull();
   });
 
   it('lets the light wander where a screen is being waited on', () => {
     const { container } = render(<MoodBackground lights={[{ color: '#112233' }]} isDrifting />);
 
-    expect(blooms(container)[0]?.className).toContain('flux-bloom--drift');
+    expect(blooms(container)[0]?.className).toContain('valence-bloom--drift');
   });
 
   it('holds it still everywhere else', () => {
     const { container } = render(<MoodBackground lights={[{ color: '#112233' }]} />);
 
-    expect(blooms(container)[0]?.className).not.toContain('flux-bloom--drift');
+    expect(blooms(container)[0]?.className).not.toContain('valence-bloom--drift');
   });
 
   it('sets a display name so devtools can identify it', () => {
@@ -99,7 +99,7 @@ describe('MoodBackground', () => {
 
     const { container } = render(<MoodBackground lights={[{ color: '#112233' }]} hasGrid />);
 
-    expect(blooms(container)[0]?.className).not.toContain('flux-bloom--drift');
+    expect(blooms(container)[0]?.className).not.toContain('valence-bloom--drift');
   });
 
   it('hands a film to the grid it already draws rather than laying a second one over it', () => {
@@ -117,12 +117,12 @@ describe('MoodBackground', () => {
   it('holds the film to the window rather than to the top of a page being scrolled', () => {
     const { container } = render(<MoodBackground film={() => undefined} />);
 
-    expect(container.firstElementChild?.className).toContain('flux-below-the-bar');
+    expect(container.firstElementChild?.className).toContain('valence-below-the-bar');
   });
 
   it('stays where it was put when there is no film', () => {
     const { container } = render(<MoodBackground hasGrid />);
 
-    expect(container.firstElementChild?.className).not.toContain('flux-below-the-bar');
+    expect(container.firstElementChild?.className).not.toContain('valence-below-the-bar');
   });
 });

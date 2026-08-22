@@ -2,8 +2,8 @@ import { cn } from '@ValenceUI/cn';
 import type { CardPadding, CardProps, CardRadius, CardTone } from './Card.types';
 
 const TONE_CLASSES: Record<CardTone, string> = {
-  raised: 'flux-surface',
-  glass: 'flux-glass',
+  raised: 'valence-surface',
+  glass: 'valence-glass',
   plain: '',
 };
 
@@ -48,7 +48,7 @@ const Card = ({
       RADIUS_CLASSES[radius],
       TONE_CLASSES[tone],
       PADDING_CLASSES[padding],
-      isInteractive ? 'flux-hoverable flux-lift cursor-pointer' : '',
+      isInteractive ? 'valence-hoverable valence-lift cursor-pointer' : '',
       className,
     )}
     {...rest}

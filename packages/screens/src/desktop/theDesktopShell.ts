@@ -1,4 +1,4 @@
-const MARK = 'fluxDesktop';
+const MARK = 'valenceDesktop';
 
 const CHANGE_SERVER = 'flux:change-server';
 

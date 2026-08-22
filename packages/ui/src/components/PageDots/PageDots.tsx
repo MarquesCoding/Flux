@@ -62,7 +62,7 @@ const PageDots = ({
               {selectedIndex === index && fillMilliseconds !== undefined ? (
                 <span
                   key={selectedIndex}
-                  className="flux-dot-fill block h-full w-full origin-left rounded-full bg-text"
+                  className="valence-dot-fill block h-full w-full origin-left rounded-full bg-text"
                   style={{
                     animationDuration: `${fillMilliseconds.toString()}ms`,
                     animationPlayState: isFillPaused ? 'paused' : 'running',

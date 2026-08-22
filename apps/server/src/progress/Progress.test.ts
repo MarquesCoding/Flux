@@ -255,7 +255,7 @@ describe('watch progress over HTTP', () => {
 });
 
 describe('which viewer a request is about', () => {
-  const PROFILE_HEADER = 'x-flux-profile';
+  const PROFILE_HEADER = 'x-valence-profile';
 
   it('records against the profile the request names, when it belongs to that account', async () => {
     const { app, profiles, store } = build();
