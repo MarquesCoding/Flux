@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
+import { SettingRow } from '@ValenceUI/SettingRow';
 import { QrCode } from '@ValenceUI/QrCode';
 import { TextField } from '@ValenceUI/TextField';
 import { disableTwoFactor, enableTwoFactor, verifyTotp } from '@ValenceClient/session/auth';
@@ -116,129 +117,134 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border p-5">
-      <header className="flex flex-col gap-1">
-        <h2 className="text-lg font-medium text-text">Two-factor authentication</h2>
-        <p className="text-sm text-text-muted">
-          {isEnabled
+    <div className="flex flex-col">
+      <SettingRow
+        title="Two-step sign in"
+        description={
+          isEnabled
             ? 'Your account asks for a code from your authenticator app when you sign in.'
-            : 'Add a code from an authenticator app to your sign in.'}
-        </p>
-      </header>
+            : 'A code from an authenticator app as well as your password, every time you sign in.'
+        }
+      >
+        {stage !== 'idle' ? null : isEnabled ? (
+          <Button
+            variant="soft"
+            size="sm"
+            isPill
+            onClick={() => {
+              setStage('disable');
+            }}
+          >
+            Turn off
+          </Button>
+        ) : (
+          <Button
+            variant="soft"
+            size="sm"
+            isPill
+            onClick={() => {
+              setStage('confirmPassword');
+            }}
+          >
+            Set up
+          </Button>
+        )}
+      </SettingRow>
 
-      {error === null ? null : (
-        <p role="alert" className="text-sm text-danger">
-          {error}
-        </p>
-      )}
-
-      {stage === 'idle' && !isEnabled ? (
-        <Button
-          onClick={() => {
-            setStage('confirmPassword');
-          }}
-        >
-          Set up two-factor
-        </Button>
-      ) : null}
-
-      {stage === 'idle' && isEnabled ? (
-        <Button
-          variant="secondary"
-          onClick={() => {
-            setStage('disable');
-          }}
-        >
-          Turn off two-factor
-        </Button>
-      ) : null}
-
-      {stage === 'confirmPassword' || stage === 'disable' ? (
-        <form
-          noValidate
-          className="flex flex-col gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void (stage === 'disable' ? disable() : begin());
-          }}
-        >
-          <TextField
-            label="Password"
-            type="password"
-            value={password}
-            onValueChange={setPassword}
-            autoComplete="current-password"
-            description="Confirm it is you before changing sign in requirements."
-          />
-
-          <div className="flex gap-2">
-            <Button type="submit" isLoading={isBusy}>
-              Continue
-            </Button>
-            <Button type="button" variant="ghost" onClick={reset}>
-              Cancel
-            </Button>
-          </div>
-        </form>
-      ) : null}
-
-      {stage === 'showSecret' && enrollment !== null ? (
-        <div className="flex flex-col gap-4">
-          <p className="text-sm text-text-muted">
-            Scan this with your authenticator app, or enter the key by hand.
+      <div className="flex flex-col gap-4 empty:hidden [&:not(:empty)]:px-5 [&:not(:empty)]:pb-5">
+        {error === null ? null : (
+          <p role="alert" className="text-sm text-danger">
+            {error}
           </p>
+        )}
 
-          <QrCode value={enrollment.totpURI} label="Two-factor setup QR code" />
-
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-text">Setup key</span>
-            <code className="rounded-md bg-surface-raised px-3 py-2 font-mono text-sm text-text">
-              {formatTotpSecret(enrollment.secret)}
-            </code>
-          </div>
-
-          <div className="flex flex-col gap-1">
-            <span className="text-sm font-medium text-text">Backup codes</span>
-            <p className="text-sm text-text-muted">
-              Save these now. Each works once if you lose your authenticator, and they are not shown
-              again.
-            </p>
-            <ul className="grid grid-cols-2 gap-1 rounded-md bg-surface-raised p-3 font-mono text-sm text-text">
-              {enrollment.backupCodes.map((backupCode) => (
-                <li key={backupCode}>{backupCode}</li>
-              ))}
-            </ul>
-          </div>
-
+        {stage === 'confirmPassword' || stage === 'disable' ? (
           <form
             noValidate
             className="flex flex-col gap-3"
             onSubmit={(event) => {
               event.preventDefault();
-              void confirm();
+              void (stage === 'disable' ? disable() : begin());
             }}
           >
             <TextField
-              label="Authenticator code"
-              value={code}
-              onValueChange={setCode}
-              autoComplete="one-time-code"
-              placeholder="123456"
-              description="Enter a code from your app to finish. Two-factor is not on until you do."
+              label="Password"
+              type="password"
+              value={password}
+              onValueChange={setPassword}
+              autoComplete="current-password"
+              description="Confirm it is you before changing sign in requirements."
             />
 
             <div className="flex gap-2">
               <Button type="submit" isLoading={isBusy}>
-                Turn on two-factor
+                Continue
               </Button>
               <Button type="button" variant="ghost" onClick={reset}>
                 Cancel
               </Button>
             </div>
           </form>
-        </div>
-      ) : null}
-    </section>
+        ) : null}
+
+        {stage === 'showSecret' && enrollment !== null ? (
+          <div className="flex flex-col gap-4">
+            <p className="text-sm text-text-muted">
+              Scan this with your authenticator app, or enter the key by hand.
+            </p>
+
+            <QrCode value={enrollment.totpURI} label="Two-factor setup QR code" />
+
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-text">Setup key</span>
+              <code className="rounded-md bg-surface-raised px-3 py-2 font-mono text-sm text-text">
+                {formatTotpSecret(enrollment.secret)}
+              </code>
+            </div>
+
+            <div className="flex flex-col gap-1">
+              <span className="text-sm font-medium text-text">Backup codes</span>
+              <p className="text-sm text-text-muted">
+                Save these now. Each works once if you lose your authenticator, and they are not
+                shown again.
+              </p>
+              <ul className="grid grid-cols-2 gap-1 rounded-md bg-surface-raised p-3 font-mono text-sm text-text">
+                {enrollment.backupCodes.map((backupCode) => (
+                  <li key={backupCode}>{backupCode}</li>
+                ))}
+              </ul>
+            </div>
+
+            <form
+              noValidate
+              className="flex flex-col gap-3"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void confirm();
+              }}
+            >
+              <TextField
+                label="Authenticator code"
+                value={code}
+                onValueChange={setCode}
+                autoComplete="one-time-code"
+                placeholder="123456"
+                description="Enter a code from your app to finish. Two-factor is not on until you do."
+              />
+
+              <div className="flex gap-2">
+                <Button type="submit" isLoading={isBusy}>
+                  Turn on two-factor
+                </Button>
+                <Button type="button" variant="ghost" onClick={reset}>
+                  Cancel
+                </Button>
+              </div>
+            </form>
+          </div>
+        ) : null}
+      </div>
+    </div>
   );
 };
 

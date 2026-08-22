@@ -98,11 +98,11 @@ describe('usePlace', () => {
     const { result } = renderHookInAnAddress(() => usePlace());
 
     act(() => {
-      result.current.go({ section: 'admin' });
+      result.current.go({ section: 'films' });
     });
 
     await waitFor(() => {
-      expect(result.current.place.section).toBe('admin');
+      expect(result.current.place.section).toBe('films');
     });
 
     act(() => {

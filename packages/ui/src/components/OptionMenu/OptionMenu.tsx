@@ -41,12 +41,12 @@ const OptionMenu = ({
           'disabled:cursor-not-allowed disabled:opacity-50',
           triggerShape === 'field'
             ? cn(
-                'h-9 w-full justify-between gap-2 rounded-md px-3.5 text-sm',
-                'border border-[var(--surface-line)] bg-[var(--surface-hover)]',
-                'hover:border-[var(--surface-divider)]',
+                'h-8 w-full justify-between gap-2 rounded-pill px-3.5 text-[0.8125rem] font-medium',
+                'border border-accent/30 bg-accent/15 text-accent',
+                'hover:bg-accent/25',
               )
             : cn(
-                'size-9 justify-center rounded-md',
+                'size-8 justify-center rounded-pill',
                 'hover:bg-[var(--surface-hover)] data-[state=open]:bg-[var(--surface-active)]',
               ),
           className,
@@ -62,7 +62,7 @@ const OptionMenu = ({
           aria-label={label}
           {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
           className={cn(
-            'valence-glass z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
+            'valence-glass valence-glass--popover z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
             POPUP_MOTION,
           )}
         >

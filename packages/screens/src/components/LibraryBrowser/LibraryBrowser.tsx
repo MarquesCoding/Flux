@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { Button } from '@ValenceUI/Button';
+import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
 import { Rail } from '@ValenceUI/Rail';
@@ -197,24 +197,18 @@ const LibraryBrowser = ({
       ) : null}
 
       <section className="flex flex-col gap-5 px-4 sm:px-6">
-        <header className="valence-rail flex items-center gap-3 overflow-x-auto pb-1">
-          <div className="flex shrink-0 items-center gap-2">
-            {libraries.map((entry) => (
-              <Button
-                key={entry.id}
-                size="sm"
-                isPill
-                variant={entry.id === selectedId ? 'glossy' : 'secondary'}
-                onClick={() => {
-                  setChosen(entry.id);
-                  rememberLastLibrary(entry.id);
-                  onLibraryChange?.(entry.id);
-                }}
-              >
-                {entry.name}
-              </Button>
-            ))}
-          </div>
+        <header className="flex justify-center pb-1">
+          <SegmentedRow
+            size="sm"
+            label="Which library"
+            items={libraries.map((entry) => ({ id: entry.id, label: entry.name }))}
+            value={selectedId ?? ''}
+            onSelect={(id) => {
+              setChosen(id);
+              rememberLastLibrary(id);
+              onLibraryChange?.(id);
+            }}
+          />
         </header>
 
         <AnimatePresence mode="wait" initial={false}>

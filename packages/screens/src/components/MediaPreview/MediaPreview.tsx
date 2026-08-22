@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { SpeakerHighIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
+import { PauseIcon, PlayIcon, SpeakerHighIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { VideoSurface } from '@ValenceUI/VideoSurface';
@@ -90,6 +90,7 @@ const MediaPreview = ({
   const [hasEnded, setHasEnded] = useState(false);
   const [, setHasFrame] = useState(false);
   const [isMuted, setIsMuted] = useState(true);
+  const [isPaused, setIsPaused] = useState(false);
   const [mayBeHeard, setMayBeHeard] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [absence, setAbsence] = useState<PreviewAbsence>(null);
@@ -342,6 +343,7 @@ const MediaPreview = ({
             setHasEnded(false);
           }
 
+          setIsPaused(!playing);
           onPlayingChange?.(playing);
         }}
         {...(subtitles === null
@@ -373,13 +375,37 @@ const MediaPreview = ({
         }}
       />
 
-      {actions === undefined && (!hasSound || !hasStarted) ? null : (
+      {actions === undefined && !hasStarted ? null : (
         <div
           className={`absolute right-4 z-10 flex items-center gap-2 ${
             controlsAtTop ? 'top-4' : 'bottom-4'
           }`}
         >
           {actions}
+
+          {!hasStarted ? null : (
+            <Button
+              isIconOnly
+              variant="ghost"
+              label={isPaused ? 'Play the preview' : 'Pause the preview'}
+              onClick={() => {
+                const element = videoRef.current;
+
+                if (element === null) {
+                  return;
+                }
+
+                if (element.paused) {
+                  void element.play().catch(() => {});
+                } else {
+                  element.pause();
+                }
+              }}
+              className="bg-black/50 text-white backdrop-blur"
+            >
+              {isPaused ? <Icon of={PlayIcon} size={18} /> : <Icon of={PauseIcon} size={18} />}
+            </Button>
+          )}
 
           {!hasSound || !hasStarted ? null : (
             <>

@@ -179,7 +179,7 @@ describe('the sizes a field comes in', () => {
   };
 
   it('is the same height as a small button', () => {
-    expect(heightOf('sm')).toContain('h-7');
+    expect(heightOf('sm')).toContain('h-8');
   });
 
   it('is the same height as an ordinary button by default', () => {

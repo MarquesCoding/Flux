@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { DataTable } from '@ValenceUI/DataTable';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -105,7 +103,7 @@ const DeviceList = () => {
   );
 
   return (
-    <Card as="section" padding="none" className="flex flex-col">
+    <section className="flex flex-col">
       <ConfirmDialog
         title="Sign this device out?"
         detail={
@@ -153,10 +151,10 @@ const DeviceList = () => {
         }}
       />
 
-      <CardHeader title="Where you are signed in">
-        {elsewhere.length === 0 ? null : (
+      {elsewhere.length === 0 ? null : (
+        <div className="flex justify-end px-5 py-3">
           <Button
-            variant="secondary"
+            variant="soft"
             size="sm"
             isPill
             onClick={() => {
@@ -166,8 +164,8 @@ const DeviceList = () => {
             <Icon of={SignOutIcon} size={15} />
             Sign out everywhere else
           </Button>
-        )}
-      </CardHeader>
+        </div>
+      )}
 
       {devices === null ? (
         <div className="p-4">
@@ -181,7 +179,7 @@ const DeviceList = () => {
           emptyMessage="Nothing is signed in, which cannot be true of the thing you are reading this on. Try again in a moment."
         />
       )}
-    </Card>
+    </section>
   );
 };
 

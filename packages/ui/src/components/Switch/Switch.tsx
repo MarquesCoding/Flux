@@ -8,6 +8,7 @@ import type { SwitchProps } from './Switch.types';
  * the words are a press target too.
  *
  * @param label - What the setting is.
+ * @param isLabelHidden - Whether to draw only the switch, for a row that already says what it is.
  * @param isOn - Whether it is on now.
  * @param onToggle - Told that it was pressed; the caller decides what the new state is.
  * @param icon - Something to draw beside the label.
@@ -17,6 +18,7 @@ import type { SwitchProps } from './Switch.types';
  */
 const Switch = ({
   label,
+  isLabelHidden = false,
   isOn,
   onToggle,
   icon,
@@ -32,9 +34,12 @@ const Switch = ({
       disabled={disabled}
       onCheckedChange={onToggle}
       data-slot="switch"
+      {...(isLabelHidden ? { 'aria-label': label } : {})}
       className={cn(
-        'flex w-full items-center gap-3 text-left outline-none',
-        'focus-visible:ring-[3px] focus-visible:ring-ring/40 rounded-md',
+        isLabelHidden
+          ? 'flex items-center outline-none'
+          : 'flex w-full items-center gap-3 text-left outline-none',
+        'focus-visible:ring-[3px] focus-visible:ring-ring rounded-md',
         'disabled:cursor-not-allowed disabled:opacity-50',
         className,
       )}
@@ -45,11 +50,11 @@ const Switch = ({
         </span>
       )}
 
-      <span className="flex-1 truncate">{label}</span>
+      {isLabelHidden ? null : <span className="flex-1 truncate">{label}</span>}
 
       <span
         className={cn(
-          'flex h-5 w-9 shrink-0 items-center rounded-full p-0.5',
+          'flex h-[26px] w-14 shrink-0 items-center rounded-pill p-[3px]',
           'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-out)]',
           'motion-reduce:transition-none',
           isOn
@@ -58,16 +63,16 @@ const Switch = ({
               : 'bg-accent'
             : isOverlay
               ? 'bg-white/25'
-              : 'bg-text-muted/30',
+              : 'bg-text-muted/25',
         )}
       >
         <RadixSwitch.Thumb
           className={cn(
-            'size-4 rounded-full',
+            'h-5 w-8 shrink-0 rounded-pill shadow-sm',
             'transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none',
-            isOn ? 'translate-x-4' : 'translate-x-0',
-            isOn && isOverlay ? 'bg-black' : isOn ? 'bg-accent-contrast' : 'bg-white',
+            isOn ? 'translate-x-[18px]' : 'translate-x-0',
+            isOn && isOverlay ? 'bg-black' : isOn ? 'bg-white' : 'bg-white',
           )}
         />
       </span>

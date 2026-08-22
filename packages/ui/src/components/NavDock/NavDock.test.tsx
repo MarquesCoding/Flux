@@ -56,18 +56,18 @@ describe('NavDock', () => {
     const here = screen.getByRole('button', { name: 'Home' });
     const elsewhere = screen.getByRole('button', { name: 'Films' });
 
-    expect(here).toHaveClass('text-accent');
+    expect(here).toHaveClass('text-primary');
 
     await actor.hover(elsewhere);
 
-    expect(here).toHaveClass('text-accent');
-    expect(elsewhere).not.toHaveClass('text-accent');
+    expect(here).toHaveClass('text-primary');
+    expect(elsewhere).not.toHaveClass('text-primary');
   });
 
   it('stands a mark under the place being stood on, and nowhere else', () => {
     const { container } = render(<NavDock {...props} />);
 
-    const dots = container.querySelectorAll('.bg-accent');
+    const dots = container.querySelectorAll('.bg-primary');
 
     expect(dots).toHaveLength(1);
   });

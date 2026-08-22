@@ -96,6 +96,10 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param children - The page itself.
  * @param moodLights - The colours to light the page with.
  * @param isAdministrator - Whether to offer the admin section at all.
+ * @param isAdminOpen - Whether the server dialog is raised, which lights the dock's cog.
+ * @param onOpenAdmin - Told to raise the server dialog.
+ * @param isAccountOpen - Whether the account dialog is raised, which lights the dock's face.
+ * @param onOpenAccount - Told to raise the account dialog.
  * @param avatar - The face to draw on the account control.
  * @param onSurprise - Told to choose something at random, optionally from one kind of library.
  * @param surpriseKinds - Which kinds of library there are, which decides whether the dice offer a
@@ -108,6 +112,10 @@ const AppShell = ({
   children,
   moodLights = [],
   isAdministrator = false,
+  isAccountOpen,
+  onOpenAccount,
+  isAdminOpen,
+  onOpenAdmin,
   avatar,
   onSurprise,
   surpriseKinds = [],
@@ -255,10 +263,8 @@ const AppShell = ({
             icon: <Icon of={GearSixIcon} size={20} />,
             activeIcon: <Icon of={GearSixIcon} size={20} />,
             gesture: 'spin' as const,
-            isCurrent: section === 'admin',
-            onSelect: () => {
-              onSectionChange('admin');
-            },
+            isCurrent: isAdminOpen,
+            onSelect: onOpenAdmin,
           },
         ]
       : []),
@@ -268,10 +274,8 @@ const AppShell = ({
       icon: avatar ?? <Icon of={UserCircleIcon} size={22} />,
       activeIcon: avatar ?? <Icon of={UserCircleIcon} size={20} />,
       gesture: 'settle' as const,
-      isCurrent: section === 'account',
-      onSelect: () => {
-        onSectionChange('account');
-      },
+      isCurrent: isAccountOpen,
+      onSelect: onOpenAccount,
     },
   ];
 

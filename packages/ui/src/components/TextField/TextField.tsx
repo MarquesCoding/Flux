@@ -93,7 +93,7 @@ const TextField = ({
             'valence-field text-text outline-none',
             'transition-[color,border-color,box-shadow] duration-[var(--duration-instant)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none placeholder:text-text-muted',
-            'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'focus-visible:ring-[3px] focus-visible:ring-ring',
             'disabled:cursor-not-allowed disabled:opacity-50',
             'w-full',
             isBare
@@ -102,7 +102,7 @@ const TextField = ({
             isBare
               ? ''
               : size === 'sm'
-                ? 'h-7 px-2.5 text-xs'
+                ? 'h-8 px-3.5 text-[0.8125rem]'
                 : size === 'lg'
                   ? 'h-10 px-5 text-sm'
                   : size === 'xl'

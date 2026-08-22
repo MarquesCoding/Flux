@@ -18,6 +18,10 @@ const draw = (overrides: Partial<AppShellProps> = {}) => {
   const props: AppShellProps = {
     section: 'home',
     onSectionChange: vi.fn(),
+    isAccountOpen: false,
+    onOpenAccount: vi.fn(),
+    isAdminOpen: false,
+    onOpenAdmin: vi.fn(),
     children: <p>The library</p>,
     ...overrides,
   };
@@ -91,13 +95,20 @@ describe('AppShell', () => {
     expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
   });
 
-  it('moves between sections on request', async () => {
+  it('raises the account rather than going to it, since it is a dialog and not a section', async () => {
     const user = userEvent.setup();
     const { props } = draw();
 
     await user.click(screen.getByRole('button', { name: 'Account' }));
 
-    expect(props.onSectionChange).toHaveBeenCalledWith('account');
+    expect(props.onOpenAccount).toHaveBeenCalledOnce();
+    expect(props.onSectionChange).not.toHaveBeenCalled();
+  });
+
+  it('lights the face while the account is open, since no section is current then', () => {
+    draw({ isAccountOpen: true });
+
+    expect(screen.getByRole('button', { name: 'Account' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('lights the page with the colour of what is being shown', () => {
@@ -234,7 +245,14 @@ describe('AppShell', () => {
     });
 
     view.rerender(
-      <AppShell section="search" onSectionChange={vi.fn()}>
+      <AppShell
+        section="search"
+        onSectionChange={vi.fn()}
+        isAccountOpen={false}
+        onOpenAccount={vi.fn()}
+        isAdminOpen={false}
+        onOpenAdmin={vi.fn()}
+      >
         <p>The library</p>
       </AppShell>,
     );

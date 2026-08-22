@@ -5,8 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { DataTable } from '@ValenceUI/DataTable';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -117,7 +115,7 @@ const SharesPanel = () => {
   );
 
   return (
-    <Card as="section" padding="none" className="flex flex-col">
+    <section className="flex flex-col">
       <ConfirmDialog
         title="Withdraw this link?"
         detail={
@@ -150,8 +148,6 @@ const SharesPanel = () => {
         }}
       />
 
-      <CardHeader title="Links handed out" />
-
       <p className="px-4 pt-4 text-sm text-text-muted">
         Anybody holding one of these can watch what it points at without an account here.
         Withdrawing a link stops it at once, and tells whoever made it.
@@ -177,7 +173,7 @@ const SharesPanel = () => {
           emptyMessage="Nobody has handed out a link."
         />
       )}
-    </Card>
+    </section>
   );
 };
 

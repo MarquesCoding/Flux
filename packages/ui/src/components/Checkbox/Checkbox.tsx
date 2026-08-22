@@ -42,7 +42,7 @@ const Checkbox = ({
           'bg-secondary outline-none',
           'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
           'motion-reduce:transition-none',
-          'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+          'focus-visible:ring-[3px] focus-visible:ring-ring',
           'data-[state=checked]:border-primary data-[state=checked]:bg-primary',
           'disabled:cursor-not-allowed disabled:opacity-50',
         )}

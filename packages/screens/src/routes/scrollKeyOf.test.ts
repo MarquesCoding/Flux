@@ -34,3 +34,15 @@ describe('scrollKeyOf', () => {
     expect(scrollKeyOf(at('/admin'))).not.toBe(scrollKeyOf(at('/account')));
   });
 });
+
+it('leaves the page where it was when somebody picks a different library', () => {
+  expect(scrollKeyOf(at('/', '?library=films'))).toBe(scrollKeyOf(at('/', '?library=shows')));
+});
+
+it('leaves the page where it was when the account is raised over it', () => {
+  expect(scrollKeyOf(at('/films', '?account=devices'))).toBe(scrollKeyOf(at('/films')));
+});
+
+it('still tells a different search apart from the library chosen within it', () => {
+  expect(scrollKeyOf(at('/search', '?q=alien&library=films'))).toBe('/search?q=alien');
+});

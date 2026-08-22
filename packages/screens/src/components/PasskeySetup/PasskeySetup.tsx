@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { CheckIcon, KeyIcon, PencilSimpleIcon, TrashIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Spinner } from '@ValenceUI/Spinner';
+import { SettingRow } from '@ValenceUI/SettingRow';
 import { TextField } from '@ValenceUI/TextField';
 import { describePasskeyUnavailability } from '@ValenceScreens/passkeys/isPasskeySupported';
 import {
@@ -109,123 +109,130 @@ const PasskeySetup = ({ onChanged }: PasskeySetupProps) => {
   };
 
   return (
-    <section className="flex flex-col gap-4 rounded-lg border border-border p-5">
-      <header className="flex flex-col gap-1">
-        <h2 className="text-lg font-medium text-text">Passkeys</h2>
-        <p className="text-sm text-text-muted">Sign in with your device instead of a password.</p>
-      </header>
+    <div className="flex flex-col">
+      <SettingRow
+        title="Passkeys"
+        description={
+          unavailable ??
+          'Sign in with the face, fingerprint or PIN this device already uses, instead of a password.'
+        }
+      >
+        <span className="text-sm text-text-muted">
+          {isLoading
+            ? 'Reading…'
+            : passkeys.length === 0
+              ? 'None yet'
+              : `${passkeys.length.toString()} on this account`}
+        </span>
+      </SettingRow>
 
-      {message === null ? null : (
-        <p role="alert" className="text-sm text-danger">
-          {message}
-        </p>
-      )}
+      <div className="flex flex-col gap-4 px-5 pb-5">
+        {message === null ? null : (
+          <p role="alert" className="text-sm text-danger">
+            {message}
+          </p>
+        )}
 
-      {isLoading ? (
-        <Spinner label="Reading your passkeys" />
-      ) : passkeys.length === 0 ? (
-        <p className="text-sm text-text-muted">No passkeys yet.</p>
-      ) : (
-        <ul className="flex flex-col gap-2">
-          {passkeys.map((passkey) => (
-            <li
-              key={passkey.id}
-              className="flex items-center justify-between gap-3 rounded-md bg-surface-raised px-3 py-2"
-            >
-              {renamingId === passkey.id ? (
-                <form
-                  noValidate
-                  className="flex w-full items-end gap-2"
-                  onSubmit={(event) => {
-                    event.preventDefault();
-                    void rename(passkey);
-                  }}
-                >
-                  <TextField
-                    label="Passkey name"
-                    value={renameValue}
-                    onValueChange={setRenameValue}
-                    className="flex-1"
-                  />
-
-                  <Button type="submit" size="sm">
-                    <Icon of={CheckIcon} size={16} />
-                    Save
-                  </Button>
-
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    size="sm"
-                    onClick={() => {
-                      setRenamingId(null);
+        {isLoading || passkeys.length === 0 ? null : (
+          <ul className="flex flex-col gap-2">
+            {passkeys.map((passkey) => (
+              <li
+                key={passkey.id}
+                className="flex items-center justify-between gap-3 rounded-md bg-surface-raised px-3 py-2"
+              >
+                {renamingId === passkey.id ? (
+                  <form
+                    noValidate
+                    className="flex w-full items-end gap-2"
+                    onSubmit={(event) => {
+                      event.preventDefault();
+                      void rename(passkey);
                     }}
                   >
-                    Cancel
-                  </Button>
-                </form>
-              ) : (
-                <>
-                  <span className="flex items-center gap-2 text-sm text-text">
-                    <Icon of={KeyIcon} size={16} />
-                    {passkey.name ?? 'Unnamed passkey'}
-                  </span>
+                    <TextField
+                      label="Passkey name"
+                      value={renameValue}
+                      onValueChange={setRenameValue}
+                      className="flex-1"
+                    />
 
-                  <span className="flex items-center gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => {
-                        setRenamingId(passkey.id);
-                        setRenameValue(passkey.name ?? '');
-                      }}
-                    >
-                      <Icon of={PencilSimpleIcon} size={16} />
-                      Rename
+                    <Button type="submit" size="sm">
+                      <Icon of={CheckIcon} size={16} />
+                      Save
                     </Button>
 
                     <Button
-                      variant="ghost"
+                      type="button"
+                      variant="secondary"
                       size="sm"
                       onClick={() => {
-                        void remove(passkey);
+                        setRenamingId(null);
                       }}
                     >
-                      <Icon of={TrashIcon} size={16} />
-                      Remove
+                      Cancel
                     </Button>
-                  </span>
-                </>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+                  </form>
+                ) : (
+                  <>
+                    <span className="flex items-center gap-2 text-sm text-text">
+                      <Icon of={KeyIcon} size={16} />
+                      {passkey.name ?? 'Unnamed passkey'}
+                    </span>
 
-      {unavailable === null ? (
-        <form
-          noValidate
-          className="flex flex-col gap-3"
-          onSubmit={(event) => {
-            event.preventDefault();
-            void add();
-          }}
-        >
-          <TextField
-            label="Passkey name"
-            value={name}
-            onValueChange={setName}
-            description="Something you will recognise later, such as the device you are on."
-          />
+                    <span className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setRenamingId(passkey.id);
+                          setRenameValue(passkey.name ?? '');
+                        }}
+                      >
+                        <Icon of={PencilSimpleIcon} size={16} />
+                        Rename
+                      </Button>
 
-          <Button type="submit" isLoading={isAdding}>
-            Add a passkey
-          </Button>
-        </form>
-      ) : (
-        <p className="text-sm text-text-muted">{unavailable}</p>
-      )}
-    </section>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          void remove(passkey);
+                        }}
+                      >
+                        <Icon of={TrashIcon} size={16} />
+                        Remove
+                      </Button>
+                    </span>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+
+        {unavailable === null ? (
+          <form
+            noValidate
+            className="flex flex-col gap-3"
+            onSubmit={(event) => {
+              event.preventDefault();
+              void add();
+            }}
+          >
+            <TextField
+              label="Passkey name"
+              value={name}
+              onValueChange={setName}
+              description="Something you will recognise later, such as the device you are on."
+            />
+
+            <Button type="submit" isLoading={isAdding}>
+              Add a passkey
+            </Button>
+          </form>
+        ) : null}
+      </div>
+    </div>
   );
 };
 

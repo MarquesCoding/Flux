@@ -1,7 +1,7 @@
 type AdminAreaProps = {
+  panel: string;
+  onPanel: (panel: string) => void;
   historyLength?: number;
-  initialPanel?: string | null;
-  onPanelChange?: (panel: string) => void;
   initialJob?: string | null;
   onJobChange?: (kind: string | null) => void;
 };

@@ -37,7 +37,7 @@ const ActionMenu = ({
         className={cn(
           'inline-flex size-9 shrink-0 items-center justify-center rounded-md outline-none',
           'text-current transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
-          'motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring/40',
+          'motion-reduce:transition-none focus-visible:ring-[3px] focus-visible:ring-ring',
           'hover:bg-[var(--surface-hover)] data-[state=open]:bg-[var(--surface-hover)]',
           'disabled:cursor-not-allowed disabled:opacity-50',
           className,
@@ -53,7 +53,7 @@ const ActionMenu = ({
           align={align}
           data-slot="menu-content"
           className={cn(
-            'z-50 valence-glass min-w-56 overflow-hidden rounded-lg p-1.5 text-sm text-text outline-none',
+            'z-50 valence-glass valence-glass--popover min-w-56 overflow-hidden rounded-lg p-1.5 text-sm text-text outline-none',
             POPUP_MOTION,
           )}
         >

@@ -8,8 +8,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { DataTable } from '@ValenceUI/DataTable';
 import { TextField } from '@ValenceUI/TextField';
 import { LOG_LEVELS } from '@ValenceContracts/schemas/Log';
@@ -155,8 +153,8 @@ const LogsPanel = ({
   const asText = () => logsAsText(records);
 
   return (
-    <Card as="section" padding="none" className="flex flex-col">
-      <CardHeader title="Logs">
+    <section className="flex flex-col">
+      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
         <div className="flex flex-wrap items-center justify-end gap-2">
           <TextField
             label="Search the messages"
@@ -215,7 +213,7 @@ const LogsPanel = ({
             <Icon of={DownloadSimpleIcon} size={15} />
           </Button>
         </div>
-      </CardHeader>
+      </div>
 
       <DataTable
         label="What the server and the media service have reported"
@@ -242,7 +240,7 @@ const LogsPanel = ({
           setReading(null);
         }}
       />
-    </Card>
+    </section>
   );
 };
 

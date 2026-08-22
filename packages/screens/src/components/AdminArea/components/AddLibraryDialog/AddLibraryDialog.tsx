@@ -125,7 +125,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
         </Button>
 
         <Button
-          variant="glossy"
+          variant="primary"
           isPill
           isLoading={isSubmitting}
           onClick={() => {

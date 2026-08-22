@@ -2,8 +2,9 @@ import { Icon } from '@ValenceUI/Icon';
 import { CaretUpDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
+import { Badge } from '@ValenceUI/Badge';
+import { SettingList } from '@ValenceUI/SettingList';
+import { SettingRow } from '@ValenceUI/SettingRow';
 import { OptionMenu } from '@ValenceUI/OptionMenu';
 import { TextField } from '@ValenceUI/TextField';
 import { saveCatalogueKey, saveHardwareAccel } from '@ValenceClient/admin/fetchAdmin';
@@ -30,107 +31,102 @@ const SettingsPanel = ({
   const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
 
   return (
-    <div className="grid gap-4 lg:grid-cols-2">
-      <Card as="section" padding="none" className="flex flex-col">
-        <CardHeader title="Hardware acceleration" />
+    <SettingList>
+      <SettingRow
+        title="Hardware acceleration"
+        description="Valence picks whichever backend the machine proves it can use. Choose one to insist, which also uses an encoder that failed that check — for when the check is wrong and the card plainly works."
+      >
+        <OptionMenu
+          label="Hardware acceleration"
+          groups={[
+            {
+              name: 'Backend',
+              selectedId: accel,
+              onSelect: (id) => {
+                setAccel(id);
 
-        <div className="flex flex-col gap-4 p-4">
-          <p className="text-sm text-text-muted">
-            Valence picks whichever backend the machine proves it can use. Choose one here to
-            insist, which also uses an encoder that failed that check — for when the check is wrong
-            and the card plainly works. Software encoding stays available either way.
-          </p>
-
-          <OptionMenu
-            label="Hardware acceleration"
-            groups={[
-              {
-                name: 'Backend',
-                selectedId: accel,
-                onSelect: (id) => {
-                  setAccel(id);
-
-                  void saveHardwareAccel(id).then((saved) => {
-                    if (saved) {
-                      onHardwareAccelSaved();
-                    }
-                  });
-                },
-                options: accelerationOptions,
-              },
-            ]}
-            trigger={
-              <>
-                <span className="truncate">
-                  {accelerationOptions.find((option) => option.id === accel)?.label ?? 'Automatic'}
-                </span>
-
-                <Icon of={CaretUpDownIcon} size={15} className="shrink-0 text-text-muted" />
-              </>
-            }
-            triggerShape="field"
-            align="start"
-            matchTriggerWidth
-          />
-        </div>
-      </Card>
-
-      <Card as="section" padding="none" className="flex flex-col">
-        <CardHeader title="Metadata catalogue" />
-
-        <div className="flex flex-col gap-4 p-4">
-          <p className="text-sm text-text-muted">
-            {overview?.settings.hasCatalogueKey === true
-              ? 'A key is set. Entering a new one replaces it.'
-              : 'Without a key, titles and years come from filenames alone.'}
-          </p>
-
-          <TextField
-            label="Catalogue key"
-            type="password"
-            value={catalogueKey}
-            onValueChange={setCatalogueKey}
-            placeholder="Paste a key"
-          />
-
-          <div>
-            <Button
-              variant="primary"
-              size="sm"
-              isPill
-              isLoading={isSaving}
-              disabled={catalogueKey === ''}
-              onClick={() => {
-                setIsSaving(true);
-
-                void saveCatalogueKey(catalogueKey).then((saved) => {
-                  setIsSaving(false);
-
+                void saveHardwareAccel(id).then((saved) => {
                   if (saved) {
-                    setCatalogueKey('');
-                    onCatalogueKeySaved();
+                    onHardwareAccelSaved();
                   }
                 });
-              }}
-            >
-              Save key
-            </Button>
-          </div>
-        </div>
-      </Card>
+              },
+              options: accelerationOptions,
+            },
+          ]}
+          trigger={
+            <>
+              <span className="truncate">
+                {accelerationOptions.find((option) => option.id === accel)?.label ?? 'Automatic'}
+              </span>
 
-      <Card as="section" padding="none" className="flex flex-col">
-        <CardHeader title="Signing in" />
+              <Icon of={CaretUpDownIcon} size={15} className="shrink-0" />
+            </>
+          }
+          triggerShape="field"
+          align="end"
+          className="w-44"
+        />
+      </SettingRow>
 
-        <p className="p-4 text-sm leading-relaxed text-text-muted">
-          {overview === null
+      <SettingRow
+        title="Metadata catalogue"
+        description={
+          overview?.settings.hasCatalogueKey === true
+            ? 'A key is set. Entering a new one replaces it.'
+            : 'Without a key, titles and years come from filenames alone.'
+        }
+      >
+        <TextField
+          label="Catalogue key"
+          isLabelHidden
+          type="password"
+          value={catalogueKey}
+          onValueChange={setCatalogueKey}
+          placeholder="Paste a key"
+          isPill
+          size="sm"
+          className="w-48"
+        />
+
+        <Button
+          variant="soft"
+          size="sm"
+          isPill
+          isLoading={isSaving}
+          disabled={catalogueKey === ''}
+          onClick={() => {
+            setIsSaving(true);
+
+            void saveCatalogueKey(catalogueKey).then((saved) => {
+              setIsSaving(false);
+
+              if (saved) {
+                setCatalogueKey('');
+                onCatalogueKeySaved();
+              }
+            });
+          }}
+        >
+          Save
+        </Button>
+      </SettingRow>
+
+      <SettingRow
+        title="Signing in"
+        description={
+          overview === null
             ? ''
-            : `Cookies are ${
-                overview.settings.cookieSecure ? 'secure' : 'not secure'
-              }. Origins allowed to sign in: ${overview.settings.trustedOrigins.join(', ')}.`}
-        </p>
-      </Card>
-    </div>
+            : `Origins allowed to sign in: ${overview.settings.trustedOrigins.join(', ')}.`
+        }
+      >
+        {overview === null ? null : (
+          <Badge tone={overview.settings.cookieSecure ? 'success' : 'warning'}>
+            {overview.settings.cookieSecure ? 'secure' : 'not secure'}
+          </Badge>
+        )}
+      </SettingRow>
+    </SettingList>
   );
 };
 

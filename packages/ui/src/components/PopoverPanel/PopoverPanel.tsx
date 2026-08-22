@@ -50,7 +50,7 @@ const PopoverPanel = ({
             'text-current outline-none hover:bg-white/15',
             'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none',
-            'focus-visible:ring-[3px] focus-visible:ring-ring/40',
+            'focus-visible:ring-[3px] focus-visible:ring-ring',
             'data-[state=open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
           )}
         >
@@ -69,7 +69,7 @@ const PopoverPanel = ({
           collisionPadding={12}
           data-slot="popover-content"
           className={cn(
-            'z-50 valence-glass flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
+            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
             'outline-none',
             POPUP_MOTION,
             className,

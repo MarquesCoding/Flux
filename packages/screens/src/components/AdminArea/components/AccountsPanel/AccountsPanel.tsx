@@ -11,10 +11,8 @@ import {
 import { useCallback, useMemo, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { DataTable } from '@ValenceUI/DataTable';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -301,7 +299,7 @@ const AccountsPanel = () => {
           </Button>
 
           <Button
-            variant="glossy"
+            variant="primary"
             isPill
             disabled={inviteName === '' || inviteEmail === '' || invitePassword.length < 8}
             onClick={() => {
@@ -334,8 +332,8 @@ const AccountsPanel = () => {
         </p>
       )}
 
-      <Card as="section" padding="none" className="flex flex-col">
-        <CardHeader title="Accounts">
+      <section className="flex flex-col">
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
           <TextField
             label="Find somebody"
             isLabelHidden
@@ -349,7 +347,7 @@ const AccountsPanel = () => {
           />
 
           <Button
-            variant="glossy"
+            variant="soft"
             size="sm"
             isPill
             onClick={() => {
@@ -359,7 +357,7 @@ const AccountsPanel = () => {
             <Icon of={PlusIcon} size={15} />
             Add user
           </Button>
-        </CardHeader>
+        </div>
 
         {askedAccounts.isError ? (
           <CouldNotRead
@@ -382,7 +380,7 @@ const AccountsPanel = () => {
             }
           />
         )}
-      </Card>
+      </section>
 
       <Dialog
         label={picked === null ? 'Roles' : `What ${picked.name} may do`}

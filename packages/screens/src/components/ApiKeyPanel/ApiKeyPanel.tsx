@@ -117,8 +117,8 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <p className="max-w-prose text-sm text-text-muted">
+    <div className="flex flex-col gap-4 px-5 py-4">
+      <p className="max-w-prose font-body text-[0.8125rem] leading-snug text-text-muted">
         A key lets something that is not a browser act as you — a script, a dashboard, an assistant.
         It can do whatever you can do, and never more.
       </p>
@@ -191,7 +191,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
           className="min-w-56 flex-1"
         />
 
-        <Button type="submit" variant="glossy" size="md" isPill isLoading={isMaking}>
+        <Button type="submit" variant="primary" size="md" isPill isLoading={isMaking}>
           Create key
         </Button>
       </form>
