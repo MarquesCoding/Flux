@@ -45,7 +45,7 @@ describe('Logo', () => {
     const { container } = render(<Logo />);
 
     expect(layersOf(container)).toHaveLength(1);
-    expect(layersOf(container)[0]?.style.maskImage).toContain('flux-logo.svg');
+    expect(layersOf(container)[0]?.style.maskImage).toContain('valence-logo.svg');
   });
 
   it('lays a second copy of the mark behind it to draw a keyline, and hides it otherwise', () => {
@@ -77,7 +77,7 @@ describe('Logo', () => {
     const { container } = render(<Logo isDotted />);
 
     expect(container.innerHTML).toContain('flux-logo-dots');
-    expect(layersOf(container)[0]?.style.maskImage).toContain('flux-logo.svg');
+    expect(layersOf(container)[0]?.style.maskImage).toContain('valence-logo.svg');
   });
 
   it('is solid ink otherwise, since dots turn to mush at the size of a dock', () => {
@@ -114,5 +114,21 @@ describe('Logo', () => {
 
     expect(container.innerHTML).not.toContain('animate-');
     expect(container.innerHTML).not.toContain('flux-logo-wave');
+  });
+});
+
+describe('the shape of the mark', () => {
+  it('is drawn to its own proportions rather than squared off', () => {
+    const { container } = render(<Logo size={100} />);
+    const held = container.firstElementChild;
+
+    expect(held).toHaveStyle({ height: '100px' });
+    expect(held).not.toHaveStyle({ width: '100px' });
+  });
+
+  it('holds its proportions where a class sets the size instead', () => {
+    const { container } = render(<Logo className="h-8" />);
+
+    expect(container.firstElementChild).toHaveStyle({ aspectRatio: String(624 / 458) });
   });
 });
