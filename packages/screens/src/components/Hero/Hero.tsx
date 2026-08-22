@@ -18,6 +18,10 @@ const DRAWS_IN_BY_PIXELS = 640;
 
 const FOOT_OF_THE_CARD = '24svh';
 
+const SIDE_OF_THE_CARD = '1.5rem';
+
+const CORNER_OF_THE_CARD = '20px';
+
 const ROTATE_AFTER_MILLISECONDS = 28_000;
 
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
@@ -116,7 +120,8 @@ const Hero = ({
 
   const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
   const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
-  const corner = useTransform(scrollYProgress, [0, 1], ['0px', '10px']);
+  const side = useTransform(scrollYProgress, [0, 1], ['0px', SIDE_OF_THE_CARD]);
+  const corner = useTransform(scrollYProgress, [0, 1], ['0px', CORNER_OF_THE_CARD]);
   const beckon = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
 
   const showNext = useCallback(() => {
@@ -203,12 +208,12 @@ const Hero = ({
               : prefersReducedMotion === true
                 ? {
                     top: '72px',
-                    left: 0,
-                    right: 0,
+                    left: SIDE_OF_THE_CARD,
+                    right: SIDE_OF_THE_CARD,
                     bottom: FOOT_OF_THE_CARD,
-                    borderRadius: '10px',
+                    borderRadius: CORNER_OF_THE_CARD,
                   }
-                : { top: lift, left: 0, right: 0, bottom: foot, borderRadius: corner }
+                : { top: lift, left: side, right: side, bottom: foot, borderRadius: corner }
           }
           className={cn(
             'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',

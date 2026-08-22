@@ -15,8 +15,6 @@ import { Badge } from '@ValenceUI/Badge';
 import { DataTable } from '@ValenceUI/DataTable';
 import { HoverCard } from '@ValenceUI/HoverCard';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { cn } from '@ValenceUI/cn';
 import { describeScanResult } from '@ValenceClient/admin/describeScanResult';
 import { AddLibraryDialog } from '@ValenceScreens/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
@@ -228,8 +226,8 @@ const LibrariesPanel = ({
   );
 
   return (
-    <Card as="section" padding="none" className="flex flex-col overflow-hidden">
-      <CardHeader title="Library roots">
+    <section className="flex flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
         <div className="flex shrink-0 items-center gap-2">
           <Button
             variant="ghost"
@@ -258,7 +256,7 @@ const LibrariesPanel = ({
           </Button>
 
           <Button
-            variant="glossy"
+            variant="soft"
             size="sm"
             isPill
             onClick={() => {
@@ -269,7 +267,7 @@ const LibrariesPanel = ({
             Add library
           </Button>
         </div>
-      </CardHeader>
+      </div>
 
       {isUnreachable ? (
         <p className="p-6 text-sm text-text-muted">
@@ -317,7 +315,7 @@ const LibrariesPanel = ({
         onUpdated={onLibraryUpdated}
         onRegenerate={onRegeneratePreviews}
       />
-    </Card>
+    </section>
   );
 };
 

@@ -6,8 +6,13 @@ import { Button } from '@ValenceUI/Button';
 import { nameSeason } from '@ValenceClient/library/nameSeason';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
+import { ActionBar } from '@ValenceUI/ActionBar';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
+import { ScrolledTitle } from '@ValenceScreens/components/ScrolledTitle/ScrolledTitle';
 import { BackdropScrim } from '@ValenceUI/BackdropScrim';
 import { Badge } from '@ValenceUI/Badge';
+import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { Spinner } from '@ValenceUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
@@ -65,6 +70,7 @@ const ShowDialog = ({
   const [lastShown, setLastShown] = useState(show);
   const [chosenSeason, setChosenSeason] = useState<number | null>(null);
   const topRef = useRef<HTMLDivElement>(null);
+  const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
   const prefersReducedMotion = useReducedMotion();
 
   const asked = useQuery(libraryQueries.show(show?.libraryId ?? null, show?.id ?? null));
@@ -148,8 +154,18 @@ const ShowDialog = ({
 
   return (
     <Dialog label={shown.title} isOpen={show !== null} onClose={onClose} size="stage">
-      <DialogContent className="p-0">
-        <div ref={topRef} className="relative">
+      <DialogContent className="p-3 sm:p-4">
+        <ScrolledTitle
+          title={shown.title}
+          artwork={artworkUrl(shown.coverMediaId)}
+          isShowing={hasScrolledPast}
+        >
+          <Button isIconOnly variant="ghost" size="sm" isPill label="Close" onClick={onClose}>
+            <Icon of={XIcon} size={16} />
+          </Button>
+        </ScrolledTitle>
+
+        <div ref={topRef} className="relative overflow-hidden rounded-2xl">
           <div className="h-[34vh] min-h-[14rem] sm:h-[22rem]">
             <MediaPreview
               mediaId={shown.coverMediaId}
@@ -215,7 +231,7 @@ const ShowDialog = ({
                 className="flex flex-wrap gap-1.5"
               >
                 {(shown.genres ?? []).slice(0, 3).map((genre) => (
-                  <Badge key={genre} size="sm" className="bg-surface/70 backdrop-blur">
+                  <Badge key={genre} size="sm" tone="solid">
                     {genre}
                   </Badge>
                 ))}
@@ -224,59 +240,9 @@ const ShowDialog = ({
           </motion.div>
         </div>
 
-        <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
-          <div className="flex flex-wrap items-center gap-3">
-            {carryingOn === null ? (
-              <Button variant="glossy" size="lg" isPill isLoading disabled>
-                Reading the episodes
-              </Button>
-            ) : (
-              <Button
-                variant="glossy"
-                size="lg"
-                isPill
-                onClick={() => {
-                  onPlay(carryingOn.episode, carryingOn.startSeconds);
-                }}
-              >
-                <Icon of={PlayIcon} size={18} />
-                {carryingOn.isResuming
-                  ? `Resume ${formatDuration(carryingOn.startSeconds)}`
-                  : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
-                      carryingOn.episode.episodeNumber ?? 1
-                    ).toString()}`}
-              </Button>
-            )}
+        <span ref={pastTheArtwork} aria-hidden className="block h-px" />
 
-            {carryingOn === null || onInspect === undefined ? null : (
-              <Button
-                variant="secondary"
-                size="lg"
-                isPill
-                onClick={() => {
-                  onInspect(carryingOn.episode);
-                }}
-              >
-                <Icon of={InfoIcon} size={18} />
-                About this episode
-              </Button>
-            )}
-
-            {onShare === undefined || (shown.seriesId ?? null) === null ? null : (
-              <Button
-                variant="secondary"
-                size="lg"
-                isPill
-                onClick={() => {
-                  onShare(shown);
-                }}
-              >
-                <Icon of={LinkIcon} size={18} />
-                Share
-              </Button>
-            )}
-          </div>
-
+        <div className="flex flex-col gap-8 px-2 pb-4 pt-7 sm:px-4">
           {onRate === undefined || (shown.seriesId ?? null) === null ? null : (
             <RatingPanel
               subject={{ seriesId: shown.seriesId ?? '' }}
@@ -295,24 +261,19 @@ const ShowDialog = ({
               </h3>
 
               {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
-                <ul className="valence-rail flex items-center gap-2 overflow-x-auto">
-                  {chooseFrom.map((one) => (
-                    <li key={one.seasonNumber ?? 'specials'}>
-                      <Button
-                        size="sm"
-                        isPill
-                        aria-pressed={one.seasonNumber === showing}
-                        variant={one.seasonNumber === showing ? 'glossy' : 'ghost'}
-                        className={one.isHeld ? '' : 'border border-dashed border-white/25'}
-                        onClick={() => {
-                          setChosenSeason(one.seasonNumber);
-                        }}
-                      >
-                        {nameSeason(one.seasonNumber)}
-                      </Button>
-                    </li>
-                  ))}
-                </ul>
+                <SegmentedRow
+                  size="sm"
+                  label="Which season"
+                  items={chooseFrom.map((one) => ({
+                    id: String(one.seasonNumber ?? 'specials'),
+                    label: nameSeason(one.seasonNumber),
+                    ...(one.isHeld ? {} : { isAbsent: true }),
+                  }))}
+                  value={String(showing ?? 'specials')}
+                  onSelect={(chosen) => {
+                    setChosenSeason(chosen === 'specials' ? null : Number(chosen));
+                  }}
+                />
               )}
             </header>
 
@@ -362,6 +323,61 @@ const ShowDialog = ({
           </section>
         </div>
       </DialogContent>
+
+      <DialogFooter>
+        <ActionBar
+          label="More to do with this programme"
+          primary={
+            carryingOn === null ? (
+              <Button variant="glossy" size="lg" isPill isLoading disabled>
+                Reading the episodes
+              </Button>
+            ) : (
+              <Button
+                variant="glossy"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onPlay(carryingOn.episode, carryingOn.startSeconds);
+                }}
+              >
+                <Icon of={PlayIcon} size={18} />
+                {carryingOn.isResuming
+                  ? `Resume ${formatDuration(carryingOn.startSeconds)}`
+                  : `Play ${nameSeason(carryingOn.episode.seasonNumber ?? null)}, episode ${(
+                      carryingOn.episode.episodeNumber ?? 1
+                    ).toString()}`}
+              </Button>
+            )
+          }
+          actions={[
+            ...(carryingOn === null || onInspect === undefined
+              ? []
+              : [
+                  {
+                    id: 'episode',
+                    label: 'About this episode',
+                    icon: <Icon of={InfoIcon} size={18} />,
+                    onChoose: () => {
+                      onInspect(carryingOn.episode);
+                    },
+                  },
+                ]),
+            ...(onShare === undefined || (shown.seriesId ?? null) === null
+              ? []
+              : [
+                  {
+                    id: 'share',
+                    label: 'Share',
+                    icon: <Icon of={LinkIcon} size={18} />,
+                    onChoose: () => {
+                      onShare(shown);
+                    },
+                  },
+                ]),
+          ]}
+        />
+      </DialogFooter>
     </Dialog>
   );
 };

@@ -82,7 +82,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                       'relative flex h-9 items-center gap-1.5 rounded-md px-3 text-sm',
                       'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
                       isCurrent
-                        ? 'font-medium text-accent'
+                        ? 'font-medium text-primary'
                         : isNamed
                           ? 'font-medium text-text'
                           : 'text-text-muted hover:text-text focus-visible:text-text',
@@ -93,7 +93,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
                     {isCurrent ? (
                       <span
                         aria-hidden
-                        className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-accent"
+                        className="absolute bottom-1 left-1/2 size-1 -translate-x-1/2 rounded-full bg-primary"
                       />
                     ) : null}
 

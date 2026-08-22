@@ -79,9 +79,9 @@ const DataTable = <Row extends RowData>({
   const pageCount = table.getPageCount();
 
   return (
-    <div className={cn('flex flex-col px-2 pb-3 pt-1', className)}>
+    <div className={cn('flex flex-col pb-3', className)}>
       {toolbar === undefined ? null : (
-        <div className="flex flex-wrap items-center justify-end gap-3 px-2 pb-3">{toolbar}</div>
+        <div className="flex flex-wrap items-center justify-end gap-3 px-5 pb-3">{toolbar}</div>
       )}
 
       <div
@@ -110,7 +110,7 @@ const DataTable = <Row extends RowData>({
                     <th
                       key={header.id}
                       scope="col"
-                      className="px-2 py-2 text-left text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
+                      className="px-5 py-2 text-left text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
                     >
                       {header.isPlaceholder ? null : canSort ? (
                         <Button
@@ -144,7 +144,7 @@ const DataTable = <Row extends RowData>({
               <tr>
                 <td
                   colSpan={table.getAllLeafColumns().length}
-                  className="px-3 py-8 text-center font-body text-text-muted"
+                  className="px-5 py-8 text-center font-body text-text-muted"
                 >
                   {emptyMessage}
                 </td>
@@ -164,7 +164,7 @@ const DataTable = <Row extends RowData>({
                   className={cn(onChooseRow === undefined ? '' : 'cursor-pointer')}
                 >
                   {row.getAllCells().map((cell) => (
-                    <td key={cell.id} className="px-2 py-3 align-middle">
+                    <td key={cell.id} className="px-5 py-3 align-middle">
                       <table.FlexRender cell={cell} />
                     </td>
                   ))}
@@ -177,12 +177,12 @@ const DataTable = <Row extends RowData>({
 
       {growsOnScroll ? (
         holding >= rows.length ? null : (
-          <p className="px-2 pt-3 font-body text-xs text-text-muted">
+          <p className="px-5 pt-3 font-body text-xs text-text-muted">
             {`Showing ${holding.toString()} of ${rows.length.toString()} · scroll for more`}
           </p>
         )
       ) : pageCount <= 1 ? null : (
-        <div className="flex items-center justify-between gap-4 px-3 pt-3">
+        <div className="flex items-center justify-between gap-4 px-5 pt-3">
           <p className="font-body text-xs text-text-muted">
             {`Page ${(page + 1).toString()} of ${pageCount.toString()} · ${rows.length.toString()} in total`}
           </p>

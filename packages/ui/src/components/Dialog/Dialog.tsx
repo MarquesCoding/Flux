@@ -27,7 +27,7 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
   default: '',
   stage: cn(
     'h-full w-full max-w-none rounded-none p-0',
-    'sm:h-[88vh] sm:max-h-[88vh] sm:w-[min(60rem,94vw)] sm:rounded-lg',
+    'sm:h-[88vh] sm:max-h-[88vh] sm:w-[min(60rem,94vw)] sm:rounded-2xl',
   ),
 };
 
@@ -94,7 +94,7 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
       <BaseDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
         <BaseDialog.Backdrop
           data-slot="dialog-overlay"
-          className={cn('fixed inset-0 z-50 bg-black/70 backdrop-blur-sm', OVERLAY_MOTION)}
+          className={cn('fixed inset-0 z-50 bg-black/55 backdrop-blur-md', OVERLAY_MOTION)}
         />
 
         <BaseDialog.Popup
@@ -103,10 +103,10 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
           initialFocus={panelRef}
           data-slot="dialog-content"
           className={cn(
-            'fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden bg-card text-card-foreground',
+            'valence-glass fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-none text-text',
             'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
             'sm:w-[min(42rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2',
-            'sm:rounded-lg sm:border sm:border-[var(--surface-line)] sm:shadow-[var(--shadow-overlay)]',
+            'sm:rounded-2xl',
             'outline-none',
             PANEL_MOTION,
             SIZE_CLASSES[size],

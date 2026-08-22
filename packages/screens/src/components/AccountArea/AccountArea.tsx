@@ -1,62 +1,33 @@
-import { Icon } from '@ValenceUI/Icon';
-import { PencilSimpleIcon, SignOutIcon } from '@phosphor-icons/react';
-import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
-import { Button } from '@ValenceUI/Button';
-import { Badge } from '@ValenceUI/Badge';
+import { motion } from 'motion/react';
 import { ApiKeyPanel } from '@ValenceScreens/components/ApiKeyPanel/ApiKeyPanel';
 import { HistoryPanel } from '@ValenceScreens/components/HistoryPanel/HistoryPanel';
-import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
-import { Dialog } from '@ValenceUI/Dialog';
-import { DialogContent } from '@ValenceUI/DialogContent';
-import { DialogTitle } from '@ValenceUI/DialogTitle';
-import { TabRow } from '@ValenceUI/TabRow';
+import { useTravelDirection } from '@ValenceUI/useTravelDirection';
+import { ACCOUNT_PANELS } from '@ValenceScreens/components/AccountArea/accountPanels';
+import { SettingList } from '@ValenceUI/SettingList';
 import { TabPanel } from '@ValenceUI/TabPanel';
-import { Tabs } from '@ValenceUI/Tabs';
-import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
-import { CouldNotRead } from '@ValenceUI/CouldNotRead';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { sessionQueries } from '@ValenceClient/query/sessionQueries';
-import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
-import { ProfileEditor } from '@ValenceScreens/components/ProfilePicker/components/ProfileEditor/ProfileEditor';
+import { staggerVariants } from '@ValenceUI/animations/reveal';
+import { ProfileSettings } from '@ValenceScreens/components/AccountArea/components/ProfileSettings/ProfileSettings';
 import { TwoFactorSetup } from '@ValenceScreens/components/TwoFactorSetup/TwoFactorSetup';
 import { PasskeySetup } from '@ValenceScreens/components/PasskeySetup/PasskeySetup';
 import { DeviceList } from '@ValenceScreens/components/AccountArea/components/DeviceList/DeviceList';
-import { DiscordPresence } from '@ValenceScreens/components/AccountArea/components/DiscordPresence/DiscordPresence';
 import { SharePanel } from '@ValenceScreens/components/AccountArea/components/SharePanel/SharePanel';
 import type { AccountAreaProps } from './AccountArea.types';
 
-const PANELS = [
-  { id: 'profile', label: 'Profile' },
-  { id: 'security', label: 'Security' },
-  { id: 'devices', label: 'Devices' },
-  { id: 'links', label: 'Links' },
-  { id: 'history', label: 'History' },
-] as const;
-
-type PanelId = (typeof PANELS)[number]['id'];
+const PANEL_ORDER = ACCOUNT_PANELS.map((one) => one.id);
 
 /**
  * Somebody's own account: their name and password, the devices they are signed in on, their passkeys
  * and second factor, their API keys, the links they have handed out, and their viewing history.
  *
  * @param user - Whose account it is.
- * @param onSignOut - Told to sign out.
+ * @param panel - Which panel is showing, which decides the side a panel arrives from.
+ * @param profile - The profile as the server holds it.
+ * @param draft - The profile as it would be saved.
+ * @param onDraft - Told what somebody changed about it.
  * @param onChanged - Told when something changed, so the shell can read the account again.
  */
-const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [panel, setPanel] = useState<PanelId>('profile');
-  const prefersReducedMotion = useReducedMotion();
-  const cache = useQueryClient();
-
-  const asked = useQuery(sessionQueries.profiles());
-  const profile = asked.data?.[0] ?? null;
-
-  const read = () => {
-    void cache.invalidateQueries({ queryKey: sessionQueries.key });
-  };
+const AccountArea = ({ user, panel, profile, draft, onDraft, onChanged }: AccountAreaProps) => {
+  const travel = useTravelDirection(PANEL_ORDER, panel);
 
   return (
     <motion.div
@@ -64,224 +35,35 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
       initial="hidden"
       animate="shown"
       exit="gone"
-      className="mx-auto flex w-full max-w-4xl flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
+      className="flex w-full flex-col"
     >
-      <Tabs
-        value={panel}
-        onValueChange={(next) => {
-          const found = PANELS.find((candidate) => candidate.id === next);
+      <TabPanel value="profile" className="flex flex-col gap-6" travel={travel}>
+        <SettingList>
+          <ProfileSettings profile={profile} draft={draft} onDraft={onDraft} />
+        </SettingList>
+      </TabPanel>
 
-          if (found !== undefined) {
-            setPanel(found.id);
-          }
-        }}
-      >
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          className="flex justify-center"
-        >
-          <TabRow groups={[{ items: PANELS }]} value={panel} label="What to change" />
-        </motion.div>
+      <TabPanel value="devices" travel={travel}>
+        <DeviceList />
+      </TabPanel>
 
-        <motion.header
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion, 'heavy')}
-          className="flex flex-wrap items-end justify-between gap-6"
-        >
-          <div className="flex items-center gap-5">
-            {profile === null ? (
-              <span className="size-20 shrink-0 rounded-lg bg-white/5 sm:size-24" />
-            ) : (
-              <ProfileFace
-                profile={profile}
-                className="size-20 shrink-0 rounded-lg text-3xl shadow-xl sm:size-24"
-              />
-            )}
+      <TabPanel value="links" travel={travel}>
+        <SharePanel />
+      </TabPanel>
 
-            <div className="flex flex-col gap-1">
-              <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-5xl">
-                {profile?.name ?? user.name}
-              </h1>
+      <TabPanel value="history" className="flex flex-col gap-6" travel={travel}>
+        <HistoryPanel />
+      </TabPanel>
 
-              <p className="flex flex-wrap items-center gap-2 text-sm text-text-muted">
-                {user.email}
-                {user.role !== 'admin' ? null : <Badge size="sm">admin</Badge>}
-              </p>
-            </div>
-          </div>
-        </motion.header>
+      <TabPanel value="security" className="flex flex-col gap-6" travel={travel}>
+        <SettingList>
+          <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
 
-        <TabPanel
-          value="profile"
-          className="flex flex-col gap-6"
-          render={
-            <motion.section
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            />
-          }
-        >
-          <Card as="section" padding="none" className="flex flex-col">
-            <CardHeader title="How you appear">
-              {profile === null ? null : (
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  isPill
-                  onClick={() => {
-                    setIsEditing(true);
-                  }}
-                >
-                  <Icon of={PencilSimpleIcon} size={15} />
-                  Change
-                </Button>
-              )}
-            </CardHeader>
+          <PasskeySetup onChanged={onChanged} />
+        </SettingList>
 
-            <div className="p-4">
-              {asked.isError ? (
-                <CouldNotRead
-                  what="Your profile"
-                  isTryingAgain={asked.isFetching}
-                  onTryAgain={() => {
-                    void asked.refetch();
-                  }}
-                />
-              ) : profile === null ? (
-                <p className="text-sm text-text-muted">Reading your profile…</p>
-              ) : (
-                <p className="max-w-prose text-sm leading-relaxed text-text-muted">
-                  This is the name and face everybody sharing this server sees when they pick who is
-                  watching. Changing it changes nothing about how you sign in.
-                </p>
-              )}
-            </div>
-          </Card>
-
-          <DiscordPresence onChanged={read} />
-
-          <Dialog
-            label="How you appear"
-            isOpen={isEditing && profile !== null}
-            onClose={() => {
-              setIsEditing(false);
-            }}
-          >
-            {profile === null ? null : (
-              <>
-                <DialogTitle
-                  title="How you appear"
-                  detail="The name and face everybody sharing this server sees."
-                />
-
-                <DialogContent>
-                  <ProfileEditor
-                    profile={profile}
-                    onSaved={() => {
-                      setIsEditing(false);
-                      read();
-                      onChanged();
-                    }}
-                    onCancel={() => {
-                      setIsEditing(false);
-                    }}
-                  />
-                </DialogContent>
-              </>
-            )}
-          </Dialog>
-        </TabPanel>
-
-        <TabPanel
-          value="devices"
-          render={
-            <motion.section
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            />
-          }
-        >
-          <DeviceList />
-        </TabPanel>
-
-        <TabPanel
-          value="links"
-          render={
-            <motion.section
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            />
-          }
-        >
-          <SharePanel />
-        </TabPanel>
-
-        <TabPanel
-          value="history"
-          className="flex flex-col gap-6"
-          render={
-            <motion.section
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            />
-          }
-        >
-          <Card as="section" padding="none" className="flex flex-col">
-            <CardHeader title="What you have watched" />
-
-            <HistoryPanel />
-          </Card>
-        </TabPanel>
-
-        <TabPanel
-          value="security"
-          className="flex flex-col gap-6"
-          render={
-            <motion.section
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            />
-          }
-        >
-          <Card as="section" padding="none" className="flex flex-col">
-            <CardHeader title="Getting in" />
-
-            <div className="p-4">
-              <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
-            </div>
-          </Card>
-
-          <Card as="section" padding="none" className="flex flex-col">
-            <CardHeader title="Passkeys" />
-
-            <div className="p-4">
-              <PasskeySetup onChanged={onChanged} />
-            </div>
-          </Card>
-
-          <Card as="section" padding="none" className="flex flex-col">
-            <CardHeader title="API keys" />
-
-            <ApiKeyPanel />
-          </Card>
-        </TabPanel>
-
-        <motion.footer
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-wrap items-center justify-between gap-4 border-t border-[var(--surface-line)] pt-4"
-        >
-          <p className="text-xs text-text-muted">
-            Signing out returns to the wall of faces. Nothing about what you have watched is lost.
-          </p>
-
-          <Button variant="ghost" size="sm" isPill onClick={onSignOut}>
-            <Icon of={SignOutIcon} size={16} />
-            Sign out
-          </Button>
-        </motion.footer>
-      </Tabs>
+        <ApiKeyPanel />
+      </TabPanel>
     </motion.div>
   );
 };

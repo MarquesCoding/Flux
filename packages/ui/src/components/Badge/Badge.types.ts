@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type BadgeTone = 'quiet' | 'accent' | 'solid' | 'warning' | 'danger';
+type BadgeTone = 'quiet' | 'accent' | 'success' | 'highlight' | 'solid' | 'warning' | 'danger';
 
 type BadgeSize = 'sm' | 'md';
 

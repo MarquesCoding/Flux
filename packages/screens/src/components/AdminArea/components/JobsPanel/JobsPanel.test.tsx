@@ -153,14 +153,14 @@ describe('JobsPanel', () => {
       render(<JobsPanel {...props} viewingJobKind="library.scan" />);
 
       expect(screen.getByRole('dialog')).toBeInTheDocument();
-      expect(screen.getByText('Background jobs')).toBeInTheDocument();
+      expect(screen.getByText('Nothing queued.')).toBeInTheDocument();
     });
 
     it('stays shut for a job kind it does not know', () => {
       render(<JobsPanel {...props} viewingJobKind="library.summon" />);
 
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-      expect(screen.getByText('Background jobs')).toBeInTheDocument();
+      expect(screen.getByText('Nothing queued.')).toBeInTheDocument();
     });
   });
 

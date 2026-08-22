@@ -8,6 +8,8 @@
       "@ValenceSDK/*": ["./packages/plugin-sdk/src/*"],
       "@ValenceScreens/*": ["./packages/screens/src/*"],
       "@ValenceServer/*": ["./apps/server/src/*"],
+      "@ValenceUI/ActionBar": ["./packages/ui/src/components/ActionBar/ActionBar.tsx"],
+      "@ValenceUI/ActionBar.types": ["./packages/ui/src/components/ActionBar/ActionBar.types.ts"],
       "@ValenceUI/ActionMenu": ["./packages/ui/src/components/ActionMenu/ActionMenu.tsx"],
       "@ValenceUI/ActionMenu.types": [
         "./packages/ui/src/components/ActionMenu/ActionMenu.types.ts"
@@ -93,6 +95,18 @@
       "@ValenceUI/SectionBar": ["./packages/ui/src/components/SectionBar/SectionBar.tsx"],
       "@ValenceUI/SettingsMenu": ["./packages/ui/src/components/SettingsMenu/SettingsMenu.tsx"],
       "@ValenceUI/Skeleton": ["./packages/ui/src/components/Skeleton/Skeleton.tsx"],
+      "@ValenceUI/SettingList": ["./packages/ui/src/components/SettingList/SettingList.tsx"],
+      "@ValenceUI/SettingList.types": [
+        "./packages/ui/src/components/SettingList/SettingList.types.ts"
+      ],
+      "@ValenceUI/SettingRow": ["./packages/ui/src/components/SettingRow/SettingRow.tsx"],
+      "@ValenceUI/SettingRow.types": [
+        "./packages/ui/src/components/SettingRow/SettingRow.types.ts"
+      ],
+      "@ValenceUI/SegmentedRow": ["./packages/ui/src/components/SegmentedRow/SegmentedRow.tsx"],
+      "@ValenceUI/SegmentedRow.types": [
+        "./packages/ui/src/components/SegmentedRow/SegmentedRow.types.ts"
+      ],
       "@ValenceUI/Slider": ["./packages/ui/src/components/Slider/Slider.tsx"],
       "@ValenceUI/SlidingMark": ["./packages/ui/src/components/SlidingMark/SlidingMark.tsx"],
       "@ValenceUI/SlidingMark.types": [
@@ -133,11 +147,15 @@
         "./packages/ui/src/components/VideoSurface/VideoSurface.types.ts"
       ],
       "@ValenceUI/animations/motion": ["./packages/ui/src/animations/motion.ts"],
+      "@ValenceUI/tokens/segmented": ["./packages/ui/src/tokens/segmented.ts"],
+      "@ValenceUI/tokens/underlined": ["./packages/ui/src/tokens/underlined.ts"],
       "@ValenceUI/animations/reveal": ["./packages/ui/src/animations/reveal.ts"],
       "@ValenceUI/animations/spin": ["./packages/ui/src/animations/spin.ts"],
       "@ValenceUI/badAppleFilm": ["./packages/ui/src/functions/badAppleFilm.ts"],
       "@ValenceUI/blendLights": ["./packages/ui/src/functions/blendLights.ts"],
       "@ValenceUI/cn": ["./packages/ui/src/functions/cn.ts"],
+      "@ValenceUI/useHasScrolledPast": ["./packages/ui/src/functions/useHasScrolledPast.ts"],
+      "@ValenceUI/useTravelDirection": ["./packages/ui/src/functions/useTravelDirection.ts"],
       "@ValenceUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
       "@ValenceUI/notify": ["./packages/ui/src/functions/notify.ts"],
       "@ValenceUI/readMaskFrames": ["./packages/ui/src/functions/readMaskFrames.ts"],

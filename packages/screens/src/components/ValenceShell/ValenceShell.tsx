@@ -7,6 +7,8 @@ import { AppShell } from '@ValenceScreens/components/AppShell/AppShell';
 import { ShowDialog } from '@ValenceScreens/components/ShowDialog/ShowDialog';
 import { MediaDetailDialog } from '@ValenceScreens/components/MediaDetailDialog/MediaDetailDialog';
 import { PersonDialog } from '@ValenceScreens/components/PersonDialog/PersonDialog';
+import { AccountDialog } from '@ValenceScreens/components/AccountDialog/AccountDialog';
+import { AdminDialog } from '@ValenceScreens/components/AdminDialog/AdminDialog';
 import { ShareDialog } from '@ValenceScreens/components/ShareDialog/ShareDialog';
 import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareDialog.types';
 import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
@@ -31,6 +33,7 @@ import { showSlug } from '@ValenceCore/functions/showSlug';
 import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
 import { STILL_WATCHING_ANSWER_SECONDS } from '@ValenceContracts/schemas/StillWatching';
 import { resumeFor } from '@ValenceClient/playback/resumeFor';
+import { ACCOUNT_OPENS_ON, ADMIN_OPENS_ON } from '@ValenceClient/navigation/readLocation';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useShell } from '@ValenceClient/shell/useShell';
 import type { ShowSummary } from '@ValenceContracts/schemas/Show';
@@ -45,7 +48,7 @@ const NOTHING_WAITING = { notifications: [], unread: 0 };
  */
 const ValenceShell = () => {
   const cache = useQueryClient();
-  const { place, go } = usePlace();
+  const { place, go, replace } = usePlace();
 
   const {
     user,
@@ -130,6 +133,14 @@ const ValenceShell = () => {
           search: next === 'search' ? place.search : '',
           genre: next === 'search' ? place.genre : null,
         });
+      }}
+      isAccountOpen={place.account !== null}
+      onOpenAccount={() => {
+        go({ account: ACCOUNT_OPENS_ON });
+      }}
+      isAdminOpen={place.admin !== null}
+      onOpenAdmin={() => {
+        go({ admin: ADMIN_OPENS_ON });
       }}
       moodLights={place.section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
@@ -287,6 +298,30 @@ const ValenceShell = () => {
         onPlay={(media, startSeconds) => {
           setStartOverride({ mediaId: media.id, seconds: Math.floor(startSeconds) });
           go({ inspecting: null, playing: media.id });
+        }}
+      />
+
+      <AccountDialog
+        panel={place.account}
+        onPanel={(next) => {
+          go({ account: next });
+        }}
+        onClose={() => {
+          go({ account: null });
+        }}
+      />
+
+      <AdminDialog
+        panel={place.admin}
+        job={place.adminJob}
+        onPanel={(next) => {
+          replace({ admin: next, adminJob: null });
+        }}
+        onJob={(next) => {
+          replace({ adminJob: next });
+        }}
+        onClose={() => {
+          go({ admin: null, adminJob: null });
         }}
       />
 

@@ -65,7 +65,7 @@ const EpisodeRow = ({
         {watchedFraction === undefined ? null : (
           <span className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
             <span
-              className="block h-full bg-accent"
+              className="block h-full bg-primary"
               style={{ width: `${(Math.min(Math.max(watchedFraction, 0), 1) * 100).toString()}%` }}
             />
           </span>

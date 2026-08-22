@@ -1,6 +1,10 @@
 import { z } from 'zod';
 import { readSearch } from '@ValenceClient/navigation/readSearch';
 
+const ACCOUNT_OPENS_ON = 'profile';
+
+const ADMIN_OPENS_ON = 'overview';
+
 const SECTIONS = [
   'home',
   'shows',
@@ -26,8 +30,9 @@ type Place = {
   party: string | null;
   genre: string | null;
   library: string | null;
-  adminPanel: string | null;
   adminJob: string | null;
+  account: string | null;
+  admin: string | null;
 };
 
 const HOME: Place = {
@@ -41,8 +46,9 @@ const HOME: Place = {
   party: null,
   genre: null,
   library: null,
-  adminPanel: null,
   adminJob: null,
+  account: null,
+  admin: null,
 };
 
 /**
@@ -50,6 +56,10 @@ const HOME: Place = {
  *
  * Anything unrecognised lands on the home page rather than failing: an address is something people
  * edit, share and keep, and a bad one should arrive somewhere sensible.
+ *
+ * An account and the server are dialogs rather than sections, so `/account` and `/admin` — which
+ * is what Valence used to be and what links people already hold still say — arrive at the home page
+ * with the dialog open, rather than at a page that is no longer there.
  *
  * @param pathname - The path, which decides the section and what is playing.
  * @param query - What sat after the question mark, however the router handed it over.
@@ -61,7 +71,10 @@ const placeIn = (pathname: string, query: Record<string, string>): Place => {
   const said = readSearch(query);
 
   return {
-    section: section.success ? section.data : 'home',
+    section:
+      section.success && section.data !== 'account' && section.data !== 'admin'
+        ? section.data
+        : 'home',
     search: said.q ?? '',
     inspecting: first === 'media' && second !== '' ? second : (said.item ?? null),
     show: said.show ?? null,
@@ -71,8 +84,9 @@ const placeIn = (pathname: string, query: Record<string, string>): Place => {
     party: said.party ?? null,
     genre: said.genre ?? null,
     library: said.library ?? null,
-    adminPanel: said.panel ?? null,
     adminJob: said.job ?? null,
+    account: said.account ?? (first === 'account' ? ACCOUNT_OPENS_ON : null),
+    admin: said.admin ?? (first === 'admin' ? ADMIN_OPENS_ON : null),
   };
 };
 
@@ -141,11 +155,15 @@ const writeLocation = (place: Place): string => {
     query.set('library', place.library);
   }
 
-  if (place.section === 'admin' && place.adminPanel !== null) {
-    query.set('panel', place.adminPanel);
+  if (place.account !== null) {
+    query.set('account', place.account);
   }
 
-  if (place.section === 'admin' && place.adminJob !== null) {
+  if (place.admin !== null) {
+    query.set('admin', place.admin);
+  }
+
+  if (place.admin !== null && place.adminJob !== null) {
     query.set('job', place.adminJob);
   }
 
@@ -156,4 +174,4 @@ const writeLocation = (place: Place): string => {
 
 export type { Place };
 
-export { readLocation, placeIn, writeLocation, SECTIONS, HOME };
+export { readLocation, placeIn, writeLocation, SECTIONS, HOME, ACCOUNT_OPENS_ON, ADMIN_OPENS_ON };

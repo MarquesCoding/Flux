@@ -75,7 +75,7 @@ const Logo = ({
         <span
           aria-hidden
           style={cutToTheMark}
-          className="valence-logo-edge absolute inset-0 bg-accent"
+          className="valence-logo-edge absolute inset-0 bg-primary"
         />
       ) : null}
 

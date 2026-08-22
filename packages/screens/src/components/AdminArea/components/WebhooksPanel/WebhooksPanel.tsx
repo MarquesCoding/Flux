@@ -2,7 +2,6 @@ import { useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Card } from '@ValenceUI/Card';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { Switch } from '@ValenceUI/Switch';
 import { WEBHOOK_EVENT_LABELS } from '@ValenceContracts/schemas/Webhook';
@@ -129,8 +128,8 @@ const WebhooksPanel = ({
         </Card>
       )}
 
-      <Card as="section" padding="none" className="flex flex-col overflow-hidden">
-        <CardHeader title="Webhooks">
+      <section className="flex flex-col overflow-hidden">
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
           <Button
             variant="primary"
             isPill
@@ -141,7 +140,7 @@ const WebhooksPanel = ({
           >
             Add a webhook
           </Button>
-        </CardHeader>
+        </div>
 
         {webhooks.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-text-muted">
@@ -233,7 +232,7 @@ const WebhooksPanel = ({
             })}
           </ul>
         )}
-      </Card>
+      </section>
     </div>
   );
 };

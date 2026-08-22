@@ -1,11 +1,8 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CheckCircleIcon, WarningIcon } from '@phosphor-icons/react';
+import { WarningIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Badge } from '@ValenceUI/Badge';
-import { HoverCard } from '@ValenceUI/HoverCard';
 import { Button } from '@ValenceUI/Button';
-import { SectionBar } from '@ValenceUI/SectionBar';
 import { TabPanel } from '@ValenceUI/TabPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
@@ -26,7 +23,6 @@ import {
   testWebhook,
 } from '@ValenceClient/admin/fetchWebhooks';
 import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
-import { Tabs } from '@ValenceUI/Tabs';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import {
   watchMonitor,
@@ -52,8 +48,6 @@ import { libraryDisk } from './libraryDisk';
 import { describeGraphics } from './describeGraphics';
 import { describeCpuShare } from './describeCpuShare';
 import { describeValenceMemory } from './describeValenceMemory';
-import { describeFfmpeg } from './describeFfmpeg';
-import { describeAcceleration } from './describeAcceleration';
 import {
   resumeRunning,
   watchJob,
@@ -71,49 +65,13 @@ import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import type { Library, MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { JobSchedules, ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
 import type { CreatedWebhook } from '@ValenceClient/admin/fetchWebhooks';
+import { useTravelDirection } from '@ValenceUI/useTravelDirection';
+import { ADMIN_PANELS } from '@ValenceScreens/components/AdminArea/adminSections';
 import type { AdminAreaProps } from './AdminArea.types';
 
 const HISTORY_LENGTH = 60;
 
-const SECTIONS = [
-  { label: null, items: [{ id: 'overview', label: 'Overview' }] },
-  {
-    label: 'Activity',
-    items: [
-      { id: 'activity', label: 'Sessions' },
-      { id: 'shares', label: 'Links' },
-      { id: 'jobs', label: 'Jobs' },
-    ],
-  },
-  {
-    label: 'Content',
-    items: [
-      { id: 'libraries', label: 'Libraries' },
-      { id: 'media', label: 'Media' },
-    ],
-  },
-  {
-    label: 'People',
-    items: [
-      { id: 'accounts', label: 'Accounts' },
-      { id: 'roles', label: 'Roles' },
-    ],
-  },
-  {
-    label: 'System',
-    items: [
-      { id: 'settings', label: 'Settings' },
-      { id: 'webhooks', label: 'Webhooks' },
-      { id: 'logs', label: 'Logs' },
-    ],
-  },
-] as const;
-
-type PanelId = (typeof SECTIONS)[number]['items'][number]['id'];
-
-const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((section) => [
-  ...section.items,
-]);
+const PANEL_ORDER = ADMIN_PANELS.map((one) => one.id);
 
 /**
  * The server as the person running it sees it: the dashboard, what is being watched, the libraries
@@ -125,24 +83,21 @@ const PANELS: readonly { id: PanelId; label: string }[] = SECTIONS.flatMap((sect
  * inside it, so that both are places the browser's address can name and return to.
  *
  * @param historyLength - How many readings to keep for the graphs.
- * @param initialPanel - The panel to open, where the address named one.
- * @param onPanelChange - Called with the panel that was opened.
+ * @param panel - Which panel is open, which the dialog around this holds.
+ * @param onPanel - Told which panel to open.
  * @param initialJob - The job whose schedule to open, where the address named one.
  * @param onJobChange - Called with the job whose schedule was opened, or null on going back.
  */
 const AdminArea = ({
   historyLength = HISTORY_LENGTH,
-  initialPanel,
-  onPanelChange,
+  panel,
+  onPanel,
   initialJob,
   onJobChange,
 }: AdminAreaProps) => {
   const cache = useQueryClient();
   const [history, setHistory] = useState<number[]>([]);
   const [encoderHistory, setEncoderHistory] = useState<number[]>([]);
-  const [panel, setPanel] = useState<PanelId>(
-    () => PANELS.find((candidate) => candidate.id === initialPanel)?.id ?? 'overview',
-  );
   const [viewingJobKind, setViewingJobKind] = useState<string | null>(initialJob ?? null);
   const [correcting, setCorrecting] = useState<MediaSummary | null>(null);
   const {
@@ -155,6 +110,7 @@ const AdminArea = ({
 
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
   const prefersReducedMotion = useReducedMotion();
+  const travel = useTravelDirection(PANEL_ORDER, panel);
 
   const askedOverview = useQuery(adminQueries.overview());
   const askedLibraries = useQuery(libraryQueries.all());
@@ -222,18 +178,17 @@ const AdminArea = ({
 
   const showPanel = useCallback(
     (next: string) => {
-      const found = PANELS.find((candidate) => candidate.id === next);
+      const found = ADMIN_PANELS.find((candidate) => candidate.id === next);
 
       if (found === undefined) {
         return;
       }
 
-      setPanel(found.id);
-      onPanelChange?.(found.id);
+      onPanel(found.id);
       setViewingJobKind(null);
       onJobChange?.(null);
     },
-    [onPanelChange, onJobChange],
+    [onPanel, onJobChange],
   );
 
   const loadAll = useCallback(async () => {
@@ -458,10 +413,6 @@ const AdminArea = ({
 
   const conversions = resources?.children ?? [];
   const cpuShare = valenceCpuShare(resources);
-  const acceleration =
-    overview === null
-      ? null
-      : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
   const mediaDisk = libraryDisk(
     resources?.disks ?? [],
     libraries.map((library) => library.path),
@@ -473,420 +424,264 @@ const AdminArea = ({
       initial="hidden"
       animate="shown"
       exit="gone"
-      className="flex w-full flex-col gap-4 px-5 pb-6 pt-5 sm:px-10"
+      className="flex w-full flex-col gap-5 pb-2"
     >
-      <Tabs value={panel} onValueChange={showPanel}>
-        <motion.div
+      <motion.div
+        variants={revealVariants(prefersReducedMotion)}
+        transition={revealTransition(prefersReducedMotion)}
+      >
+        <ConcernsBanner
+          concerns={collectConcerns({
+            overview,
+            monitor,
+            libraries,
+            sessions,
+            history,
+            encoderHistory,
+          })}
+          onOpenPanel={showPanel}
+        />
+      </motion.div>
+
+      <motion.div
+        variants={revealVariants(prefersReducedMotion)}
+        transition={revealTransition(prefersReducedMotion)}
+      >
+        <StatStrip
+          stats={[
+            {
+              label: 'Processor',
+              value: `${(resources?.systemCpuPercent ?? 0).toFixed(0)}%`,
+              fraction: (resources?.systemCpuPercent ?? 0) / 100,
+              detail:
+                resources === null
+                  ? '—'
+                  : `${resources.cpuCount.toString()} cores · Valence ${describeCpuShare(cpuShare)}`,
+            },
+            {
+              label: 'Memory',
+              value: memory === null ? '—' : formatBytes(memory.usedBytes),
+              fraction: memoryFraction,
+              detail:
+                memory === null
+                  ? '—'
+                  : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Valence ${describeValenceMemory(valenceMemory)}`,
+            },
+            {
+              label: 'Graphics',
+              ...describeGraphics(resources?.graphics ?? null),
+            },
+            {
+              label: 'Storage',
+              value: mediaDisk === null ? '—' : `${formatBytes(mediaDisk.availableBytes)} free`,
+              ...(mediaDisk === null
+                ? {}
+                : {
+                    fraction:
+                      (mediaDisk.totalBytes - mediaDisk.availableBytes) / mediaDisk.totalBytes,
+                  }),
+              detail:
+                mediaDisk === null
+                  ? 'Not measured'
+                  : `of ${formatBytes(mediaDisk.totalBytes)} · ${mediaDisk.mountPoint}`,
+            },
+            {
+              label: 'Streaming',
+              value: (monitor?.sessions ?? 0).toString(),
+              detail: `${conversions.length.toString()} conversions running`,
+            },
+            {
+              label: 'Library',
+              value: (overview?.library.itemCount ?? 0).toString(),
+              detail:
+                overview === null
+                  ? '—'
+                  : `${overview.library.libraryCount.toString()} ${
+                      overview.library.libraryCount === 1 ? 'library' : 'libraries'
+                    } · ${overview.users.length.toString()} accounts`,
+            },
+          ]}
+        />
+      </motion.div>
+
+      {unreachable.size === 0 ? null : (
+        <motion.p
+          role="alert"
           variants={revealVariants(prefersReducedMotion)}
           transition={revealTransition(prefersReducedMotion)}
-          className="flex justify-center"
+          className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 px-5 py-4 font-body text-sm text-text"
         >
-          <SectionBar
-            groups={SECTIONS.map((section) => ({
-              ...(section.label === null ? {} : { label: section.label }),
-              items: section.items,
-            }))}
-            label="What to look at"
-            value={panel}
-            onValueChange={showPanel}
-          />
-        </motion.div>
-
-        <motion.header
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion, 'heavy')}
-          className="flex flex-wrap items-end justify-between gap-4"
-        >
-          <div className="flex flex-col gap-2">
-            <h1 className="text-4xl font-semibold tracking-[-0.03em] sm:text-6xl">Server</h1>
-
-            <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-text-muted">
-              <span className="flex items-center gap-1.5">
-                {overview?.transcoder.isReachable === true ? (
-                  <Icon of={CheckCircleIcon} size={16} className="text-accent" />
-                ) : (
-                  <Icon of={WarningIcon} size={16} className="text-danger" />
-                )}
-                {overview === null
-                  ? 'Reading the server…'
-                  : overview.transcoder.isReachable
-                    ? `Media service up · ${describeFfmpeg(overview.transcoder.ffmpegVersion)}`
-                    : 'Media service unreachable'}
-              </span>
-
-              {acceleration === null ? null : (
-                <HoverCard
-                  side="bottom"
-                  align="center"
-                  detail={<p className="max-w-xs text-xs leading-relaxed">{acceleration.detail}</p>}
-                >
-                  <span>
-                    <Badge size="sm" tone={acceleration.tone}>
-                      {acceleration.label}
-                    </Badge>
-                  </span>
-                </HoverCard>
-              )}
-            </p>
-          </div>
-        </motion.header>
-
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-        >
-          <ConcernsBanner
-            concerns={collectConcerns({
-              overview,
-              monitor,
-              libraries,
-              sessions,
-              history,
-              encoderHistory,
-            })}
-            onOpenPanel={showPanel}
-          />
-        </motion.div>
-
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-        >
-          <StatStrip
-            stats={[
-              {
-                label: 'Processor',
-                value: `${(resources?.systemCpuPercent ?? 0).toFixed(0)}%`,
-                fraction: (resources?.systemCpuPercent ?? 0) / 100,
-                detail:
-                  resources === null
-                    ? '—'
-                    : `${resources.cpuCount.toString()} cores · Valence ${describeCpuShare(cpuShare)}`,
-              },
-              {
-                label: 'Memory',
-                value: memory === null ? '—' : formatBytes(memory.usedBytes),
-                fraction: memoryFraction,
-                detail:
-                  memory === null
-                    ? '—'
-                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Valence ${describeValenceMemory(valenceMemory)}`,
-              },
-              {
-                label: 'Graphics',
-                ...describeGraphics(resources?.graphics ?? null),
-              },
-              {
-                label: 'Storage',
-                value: mediaDisk === null ? '—' : `${formatBytes(mediaDisk.availableBytes)} free`,
-                ...(mediaDisk === null
-                  ? {}
-                  : {
-                      fraction:
-                        (mediaDisk.totalBytes - mediaDisk.availableBytes) / mediaDisk.totalBytes,
-                    }),
-                detail:
-                  mediaDisk === null
-                    ? 'Not measured'
-                    : `of ${formatBytes(mediaDisk.totalBytes)} · ${mediaDisk.mountPoint}`,
-              },
-              {
-                label: 'Streaming',
-                value: (monitor?.sessions ?? 0).toString(),
-                detail: `${conversions.length.toString()} conversions running`,
-              },
-              {
-                label: 'Library',
-                value: (overview?.library.itemCount ?? 0).toString(),
-                detail:
-                  overview === null
-                    ? '—'
-                    : `${overview.library.libraryCount.toString()} ${
-                        overview.library.libraryCount === 1 ? 'library' : 'libraries'
-                      } · ${overview.users.length.toString()} accounts`,
-              },
-            ]}
-          />
-        </motion.div>
-
-        {unreachable.size === 0 ? null : (
-          <motion.p
-            role="alert"
-            variants={revealVariants(prefersReducedMotion)}
-            transition={revealTransition(prefersReducedMotion)}
-            className="flex flex-wrap items-center gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
+          <Icon of={WarningIcon} size={18} className="shrink-0 text-danger" />
+          Some of this could not be read from the server, so parts of the page may be missing rather
+          than empty.
+          <Button
+            variant="ghost"
+            size="sm"
+            isPill
+            onClick={() => {
+              void loadAll();
+            }}
           >
-            <Icon of={WarningIcon} size={18} className="shrink-0 text-danger" />
-            Some of this could not be read from the server, so parts of the page may be missing
-            rather than empty.
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              onClick={() => {
-                void loadAll();
+            Try again
+          </Button>
+        </motion.p>
+      )}
+
+      <motion.div
+        variants={revealVariants(prefersReducedMotion)}
+        transition={revealTransition(prefersReducedMotion)}
+        className="flex flex-col gap-5"
+      >
+        <section>
+          <TabPanel value="overview" travel={travel}>
+            <OverviewPanel
+              overview={overview}
+              monitor={monitor}
+              libraries={libraries}
+              sessions={sessions}
+              history={history}
+              onOpenPanel={showPanel}
+            />
+          </TabPanel>
+
+          <TabPanel value="activity" travel={travel}>
+            <ActivityPanel
+              sessions={sessions}
+              busyClientId={busyClientId}
+              onStop={(clientId) => {
+                void stopStream(clientId);
               }}
-            >
-              Try again
-            </Button>
-          </motion.p>
-        )}
+              onPause={(clientId) => {
+                void pauseStream(clientId);
+              }}
+              onResume={(clientId) => {
+                void resumeStream(clientId);
+              }}
+              onMessage={tellViewer}
+            />
+          </TabPanel>
 
-        <motion.div
-          variants={revealVariants(prefersReducedMotion)}
-          transition={revealTransition(prefersReducedMotion)}
-          className="flex flex-col gap-5"
-        >
-          <section>
-            <TabPanel
-              value="overview"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <OverviewPanel
-                overview={overview}
-                monitor={monitor}
-                libraries={libraries}
-                sessions={sessions}
-                history={history}
-                onOpenPanel={showPanel}
-              />
-            </TabPanel>
+          <TabPanel value="jobs" travel={travel}>
+            <JobsPanel
+              definitions={jobDefinitions}
+              libraries={libraries}
+              progress={scanProgress}
+              monitor={monitor}
+              viewingJobKind={viewingJobKind}
+              schedules={jobSchedules}
+              schedulesTimezone={jobsTimezone}
+              onRun={startJob}
+              onStop={stopJob}
+              onOpenSchedule={openJobSchedule}
+              onCloseSchedule={closeJobSchedule}
+              onAddTrigger={(kind, trigger) => {
+                void addTrigger(kind, trigger);
+              }}
+              onRemoveTrigger={(kind, triggerId) => {
+                void removeTrigger(kind, triggerId);
+              }}
+            />
+          </TabPanel>
 
-            <TabPanel
-              value="activity"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <ActivityPanel
-                sessions={sessions}
-                busyClientId={busyClientId}
-                onStop={(clientId) => {
-                  void stopStream(clientId);
-                }}
-                onPause={(clientId) => {
-                  void pauseStream(clientId);
-                }}
-                onResume={(clientId) => {
-                  void resumeStream(clientId);
-                }}
-                onMessage={tellViewer}
-              />
-            </TabPanel>
+          <TabPanel value="libraries" travel={travel}>
+            <LibrariesPanel
+              libraries={libraries}
+              progress={scanProgress}
+              isScanningAll={isScanningAll}
+              isResettingAll={isResettingAll}
+              onScan={(libraryId, force) => {
+                void rescan(libraryId, force);
+              }}
+              onScanAll={() => {
+                void rescanAll();
+              }}
+              onResetAll={() => {
+                void resetAll();
+              }}
+              onRegeneratePreviews={(libraryId) => {
+                void regeneratePreviews(libraryId);
+              }}
+              onLibraryCreated={onLibraryCreated}
+              onLibraryUpdated={onLibraryUpdated}
+            />
+          </TabPanel>
 
-            <TabPanel
-              value="jobs"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <JobsPanel
-                definitions={jobDefinitions}
-                libraries={libraries}
-                progress={scanProgress}
-                monitor={monitor}
-                viewingJobKind={viewingJobKind}
-                schedules={jobSchedules}
-                schedulesTimezone={jobsTimezone}
-                onRun={startJob}
-                onStop={stopJob}
-                onOpenSchedule={openJobSchedule}
-                onCloseSchedule={closeJobSchedule}
-                onAddTrigger={(kind, trigger) => {
-                  void addTrigger(kind, trigger);
-                }}
-                onRemoveTrigger={(kind, triggerId) => {
-                  void removeTrigger(kind, triggerId);
-                }}
-              />
-            </TabPanel>
+          <TabPanel value="media" travel={travel}>
+            <MediaPanel
+              isUnreachable={unreachable.has('media')}
+              media={media}
+              onCorrect={setCorrecting}
+              onRebuildArtefacts={async (item) => (await rebuildArtefacts(item.id)) !== null}
+            />
+          </TabPanel>
 
-            <TabPanel
-              value="libraries"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <LibrariesPanel
-                libraries={libraries}
-                progress={scanProgress}
-                isScanningAll={isScanningAll}
-                isResettingAll={isResettingAll}
-                onScan={(libraryId, force) => {
-                  void rescan(libraryId, force);
-                }}
-                onScanAll={() => {
-                  void rescanAll();
-                }}
-                onResetAll={() => {
-                  void resetAll();
-                }}
-                onRegeneratePreviews={(libraryId) => {
-                  void regeneratePreviews(libraryId);
-                }}
-                onLibraryCreated={onLibraryCreated}
-                onLibraryUpdated={onLibraryUpdated}
-              />
-            </TabPanel>
+          <TabPanel value="accounts" travel={travel}>
+            <AccountsPanel />
+          </TabPanel>
 
-            <TabPanel
-              value="media"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <MediaPanel
-                isUnreachable={unreachable.has('media')}
-                media={media}
-                onCorrect={setCorrecting}
-                onRebuildArtefacts={async (item) => (await rebuildArtefacts(item.id)) !== null}
-              />
-            </TabPanel>
+          <TabPanel value="roles" travel={travel}>
+            <RolesPanel />
+          </TabPanel>
 
-            <TabPanel
-              value="accounts"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <AccountsPanel />
-            </TabPanel>
+          <TabPanel value="settings" travel={travel}>
+            <SettingsPanel
+              overview={overview}
+              onCatalogueKeySaved={() => {
+                void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
+              }}
+              onHardwareAccelSaved={() => {
+                void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
+              }}
+            />
+          </TabPanel>
 
-            <TabPanel
-              value="roles"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <RolesPanel />
-            </TabPanel>
+          <TabPanel value="shares" travel={travel}>
+            <SharesPanel />
+          </TabPanel>
 
-            <TabPanel
-              value="settings"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <SettingsPanel
-                overview={overview}
-                onCatalogueKeySaved={() => {
-                  void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
-                }}
-                onHardwareAccelSaved={() => {
-                  void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
-                }}
-              />
-            </TabPanel>
+          <TabPanel value="webhooks" travel={travel}>
+            <WebhooksPanel
+              webhooks={webhooks}
+              created={createdWebhook}
+              onCreate={async (webhook) => {
+                const { created, refusal } = await createWebhook(webhook);
 
-            <TabPanel
-              value="shares"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <SharesPanel />
-            </TabPanel>
+                if (refusal === null) {
+                  setCreatedWebhook(created);
+                  await reloadWebhooks();
+                }
 
-            <TabPanel
-              value="webhooks"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <WebhooksPanel
-                webhooks={webhooks}
-                created={createdWebhook}
-                onCreate={async (webhook) => {
-                  const { created, refusal } = await createWebhook(webhook);
+                return refusal;
+              }}
+              onDismissCreated={() => {
+                setCreatedWebhook(null);
+              }}
+              onSetEnabled={(id, enabled) => {
+                void setWebhookEnabled(id, enabled).then(reloadWebhooks);
+              }}
+              onDelete={(id) => {
+                void deleteWebhook(id).then(reloadWebhooks);
+              }}
+              onTest={(id) => {
+                void testWebhook(id);
+              }}
+              deliveries={deliveries}
+              openHistoryId={openHistoryId}
+              isHistoryLoading={isHistoryLoading}
+              onOpenHistory={setOpenHistoryId}
+              onRedeliver={(subscriptionId, deliveryId) => {
+                void redeliverWebhook(subscriptionId, deliveryId).then(() =>
+                  reloadDeliveries(subscriptionId),
+                );
+              }}
+            />
+          </TabPanel>
 
-                  if (refusal === null) {
-                    setCreatedWebhook(created);
-                    await reloadWebhooks();
-                  }
-
-                  return refusal;
-                }}
-                onDismissCreated={() => {
-                  setCreatedWebhook(null);
-                }}
-                onSetEnabled={(id, enabled) => {
-                  void setWebhookEnabled(id, enabled).then(reloadWebhooks);
-                }}
-                onDelete={(id) => {
-                  void deleteWebhook(id).then(reloadWebhooks);
-                }}
-                onTest={(id) => {
-                  void testWebhook(id);
-                }}
-                deliveries={deliveries}
-                openHistoryId={openHistoryId}
-                isHistoryLoading={isHistoryLoading}
-                onOpenHistory={setOpenHistoryId}
-                onRedeliver={(subscriptionId, deliveryId) => {
-                  void redeliverWebhook(subscriptionId, deliveryId).then(() =>
-                    reloadDeliveries(subscriptionId),
-                  );
-                }}
-              />
-            </TabPanel>
-
-            <TabPanel
-              value="logs"
-              render={
-                <motion.div
-                  initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.2, ease: 'easeOut' }}
-                />
-              }
-            >
-              <LogsPanel />
-            </TabPanel>
-          </section>
-        </motion.div>
-      </Tabs>
+          <TabPanel value="logs" travel={travel}>
+            <LogsPanel />
+          </TabPanel>
+        </section>
+      </motion.div>
 
       <MatchPicker
         media={correcting}

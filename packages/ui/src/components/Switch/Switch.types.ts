@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 
 type SwitchProps = {
   label: string;
+  isLabelHidden?: boolean;
   isOn: boolean;
   onToggle: () => void;
   icon?: ReactNode;

@@ -49,7 +49,7 @@ describe('PasskeySetup when available', () => {
   it('reports when there are no passkeys yet', async () => {
     render(<PasskeySetup />);
 
-    expect(await screen.findByText('No passkeys yet.')).toBeInTheDocument();
+    expect(await screen.findByText('None yet')).toBeInTheDocument();
   });
 
   it('lists registered passkeys by name', async () => {
@@ -70,7 +70,7 @@ describe('PasskeySetup when available', () => {
     const actor = userEvent.setup();
     render(<PasskeySetup />);
 
-    await screen.findByText('No passkeys yet.');
+    await screen.findByText('None yet');
     await actor.clear(screen.getByLabelText('Passkey name'));
     await actor.type(screen.getByLabelText('Passkey name'), 'Work phone');
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }));
@@ -84,7 +84,7 @@ describe('PasskeySetup when available', () => {
     const actor = userEvent.setup();
     render(<PasskeySetup />);
 
-    await screen.findByText('No passkeys yet.');
+    await screen.findByText('None yet');
     await actor.clear(screen.getByLabelText('Passkey name'));
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }));
 
@@ -97,7 +97,7 @@ describe('PasskeySetup when available', () => {
     const actor = userEvent.setup();
     render(<PasskeySetup />);
 
-    await screen.findByText('No passkeys yet.');
+    await screen.findByText('None yet');
     listPasskeysMock.mockResolvedValue([{ id: 'pk_1', name: 'Laptop' }]);
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }));
 
@@ -109,7 +109,7 @@ describe('PasskeySetup when available', () => {
     const actor = userEvent.setup();
     render(<PasskeySetup />);
 
-    await screen.findByText('No passkeys yet.');
+    await screen.findByText('None yet');
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }));
 
     await waitFor(() => {
@@ -123,7 +123,7 @@ describe('PasskeySetup when available', () => {
     const actor = userEvent.setup();
     render(<PasskeySetup />);
 
-    await screen.findByText('No passkeys yet.');
+    await screen.findByText('None yet');
     await actor.click(screen.getByRole('button', { name: /Add a passkey/ }));
 
     expect(await screen.findByRole('alert')).toHaveTextContent('The server said no.');

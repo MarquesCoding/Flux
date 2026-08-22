@@ -14,6 +14,10 @@ type AppShellProps = {
   moodLights?: MoodLight[];
   isAdministrator?: boolean;
   avatar?: ReactNode;
+  isAccountOpen: boolean;
+  onOpenAccount: () => void;
+  isAdminOpen: boolean;
+  onOpenAdmin: () => void;
   onSurprise?: (only?: LibraryKind) => void;
   surpriseKinds?: LibraryKind[];
   notifications?: ReactNode;

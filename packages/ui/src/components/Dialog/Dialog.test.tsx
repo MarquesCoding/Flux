@@ -84,7 +84,7 @@ describe('Dialog', () => {
 
     const overlay = document.querySelector('[data-slot="dialog-overlay"]');
 
-    expect(overlay?.className).toContain('backdrop-blur-sm');
+    expect(overlay?.className).toContain('backdrop-blur-md');
     expect(overlay?.className).not.toContain('z-40');
   });
 

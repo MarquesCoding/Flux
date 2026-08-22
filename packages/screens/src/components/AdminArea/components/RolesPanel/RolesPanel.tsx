@@ -9,7 +9,6 @@ import {
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
-import { CardHeader } from '@ValenceUI/CardHeader';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -17,7 +16,6 @@ import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { DataTable } from '@ValenceUI/DataTable';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
 import { Checkbox } from '@ValenceUI/Checkbox';
 import { TextField } from '@ValenceUI/TextField';
 import { describePermission } from '@ValenceClient/admin/describePermission';
@@ -183,10 +181,10 @@ const RolesPanel = () => {
         </p>
       )}
 
-      <Card as="section" padding="none" className="flex flex-col">
-        <CardHeader title="Roles">
+      <section className="flex flex-col">
+        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
           <Button
-            variant="glossy"
+            variant="soft"
             size="sm"
             isPill
             onClick={() => {
@@ -196,7 +194,7 @@ const RolesPanel = () => {
             <Icon of={PlusIcon} size={15} />
             Create role
           </Button>
-        </CardHeader>
+        </div>
 
         {couldNotRead ? (
           <CouldNotRead
@@ -210,7 +208,7 @@ const RolesPanel = () => {
         ) : (
           <DataTable label="Roles" columns={columns} rows={roles} emptyMessage="No roles yet." />
         )}
-      </Card>
+      </section>
 
       <Dialog
         label="Create a role"
@@ -286,7 +284,7 @@ const RolesPanel = () => {
           </Button>
 
           <Button
-            variant="glossy"
+            variant="primary"
             isPill
             disabled={newRoleName === ''}
             onClick={() => {
@@ -418,7 +416,7 @@ const RolesPanel = () => {
               </Button>
 
               <Button
-                variant="glossy"
+                variant="primary"
                 isPill
                 disabled={
                   draftName === '' ||

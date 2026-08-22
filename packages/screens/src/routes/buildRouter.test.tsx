@@ -31,8 +31,11 @@ describe('buildRouter', () => {
     expect(matched('/new')).toBe('/signed-in/shell/new');
     expect(matched('/favourites')).toBe('/signed-in/shell/favourites');
     expect(matched('/search')).toBe('/signed-in/shell/search');
-    expect(matched('/account')).toBe('/signed-in/shell/account');
-    expect(matched('/admin')).toBe('/signed-in/shell/admin');
+  });
+
+  it('has no route for the account or the server, which are dialogs raised over whatever is showing', () => {
+    expect(matched('/account')).toBe('/signed-in/shell/$');
+    expect(matched('/admin')).toBe('/signed-in/shell/$');
   });
 
   it('draws the player and a share link outside the chrome the sections sit in', () => {
