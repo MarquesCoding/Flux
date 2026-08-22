@@ -96,6 +96,20 @@ pub struct ProcessUse {
     pub memory_bytes: u64,
 }
 
+/// What the whole deployment is using, and what it is allowed.
+///
+/// Read from the cgroup, which is the only thing here that can see both halves
+/// of Flux: the API server is a sibling process this one cannot reach through
+/// the process tree. Nothing off Linux, and nothing where the hierarchy cannot
+/// be trusted to describe a container rather than a host.
+#[derive(Debug, Clone, Copy, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeploymentMemory {
+    pub used_bytes: u64,
+    /// The ceiling the deployment is held to, where one is set.
+    pub limit_bytes: Option<u64>,
+}
+
 /// What one mounted filesystem has room for.
 ///
 /// Every filesystem the machine has, rather than a guess at which one matters:
@@ -119,11 +133,15 @@ pub struct ResourceUse {
     pub system_memory_used_bytes: u64,
     pub system_memory_total_bytes: u64,
     pub cpu_count: usize,
-    /// What the media service itself is using.
+    /// What the media service process itself is using, on its own. Whoever
+    /// reads this adds the children to it: neither figure is what Flux costs
+    /// without the other, and during a conversion almost all of it is theirs.
     pub service_cpu_percent: f32,
     pub service_memory_bytes: u64,
     /// Every ffmpeg the service has running, and what each costs.
     pub children: Vec<ProcessUse>,
+    /// What everything in the deployment is using, where the cgroup will say.
+    pub deployment_memory: Option<DeploymentMemory>,
     /// One minute load average, where the platform reports one.
     pub load_average: f64,
     /// Every mounted filesystem, measured less often than the rest of this.
@@ -395,6 +413,15 @@ impl Monitor {
 
         let service = system.process(own);
 
+        let deployment_memory = crate::cgroup::memory()
+            .await
+            .map(|reading| DeploymentMemory {
+                used_bytes: reading.used_bytes,
+                limit_bytes: reading
+                    .limit_bytes
+                    .filter(|limit| *limit < system.total_memory()),
+            });
+
         ResourceUse {
             at_ms: now_ms(),
             system_cpu_percent: system.global_cpu_usage(),
@@ -404,6 +431,7 @@ impl Monitor {
             service_cpu_percent: service.map_or(0.0, sysinfo::Process::cpu_usage),
             service_memory_bytes: service.map_or(0, sysinfo::Process::memory),
             children,
+            deployment_memory,
             load_average: System::load_average().one,
             disks,
             graphics,
@@ -471,6 +499,23 @@ mod tests {
 
         assert!(first.cpu_count > 0, "a machine has at least one core");
         assert!(first.system_memory_total_bytes > 0);
+    }
+
+    #[tokio::test]
+    async fn never_reports_a_ceiling_larger_than_the_machine_it_runs_on() {
+        let monitor = Monitor::new(Journal::new());
+
+        let reading = monitor.measure().await;
+
+        if let Some(deployment) = reading.deployment_memory {
+            assert!(
+                deployment
+                    .limit_bytes
+                    .is_none_or(|limit| limit < reading.system_memory_total_bytes),
+                "a ceiling at or above host memory is no ceiling, and reporting it as one would \
+                 measure pressure against a limit nothing can reach"
+            );
+        }
     }
 
     #[tokio::test]

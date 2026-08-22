@@ -14,6 +14,7 @@ import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
 import { describeQueueKind } from '@FluxScreens/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@FluxScreens/components/AdminArea/describeAcceleration';
+import { memoryEnvelope } from '@FluxScreens/components/AdminArea/memoryEnvelope';
 import { measureStorage } from '@FluxClient/admin/fetchAdmin';
 import type { StorageCount } from '@FluxClient/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
@@ -121,6 +122,7 @@ const OverviewPanel = ({
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
   const waiting = monitor?.queue.queued ?? 0;
   const resources = monitor?.resources ?? null;
+  const memory = memoryEnvelope(resources);
 
   return (
     <div className="flex flex-col gap-4">
@@ -189,11 +191,11 @@ const OverviewPanel = ({
             <div className="flex items-baseline justify-between gap-3">
               <dt className="text-text-muted">Memory</dt>
               <dd className="tabular-nums text-text">
-                {resources === null
+                {memory === null
                   ? '—'
-                  : `${formatBytes(resources.systemMemoryUsedBytes)} of ${formatBytes(
-                      resources.systemMemoryTotalBytes,
-                    )}`}
+                  : `${formatBytes(memory.usedBytes)} of ${formatBytes(memory.totalBytes)}${
+                      memory.isLimited ? ' allowed' : ''
+                    }`}
               </dd>
             </div>
 
