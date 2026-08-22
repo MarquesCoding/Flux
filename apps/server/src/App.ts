@@ -207,6 +207,7 @@ import {
 import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
 import { createMemoryNotificationStore } from '@FluxServer/notifications/createMemoryNotificationStore';
 import {
+  clearNotificationsRoute,
   listNotificationsRoute,
   readNotificationsRoute,
   readNotificationPreferencesRoute,
@@ -1282,6 +1283,20 @@ const createApp = ({
     const { id } = context.req.valid('json');
 
     await notifications.markRead(account.id, id);
+
+    return context.json({ unread: await notifications.countUnread(account.id) }, 200);
+  });
+
+  app.openapi(clearNotificationsRoute, async (context) => {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const { id } = context.req.valid('json');
+
+    await notifications.clear(account.id, id);
 
     return context.json({ unread: await notifications.countUnread(account.id) }, 200);
   });

@@ -218,6 +218,42 @@ body {
   color: var(--color-text);
 }
 
+:root {
+  --flux-window-bar: 0px;
+}
+
+[data-window-bar='on'] {
+  --flux-window-bar: 2.25rem;
+}
+
+.flux-below-the-bar {
+  position: fixed;
+  inset: var(--flux-window-bar) 0 0 0;
+}
+
+[data-flux-desktop='true'] body {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+[data-flux-desktop='true'] :is(img, svg, a) {
+  -webkit-user-drag: none;
+}
+
+[data-window-bar='on'] {
+  scrollbar-width: none;
+}
+
+[data-window-bar='on'] ::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+[data-flux-desktop='true'] :is(input, textarea, [contenteditable]) {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
 .flux-bloom {
   position: absolute;
   inset: 0;

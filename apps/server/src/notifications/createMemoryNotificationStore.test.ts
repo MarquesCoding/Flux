@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryNotificationStore } from './createMemoryNotificationStore';
 import type { NotificationStore } from './NotificationStore';
 
@@ -94,5 +94,75 @@ describe('createMemoryNotificationStore', () => {
     await store.addPushEndpoint('alice', { endpoint: 'https://push/1', p256dh: 'k', auth: 'a' });
 
     expect(await store.listPushEndpoints('alice')).toHaveLength(1);
+  });
+});
+
+describe('clearing and expiring', () => {
+  it('takes one off the bell for good', async () => {
+    const store = createMemoryNotificationStore({ listAccountIds: () => Promise.resolve(['a']) });
+    const [written] = await store.notify(['a'], {
+      event: 'media.added',
+      title: 'A film',
+      body: 'arrived',
+      link: null,
+    });
+
+    await store.clear('a', written?.id);
+
+    expect(await store.list('a', 10)).toEqual([]);
+  });
+
+  it('takes all of them off when asked for none in particular', async () => {
+    const store = createMemoryNotificationStore({ listAccountIds: () => Promise.resolve(['a']) });
+
+    await store.notify(['a'], { event: 'media.added', title: 'One', body: '', link: null });
+    await store.notify(['a'], { event: 'media.added', title: 'Two', body: '', link: null });
+
+    await store.clear('a');
+
+    expect(await store.list('a', 10)).toEqual([]);
+  });
+
+  it('leaves what belongs to somebody else alone', async () => {
+    const store = createMemoryNotificationStore({
+      listAccountIds: () => Promise.resolve(['a', 'b']),
+    });
+
+    await store.notify(['a', 'b'], { event: 'media.added', title: 'One', body: '', link: null });
+
+    await store.clear('a');
+
+    expect(await store.list('b', 10)).toHaveLength(1);
+  });
+
+  it('takes down a notice that has had its time, without being asked', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-21T12:00:00.000Z'));
+
+    const store = createMemoryNotificationStore({ listAccountIds: () => Promise.resolve(['a']) });
+
+    await store.notify(['a'], { event: 'media.added', title: 'One', body: '', link: null });
+
+    vi.setSystemTime(new Date('2026-08-21T12:06:00.000Z'));
+
+    expect(await store.list('a', 10)).toEqual([]);
+    expect(await store.countUnread('a')).toBe(0);
+
+    vi.useRealTimers();
+  });
+
+  it('keeps one that is still news', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-08-21T12:00:00.000Z'));
+
+    const store = createMemoryNotificationStore({ listAccountIds: () => Promise.resolve(['a']) });
+
+    await store.notify(['a'], { event: 'media.added', title: 'One', body: '', link: null });
+
+    vi.setSystemTime(new Date('2026-08-21T12:04:00.000Z'));
+
+    expect(await store.list('a', 10)).toHaveLength(1);
+
+    vi.useRealTimers();
   });
 });

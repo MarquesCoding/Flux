@@ -12,7 +12,10 @@ import type { ShareSubject } from '@FluxScreens/components/ShareDialog/ShareDial
 import { StillWatchingDialog } from '@FluxScreens/components/StillWatchingDialog/StillWatchingDialog';
 import { NotificationBell } from '@FluxScreens/components/NotificationBell/NotificationBell';
 import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
-import { markNotificationsRead } from '@FluxClient/notifications/fetchNotifications';
+import {
+  clearNotifications,
+  markNotificationsRead,
+} from '@FluxClient/notifications/fetchNotifications';
 import {
   canReceivePush,
   subscribeToPush,
@@ -170,6 +173,11 @@ const FluxShell = () => {
           }}
           onReadAll={() => {
             void markNotificationsRead().then(() =>
+              cache.invalidateQueries({ queryKey: notificationQueries.key }),
+            );
+          }}
+          onClearAll={() => {
+            void clearNotifications().then(() =>
               cache.invalidateQueries({ queryKey: notificationQueries.key }),
             );
           }}

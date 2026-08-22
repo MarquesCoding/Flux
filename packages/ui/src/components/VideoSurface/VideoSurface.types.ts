@@ -13,6 +13,7 @@ type VideoSurfaceProps = {
   poster?: string;
   className?: string;
   textTrack?: TextTrack;
+  isDrawnElsewhere?: boolean;
   onTimeUpdate?: (currentSeconds: number) => void;
   onDurationChange?: (durationSeconds: number) => void;
   onPlayingChange?: (isPlaying: boolean) => void;

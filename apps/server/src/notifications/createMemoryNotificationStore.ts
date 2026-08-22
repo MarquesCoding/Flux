@@ -4,6 +4,7 @@ import {
   NOTIFICATION_EVENTS,
 } from '@FluxContracts/schemas/Notification';
 import type { Notification } from '@FluxContracts/schemas/Notification';
+import { hasExpired } from './hasExpired';
 import type { NotificationStore, PushEndpoint } from './NotificationStore';
 
 type CreateMemoryNotificationStoreOptions = {
@@ -24,6 +25,16 @@ const createMemoryNotificationStore = ({
   const endpoints = new Map<string, { userId: string; endpoint: PushEndpoint }>();
 
   const preferenceKey = (userId: string, event: string) => `${userId}:${event}`;
+
+  const sweep = (): void => {
+    const now = new Date();
+
+    for (const [id, held] of notifications) {
+      if (hasExpired(held.notification.createdAt, now)) {
+        notifications.delete(id);
+      }
+    }
+  };
 
   return {
     listWanting: async (event, transport) => {
@@ -57,21 +68,27 @@ const createMemoryNotificationStore = ({
       return Promise.resolve(written);
     },
 
-    list: (userId, limit) =>
-      Promise.resolve(
+    list: (userId, limit) => {
+      sweep();
+
+      return Promise.resolve(
         [...notifications.values()]
           .filter((held) => held.userId === userId)
           .map((held) => held.notification)
           .reverse()
           .slice(0, limit),
-      ),
+      );
+    },
 
-    countUnread: (userId) =>
-      Promise.resolve(
+    countUnread: (userId) => {
+      sweep();
+
+      return Promise.resolve(
         [...notifications.values()].filter(
           (held) => held.userId === userId && held.notification.readAt === null,
         ).length,
-      ),
+      );
+    },
 
     markRead: (userId, notificationId) => {
       const at = new Date().toISOString();
@@ -82,6 +99,19 @@ const createMemoryNotificationStore = ({
 
         if (mine && chosen && held.notification.readAt === null) {
           notifications.set(id, { ...held, notification: { ...held.notification, readAt: at } });
+        }
+      }
+
+      return Promise.resolve();
+    },
+
+    clear: (userId, notificationId) => {
+      for (const [id, held] of notifications) {
+        const mine = held.userId === userId;
+        const chosen = notificationId === undefined || notificationId === id;
+
+        if (mine && chosen) {
+          notifications.delete(id);
         }
       }
 

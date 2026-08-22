@@ -132,3 +132,45 @@ describe('coming back because the server stopped answering', () => {
     expect(screen.queryByText(/could not be reached/)).toBeNull();
   });
 });
+
+describe('what it found on this machine', () => {
+  it('offers a server it found, so nobody types the address of their own machine', () => {
+    render(<ConnectToServer onConnected={vi.fn()} found={['http://localhost:8420']} />);
+
+    expect(screen.getByRole('button', { name: 'localhost:8420' })).toBeInTheDocument();
+  });
+
+  it('connects to it when pressed, without asking again what has already answered', async () => {
+    const onConnected = vi.fn();
+
+    render(<ConnectToServer onConnected={onConnected} found={['http://localhost:8420']} />);
+
+    await userEvent.click(screen.getByRole('button', { name: 'localhost:8420' }));
+
+    expect(onConnected).toHaveBeenCalledWith('http://localhost:8420');
+  });
+
+  it('offers each of them where somebody runs more than one', () => {
+    render(
+      <ConnectToServer
+        onConnected={vi.fn()}
+        found={['http://localhost:8420', 'http://127.0.0.1:9000']}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'localhost:8420' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '127.0.0.1:9000' })).toBeInTheDocument();
+  });
+
+  it('offers nothing where nothing was found, rather than an empty heading', () => {
+    render(<ConnectToServer onConnected={vi.fn()} />);
+
+    expect(screen.queryByText('Found on this machine')).not.toBeInTheDocument();
+  });
+
+  it('still lets somebody give an address of their own', () => {
+    render(<ConnectToServer onConnected={vi.fn()} found={['http://localhost:8420']} />);
+
+    expect(screen.getByLabelText('Server address')).toBeInTheDocument();
+  });
+});

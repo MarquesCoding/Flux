@@ -268,7 +268,7 @@ const PageReader = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-black"
+      className="flux-below-the-bar z-50 flex flex-col bg-black"
       onPointerMove={wake}
       onTouchStart={(event) => {
         const [one, other] = [event.touches[0], event.touches[1]];

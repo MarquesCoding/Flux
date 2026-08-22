@@ -3,6 +3,7 @@ type ConnectToServerProps = {
   startWith?: string;
   couldNotReach?: string;
   reach?: (address: string) => Promise<boolean>;
+  found?: readonly string[];
 };
 
 export type { ConnectToServerProps };

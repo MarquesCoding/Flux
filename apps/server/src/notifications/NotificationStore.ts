@@ -23,6 +23,7 @@ type NotificationStore = {
   list: (userId: string, limit: number) => Promise<Notification[]>;
   countUnread: (userId: string) => Promise<number>;
   markRead: (userId: string, notificationId?: string) => Promise<void>;
+  clear: (userId: string, notificationId?: string) => Promise<void>;
   readPreferences: (userId: string) => Promise<NotificationPreference[]>;
   writePreference: (userId: string, preference: NotificationPreference) => Promise<void>;
   addPushEndpoint: (userId: string, endpoint: PushEndpoint) => Promise<void>;

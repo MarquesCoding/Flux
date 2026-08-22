@@ -151,7 +151,7 @@ const WatchPage = () => {
       initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.04 }}
       animate={{ opacity: 1, scale: 1 }}
       transition={{ duration: prefersReducedMotion === true ? 0.15 : 0.45, ease: [0.2, 0, 0, 1] }}
-      className="fixed inset-0 z-40 flex flex-col bg-black"
+      className="flux-below-the-bar z-40 flex flex-col bg-black"
     >
       <VideoPlayer
         media={playing}
