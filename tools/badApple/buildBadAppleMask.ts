@@ -25,7 +25,7 @@ const INTO = resolve(import.meta.dirname, '../../packages/ui/src/assets/badApple
 const greyFramesOf = (from: string): Uint8Array =>
   new Uint8Array(
     execFileSync(
-      process.env['FLUX_FFMPEG'] ?? 'ffmpeg',
+      process.env['VALENCE_FFMPEG'] ?? 'ffmpeg',
       [
         '-v',
         'error',

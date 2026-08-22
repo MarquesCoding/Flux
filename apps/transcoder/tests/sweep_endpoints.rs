@@ -20,20 +20,20 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::preview::PreviewRequest;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::trickplay::{TrickplayRegistry, TrickplayRequest};
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::preview::PreviewRequest;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::trickplay::{TrickplayRegistry, TrickplayRequest};
 
 mod common;
 
 use common::{ffmpeg, ffprobe};
 
 fn cache_root(name: &str) -> std::path::PathBuf {
-    let path = std::env::temp_dir().join(format!("flux-test-sweep-{name}"));
+    let path = std::env::temp_dir().join(format!("valence-test-sweep-{name}"));
 
     std::fs::remove_dir_all(&path).ok();
 
@@ -43,7 +43,7 @@ fn cache_root(name: &str) -> std::path::PathBuf {
 fn app(root: std::path::PathBuf) -> axum::Router {
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
             cache_root: root,

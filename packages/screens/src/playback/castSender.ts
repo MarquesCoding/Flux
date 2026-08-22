@@ -19,7 +19,7 @@ const loadCastSender = (
   host: ScriptHost = document,
   carrier: CastCarrier = window,
 ): Promise<CastContext | null> => {
-  carrier.__fluxCastSender ??= new Promise<CastContext | null>((resolve) => {
+  carrier.__valenceCastSender ??= new Promise<CastContext | null>((resolve) => {
     const ready = () => {
       const framework = carrier.cast?.framework;
       const chromecast = carrier.chrome?.cast;
@@ -68,7 +68,7 @@ const loadCastSender = (
     host.head.append(script);
   });
 
-  return carrier.__fluxCastSender;
+  return carrier.__valenceCastSender;
 };
 
 /**

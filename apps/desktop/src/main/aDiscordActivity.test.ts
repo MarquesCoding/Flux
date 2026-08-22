@@ -80,21 +80,21 @@ describe('aDiscordActivity', () => {
 
   it('badges what is happening, which is what somebody looking wants to know', () => {
     expect(aDiscordActivity(AN_EPISODE, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxplay',
+      small_image: 'valenceplay',
       small_text: 'Playing',
     });
   });
 
   it('badges a pause, so a still status is not mistaken for a stuck one', () => {
     expect(aDiscordActivity({ ...AN_EPISODE, isPaused: true }, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxpause',
+      small_image: 'valencepause',
       small_text: 'Paused',
     });
   });
 
   it('badges browsing, which is somebody between things rather than stopped', () => {
     expect(aDiscordActivity({ kind: 'browsing' }, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxsearch',
+      small_image: 'valencesearch',
       small_text: 'Browsing',
     });
   });
@@ -129,7 +129,7 @@ describe('aDiscordActivity', () => {
     expect(aDiscordActivity({ kind: 'browsing' }, '0.0.0')?.assets).toMatchObject({
       large_image: 'logo',
       large_text: 'Valence v0.0.0',
-      small_image: 'fluxsearch',
+      small_image: 'valencesearch',
     });
   });
 
@@ -150,7 +150,7 @@ describe('aDiscordActivity', () => {
   });
 
   it('refuses a picture from anywhere else, which would publish where somebody keeps their server', () => {
-    const mine = 'https://flux.mine.local/api/media/1/poster';
+    const mine = 'https://valence.mine.local/api/media/1/poster';
 
     expect(aDiscordActivity({ ...AN_EPISODE, artwork: mine }, '0.0.0')?.assets).toMatchObject({
       large_image: 'logo',

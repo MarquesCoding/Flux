@@ -1,7 +1,7 @@
 //! Where a film can be cut, and where its segments therefore fall.
 //!
-//! A segment has to begin at a keyframe. When Flux encodes it puts them where
-//! it likes, so segments come out the length they were asked to be. When Flux
+//! A segment has to begin at a keyframe. When Valence encodes it puts them where
+//! it likes, so segments come out the length they were asked to be. When Valence
 //! copies the video it has no such freedom: the keyframes are whatever the
 //! source shipped with, and `-hls_time` is a request the muxer cannot honour.
 //!
@@ -52,7 +52,7 @@ impl Cut {
     /// Measured on a Bluray remux of HEVC Main 10: 154 of its 1444 keyframes
     /// carry such pictures, and playback died at the first of them every time.
     /// A cut whose segment begins at the keyframe itself has nothing in front
-    /// of it and is safe to start at. See FLUX-125.
+    /// of it and is safe to start at. See VAL-125.
     #[must_use]
     pub fn is_safe(self) -> bool {
         (self.at_seconds - self.starts_at_seconds).abs() < f64::EPSILON
@@ -135,7 +135,7 @@ pub async fn read_keyframes(
 /// keyframes two and ten seconds apart — this predicts the start of every
 /// segment ffmpeg wrote exactly. The keyframe's own time predicts the closed
 /// GOPs and is up to 0.167s out on the open ones, which is the wobble a player
-/// turns into a hole at every join. See FLUX-125.
+/// turns into a hole at every join. See VAL-125.
 ///
 /// Sorted rather than trusted, because decode order is not presentation order
 /// and a segment list that goes backwards is worse than no segment list at all.
@@ -461,7 +461,7 @@ pub fn segment_starts(lengths: &[f64]) -> Vec<f64> {
 /// writes segment 2 where segment 1 was asked for. Aiming at the middle of the
 /// segment before it is what lands on the one wanted. Measured across H.264 and
 /// HEVC transport streams with keyframes two and five seconds apart, which agree
-/// on this. See FLUX-132.
+/// on this. See VAL-132.
 ///
 /// Nought for the first segment, which is where the film starts and needs no
 /// seek at all.
@@ -495,7 +495,7 @@ mod tests {
     /// MPEG-TS lands on the first keyframe at or after the time asked for, so
     /// aiming at the middle of the wanted segment overshoots into the next one.
     /// The middle of the segment before it is what lands on the one wanted.
-    /// See FLUX-132.
+    /// See VAL-132.
     #[test]
     fn aims_earlier_for_a_container_that_seeks_forward() {
         let lengths = [4.0, 4.0, 4.0, 4.0];
@@ -623,7 +623,7 @@ mod tests {
     /// muxer measures its first target from the film's own start, so a reader
     /// that measures from zero finds every keyframe already past the target and
     /// declares a segment ffmpeg never writes. Found by the corpus on a fixture
-    /// whose timestamps begin ten minutes in. See FLUX-132.
+    /// whose timestamps begin ten minutes in. See VAL-132.
     #[test]
     fn counts_the_segments_of_a_stream_that_starts_late() {
         let late = Keyframes {
@@ -802,7 +802,7 @@ mod tests {
     /// Leading pictures shorten the segment before them and lengthen their own.
     ///
     /// The lengths still add up to the film, and every one of them is what the
-    /// muxer will really write. This is the whole of the FLUX-125 fix.
+    /// muxer will really write. This is the whole of the VAL-125 fix.
     #[test]
     fn measures_the_segments_an_open_gop_really_produces() {
         let source = Keyframes {
@@ -840,7 +840,7 @@ mod tests {
         assert!((total - 30.0).abs() < 1e-9, "total was {total}");
     }
 
-    /// Where Flux chose the keyframes, the segments are what was asked for.
+    /// Where Valence chose the keyframes, the segments are what was asked for.
     #[test]
     fn cuts_where_asked_when_the_keyframes_allow_it() {
         let source = keyframes(&[0.0, 4.0, 8.0, 12.0, 16.0], 20.0);

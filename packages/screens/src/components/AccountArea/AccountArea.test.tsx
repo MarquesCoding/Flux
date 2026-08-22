@@ -9,7 +9,7 @@ import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 const USER: SessionUser = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   emailVerified: true,
   role: 'admin',
   twoFactorEnabled: false,
@@ -54,7 +54,7 @@ describe('AccountArea', () => {
   it('says which address signs in', () => {
     renderInAnAddress(<AccountArea user={USER} onChanged={vi.fn()} onSignOut={vi.fn()} />);
 
-    expect(screen.getByText('marques@flux.local')).toBeInTheDocument();
+    expect(screen.getByText('marques@valence.local')).toBeInTheDocument();
   });
 
   it('marks an account that runs the server', () => {

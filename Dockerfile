@@ -11,7 +11,7 @@ FROM rust:1.90-bookworm AS transcoder-build
 WORKDIR /build
 COPY Cargo.toml Cargo.lock rustfmt.toml ./
 COPY apps/transcoder ./apps/transcoder
-RUN cargo build --release --bin flux-transcoder
+RUN cargo build --release --bin valence-transcoder
 
 FROM node:22-bookworm-slim AS web-build
 WORKDIR /build
@@ -22,8 +22,8 @@ COPY packages ./packages
 COPY apps/web ./apps/web
 COPY apps/server ./apps/server
 RUN pnpm install --frozen-lockfile
-RUN pnpm --filter @flux/web build
-RUN pnpm --filter @flux/server build
+RUN pnpm --filter @valence/web build
+RUN pnpm --filter @valence/server build
 
 FROM node:22-bookworm-slim AS runtime
 
@@ -41,10 +41,13 @@ FROM node:22-bookworm-slim AS runtime
 #
 # Downloaded with ADD rather than curl so the image needs no download tool of
 # its own. Worth pinning `--checksum` here once the version settles.
-ARG FLUX_FFMPEG_VERSION=8.1.2-2flux2
+# The build itself is published from a repository of its own and is still named for what it was
+# called when it was set up. The name in these URLs and paths is that artefact's, not ours, and
+# renaming it here would ask this image to fetch something that does not exist.
+ARG VALENCE_FFMPEG_VERSION=8.1.2-2flux2
 ARG TARGETARCH
 
-ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${FLUX_FFMPEG_VERSION}/flux-ffmpeg_${FLUX_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
+ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates /tmp/flux-ffmpeg.deb \
@@ -52,12 +55,12 @@ RUN apt-get update \
   && rm -rf /var/lib/apt/lists/*
 
 # Both, and not just the first: the transcoder reads them independently, so
-# setting only FLUX_FFMPEG would transcode with Flux's build while still probing
+# setting only VALENCE_FFMPEG would transcode with our own build while still probing
 # with whatever ffprobe the base image had — which here is none at all.
 #
 # No LD_LIBRARY_PATH: the binaries carry an rpath into their own lib directory.
-ENV FLUX_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg
-ENV FLUX_FFPROBE=/usr/lib/flux-ffmpeg/ffprobe
+ENV VALENCE_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg
+ENV VALENCE_FFPROBE=/usr/lib/flux-ffmpeg/ffprobe
 
 WORKDIR /app
 RUN corepack enable
@@ -67,7 +70,7 @@ COPY packages ./packages
 COPY apps/server ./apps/server
 RUN pnpm install --frozen-lockfile --prod --ignore-scripts
 
-COPY --from=transcoder-build /build/target/release/flux-transcoder /usr/local/bin/flux-transcoder
+COPY --from=transcoder-build /build/target/release/valence-transcoder /usr/local/bin/valence-transcoder
 COPY --from=web-build /build/apps/web/dist ./apps/web/dist
 COPY --from=web-build /build/apps/server/dist ./apps/server/dist
 
@@ -77,10 +80,10 @@ RUN mkdir -p /config /cache /transcodes /media
 
 ENV NODE_ENV=production \
     PORT=8420 \
-    TRANSCODER_URL=unix:/run/flux-transcoder.sock \
-    FLUX_VAAPI_DEVICE=/dev/dri/renderD128 \
-    FLUX_TRANSCODE_DIR=/transcodes \
-    FLUX_MEDIA_ROOTS=/media
+    TRANSCODER_URL=unix:/run/valence-transcoder.sock \
+    VALENCE_VAAPI_DEVICE=/dev/dri/renderD128 \
+    VALENCE_TRANSCODE_DIR=/transcodes \
+    VALENCE_MEDIA_ROOTS=/media
 
 EXPOSE 8420
 

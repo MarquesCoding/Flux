@@ -14,7 +14,7 @@
 //!
 //! Intel is deliberately unread. `intel_gpu_top` is the only route to its
 //! engine counters, it is not installed by default, and it needs privileges
-//! Flux should not be asking for. An honest silence beats a number that is
+//! Valence should not be asking for. An honest silence beats a number that is
 //! wrong on most machines.
 
 use std::collections::VecDeque;
@@ -56,7 +56,7 @@ pub struct GraphicsUse {
 /// Runs a vendor tool, treating anything short of a clean answer as absence.
 ///
 /// A missing tool, a tool that fails and a tool that hangs are all the same
-/// thing here: this machine cannot answer, and Flux says so rather than
+/// thing here: this machine cannot answer, and Valence says so rather than
 /// guessing.
 async fn run(program: &str, args: &[&str]) -> Option<String> {
     let call = Command::new(program).args(args).output();

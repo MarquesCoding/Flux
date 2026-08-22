@@ -10,7 +10,7 @@ import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemo
 import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
 
 const adminPayload = {
-  admin: { name: 'Operator', email: 'admin@flux.test', password: 'a-long-enough-password' },
+  admin: { name: 'Operator', email: 'admin@valence.test', password: 'a-long-enough-password' },
   trustedOrigins: ['http://192.168.1.40:8420'],
   cookieSecure: false,
 };
@@ -76,7 +76,7 @@ describe('setup status', () => {
   it('reports a secure context when reached over https', async () => {
     const { app } = buildApp(0);
 
-    const response = await app.request('https://flux.example/api/setup/status');
+    const response = await app.request('https://valence.example/api/setup/status');
 
     expect(await response.json()).toMatchObject({ isSecureContext: true });
   });
@@ -101,7 +101,7 @@ describe('setup completion', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ isComplete: true });
-    expect(promoteToAdmin).toHaveBeenCalledWith('admin@flux.test');
+    expect(promoteToAdmin).toHaveBeenCalledWith('admin@valence.test');
     expect(await settings.read()).toMatchObject({
       trustedOrigins: ['http://192.168.1.40:8420'],
       cookieSecure: false,
@@ -132,7 +132,10 @@ describe('setup completion', () => {
     state.users = 1;
 
     const second = await app.request(
-      postSetup({ ...adminPayload, admin: { ...adminPayload.admin, email: 'attacker@flux.test' } }),
+      postSetup({
+        ...adminPayload,
+        admin: { ...adminPayload.admin, email: 'attacker@valence.test' },
+      }),
     );
 
     expect(first.status).toBe(200);

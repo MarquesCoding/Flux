@@ -148,7 +148,7 @@ fn tail_of(text: &str, lines: usize) -> String {
 /// on. Reading a signal death as cancellation cost both the software retry and
 /// the log entry, so an aborted transcode ended the session in silence. Seen on
 /// an RX 580, where the on-device subtitle chain aborted inside the VAAPI
-/// encoder about one run in eight. See FLUX-112.
+/// encoder about one run in eight. See VAL-112.
 #[must_use]
 pub fn classify_exit(status: Option<i32>, stderr: &str) -> ExitClass {
     if status == Some(0) {
@@ -304,7 +304,7 @@ fn fallback_encoder(capabilities: &crate::capability::Capabilities) -> (String, 
 /// place a decoder can start.
 ///
 /// A source that cannot be probed a second time is left as it was asked for.
-/// That is the state Flux was in before any of this, so it is no worse, and
+/// That is the state Valence was in before any of this, so it is no worse, and
 /// refusing to play over it would be.
 async fn deliverable(config: &SessionConfig, spec: SessionSpec, can_copy: bool) -> SessionSpec {
     if can_copy {
@@ -467,7 +467,7 @@ pub fn run_has_closed(run: Option<RunPosition>, wanted: u64) -> bool {
 
 /// Whether a segment can be served.
 ///
-/// Existing is not enough, and this is the piece Flux has never had: ffmpeg is
+/// Existing is not enough, and this is the piece Valence has never had: ffmpeg is
 /// writing the segment it is on, so a file that exists may be half of one. It
 /// is whole once the run that is writing it has named it, once the next one has
 /// been started, or once the run that was writing it has finished the film.
@@ -540,7 +540,7 @@ pub struct SessionConfig {
     pub ffprobe: String,
     /// The render node VAAPI and QSV are opened on.
     ///
-    /// A machine with two cards has a `renderD129` as well, and the one Flux
+    /// A machine with two cards has a `renderD129` as well, and the one Valence
     /// should use is not something to guess at. Configurable for the same
     /// reason Jellyfin asks for it rather than detecting it: the admin knows
     /// which card is theirs to spend.
@@ -556,7 +556,7 @@ impl Default for SessionConfig {
             ffmpeg: "ffmpeg".to_owned(),
             ffprobe: "ffprobe".to_owned(),
             device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
-            cache_root: std::env::temp_dir().join("flux-transcodes"),
+            cache_root: std::env::temp_dir().join("valence-transcodes"),
             idle_timeout: Duration::from_secs(90),
             max_concurrent: 2,
         }
@@ -1352,7 +1352,7 @@ pub fn segment_number(name: &str) -> Option<u64> {
 /// asked for or throwing away the work already done.
 ///
 /// `SIGSTOP` rather than writing to ffmpeg's stdin, which is how Jellyfin does
-/// it: Flux passes `-nostdin`, and a signal needs nothing of the process it is
+/// it: Valence passes `-nostdin`, and a signal needs nothing of the process it is
 /// aimed at.
 fn set_paused(pid: u32, paused: bool) {
     use sysinfo::{Pid, ProcessesToUpdate, Signal, System};
@@ -1458,7 +1458,7 @@ fn spawn_ffmpeg(ffmpeg: &str, plan: &TranscodePlan) -> Result<tokio::process::Ch
 
 /// Waits for a run to prove that it started.
 ///
-/// The playlist Flux serves is written before any transcoding happens, so
+/// The playlist Valence serves is written before any transcoding happens, so
 /// waiting for that would prove nothing: it is there whether ffmpeg works or
 /// not. ffmpeg's own playlist is the evidence, and a session that never
 /// produces one is a session whose viewer should be told rather than left
@@ -1671,7 +1671,7 @@ mod tests {
     /// This asserted `Cancelled` for as long as the transcoder existed, which
     /// meant an aborted ffmpeg took the session down with no retry and no log
     /// — the cancellation path never reaches `classify_exit` at all, so the
-    /// branch only ever saw crashes. See FLUX-112.
+    /// branch only ever saw crashes. See VAL-112.
     #[test]
     fn no_status_means_it_crashed_rather_than_that_it_was_cancelled() {
         assert_eq!(classify_exit(None, ""), ExitClass::Crashed);

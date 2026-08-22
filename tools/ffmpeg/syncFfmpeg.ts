@@ -140,7 +140,7 @@ if (existsSync(envPath)) {
   });
 
   if (updated === undefined) {
-    say('.env already sets FLUX_FFMPEG or FLUX_FFPROBE, so it was left alone.');
+    say('.env already sets VALENCE_FFMPEG or VALENCE_FFPROBE, so it was left alone.');
     say(`Point them at ${prefix} if that was not deliberate.`);
   } else {
     writeFileSync(envPath, updated);
@@ -148,6 +148,6 @@ if (existsSync(envPath)) {
   }
 } else {
   say('There is no .env yet. Copy .env.example to .env, then add:');
-  say(`  FLUX_FFMPEG=${ffmpeg}`);
-  say(`  FLUX_FFPROBE=${ffprobe}`);
+  say(`  VALENCE_FFMPEG=${ffmpeg}`);
+  say(`  VALENCE_FFPROBE=${ffprobe}`);
 }

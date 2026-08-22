@@ -46,7 +46,7 @@ const createJobQueue = async ({
   onProblem,
   onFinished,
 }: CreateJobQueueOptions): Promise<JobQueue> => {
-  const boss = new PgBoss({ connectionString, schema: 'flux_jobs' });
+  const boss = new PgBoss({ connectionString, schema: 'valence_jobs' });
   const kinds = Object.keys(handlers);
 
   const progressByJobId = new Map<string, JobProgress>();

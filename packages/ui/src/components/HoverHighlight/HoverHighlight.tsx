@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
-import { FLUX_TOKENS } from '@ValenceUI/tokens';
+import { VALENCE_TOKENS } from '@ValenceUI/tokens';
 import type { HoverHighlightProps } from './HoverHighlight.types';
 
 const RADIUS_CLASSES = {
@@ -35,10 +35,10 @@ const HoverHighlight = ({ rect, radius = 'md', className }: HoverHighlightProps)
           animate={{ opacity: 1, ...rect }}
           exit={{ opacity: 0 }}
           transition={{
-            opacity: { duration: isStill ? 0 : FLUX_TOKENS.duration.fast },
+            opacity: { duration: isStill ? 0 : VALENCE_TOKENS.duration.fast },
             default: isStill
               ? { duration: 0 }
-              : { duration: FLUX_TOKENS.duration.normal, ease: FLUX_TOKENS.ease.soft },
+              : { duration: VALENCE_TOKENS.duration.normal, ease: VALENCE_TOKENS.ease.soft },
           }}
         />
       )}

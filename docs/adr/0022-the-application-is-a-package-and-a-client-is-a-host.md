@@ -9,9 +9,9 @@
 ## Context
 
 Every line of the front end lived in `apps/web`. That was right while a browser
-was the only client, and it is what stands between Flux and a desktop
+was the only client, and it is what stands between Valence and a desktop
 application that is more than a web page in a window frame —
-[FLUX-8](https://linear.app/flux-streaming/issue/FLUX-8/featclient-desktop-application)
+[VAL-8](https://linear.app/valence-streaming/issue/VAL-8/featclient-desktop-application)
 leaves exactly that open: "How much of `apps/web` is reused as-is versus
 rebuilt? Ideally almost all of it."
 
@@ -24,12 +24,12 @@ preference, what to call this client, and which running client this is.
 
 Two further seams appeared once the boundary was drawn rather than assumed:
 opening the realtime socket, which a browser derives from the page's own
-address; and a `MoodLight`, which the shell was borrowing from FluxUI.
+address; and a `MoodLight`, which the shell was borrowing from ValenceUI.
 
 ## Decision
 
 **The application is `@valence/client`. A client is a host.** The package holds what
-Flux _is_ — what the server is asked, what the answers mean, what is worth
+Valence _is_ — what the server is asked, what the answers mean, what is worth
 caching. `apps/web` holds what a browser _is_: an entry point, a router, a
 service worker, the Shaka engine, and one implementation of each port.
 
@@ -61,7 +61,7 @@ and does not draw; a shape both need belongs to `@ValenceContracts`.
 to it untouched. What a desktop client must write is four small functions and a
 player.
 
-**The seam FLUX-8 is actually about is now a seam.** `detectClientLabel` reads a
+**The seam VAL-8 is actually about is now a seam.** `detectClientLabel` reads a
 user agent and is portable; asking a browser for one is the host's. The same
 split is where `detectDeviceProfile` goes when a desktop client declares the
 wider, honestly-measured profile that is the entire argument for building one.
@@ -91,7 +91,7 @@ router-aware one is the web's, because the router is the web's.
 
 ### What this forecloses
 
-Nothing yet. FluxUI is untouched and still draws with `className`, so it serves
+Nothing yet. ValenceUI is untouched and still draws with `className`, so it serves
 a browser and anything embedding one — Tauri and Electron both. A React Native
 client would need a second renderer against the same component contracts, which
 is a larger question this deliberately does not answer.
@@ -109,7 +109,7 @@ package, which is most of what needs it.
 **Move `components/` too.** Twice the change, and it would have buried the part
 that matters — the ports — under twenty thousand lines of screens.
 
-**Leave it and let the desktop client import `apps/web`.** What FLUX-8 feared:
+**Leave it and let the desktop client import `apps/web`.** What VAL-8 feared:
 whatever it reused would arrive with a browser attached.
 
 ## Revisit when

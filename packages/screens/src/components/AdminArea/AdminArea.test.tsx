@@ -18,7 +18,7 @@ const OVERVIEW: AdminOverview = {
     {
       id: 'abc',
       name: 'Marques',
-      email: 'marques@flux.local',
+      email: 'marques@valence.local',
       role: 'admin',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
@@ -698,7 +698,7 @@ describe('AdminArea', () => {
     await goTo(actor, 'Settings');
 
     expect(await screen.findByText('Signing in')).toBeInTheDocument();
-    expect(screen.queryByText('marques@flux.local')).not.toBeInTheDocument();
+    expect(screen.queryByText('marques@valence.local')).not.toBeInTheDocument();
   });
 
   it('draws something rather than nothing before the server has answered', () => {

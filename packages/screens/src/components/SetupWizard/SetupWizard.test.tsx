@@ -33,7 +33,7 @@ afterEach(() => {
 
 const fillAdmin = async (user: ReturnType<typeof userEvent.setup>) => {
   await user.type(screen.getByLabelText('Name'), 'Operator');
-  await user.type(screen.getByLabelText('Email'), 'admin@flux.test');
+  await user.type(screen.getByLabelText('Email'), 'admin@valence.test');
   await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
 };
 
@@ -66,7 +66,7 @@ describe('SetupWizard', () => {
   it('turns secure cookies on when reached over https', () => {
     render(
       <SetupWizard
-        status={{ ...status, isSecureContext: true, detectedOrigin: 'https://flux.example' }}
+        status={{ ...status, isSecureContext: true, detectedOrigin: 'https://valence.example' }}
         onComplete={vi.fn()}
       />,
     );
@@ -105,7 +105,7 @@ describe('SetupWizard', () => {
     });
 
     expect(lastBody()).toMatchObject({
-      admin: { name: 'Operator', email: 'admin@flux.test' },
+      admin: { name: 'Operator', email: 'admin@valence.test' },
       trustedOrigins: ['http://192.168.1.40:8420', 'http://192.168.1.40:5173'],
       cookieSecure: false,
     });

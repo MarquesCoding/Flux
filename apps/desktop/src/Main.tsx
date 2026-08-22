@@ -53,7 +53,7 @@ const Desktop = () => {
   const [ahead, setAhead] = useState(0);
   const [canGoBack, setCanGoBack] = useState(false);
   const [found, setFound] = useState<readonly string[]>(
-    () => window.flux.servers?.alreadyFound ?? [],
+    () => window.valence.servers?.alreadyFound ?? [],
   );
 
   useEffect(
@@ -67,7 +67,7 @@ const Desktop = () => {
 
   useEffect(
     () =>
-      window.flux.servers?.whenFound((address) => {
+      window.valence.servers?.whenFound((address) => {
         setFound((was) => (was.includes(address) ? was : [...was, address]));
       }),
     [],

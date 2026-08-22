@@ -30,7 +30,7 @@ vi.mock('@ValenceClient/admin/fetchRoles', () => mocks);
 const account = (overrides: Partial<Account> = {}): Account => ({
   id: 'usr_1',
   name: 'Dan',
-  email: 'dan@flux.local',
+  email: 'dan@valence.local',
   createdAt: '',
   isBanned: false,
   banReason: null,
@@ -42,7 +42,7 @@ const account = (overrides: Partial<Account> = {}): Account => ({
 
 const ACCOUNTS = [
   account(),
-  account({ id: 'usr_2', name: 'Sam', email: 'sam@flux.local', position: null }),
+  account({ id: 'usr_2', name: 'Sam', email: 'sam@valence.local', position: null }),
 ];
 
 const ADMINISTRATOR = {
@@ -110,8 +110,8 @@ describe('AccountsPanel', () => {
   it('lists everybody with an account', async () => {
     renderInAnAddress(<AccountsPanel />);
 
-    expect(await screen.findByText('dan@flux.local')).toBeInTheDocument();
-    expect(screen.getByText('sam@flux.local')).toBeInTheDocument();
+    expect(await screen.findByText('dan@valence.local')).toBeInTheDocument();
+    expect(screen.getByText('sam@valence.local')).toBeInTheDocument();
   });
 
   it('says when nobody has one', async () => {
@@ -125,7 +125,7 @@ describe('AccountsPanel', () => {
   it('asks the server for nobody until somebody is picked', async () => {
     renderInAnAddress(<AccountsPanel />);
 
-    await screen.findByText('dan@flux.local');
+    await screen.findByText('dan@valence.local');
 
     expect(mocks.fetchAccountPermissions).not.toHaveBeenCalled();
   });
@@ -220,7 +220,7 @@ describe('AccountsPanel', () => {
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
-      await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
+      await user.type(screen.getByLabelText('Address'), 'alex@valence.local');
       await user.type(screen.getByLabelText('Password'), 'short');
 
       expect(screen.getByRole('button', { name: 'Add' })).toBeDisabled();
@@ -232,13 +232,13 @@ describe('AccountsPanel', () => {
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
-      await user.type(screen.getByLabelText('Address'), 'alex@flux.local');
+      await user.type(screen.getByLabelText('Address'), 'alex@valence.local');
       await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
       await user.click(screen.getByRole('button', { name: 'Add' }));
 
       expect(accountMocks.inviteAccount).toHaveBeenCalledWith({
         name: 'Alex',
-        email: 'alex@flux.local',
+        email: 'alex@valence.local',
         password: 'a-long-enough-password',
       });
     });
@@ -262,7 +262,7 @@ describe('AccountsPanel', () => {
 
       await openInvite(user);
       await user.type(screen.getByLabelText('Name'), 'Alex');
-      await user.type(screen.getByLabelText('Address'), 'dan@flux.local');
+      await user.type(screen.getByLabelText('Address'), 'dan@valence.local');
       await user.type(screen.getByLabelText('Password'), 'a-long-enough-password');
       await user.click(screen.getByRole('button', { name: 'Add' }));
 

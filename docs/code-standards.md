@@ -1,4 +1,4 @@
-# Flux Code Standards
+# Valence Code Standards
 
 These rules are binding. They are enforced by tooling wherever a rule can be
 expressed as a lint rule, and by review where it cannot. A pull request that
@@ -160,7 +160,7 @@ make the exported surface explicit; in practice it cost more than it bought.
 **What the change buys.** React Fast Refresh works again: a component inside an
 object literal cannot be tracked, so every edit remounted the subtree and lost
 local state — a player forgot its position on each keystroke. `React.lazy` works
-directly, so the `lazyFlux` helper that existed only to unwrap a default is
+directly, so the `lazyValence` helper that existed only to unwrap a default is
 gone. `displayName` remains required, but for its own sake rather than to repair
 a name the convention had erased.
 
@@ -216,7 +216,7 @@ issue where it can be tracked, not in a comment where it cannot.
 
 Two checks, because no one linter reads every language here.
 
-`flux/no-comments` in `tools/eslint/noComments.ts` covers TypeScript. It fails
+`valence/no-comments` in `tools/eslint/noComments.ts` covers TypeScript. It fails
 on any comment that is not one of the exceptions above, and removes it under
 `--fix`. TSDoc counts only when it sits on a function — a declaration, a method,
 or a `const` holding an arrow function. On a type, a constant or a property it is
@@ -322,10 +322,10 @@ try {
 
 ## 9. UI components
 
-**Raw HTML form and interactive elements are banned outside the one FluxUI
+**Raw HTML form and interactive elements are banned outside the one ValenceUI
 component that owns each of them.** No `<button>`, `<input>`, `<select>`,
 `<textarea>`, `<a>` used as a control, or `<dialog>` — not in application code,
-and not in other FluxUI components either.
+and not in other ValenceUI components either.
 
 Structural elements — `<div>`, `<span>`, `<section>`, `<ul>` — are fine.
 
@@ -353,20 +353,20 @@ either turns out to be wrong.
 
 When a control needs something the owning component does not offer, **add it to
 that component**. `Button` carries `variant="bare"` and `size="none"` for
-exactly this: the controls FluxUI builds out of it need a button's behaviour and
+exactly this: the controls ValenceUI builds out of it need a button's behaviour and
 none of its skin.
 
 `bare` and `none` are for a control that supplies its own shape: a card that is
 one big press target, an episode row, the clock in the player. They say _this
 one is painted by its caller_ — not _this one is exempt_. A control that wants a
-skin FluxUI does not have wants a variant that ought to exist by name; add it,
+skin ValenceUI does not have wants a variant that ought to exist by name; add it,
 and say what it is for.
 
-**If FluxUI lacks a component you need, add it to FluxUI.** A one-off raw
+**If ValenceUI lacks a component you need, add it to ValenceUI.** A one-off raw
 control in an app is how design systems die; a second component owning the same
 element is how they rot.
 
-### Base UI owns behaviour; FluxUI owns appearance
+### Base UI owns behaviour; ValenceUI owns appearance
 
 If Base UI ships a primitive for what you are building, build on it. Roles,
 keyboard handling, focus management and ARIA wiring are a contract with the
@@ -376,7 +376,7 @@ meter, a button with `role="switch"` that a keyboard cannot toggle.
 
 **Only `packages/ui` imports Base UI.** An app that imports it directly has
 reached past the layer whose whole job is to be the one place a control is
-decided. If FluxUI lacks the component, add it to FluxUI.
+decided. If ValenceUI lacks the component, add it to ValenceUI.
 
 Judgement still applies. A primitive earns its place by doing something for you:
 `Field` was worth adopting because it owns label, description, error and the
@@ -386,7 +386,7 @@ would add a DOM node to satisfy a library rather than a reader.
 
 ### A look is a variant, not a class at the call site
 
-`className` on a FluxUI component is for _where a thing sits_ — width, margin,
+`className` on a ValenceUI component is for _where a thing sits_ — width, margin,
 grid placement. It is not for what the thing looks like.
 
 Four call sites once wrote `className="bg-black/50 text-white backdrop-blur"` on
@@ -468,7 +468,7 @@ Motion would be overhead. Anything with orchestration, sequencing, layout
 animation, enter/exit, or gesture response uses Motion.
 
 **Respect `prefers-reduced-motion`.** Every shared animation exports a
-reduced-motion variant, and the shared `useFluxMotion` hook selects between
+reduced-motion variant, and the shared `useValenceMotion` hook selects between
 them. This is not optional; it is an accessibility requirement.
 
 ---

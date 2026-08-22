@@ -42,7 +42,7 @@ type Manifest = z.infer<typeof ManifestSchema>;
 
 const MANIFEST_PATH = join(import.meta.dirname, '..', '..', 'fixtures.manifest.json');
 
-const ffmpeg = (): string => process.env['FLUX_FFMPEG'] ?? 'ffmpeg';
+const ffmpeg = (): string => process.env['VALENCE_FFMPEG'] ?? 'ffmpeg';
 
 /**
  * The version string of the FFmpeg that built the corpus.
@@ -269,7 +269,7 @@ const deriveFixture = (
   return { kind: 'built', entry: describe() };
 };
 
-const mkvmerge = (): string => process.env['FLUX_MKVMERGE'] ?? 'mkvmerge';
+const mkvmerge = (): string => process.env['VALENCE_MKVMERGE'] ?? 'mkvmerge';
 
 /**
  * Fetches a metadata tool for this machine, unless it is already here.

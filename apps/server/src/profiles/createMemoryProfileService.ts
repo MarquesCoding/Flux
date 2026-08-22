@@ -53,7 +53,7 @@ const createMemoryProfileService = (
       updatedAt: stamp(),
     };
 
-    state.push({ profile, userId, email: `${userId}@flux.local`, photo: null });
+    state.push({ profile, userId, email: `${userId}@valence.local`, photo: null });
 
     return profile;
   };

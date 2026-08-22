@@ -31,13 +31,13 @@ afterEach(() => {
 describe('theDesktopsStore', () => {
   it('answers with what the file already held, so somebody is asked once rather than at every launch', () => {
     onDisk.set('valence.server.address', 'https://valence.example.com');
-    vi.stubGlobal('flux', aBridge());
+    vi.stubGlobal('valence', aBridge());
 
     expect(theDesktopsStore().read('valence.server.address')).toBe('https://valence.example.com');
   });
 
   it('answers a read without waiting, since a preference is read while something is drawn', () => {
-    vi.stubGlobal('flux', aBridge());
+    vi.stubGlobal('valence', aBridge());
 
     const store = theDesktopsStore();
     store.write('the-theme', 'dark');
@@ -46,7 +46,7 @@ describe('theDesktopsStore', () => {
   });
 
   it('puts what it was told on the file, which is the point of the file', () => {
-    vi.stubGlobal('flux', aBridge());
+    vi.stubGlobal('valence', aBridge());
 
     theDesktopsStore().write('the-theme', 'dark');
 
@@ -55,7 +55,7 @@ describe('theDesktopsStore', () => {
 
   it('lets go on the file as well as in hand', () => {
     onDisk.set('the-theme', 'dark');
-    vi.stubGlobal('flux', aBridge());
+    vi.stubGlobal('valence', aBridge());
 
     const store = theDesktopsStore();
     store.forget('the-theme');
@@ -65,7 +65,7 @@ describe('theDesktopsStore', () => {
   });
 
   it('answers with nothing for a preference nobody has set', () => {
-    vi.stubGlobal('flux', aBridge());
+    vi.stubGlobal('valence', aBridge());
 
     expect(theDesktopsStore().read('never-set')).toBeNull();
   });

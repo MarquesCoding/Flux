@@ -46,13 +46,13 @@ describe('askTheServer', () => {
 
 describe('theAuthBase', () => {
   it('hands a browser its own origin, which the library is happy with', () => {
-    vi.stubGlobal('location', { protocol: 'https:', origin: 'https://flux.example' });
+    vi.stubGlobal('location', { protocol: 'https:', origin: 'https://valence.example' });
 
-    expect(theAuthBase()).toBe('https://flux.example');
+    expect(theAuthBase()).toBe('https://valence.example');
   });
 
   it('hands a client that serves its own pages a base the library will accept', () => {
-    vi.stubGlobal('location', { protocol: 'flux:', origin: 'flux://app' });
+    vi.stubGlobal('location', { protocol: 'valence:', origin: 'valence://app' });
 
     expect(theAuthBase()).toBe(PLACEHOLDER);
   });

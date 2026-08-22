@@ -22,7 +22,7 @@ const ShowsWhatIamWatchingSchema = z.object({
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 
@@ -270,7 +270,7 @@ describe('profiles over HTTP', () => {
 
     const body = await (await app.request(`${BASE}/api/profiles/everyone`)).text();
 
-    expect(body).not.toContain('marques@flux.local');
+    expect(body).not.toContain('marques@valence.local');
   });
 
   it('serves a drawn face as a picture', async () => {
@@ -407,7 +407,7 @@ describe('giving a profile an account of its own', () => {
     context.app.request(`${BASE}/api/admin/profiles/${profileId}/promote`, {
       method: 'POST',
       headers: { 'content-type': 'application/json', cookie, origin: BASE },
-      body: JSON.stringify({ email: 'dan@flux.local', password: 'a-long-enough-password' }),
+      body: JSON.stringify({ email: 'dan@valence.local', password: 'a-long-enough-password' }),
     });
 
   it('hands back the profile once it has an account', async () => {

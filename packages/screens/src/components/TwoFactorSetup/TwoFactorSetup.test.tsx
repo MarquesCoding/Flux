@@ -9,7 +9,7 @@ const disableTwoFactor = vi.hoisted(() => vi.fn());
 
 vi.mock('@ValenceClient/session/auth', () => ({ enableTwoFactor, verifyTotp, disableTwoFactor }));
 
-const OTP_URI = 'otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Valence';
+const OTP_URI = 'otpauth://totp/Valence:admin@valence.test?secret=JBSWY3DPEHPK3PXP&issuer=Valence';
 
 const BACKUP_CODES = ['aaaa-1111', 'bbbb-2222'];
 

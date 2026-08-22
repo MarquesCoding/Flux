@@ -26,7 +26,7 @@ type CreateAuthOptions = {
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
 
-const FLUX_APP_NAME = 'Valence';
+const VALENCE_APP_NAME = 'Valence';
 
 /**
  * Builds the authentication layer: accounts, sessions, cookies, password resets and API keys, wired
@@ -47,7 +47,7 @@ const createAuth = ({
   onPasswordResetRequested,
 }: CreateAuthOptions) => {
   return betterAuth({
-    appName: FLUX_APP_NAME,
+    appName: VALENCE_APP_NAME,
     database,
     secret: env.BETTER_AUTH_SECRET,
     baseURL: env.BETTER_AUTH_URL,
@@ -97,8 +97,8 @@ const createAuth = ({
       max: env.AUTH_RATE_LIMIT_MAX,
     },
     plugins: [
-      twoFactor({ issuer: FLUX_APP_NAME }),
-      passkey({ rpName: FLUX_APP_NAME }),
+      twoFactor({ issuer: VALENCE_APP_NAME }),
+      passkey({ rpName: VALENCE_APP_NAME }),
       deviceAuthorization({ expiresIn: '10m', interval: '5s' }),
       jwt(),
       apiKey({ enableSessionForAPIKeys: true }),

@@ -34,7 +34,7 @@ const ENCODER_PRESSURE = 90;
 
 const DISK_PRESSURE = 0.95;
 
-const FLUX_BLAME = 50;
+const VALENCE_BLAME = 50;
 
 const STARVED_SECONDS = 2;
 
@@ -175,7 +175,7 @@ const collectConcerns = ({
       detail:
         share === null
           ? 'Playback that needs converting may stutter while it lasts.'
-          : share >= FLUX_BLAME
+          : share >= VALENCE_BLAME
             ? `Valence is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
             : `Valence is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
       panel: 'activity',

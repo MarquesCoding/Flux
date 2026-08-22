@@ -86,7 +86,7 @@ import { rememberGuestFor } from '@ValenceServer/sharing/rememberGuestFor';
 import { getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 
-const SHARE_JOINER = 'flux_share_joiner';
+const SHARE_JOINER = 'valence_share_joiner';
 
 const GUEST_REMEMBERED_FOR_SECONDS = 30 * 86_400;
 import {
@@ -278,7 +278,7 @@ const forwardedFileHeaders = (
  *
  * A session is named by a hash of what was asked for, and that hash says nothing about how the
  * segments were muxed. Change the muxer and the same address answers with different bytes — which
- * is not a theory: it happened during FLUX-145, where a browser went on playing segments produced
+ * is not a theory: it happened during VAL-145, where a browser went on playing segments produced
  * before a fix because it had them already. Sessions are short-lived and their segments are read
  * once, so there is nothing to gain by keeping them and a stale film to lose.
  *
@@ -1515,7 +1515,7 @@ const createApp = ({
 
   app.get('/api/profiles/avatars/:style', (context) => {
     const style = context.req.param('style');
-    const seed = context.req.query('seed') ?? 'flux';
+    const seed = context.req.query('seed') ?? 'valence';
 
     if (!isAvatarStyle(style)) {
       return context.json({ error: 'No such style.' }, 404);

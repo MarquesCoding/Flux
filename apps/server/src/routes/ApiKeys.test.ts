@@ -323,6 +323,6 @@ describe('a key against the routes that read an account', () => {
   it('refuses a key that was never issued', async () => {
     const { asKey } = await signedInWith(['account.keys']);
 
-    expect((await asKey('flux_not_a_real_key_at_all', '/api/profiles')).status).toBe(401);
+    expect((await asKey('valence_not_a_real_key_at_all', '/api/profiles')).status).toBe(401);
   });
 });

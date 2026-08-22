@@ -1,9 +1,9 @@
 //! What the whole deployment is using, where Linux will say.
 //!
-//! ADR-0006 puts both halves of Flux in one container, and the container's
+//! ADR-0006 puts both halves of Valence in one container, and the container's
 //! entrypoint starts them as siblings. That makes the API server invisible to
 //! anything walking the process tree from here: it is nobody's child, and the
-//! half of Flux doing the most allocating is the half a process walk cannot
+//! half of Valence doing the most allocating is the half a process walk cannot
 //! see. The cgroup can see it, because the cgroup is the container — and it
 //! also knows the ceiling the container is held to, which host RAM does not.
 //!
@@ -72,7 +72,7 @@ async fn read_unified(root: &Path) -> Option<CgroupMemory> {
 ///
 /// Believed only when a limit is set, because version one is not namespaced
 /// the way version two is: outside a container its root reports the whole
-/// machine, and reporting the whole machine as Flux is the fault this is here
+/// machine, and reporting the whole machine as Valence is the fault this is here
 /// to fix. A limit is the one signal from inside that these figures describe a
 /// container rather than a host.
 async fn read_legacy(root: &Path) -> Option<CgroupMemory> {
@@ -107,7 +107,7 @@ async fn number(path: &Path) -> Option<u64> {
 
 /// One field of a `memory.stat`, by name.
 ///
-/// Wanted for the file pages the kernel is holding on Flux's behalf and would
+/// Wanted for the file pages the kernel is holding on Valence's behalf and would
 /// drop the moment anything needed the room. Counting them as memory in use is
 /// how a service that has read a few large files comes to look like a service
 /// about to run out; `docker stats` takes them off for the same reason.
@@ -138,7 +138,7 @@ mod tests {
     }
 
     fn root(name: &str) -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!("flux-cgroup-{name}"));
+        let path = std::env::temp_dir().join(format!("valence-cgroup-{name}"));
 
         std::fs::remove_dir_all(&path).ok();
 

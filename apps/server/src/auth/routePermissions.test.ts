@@ -207,7 +207,7 @@ describe('every gated route, asked by somebody with no permissions', () => {
       'POST',
       `/api/admin/profiles/${LIBRARY_ID}/promote`,
       'account.manage',
-      { body: { email: 'dan@flux.local', password: 'a-long-enough-password' } },
+      { body: { email: 'dan@valence.local', password: 'a-long-enough-password' } },
     ],
     ['GET', '/api/admin/overview', 'server.monitor'],
     ['PATCH', '/api/admin/settings', 'server.settings'],

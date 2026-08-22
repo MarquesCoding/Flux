@@ -15,7 +15,7 @@ import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
 import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
+import { FOUND_A_VALENCE, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import { keepLookingForAValence, lookForAValence } from '@ValenceDesktop/main/lookForAValence';
 import { carryOldKeysOver } from '@ValenceClient/platform/carryOldKeysOver';
 import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
@@ -23,7 +23,7 @@ import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
 import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
 import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
 
-const WHERE_IT_HAS_ALWAYS_BEEN = 'Flux';
+const WHERE_IT_HAS_ALWAYS_BEEN = 'Valence';
 
 app.setName('Valence');
 
@@ -63,7 +63,7 @@ let whatWasFound: string[] = [];
  * because a server started at the same moment as this client has not finished starting when the
  * client is ready to ask. One that turns up late appears on the screen the moment it does.
  */
-const findAFlux = async (): Promise<void> => {
+const findAValence = async (): Promise<void> => {
   if (theServerAddress() !== '') {
     return;
   }
@@ -76,7 +76,7 @@ const findAFlux = async (): Promise<void> => {
     whatWasFound = [...whatWasFound, address];
 
     if (theWindow !== null && !theWindow.isDestroyed()) {
-      theWindow.webContents.send(FOUND_A_FLUX, address);
+      theWindow.webContents.send(FOUND_A_VALENCE, address);
     }
   };
 
@@ -125,7 +125,7 @@ const start = async (): Promise<void> => {
   const changeServer = () => {
     forgetTheServerAddress();
 
-    void findAFlux();
+    void findAValence();
 
     if (theWindow !== null) {
       void showTheApplication(theWindow);
@@ -157,7 +157,7 @@ const start = async (): Promise<void> => {
   theWindow = openTheWindow();
   theWindowsOwnMenu(theWindow, changeServer);
 
-  await findAFlux();
+  await findAValence();
   await showTheApplication(theWindow);
 
   app.on('activate', () => {

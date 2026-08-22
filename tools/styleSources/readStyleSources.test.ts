@@ -7,7 +7,7 @@ import { readStyleSources } from './readStyleSources';
 const ROOT = resolve(import.meta.dirname, '..', '..');
 
 const aStylesheetSaying = (css: string): string => {
-  const file = join(mkdtempSync(join(tmpdir(), 'flux-css-')), 'main.css');
+  const file = join(mkdtempSync(join(tmpdir(), 'valence-css-')), 'main.css');
 
   writeFileSync(file, css);
 

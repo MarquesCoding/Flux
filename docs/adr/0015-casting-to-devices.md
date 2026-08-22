@@ -25,7 +25,7 @@ and finds nothing. Safari's AirPlay picker works.
 
 Casting to a Chromecast is a conversation in Google's own protocol, and the
 library that speaks it is served from `gstatic.com` and is not distributable.
-Flux has otherwise avoided fetching anything from a third party at runtime —
+Valence has otherwise avoided fetching anything from a third party at runtime —
 fonts are self-hosted specifically so that a self-hosted server tells nobody
 who is looking at it.
 
@@ -35,13 +35,13 @@ browser already does well.
 
 ## Decision
 
-Cast by handing the receiver an address. Flux never sends pixels.
+Cast by handing the receiver an address. Valence never sends pixels.
 
 Use whichever mechanism the browser has, in this order:
 
 1. **Google's sender library**, fetched from `gstatic.com` when a player is
    opened and not before, where it can be had. This is the only third-party
-   runtime dependency Flux has, and it exists solely because Chrome cannot
+   runtime dependency Valence has, and it exists solely because Chrome cannot
    otherwise cast to a Chromecast at all.
 2. **The browser's own picker** — AirPlay in Safari, Remote Playback elsewhere
    — where the library is absent or blocked.
@@ -50,7 +50,7 @@ Stream addresses given to a receiver are built from the address the viewer is
 reading the page at. Playback sessions are already served by session identifier
 rather than by cookie, so a television can fetch them without credentials.
 
-The device list always belongs to the browser or to Google's library. Flux does
+The device list always belongs to the browser or to Google's library. Valence does
 not draw one, because neither mechanism will say what is on the network.
 
 Use Google's default receiver (`CC1AD845`). A receiver of our own is a separate

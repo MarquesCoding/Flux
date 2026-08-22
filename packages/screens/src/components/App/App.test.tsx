@@ -85,7 +85,7 @@ const setupComplete = {
 const user = {
   id: 'usr_1',
   name: 'Operator',
-  email: 'admin@flux.test',
+  email: 'admin@valence.test',
   emailVerified: false,
 };
 
@@ -360,7 +360,7 @@ describe('App routing', () => {
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
-    await screen.findByText('admin@flux.test');
+    await screen.findByText('admin@valence.test');
 
     serverState({ setup: setupComplete, session: null });
     await actor.click(screen.getByRole('button', { name: /Sign out/ }));

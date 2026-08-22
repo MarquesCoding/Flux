@@ -11,7 +11,7 @@ type Preferences = {
 
 declare global {
   interface Window {
-    flux: {
+    valence: {
       preferences: Preferences;
       goToTheServer: () => void;
       servers?: ServersFound;

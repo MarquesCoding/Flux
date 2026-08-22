@@ -52,7 +52,7 @@ const draw = (media: MediaSummary = film) =>
       subject={{ kind: 'item', media }}
       isOpen
       onClose={vi.fn()}
-      origin="https://flux.example"
+      origin="https://valence.example"
     />,
   );
 
@@ -62,7 +62,7 @@ const drawProgramme = () =>
       subject={{ kind: 'series', seriesId: episode.seriesId ?? '', title: 'The Bear' }}
       isOpen
       onClose={vi.fn()}
-      origin="https://flux.example"
+      origin="https://valence.example"
     />,
   );
 
@@ -113,7 +113,7 @@ describe('handing out a link', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Make a link' }));
 
     await waitFor(() => {
-      expect(screen.getByDisplayValue('https://flux.example/share/a-token')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('https://valence.example/share/a-token')).toBeInTheDocument();
     });
     expect(screen.getByText(/only time it is shown/)).toBeInTheDocument();
   });
@@ -223,12 +223,12 @@ describe('sharing an episode', () => {
     draw(episode);
 
     await userEvent.click(screen.getByRole('button', { name: 'Make a link' }));
-    await screen.findByDisplayValue('https://flux.example/share/a-token');
+    await screen.findByDisplayValue('https://valence.example/share/a-token');
 
     await userEvent.click(screen.getByRole('button', { name: /Copy/ }));
 
     await waitFor(() => {
-      expect(writeText).toHaveBeenCalledWith('https://flux.example/share/a-token');
+      expect(writeText).toHaveBeenCalledWith('https://valence.example/share/a-token');
     });
 
     vi.unstubAllGlobals();

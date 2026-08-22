@@ -21,7 +21,7 @@ const EPISODE_ID = '7b2c1d0e-3f4a-4b5c-8d6e-9f0a1b2c3d4e';
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 

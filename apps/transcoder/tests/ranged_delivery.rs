@@ -17,12 +17,12 @@ use axum::http::{header, Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::trickplay::TrickplayRegistry;
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::trickplay::TrickplayRegistry;
 
 mod common;
 
@@ -34,7 +34,7 @@ const CONTENT: &[u8] = b"0123456789abcdefghijklmnopqrstuvwxyz";
 const PREVIEW_ID: &str = "ranged";
 
 fn cache_root(name: &str) -> std::path::PathBuf {
-    std::env::temp_dir().join(format!("flux-test-ranged-{name}"))
+    std::env::temp_dir().join(format!("valence-test-ranged-{name}"))
 }
 
 fn app(name: &str) -> axum::Router {
@@ -46,7 +46,7 @@ fn app(name: &str) -> axum::Router {
 
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
             cache_root: root,

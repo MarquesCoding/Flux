@@ -21,7 +21,7 @@ import type { DeviceStore } from '@ValenceClient/platform/Platform.types';
  * @returns The store.
  */
 const theDesktopsStore = (): DeviceStore => {
-  const { preferences } = window.flux;
+  const { preferences } = window.valence;
   const held = new Map(Object.entries(preferences.held));
 
   return {

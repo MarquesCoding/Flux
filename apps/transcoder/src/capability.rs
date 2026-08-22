@@ -3,7 +3,7 @@ use tokio::process::Command;
 
 use crate::transcode_plan::{HardwareAccel, ToneMapping};
 
-/// An encoder Flux may use, and the acceleration it belongs to.
+/// An encoder Valence may use, and the acceleration it belongs to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct EncoderCandidate {
     pub codec: &'static str,
@@ -11,7 +11,7 @@ pub struct EncoderCandidate {
     pub accel: HardwareAccel,
 }
 
-/// Every encoder Flux knows how to drive, hardware first.
+/// Every encoder Valence knows how to drive, hardware first.
 ///
 /// Software encoders are listed last so that a probe result read in order
 /// prefers hardware, but each is still verified independently.
@@ -125,7 +125,7 @@ pub struct VerifiedEncoder {
     pub verified: bool,
 }
 
-/// An encoder Flux knows how to drive but this machine would not run.
+/// An encoder Valence knows how to drive but this machine would not run.
 ///
 /// Kept rather than discarded, because the two worst faults in the hardware
 /// acceleration work were both encoders silently dropped for a reason that had
@@ -182,7 +182,7 @@ pub struct Capabilities {
     /// probes again wherever it does not match. See [`crate::probe::PROBE_VERSION`].
     #[serde(default)]
     pub probe_version: u32,
-    /// Whether that version is one Flux will vouch for.
+    /// Whether that version is one Valence will vouch for.
     ///
     /// Reported rather than enforced. An older build mostly works, and refusing
     /// to start would be a worse answer than saying so plainly — but it loses
@@ -209,7 +209,7 @@ pub struct Capabilities {
     /// A backend can only keep frames on the device end to end if the scaler
     /// for its frames is compiled in. `scale_vt` arrived in `FFmpeg` 7.0, and
     /// some builds ship `scale_npp` instead of `scale_cuda`, so the filter
-    /// Flux needs is a property of the binary rather than of the hardware.
+    /// Valence needs is a property of the binary rather than of the hardware.
     /// Assuming it is there means a chain that fails and quietly falls back to
     /// software, losing most of the point of the acceleration.
     #[serde(default)]
@@ -226,7 +226,7 @@ pub struct Capabilities {
     pub hardware_overlays: Vec<String>,
     /// The hardware tone mappers this machine will actually run.
     ///
-    /// Converting HDR to SDR is the most expensive thing Flux asks of a frame,
+    /// Converting HDR to SDR is the most expensive thing Valence asks of a frame,
     /// and doing it in software costs the hardware decode and scale as well,
     /// because the conversion has to happen before the picture is resampled.
     /// A backend with its own tone mapper avoids all of that.
@@ -235,7 +235,7 @@ pub struct Capabilities {
     /// `tonemap_vaapi` is VPP tone mapping, which Intel implements and AMD does
     /// not, so a Radeon lists the filter and refuses the chain. Presence was
     /// what this asked at first, and an RX 580 failed every HDR transcode as a
-    /// result. See FLUX-111.
+    /// result. See VAL-111.
     #[serde(default)]
     pub hardware_tone_maps: Vec<String>,
 }
@@ -311,21 +311,21 @@ pub fn parse_listed_encoders(output: &str) -> Vec<String> {
         .collect()
 }
 
-/// Every hardware scaler Flux might ask for.
+/// Every hardware scaler Valence might ask for.
 ///
 /// Checked against the build rather than assumed, because which of these exist
 /// depends on how `FFmpeg` was compiled and on its version: `scale_vt` arrived
 /// in 7.0, and some builds ship `scale_npp` in place of `scale_cuda`.
 pub const HARDWARE_SCALERS: [&str; 4] = ["scale_vt", "scale_cuda", "vpp_qsv", "scale_vaapi"];
 
-/// Every hardware compositor Flux might ask for.
+/// Every hardware compositor Valence might ask for.
 ///
 /// Verified against the shipped arm64 package, which has `overlay_vaapi`,
 /// `overlay_cuda`, `overlay_opencl`, `overlay_vulkan` and `overlay_rkrga`.
 /// `overlay_qsv` is absent there because QSV is not built for arm, and it is
 /// listed so a build that does have it is not left on the software path.
 ///
-/// `overlay_videotoolbox` was absent for the same reason until FLUX-110, which
+/// `overlay_videotoolbox` was absent for the same reason until VAL-110, which
 /// was that no macOS package existed. The Apple silicon build has it, and it
 /// was measured compositing rather than merely listed.
 pub const HARDWARE_OVERLAYS: [&str; 5] = [
@@ -336,7 +336,7 @@ pub const HARDWARE_OVERLAYS: [&str; 5] = [
     "overlay_rkrga",
 ];
 
-/// The smallest picture the encoders Flux drives are known to accept.
+/// The smallest picture the encoders Valence drives are known to accept.
 ///
 ///
 /// NVENC's H.264 minimum, which is the largest of them. A probe below this
@@ -412,7 +412,7 @@ pub fn probe_arguments(candidate: &EncoderCandidate, device: &str) -> Vec<String
 /// so a tone mapper is handed a frame whose transfer function is `unknown` —
 /// and `tonemap_videotoolbox` refuses that outright rather than passing it
 /// through: "No DOVI metadata and unsupported transfer function
-/// characteristic". Measured on Apple silicon against the FLUX-110 build.
+/// characteristic". Measured on Apple silicon against the VAL-110 build.
 ///
 /// So the probe says what the frame is. PQ on BT.2020 is the HDR a tone mapper
 /// exists to convert, which makes this the honest question to ask rather than a
@@ -462,7 +462,7 @@ pub fn tone_map_probe_arguments(accel: HardwareAccel, filter: &str, device: &str
 ///
 /// Measured on an RX 580 with Mesa 26.0.8: the filter is present and the chain
 /// does not run. Presence was what this originally asked, which is the same
-/// mistake `verify_encoder` exists to avoid — see FLUX-85, and FLUX-111 for
+/// mistake `verify_encoder` exists to avoid — see VAL-85, and VAL-111 for
 /// this instance of it.
 async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, device: &str) -> bool {
     let Ok(outcome) = Command::new(ffmpeg)
@@ -514,7 +514,7 @@ async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> V
 /// Presence in `ffmpeg -encoders` means the binary was built with support, not
 /// that the hardware is present, the driver loaded, or the device permitted.
 /// A machine that lists `h264_vaapi` with no usable render node will happily
-/// report the encoder and then fail every playback attempt, so Flux asks it to
+/// report the encoder and then fail every playback attempt, so Valence asks it to
 /// encode a frame instead. See ADR-0009.
 ///
 /// The frame has to be big enough for the encoder to entertain it, which is
@@ -546,7 +546,7 @@ const fn assume_supported() -> bool {
     true
 }
 
-/// The oldest `FFmpeg` Flux will vouch for.
+/// The oldest `FFmpeg` Valence will vouch for.
 ///
 /// 7.0 is where `scale_vt` arrived. A build older than that loses the zero-copy
 /// path on Apple hardware without failing: frames come back to system memory for
@@ -555,10 +555,15 @@ const fn assume_supported() -> bool {
 /// to tell that from a slow computer.
 pub const MINIMUM_FFMPEG: (u32, u32) = (7, 0);
 
-/// What `--extra-version` stamps into a banner built by Flux.
-const FLUX_BUILD: &str = "-Flux";
+/// What `--extra-version` stamps into a banner we built.
+///
+/// Both names, because the binaries already fetched and already inside
+/// containers say `-Valence` and will go on saying it until they are rebuilt.
+/// Matching only the new one would quietly call every existing build a
+/// stranger.
+const OUR_BUILDS: [&str; 2] = ["-Valence", "-Valence"];
 
-/// Says which `FFmpeg` the service resolved, and whether it is the one Flux ships.
+/// Says which `FFmpeg` the service resolved, and whether it is the one Valence ships.
 ///
 /// Worth a line at startup because the alternative is silence. Falling back to
 /// whatever is on `PATH` keeps working and loses the filters that hold frames on
@@ -575,12 +580,12 @@ pub fn describe_build(ffmpeg: &str, banner: &str) -> String {
         .filter(|_| banner.starts_with("ffmpeg version"))
         .unwrap_or("an unreadable version");
 
-    if banner.contains(FLUX_BUILD) {
-        return format!("using Flux's own ffmpeg at {ffmpeg}, which reports {version}");
+    if OUR_BUILDS.iter().any(|name| banner.contains(name)) {
+        return format!("using Valence's own ffmpeg at {ffmpeg}, which reports {version}");
     }
 
     format!(
-        "using {ffmpeg}, which reports {version} and is not the build Flux ships — \
+        "using {ffmpeg}, which reports {version} and is not the build Valence ships — \
          the filters that keep subtitles and HDR on the device are likely missing"
     )
 }
@@ -609,7 +614,7 @@ pub fn version_numbers(banner: &str) -> Option<(u32, u32)> {
     Some((major, minor))
 }
 
-/// Whether a build is one Flux will vouch for.
+/// Whether a build is one Valence will vouch for.
 ///
 /// An unreadable version is treated as supported. Refusing to work because a
 /// banner could not be parsed would be worse than the thing being guarded
@@ -830,7 +835,7 @@ mod tests {
     ///
     /// Without one the filter cannot open and a healthy Intel machine would
     /// report itself unable to convert HDR — the same fault that made every
-    /// VAAPI encoder look broken before FLUX-80.
+    /// VAAPI encoder look broken before VAL-80.
     #[test]
     fn gives_a_tone_mapper_probe_the_device_it_needs() {
         let arguments =
@@ -1010,38 +1015,38 @@ mod tests {
     ///
     /// Falling back to `PATH` is silent and costs the device paths, so a line
     /// that says the same thing either way would leave the fault exactly as
-    /// hidden as it was. See FLUX-110.
+    /// hidden as it was. See VAL-110.
     #[test]
-    fn says_when_the_build_is_flux_own() {
+    fn says_when_the_build_is_our_own() {
         let notice = describe_build(
             "/repo/.ffmpeg/ffmpeg",
-            "ffmpeg version 8.1.2-Flux Copyright (c) 2000-2026 the FFmpeg developers",
+            "ffmpeg version 8.1.2-Valence Copyright (c) 2000-2026 the FFmpeg developers",
         );
 
-        assert!(notice.contains("Flux's own ffmpeg"), "{notice}");
+        assert!(notice.contains("Valence's own ffmpeg"), "{notice}");
         assert!(notice.contains("/repo/.ffmpeg/ffmpeg"), "{notice}");
-        assert!(notice.contains("8.1.2-Flux"), "{notice}");
+        assert!(notice.contains("8.1.2-Valence"), "{notice}");
     }
 
     #[test]
-    fn warns_when_the_build_is_not_flux_own() {
+    fn warns_when_the_build_is_not_our_own() {
         let notice = describe_build(
             "/opt/homebrew/bin/ffmpeg",
             "ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers",
         );
 
-        assert!(notice.contains("not the build Flux ships"), "{notice}");
+        assert!(notice.contains("not the build Valence ships"), "{notice}");
         assert!(notice.contains("/opt/homebrew/bin/ffmpeg"), "{notice}");
     }
 
     #[test]
-    fn does_not_mistake_another_fork_for_flux() {
+    fn does_not_mistake_another_fork_for_ours() {
         let notice = describe_build(
             "/usr/lib/jellyfin-ffmpeg/ffmpeg",
             "ffmpeg version 8.1.2-Jellyfin Copyright (c) 2000-2026",
         );
 
-        assert!(notice.contains("not the build Flux ships"), "{notice}");
+        assert!(notice.contains("not the build Valence ships"), "{notice}");
     }
 
     #[test]

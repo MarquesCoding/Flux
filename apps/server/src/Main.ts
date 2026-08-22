@@ -500,7 +500,7 @@ const diskWatch = createDiskPressureWatch({
  * Everywhere Valence writes: the library folders and the image cache. This is what the disk warnings are
  * measured against, since a filesystem filling up only matters where something is filling it.
  */
-const pathsFluxWritesTo = async (): Promise<string[]> => [
+const pathsValenceWritesTo = async (): Promise<string[]> => [
   ...(await libraryService.list()).map((entry) => entry.path),
   env.IMAGE_CACHE_DIR,
 ];
@@ -820,7 +820,7 @@ const jobs = await createJobQueue({
         }
 
         const { disks } = reading.data.resources;
-        const paths = await pathsFluxWritesTo();
+        const paths = await pathsValenceWritesTo();
         const mounts = [...new Set(paths.flatMap((path) => findMountFor(path, disks) ?? []))];
 
         diskWatch.record(mounts, findDisksUnderPressure(paths, disks));

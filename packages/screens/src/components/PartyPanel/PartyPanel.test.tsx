@@ -150,15 +150,19 @@ describe('PartyPanel', () => {
       <PartyPanel
         party={party()}
         meConnectionId="dan"
-        invitation="https://flux.local/watch/a-film?party=party-1"
+        invitation="https://valence.local/watch/a-film?party=party-1"
       />,
     );
 
-    expect(screen.getByText('https://flux.local/watch/a-film?party=party-1')).toBeInTheDocument();
+    expect(
+      screen.getByText('https://valence.local/watch/a-film?party=party-1'),
+    ).toBeInTheDocument();
   });
 
   it('says what the link does, since a bare address does not', () => {
-    render(<PartyPanel party={party()} meConnectionId="dan" invitation="https://flux.local/x" />);
+    render(
+      <PartyPanel party={party()} meConnectionId="dan" invitation="https://valence.local/x" />,
+    );
 
     expect(screen.getByText(/puts them in this party/)).toBeInTheDocument();
   });
@@ -171,20 +175,22 @@ describe('PartyPanel', () => {
       <PartyPanel
         party={party()}
         meConnectionId="dan"
-        invitation="https://flux.local/x"
+        invitation="https://valence.local/x"
         onCopyInvitation={onCopyInvitation}
       />,
     );
 
     await actor.click(screen.getByRole('button', { name: 'Copy' }));
 
-    expect(onCopyInvitation).toHaveBeenCalledWith('https://flux.local/x');
+    expect(onCopyInvitation).toHaveBeenCalledWith('https://valence.local/x');
   });
 
   it('offers the link to a guest too, since anybody may bring somebody along', () => {
-    render(<PartyPanel party={party()} meConnectionId="sam" invitation="https://flux.local/x" />);
+    render(
+      <PartyPanel party={party()} meConnectionId="sam" invitation="https://valence.local/x" />,
+    );
 
-    expect(screen.getByText('https://flux.local/x')).toBeInTheDocument();
+    expect(screen.getByText('https://valence.local/x')).toBeInTheDocument();
   });
 
   it('shows no link where there is none to give', () => {

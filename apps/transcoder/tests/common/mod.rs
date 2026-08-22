@@ -17,25 +17,25 @@ use std::sync::atomic::{AtomicU64, Ordering};
 /// Gives each half-written fixture a name nothing else will pick up.
 static BUILDING: AtomicU64 = AtomicU64::new(0);
 
-/// The `FFmpeg` to drive, which is the one Flux ships wherever it has been pointed at.
+/// The `FFmpeg` to drive, which is the one Valence ships wherever it has been pointed at.
 ///
-/// Never the bare name where a variable was set: a container carrying Flux's own build has no
+/// Never the bare name where a variable was set: a container carrying Valence's own build has no
 /// system `FFmpeg` at all, so a test that asks for `ffmpeg` finds nothing.
 #[must_use]
 pub fn ffmpeg() -> String {
-    std::env::var("FLUX_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
+    std::env::var("VALENCE_FFMPEG").unwrap_or_else(|_| "ffmpeg".to_owned())
 }
 
 /// The ffprobe beside it.
 #[must_use]
 pub fn ffprobe() -> String {
-    std::env::var("FLUX_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
+    std::env::var("VALENCE_FFPROBE").unwrap_or_else(|_| "ffprobe".to_owned())
 }
 
 /// Where generated fixtures are kept, outside the working tree.
 #[must_use]
 pub fn fixture_dir() -> PathBuf {
-    let dir = std::env::temp_dir().join("flux-fixtures");
+    let dir = std::env::temp_dir().join("valence-fixtures");
 
     std::fs::create_dir_all(&dir).expect("creates the fixture directory");
 
@@ -100,7 +100,7 @@ pub fn is_available() -> bool {
 pub fn require_ffmpeg() {
     assert!(
         is_available(),
-        "ffmpeg is required to run the media tests. Install it, or set FLUX_FFMPEG to its path."
+        "ffmpeg is required to run the media tests. Install it, or set VALENCE_FFMPEG to its path."
     );
 }
 

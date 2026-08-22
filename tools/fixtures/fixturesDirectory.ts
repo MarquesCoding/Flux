@@ -19,15 +19,15 @@ type FixturesDirectoryOptions = {
 const fixturesDirectory = ({ configured, home }: FixturesDirectoryOptions): string => {
   const named = configured?.trim() ?? '';
 
-  return named.length > 0 ? named : join(home, '.cache', 'flux-fixtures');
+  return named.length > 0 ? named : join(home, '.cache', 'valence-fixtures');
 };
 
 /**
  * Where the corpus lives on this machine.
  *
- * @returns The directory, honouring `FLUX_FIXTURES_DIR` where it is set.
+ * @returns The directory, honouring `VALENCE_FIXTURES_DIR` where it is set.
  */
 const fixturesDirectoryHere = (): string =>
-  fixturesDirectory({ configured: process.env['FLUX_FIXTURES_DIR'], home: homedir() });
+  fixturesDirectory({ configured: process.env['VALENCE_FIXTURES_DIR'], home: homedir() });
 
 export { fixturesDirectory, fixturesDirectoryHere };

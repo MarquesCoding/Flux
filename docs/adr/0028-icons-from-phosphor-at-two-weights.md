@@ -15,12 +15,12 @@ styles available later if the owner wanted them. It also wrote down the cost —
 more heavily" — and built `Icon` so that the set could be replaced in one file.
 
 That cost turned out to matter more than expected. An icon that says a thing is
-on by being a fifth of a pixel thicker does not say it. Every place in Flux that
+on by being a fifth of a pixel thicker does not say it. Every place in Valence that
 wants to show state — the nav dock, the player's toggles, whether a thing is
 kept or favourited — was reaching for a distinction the set could not draw, and
 the only way to get it was to buy the licensed set.
 
-The other half is style. Flux is a media application, not a dashboard: its
+The other half is style. Valence is a media application, not a dashboard: its
 glyphs sit over artwork and beside heavy display type, and a hairline wireframe
 reads as unfinished next to them.
 
@@ -59,7 +59,7 @@ eighteen-pixel one in a row of controls. Where it is asked for, how strong its
 second tone is belongs to us rather than to the set: the set lays it in at a
 fifth of the ink, drawn for dark glyphs on light paper, and on a near-black
 surface a fifth of white at eighteen pixels is nothing at all. That strength is
-`--flux-icon-second-tone` in `flux.css`. `whenActive` still takes a different glyph where the pair
+`--valence-icon-second-tone` in `valence.css`. `whenActive` still takes a different glyph where the pair
 is a different idea rather than the same idea filled in — a play that becomes a
 pause. A caller may name any of the six weights where a screen needs something
 else.
@@ -75,7 +75,7 @@ they also stop an icon colliding with `File`, `Image` or `Link`.
 - State that is visible. Filled versus bold is a change anybody can see.
 - Icons with enough weight to sit over artwork, rather than a wireframe.
 - Six weights free, where the previous set charged for the second.
-- Every icon Flux uses, checked one by one before committing: the seventy-seven
+- Every icon Valence uses, checked one by one before committing: the seventy-seven
   in use all exist, including `Subtitles`, `PictureInPicture`, `Television`,
   `Screencast` and `FilmSlate`, which media applications need and general UI
   sets tend not to carry.
@@ -114,6 +114,6 @@ they also stop an icon colliding with `File`, `Image` or `Link`.
 - A screen needs a glyph Phosphor does not draw, twice. Once is a workaround;
   twice is a set that does not fit.
 - Phosphor renames its exports again.
-- Flux ships a theme where bold at rest is wrong — a high-contrast mode, say, or
+- Valence ships a theme where bold at rest is wrong — a high-contrast mode, say, or
   a light one — at which point the resting weight becomes a token rather than a
   constant.

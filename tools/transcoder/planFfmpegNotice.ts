@@ -1,4 +1,4 @@
-const SYNC = 'Run pnpm ffmpeg:sync to fetch the build Flux ships.';
+const SYNC = 'Run pnpm ffmpeg:sync to fetch the build Valence ships.';
 
 type PlanFfmpegNoticeOptions = {
   ffmpeg: string | undefined;
@@ -7,14 +7,14 @@ type PlanFfmpegNoticeOptions = {
 };
 
 /**
- * Says when the media service is about to start on an FFmpeg that is not the one Flux ships.
+ * Says when the media service is about to start on an FFmpeg that is not the one Valence ships.
  *
  * Silence is the problem this exists against. Left unset the service falls back to whatever is on
  * PATH and keeps working, minus the filters that hold frames on the device — so the cost is real,
  * invisible, and looks exactly like hardware that cannot do better.
  *
  * Both variables are checked, because the service reads them independently: setting only one
- * transcodes with Flux's build while still probing with another.
+ * transcodes with Valence's build while still probing with another.
  *
  * @param options - What the environment says, and how to tell whether a path is really there.
  * @returns The warning to print, or undefined when both point at something that exists.
@@ -25,15 +25,15 @@ const planFfmpegNotice = ({
   exists,
 }: PlanFfmpegNoticeOptions): string | undefined => {
   const named = [
-    { variable: 'FLUX_FFMPEG', path: ffmpeg },
-    { variable: 'FLUX_FFPROBE', path: ffprobe },
+    { variable: 'VALENCE_FFMPEG', path: ffmpeg },
+    { variable: 'VALENCE_FFPROBE', path: ffprobe },
   ];
 
   const set = named.filter((entry) => entry.path !== undefined && entry.path.length > 0);
 
   if (set.length === 0) {
     return [
-      'The media service will use whatever ffmpeg is on PATH, which is not the build Flux ships.',
+      'The media service will use whatever ffmpeg is on PATH, which is not the build Valence ships.',
       'Subtitles and HDR will leave the hardware, and nothing else will say so.',
       SYNC,
     ].join('\n');

@@ -19,7 +19,7 @@ const BASE = 'http://localhost:8420';
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 

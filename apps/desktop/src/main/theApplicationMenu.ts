@@ -24,7 +24,7 @@ const IS_MAC = process.platform === 'darwin';
  * @returns The menu, already set.
  */
 const theApplicationMenu = (changeServer: () => void): Menu => {
-  const flux: MenuItemConstructorOptions = {
+  const valence: MenuItemConstructorOptions = {
     label: 'Valence',
     submenu: [
       { role: 'about' },
@@ -50,7 +50,7 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
   };
 
   const menu = Menu.buildFromTemplate([
-    ...(IS_MAC ? [flux] : []),
+    ...(IS_MAC ? [valence] : []),
     file,
     { role: 'editMenu' },
     {
@@ -74,7 +74,7 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
         {
           label: 'Valence on the web',
           click: () => {
-            void shell.openExternal('https://github.com/MarquesCoding/Flux');
+            void shell.openExternal('https://github.com/MarquesCoding/Valence');
           },
         },
       ],

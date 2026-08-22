@@ -1,6 +1,6 @@
 //! Preview clips, against real media, through the real HTTP surface.
 //!
-//! The unit tests prove the arguments are what Flux meant to write. Only
+//! The unit tests prove the arguments are what Valence meant to write. Only
 //! running two requests at once proves the registry stops them writing the
 //! same file.
 
@@ -15,12 +15,12 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::trickplay::TrickplayRegistry;
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::trickplay::TrickplayRegistry;
 
 mod common;
 
@@ -28,7 +28,7 @@ use common::{building_name, ffmpeg, ffprobe};
 
 /// A file long enough for a clip to be cut out of the middle of it.
 fn source_file() -> PathBuf {
-    let directory = std::env::temp_dir().join("flux-fixtures");
+    let directory = std::env::temp_dir().join("valence-fixtures");
 
     std::fs::create_dir_all(&directory).expect("creates the fixture directory");
 
@@ -146,10 +146,10 @@ async fn call(app: &axum::Router, message: Request<Body>) -> (StatusCode, Vec<u8
 /// Before the registry they produced two, into the same `preview.mp4`, and
 /// `-y` truncated it under whichever was still writing. Both then failed to
 /// verify, nothing was marked complete, and the item was rendered again. This
-/// is the regression test for FLUX-104.
+/// is the regression test for VAL-104.
 #[tokio::test]
 async fn asking_twice_at_once_renders_one_clip_rather_than_two() {
-    let root = std::env::temp_dir().join("flux-test-preview-concurrent");
+    let root = std::env::temp_dir().join("valence-test-preview-concurrent");
     let _ = std::fs::remove_dir_all(&root);
 
     let source = source_file();
@@ -157,7 +157,7 @@ async fn asking_twice_at_once_renders_one_clip_rather_than_two() {
 
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg_path,
             ffprobe: ffprobe(),
             cache_root: root.clone(),

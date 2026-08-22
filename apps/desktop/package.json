@@ -44,7 +44,7 @@
   },
   "main": "dist-main/main/Main.js",
   "build": {
-    "appId": "app.flux.desktop",
+    "appId": "app.valence.desktop",
     "productName": "Valence",
     "directories": {
       "buildResources": "build",

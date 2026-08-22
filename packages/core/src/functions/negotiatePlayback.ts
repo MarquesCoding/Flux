@@ -306,7 +306,7 @@ const decideVideo = (
  * Measured on a Mac playing an E-AC-3 5.1 film through Safari with AirPods in: the output reports
  * two channels and always will, because AirPods are a stereo endpoint and macOS renders spatial
  * audio into them. Refusing 5.1 on that number sent a stereo downmix to the one arrangement that
- * had something to do with the other four channels. See FLUX-152.
+ * had something to do with the other four channels. See VAL-152.
  *
  * `maxAudioChannels` still says what to encode to once something else has forced an encode, which
  * is what it is good for: a stereo device has no use for a 5.1 encode.

@@ -5,7 +5,7 @@ import type { ValenceAuth } from './Auth';
 import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
 
-const NAMESPACE = 'flux';
+const NAMESPACE = 'valence';
 
 const A_DAY = 86_400_000;
 

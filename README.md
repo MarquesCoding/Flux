@@ -1,4 +1,4 @@
-# Flux
+# Valence
 
 A self-hosted streaming platform with first-class plugin, theme, API and
 documentation support, plus integrated media requesting.
@@ -9,7 +9,7 @@ documentation support, plus integrated media requesting.
 
 Jellyfin's weaknesses are structural: plugins reach into server internals so any
 refactor breaks them, the HTTP API has no first-class contract, and HDR content
-cannot be transcoded without being tone-mapped down to SDR. Flux takes different
+cannot be transcoded without being tone-mapped down to SDR. Valence takes different
 positions on each — see [`docs/adr/`](docs/adr/README.md) for the reasoning, and
 the costs each decision carries.
 
@@ -38,7 +38,7 @@ apps/
 packages/
   contracts/    Zod schemas -> OpenAPI 3.1. Source of truth.
   core/         Shared server logic, playback negotiation
-  ui/           FluxUI: Base UI + Tailwind + Tabler + Motion
+  ui/           ValenceUI: Base UI + Tailwind + Tabler + Motion
   plugin-sdk/   Public plugin API and manifest schema
 docs/
   adr/          Architecture decisions
@@ -60,7 +60,7 @@ pnpm rust:check   # cargo clippy -D warnings, cargo fmt --check
 
 Read [`docs/code-standards.md`](docs/code-standards.md) first — the rules are
 binding and several are unusual (no comments, no barrel files, no `any`,
-`unknown` or `as`, no raw HTML controls outside FluxUI). Process is in
+`unknown` or `as`, no raw HTML controls outside ValenceUI). Process is in
 [`CONTRIBUTING.md`](CONTRIBUTING.md).
 
 ## Licence

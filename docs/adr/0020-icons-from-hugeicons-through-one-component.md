@@ -3,7 +3,7 @@
 - **Status:** Superseded
 - **Date:** 2026-08-18
 - **Deciders:** Marques Scripps
-- **Supersedes:** the icon clause of [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)
+- **Supersedes:** the icon clause of [0018](0018-valenceui-on-radix-and-shadcn-conventions.md)
 - **Superseded by:** [ADR-0028](0028-icons-from-phosphor-at-two-weights.md)
 
 ## Context
@@ -13,7 +13,7 @@ the code used.
 
 - `CLAUDE.md` rule 9 said icons come from `@tabler/icons-react`.
 - The ESLint rule banned Tabler and said icons come from `@remixicon/react`.
-- [ADR-0018](0018-fluxui-on-radix-and-shadcn-conventions.md), accepted the day
+- [ADR-0018](0018-valenceui-on-radix-and-shadcn-conventions.md), accepted the day
   before this one, listed `lucide-react` under what it was not adopting: "Icons
   stay Remix Icon. Swapping an icon set buys nothing and changes every glyph in
   the product."
@@ -61,7 +61,7 @@ assets by another route.
 One set, named the same way in the lint rule, the standards and the code, for
 the first time.
 
-A licence is now the only thing between Flux and the styles the owner wants. The
+A licence is now the only thing between Valence and the styles the owner wants. The
 package name changes, `Icon` gains a `variant`, and nothing else moves.
 
 Six hundred call sites stopped importing icons one component at a time. Changing

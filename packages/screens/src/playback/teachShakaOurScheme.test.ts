@@ -19,15 +19,15 @@ describe('teachShakaOurScheme', () => {
   it('registers the engine own fetch plugin against the scheme the page came from', () => {
     const { net, registerScheme } = networking();
 
-    teachShakaOurScheme(net, 'flux:');
+    teachShakaOurScheme(net, 'valence:');
 
-    expect(registerScheme).toHaveBeenCalledWith('flux', parse, 2, true);
+    expect(registerScheme).toHaveBeenCalledWith('valence', parse, 2, true);
   });
 
   it('says the plugin reports progress, since the bitrate readout counts what it downloads', () => {
     const { net, registerScheme } = networking();
 
-    teachShakaOurScheme(net, 'flux:');
+    teachShakaOurScheme(net, 'valence:');
 
     expect(registerScheme.mock.calls[0]?.[3]).toBe(true);
   });
@@ -53,7 +53,7 @@ describe('teachShakaOurScheme', () => {
 
     teachShakaOurScheme(net, '');
     teachShakaOurScheme(net, ':');
-    teachShakaOurScheme(net, 'flux');
+    teachShakaOurScheme(net, 'valence');
 
     expect(registerScheme).not.toHaveBeenCalled();
   });

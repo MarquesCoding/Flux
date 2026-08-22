@@ -1,8 +1,8 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { authSchema, fluxSchema } from '@ValenceServer/db/Schema';
+import { authSchema, valenceSchema } from '@ValenceServer/db/Schema';
 
-const schema = { ...authSchema, ...fluxSchema };
+const schema = { ...authSchema, ...valenceSchema };
 
 type ValenceDatabase = ReturnType<typeof createDatabase>['db'];
 

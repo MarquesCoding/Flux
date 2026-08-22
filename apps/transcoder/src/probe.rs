@@ -11,7 +11,7 @@ use crate::media::{
     AudioStream, Container, MediaProbe, SubtitleStream, VideoRange, VideoStream,
 };
 
-/// What this version of Flux decides about a file when it probes it.
+/// What this version of Valence decides about a file when it probes it.
 ///
 /// The mirror of `LAYOUT` in `boundaries.rs`, for the library rather than for a
 /// plan's directory. Bumped whenever a rule that turns a file into a stored
@@ -22,7 +22,7 @@ use crate::media::{
 ///
 /// The scan only reprobes a file whose size or modification time moved, or
 /// whose columns are still null. A rule change moves neither, so relaxing the
-/// open-GOP refusal in FLUX-145 changed nothing on its own: `canCopySegments`
+/// open-GOP refusal in VAL-145 changed nothing on its own: `canCopySegments`
 /// was already false for 9 of 19 films and no scan would revisit it. It took a
 /// migration nulling those rows by hand, and the next change would have taken
 /// another. Comparing this instead makes it automatic, and closes the trap
@@ -187,7 +187,7 @@ struct DetectedRange {
 /// That was the state of this function until a real HDR10+ file was run through
 /// it. The test that covered the case passed because it put the metadata at
 /// stream level, which is somewhere ffprobe never puts it. Reading the first
-/// frame costs a hundredth of a second on a two gigabyte file. See FLUX-132.
+/// frame costs a hundredth of a second on a two gigabyte file. See VAL-132.
 fn detect_range(stream: &FfprobeStream, frames: &[FfprobeFrame]) -> DetectedRange {
     let stream_side_data = stream.side_data_list.iter();
     let frame_side_data = frames.iter().flat_map(|frame| frame.side_data_list.iter());
@@ -292,7 +292,7 @@ fn is_forced(stream: &FfprobeStream) -> bool {
         .is_some_and(|forced| *forced == 1)
 }
 
-/// The video stream Flux plays, of however many a file holds.
+/// The video stream Valence plays, of however many a file holds.
 ///
 /// The first is the one: a file with two video streams is almost always carrying cover art or a
 /// thumbnail alongside the film, and ffprobe lists the real one first.
@@ -432,7 +432,7 @@ pub fn parse_ffprobe_output(json: &str, path: &Path) -> Result<MediaProbe, Probe
 
 /// Probes a media file.
 ///
-/// Everything Flux believes about a file comes from here. Nothing is inferred
+/// Everything Valence believes about a file comes from here. Nothing is inferred
 /// from the filename, because filenames in real libraries are unreliable.
 ///
 /// # Errors
@@ -530,7 +530,7 @@ mod tests {
     /// This test used to put the metadata in the stream's side data, where it
     /// passed and meant nothing: no real file puts it there, so the branch it
     /// covered could never be reached. Taken from the output of a real HDR10+
-    /// file. See FLUX-132.
+    /// file. See VAL-132.
     #[test]
     fn reads_hdr10_plus_from_the_frames_where_ffprobe_reports_it() {
         let json = r#"{"streams": [{"index": 0, "codec_type": "video", "codec_name": "hevc",

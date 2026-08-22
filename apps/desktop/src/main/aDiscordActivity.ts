@@ -51,12 +51,12 @@ type DiscordActivity = {
  */
 const theBadgeFor = (playing: WhatIsPlaying): { image: string; text: string } => {
   if (playing.kind === 'browsing') {
-    return { image: 'fluxsearch', text: 'Browsing' };
+    return { image: 'valencesearch', text: 'Browsing' };
   }
 
   return playing.isPaused
-    ? { image: 'fluxpause', text: 'Paused' }
-    : { image: 'fluxplay', text: 'Playing' };
+    ? { image: 'valencepause', text: 'Paused' }
+    : { image: 'valenceplay', text: 'Playing' };
 };
 
 /**

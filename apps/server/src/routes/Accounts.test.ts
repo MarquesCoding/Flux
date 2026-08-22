@@ -54,7 +54,7 @@ const build = () => {
   inviteAccount.mockResolvedValue({
     id: 'usr_new',
     name: 'Alex',
-    email: 'alex@flux.local',
+    email: 'alex@valence.local',
     createdAt: '2026-01-01T00:00:00.000Z',
   });
   editAccount.mockResolvedValue('changed');
@@ -77,14 +77,14 @@ const build = () => {
         {
           id: 'usr_1',
           name: 'Dan',
-          email: 'dan@flux.local',
+          email: 'dan@valence.local',
           role: 'admin',
           createdAt: '2026-01-01T00:00:00.000Z',
         },
         {
           id: OTHER,
           name: 'Sam',
-          email: 'sam@flux.local',
+          email: 'sam@valence.local',
           role: null,
           createdAt: '2026-01-01T00:00:00.000Z',
         },
@@ -203,7 +203,7 @@ describe('account administration', () => {
       const body = AccountsSchema.parse(await response.json());
 
       expect(response.status).toBe(200);
-      expect(body.accounts.map((account) => account.email)).toContain('sam@flux.local');
+      expect(body.accounts.map((account) => account.email)).toContain('sam@valence.local');
       expect(body.accounts.every((account) => account.isBanned === false)).toBe(true);
     });
 
@@ -349,7 +349,7 @@ describe('account administration', () => {
       const context = await signedInWith(['account.manage']);
       const response = await context.request('/api/admin/accounts', 'POST', {
         name: 'Alex',
-        email: 'alex@flux.local',
+        email: 'alex@valence.local',
         password: 'a-long-enough-password',
       });
 
@@ -361,14 +361,14 @@ describe('account administration', () => {
       const context = await signedInWith(['account.invite']);
       const response = await context.request('/api/admin/accounts', 'POST', {
         name: 'Alex',
-        email: 'alex@flux.local',
+        email: 'alex@valence.local',
         password: 'a-long-enough-password',
       });
 
       expect(response.status).toBe(201);
       expect(context.inviteAccount).toHaveBeenCalledWith({
         name: 'Alex',
-        email: 'alex@flux.local',
+        email: 'alex@valence.local',
         password: 'a-long-enough-password',
       });
     });
@@ -377,7 +377,7 @@ describe('account administration', () => {
       const context = await signedInWith(['account.invite']);
       const response = await context.request('/api/admin/accounts', 'POST', {
         name: 'Alex',
-        email: 'alex@flux.local',
+        email: 'alex@valence.local',
         password: 'short',
       });
 
@@ -403,7 +403,7 @@ describe('account administration', () => {
 
       const response = await context.request('/api/admin/accounts', 'POST', {
         name: 'Alex',
-        email: 'dan@flux.local',
+        email: 'dan@valence.local',
         password: 'a-long-enough-password',
       });
 
@@ -474,7 +474,7 @@ describe('account administration', () => {
       context.editAccount.mockResolvedValue('taken');
 
       const response = await context.request(`/api/admin/accounts/${OTHER}`, 'PATCH', {
-        email: 'dan@flux.local',
+        email: 'dan@valence.local',
       });
 
       expect(response.status).toBe(400);
@@ -598,7 +598,7 @@ describe('a server with no way to act on accounts', () => {
 
     const response = await request('/api/admin/accounts', 'POST', {
       name: 'Alex',
-      email: 'alex@flux.local',
+      email: 'alex@valence.local',
       password: 'a-long-enough-password',
     });
 

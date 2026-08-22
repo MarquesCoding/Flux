@@ -19,7 +19,7 @@ const aBridge = () => ({
 beforeEach(() => {
   forgetPlatform();
   onDisk.clear();
-  vi.stubGlobal('flux', aBridge());
+  vi.stubGlobal('valence', aBridge());
 });
 
 afterEach(() => {

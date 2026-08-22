@@ -2,7 +2,7 @@ import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcRendererEvent } from 'electron';
 import { markTheDocument } from '@ValenceDesktop/preload/markTheDocument';
 import { z } from 'zod';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
+import { FOUND_A_VALENCE, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import {
   CHANGE_SERVER,
   NOW_WATCHING,
@@ -28,7 +28,7 @@ document.addEventListener('valence:now-watching', (event) => {
   ipcRenderer.send(NOW_WATCHING, event instanceof CustomEvent ? event.detail : null);
 });
 
-contextBridge.exposeInMainWorld('flux', {
+contextBridge.exposeInMainWorld('valence', {
   preferences: {
     held,
     write: (key: string, value: string) => {
@@ -48,10 +48,10 @@ contextBridge.exposeInMainWorld('flux', {
         listener(address);
       };
 
-      ipcRenderer.on(FOUND_A_FLUX, told);
+      ipcRenderer.on(FOUND_A_VALENCE, told);
 
       return () => {
-        ipcRenderer.removeListener(FOUND_A_FLUX, told);
+        ipcRenderer.removeListener(FOUND_A_VALENCE, told);
       };
     },
   },

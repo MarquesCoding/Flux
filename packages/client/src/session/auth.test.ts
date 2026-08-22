@@ -21,7 +21,7 @@ const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>
 const AN_ACCOUNT = {
   id: '00000000-0000-4000-8000-000000000001',
   name: 'Operator',
-  email: 'operator@flux.test',
+  email: 'operator@valence.test',
   emailVerified: true,
   image: null,
   role: 'admin',
@@ -219,11 +219,11 @@ describe('passkeys', () => {
 describe('two-factor', () => {
   it('starts enrolment, and hands back the secret and the backup codes', async () => {
     fetchMock.mockResolvedValue(
-      said({ method: 'totp', totpURI: 'otpauth://totp/Flux', backupCodes: ['aaaa-1111'] }),
+      said({ method: 'totp', totpURI: 'otpauth://totp/Valence', backupCodes: ['aaaa-1111'] }),
     );
 
     await expect(enableTwoFactor('a-long-enough-password')).resolves.toEqual({
-      totpURI: 'otpauth://totp/Flux',
+      totpURI: 'otpauth://totp/Valence',
       backupCodes: ['aaaa-1111'],
     });
 

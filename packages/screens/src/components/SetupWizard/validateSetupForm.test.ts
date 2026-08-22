@@ -3,7 +3,7 @@ import { validateSetupForm, parseOrigins } from './validateSetupForm';
 
 const valid = {
   name: 'Operator',
-  email: 'admin@flux.test',
+  email: 'admin@valence.test',
   password: 'a-long-enough-password',
   trustedOrigins: 'http://192.168.1.40:8420',
 };
@@ -18,7 +18,7 @@ describe('validateSetupForm', () => {
   });
 
   it('rejects an address with no domain', () => {
-    expect(validateSetupForm({ ...valid, email: 'admin@flux' }).email).toBeDefined();
+    expect(validateSetupForm({ ...valid, email: 'admin@valence' }).email).toBeDefined();
   });
 
   it('rejects a short password', () => {
@@ -39,7 +39,7 @@ describe('validateSetupForm', () => {
     expect(
       validateSetupForm({
         ...valid,
-        trustedOrigins: 'http://192.168.1.40:8420, https://flux.example',
+        trustedOrigins: 'http://192.168.1.40:8420, https://valence.example',
       }),
     ).toEqual({});
   });

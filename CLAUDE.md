@@ -1,4 +1,4 @@
-# Flux
+# Valence
 
 A self-hosted streaming platform with first-class plugin, theme, API and
 documentation support, plus integrated media requesting.
@@ -28,9 +28,9 @@ reference, not a substitute for reading it.
    commented-out code, no section banners.
 7. **No `any`, no `unknown`, no `as` assertions.** `as const` and `satisfies`
    are fine. Untrusted input enters through a Zod schema.
-8. **One FluxUI component owns each interactive element.** `<button>` lives in
+8. **One ValenceUI component owns each interactive element.** `<button>` lives in
    `Button`, text inputs in `TextField`, `<input type="file">` in `FilePicker`,
-   `<dialog>` in `Dialog` — and nowhere else, including elsewhere in FluxUI.
+   `<dialog>` in `Dialog` — and nowhere else, including elsewhere in ValenceUI.
    Every other control composes one of those; there is no `IconButton`. ESLint
    enforces it.
 9. **No raw SVG anywhere.** Icons come from `@phosphor-icons/react` and are
@@ -64,7 +64,7 @@ standalone functions. snake_case for Rust modules.
 | Data         | Postgres + Drizzle + pg-boss        | [0005](docs/adr/0005-data-layer-postgres-drizzle-pgboss.md)                          |
 | Plugins      | Process-per-plugin, brokered        | [0007](docs/adr/0007-plugin-runtime-brokered.md)                                     |
 | Media        | Rust + FFmpeg child process         | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)                                  |
-| UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)                      |
+| UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-valenceui-on-radix-and-shadcn-conventions.md)                   |
 | Dialogs      | Base UI, and nothing else is        | [0021](docs/adr/0021-dialogs-are-built-on-base-ui.md)                                |
 | Desktop      | Electron, a window onto the server  | [0025](docs/adr/0025-the-desktop-client-is-electron.md)                              |
 | Lint         | oxlint + ESLint + husky             | [0014](docs/adr/0014-lint-and-commit-enforcement.md)                                 |
@@ -72,7 +72,7 @@ standalone functions. snake_case for Rust modules.
 | Web state    | TanStack Query + TanStack Router    | [0019](docs/adr/0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) |
 
 **Not used:** the shadcn registry (its conventions are adopted, its generated code
-is not — see [0018](docs/adr/0018-fluxui-on-radix-and-shadcn-conventions.md)),
+is not — see [0018](docs/adr/0018-valenceui-on-radix-and-shadcn-conventions.md)),
 Redis, SQLite, tRPC as a primary API, barrel files.
 
 ## Where front-end code goes
@@ -82,11 +82,11 @@ that runs it
 ([0022](docs/adr/0022-the-application-is-a-package-and-a-client-is-a-host.md),
 [0023](docs/adr/0023-screens-are-part-of-the-application-not-of-a-host.md)).
 
-| Directory          | What it holds                                                |
-| ------------------ | ------------------------------------------------------------ |
-| `packages/client`  | What Flux is: readers, queries, realtime, session, sharing   |
-| `packages/screens` | What Flux looks like: every screen, and the routes onto them |
-| `apps/web`         | What a browser is: entry, platform, socket, service worker   |
+| Directory          | What it holds                                                   |
+| ------------------ | --------------------------------------------------------------- |
+| `packages/client`  | What Valence is: readers, queries, realtime, session, sharing   |
+| `packages/screens` | What Valence looks like: every screen, and the routes onto them |
+| `apps/web`         | What a browser is: entry, platform, socket, service worker      |
 
 - **Neither package may import `@ValenceWeb/*`.** ESLint says so. Neither reaches
   into a client. `packages/client` may not import `@ValenceUI/*` either — it does
@@ -100,10 +100,10 @@ that runs it
 
 ## Working expectations
 
-- **Adding a FluxUI component?** Add its alias line to `tsconfig.paths.json`.
+- **Adding a ValenceUI component?** Add its alias line to `tsconfig.paths.json`.
   Component aliases are listed explicitly, one per component — TS path mapping
   cannot expand `@ValenceUI/*` to `components/*/*.tsx`.
-- **Missing a FluxUI component?** Add it to FluxUI. Do not work around it locally
+- **Missing a ValenceUI component?** Add it to ValenceUI. Do not work around it locally
   with a raw element.
 - **A rule appears to conflict with a library's expectations?** Raise it rather
   than silently deviating. Rules are amendable; silent exceptions are not.

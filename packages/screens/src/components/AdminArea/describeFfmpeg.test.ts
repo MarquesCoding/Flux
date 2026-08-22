@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { describeFfmpeg } from './describeFfmpeg';
 
-const FLUX = 'ffmpeg version 8.1.2-Flux Copyright (c) 2000-2026 the FFmpeg developers';
+const OURS = 'ffmpeg version 8.1.2-Valence Copyright (c) 2000-2026 the FFmpeg developers';
 
 const HOMEBREW = 'ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers';
 
 describe('describeFfmpeg', () => {
   it('names Valence own build, without repeating the stamp the name already carries', () => {
-    expect(describeFfmpeg(FLUX)).toBe('valence-ffmpeg 8.1.2');
+    expect(describeFfmpeg(OURS)).toBe('valence-ffmpeg 8.1.2');
   });
 
   it('does not claim a stock build is Valence own', () => {
@@ -21,7 +21,7 @@ describe('describeFfmpeg', () => {
   });
 
   it('drops the paragraph of build configuration that follows the version', () => {
-    expect(describeFfmpeg(`${FLUX}\nconfiguration: --prefix=/ffbuild --enable-gpl`)).toBe(
+    expect(describeFfmpeg(`${OURS}\nconfiguration: --prefix=/ffbuild --enable-gpl`)).toBe(
       'valence-ffmpeg 8.1.2',
     );
   });
@@ -36,5 +36,25 @@ describe('describeFfmpeg', () => {
 
   it('does not let an unparseable answer run away with the tile', () => {
     expect(describeFfmpeg('x'.repeat(200))).toBe(`ffmpeg ${'x'.repeat(24)}`);
+  });
+});
+
+describe('a build stamped before the rename', () => {
+  it('is still ours, since every binary already fetched says the old name', () => {
+    expect(describeFfmpeg('ffmpeg version 8.1.2-Valence Copyright (c) 2000-2026')).toContain(
+      'valence-ffmpeg',
+    );
+  });
+
+  it('is ours under the new name too', () => {
+    expect(describeFfmpeg('ffmpeg version 8.1.2-Valence Copyright (c) 2000-2026')).toContain(
+      'valence-ffmpeg',
+    );
+  });
+
+  it('is still not ours where nothing was stamped', () => {
+    expect(describeFfmpeg('ffmpeg version 7.1 Copyright (c) 2000-2026')).not.toContain(
+      'valence-ffmpeg',
+    );
   });
 });

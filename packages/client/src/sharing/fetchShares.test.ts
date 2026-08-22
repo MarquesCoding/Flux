@@ -187,13 +187,15 @@ describe('openShare', () => {
 
 describe('shareAddress', () => {
   it('writes an address a friend can open', () => {
-    expect(shareAddress('a-token', 'https://flux.example')).toBe(
-      'https://flux.example/share/a-token',
+    expect(shareAddress('a-token', 'https://valence.example')).toBe(
+      'https://valence.example/share/a-token',
     );
   });
 
   it('escapes a token that needs it', () => {
-    expect(shareAddress('a/b', 'https://flux.example')).toBe('https://flux.example/share/a%2Fb');
+    expect(shareAddress('a/b', 'https://valence.example')).toBe(
+      'https://valence.example/share/a%2Fb',
+    );
   });
 });
 

@@ -1,7 +1,7 @@
 import tseslint from 'typescript-eslint';
 import { noComments } from './tools/eslint/noComments';
 
-const flux = {
+const valence = {
   rules: {
     'no-comments': noComments,
   },
@@ -28,9 +28,9 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: { flux },
+    plugins: { valence },
     rules: {
-      'flux/no-comments': 'error',
+      'valence/no-comments': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'error',
@@ -54,7 +54,7 @@ export default tseslint.config(
             {
               group: ['@base-ui/react', '@base-ui/react/*'],
               message:
-                'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
+                'Base UI is for Dialog alone — see ADR-0021. Everything else in ValenceUI is Radix.',
             },
             {
               group: ['@phosphor-icons/react'],

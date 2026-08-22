@@ -16,7 +16,7 @@ type VapidKeys = {
   privateKey: string;
 };
 
-const VAPID_CONTACT = 'mailto:flux@localhost';
+const VAPID_CONTACT = 'mailto:valence@localhost';
 
 const GONE_STATUSES = new Set([404, 410]);
 

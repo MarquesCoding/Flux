@@ -20,7 +20,7 @@ describe('showTheApplication', () => {
 
     await showTheApplication(window);
 
-    expect(window.loadURL).toHaveBeenCalledWith('flux://app/');
+    expect(window.loadURL).toHaveBeenCalledWith('valence://app/');
   });
 
   it('opens the same address whether or not a server has been named', async () => {

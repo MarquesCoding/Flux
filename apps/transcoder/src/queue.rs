@@ -111,7 +111,7 @@ pub fn now_ms() -> u64 {
 /// while later renders of the same film took a minute each. It cost nothing but
 /// the truth: the slot is freed with the permit either way. Still, a queue that
 /// says something is running when nothing is doing it is a queue nobody can
-/// read. See FLUX-145.
+/// read. See VAL-145.
 ///
 /// The work is settled from a spawned task because a drop cannot await. Where
 /// there is no runtime left to spawn onto — the process is going away — there

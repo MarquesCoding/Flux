@@ -12,7 +12,7 @@ import { createMemoryAuth } from './createMemoryAuth';
 const signedIn = async () => {
   const { auth } = createMemoryAuth();
   const keys = createBetterAuthApiKeyService(auth);
-  const email = 'holder@flux.test';
+  const email = 'holder@valence.test';
 
   await auth.api.signUpEmail({ body: { email, password: 'a-long-enough-password', name: 'A' } });
 

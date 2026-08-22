@@ -24,7 +24,7 @@ type PreferenceFile = {
  * segment of everything anybody watches.
  *
  * A dot in a key is part of the key. The library reads one as a path by default, so
- * `flux.server.address` became three nested objects and came back as nothing at all — which is every
+ * `valence.server.address` became three nested objects and came back as nothing at all — which is every
  * preference Valence has, and which meant this client forgot where its server was the moment it was
  * told.
  *
@@ -32,7 +32,7 @@ type PreferenceFile = {
  */
 const thePreferenceFile = (): PreferenceFile => {
   opened ??= new Conf<Record<string, string>>({
-    projectName: 'flux',
+    projectName: 'valence',
     configName: 'preferences',
     accessPropertiesByDotNotation: false,
   });

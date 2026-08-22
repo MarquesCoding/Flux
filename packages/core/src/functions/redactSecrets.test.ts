@@ -46,18 +46,18 @@ describe('redactSecrets', () => {
   });
 
   it('hides a share cookie', () => {
-    expect(redactSecrets('cookie: flux_share=Zm9vYmFyYmF6cXV4MTIz; other=1')).not.toContain(
+    expect(redactSecrets('cookie: valence_share=Zm9vYmFyYmF6cXV4MTIz; other=1')).not.toContain(
       'Zm9vYmFyYmF6cXV4MTIz',
     );
   });
 
   it('leaves an unrelated cookie alone', () => {
-    expect(redactSecrets('cookie: flux_share=abc12345; theme=dark')).toContain('theme=dark');
+    expect(redactSecrets('cookie: valence_share=abc12345; theme=dark')).toContain('theme=dark');
   });
 
   it('hides a password reset link, which is a way into an account', () => {
     const line = redactSecrets(
-      'password reset for sam@example.com: https://flux.local/reset?token=Zm9vYmFyYmF6cXV4MTIz',
+      'password reset for sam@example.com: https://valence.local/reset?token=Zm9vYmFyYmF6cXV4MTIz',
     );
 
     expect(line).not.toContain('Zm9vYmFyYmF6cXV4MTIz');
@@ -125,5 +125,11 @@ describe('redactSecrets', () => {
 
   it('leaves an empty line alone', () => {
     expect(redactSecrets('')).toBe('');
+  });
+});
+
+describe('a cookie set before the rename', () => {
+  it('is still taken out, since it is still in somebody browser and still works', () => {
+    expect(redactSecrets('cookie: flux_share=abc123def456')).not.toContain('abc123def456');
   });
 });

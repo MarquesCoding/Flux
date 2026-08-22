@@ -10,7 +10,7 @@ const saveHardwareAccel = vi.hoisted(() => vi.fn(() => Promise.resolve(true)));
 vi.mock('@ValenceClient/admin/fetchAdmin', () => ({ saveCatalogueKey, saveHardwareAccel }));
 
 const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOverview => ({
-  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],
+  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@valence.local', role: 'admin', createdAt: '' }],
   settings: {
     hasCatalogueKey: false,
     cookieSecure: false,

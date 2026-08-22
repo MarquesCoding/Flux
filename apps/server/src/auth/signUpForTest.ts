@@ -15,7 +15,7 @@ const TEST_ORIGIN = 'http://localhost:8420';
 
 const TEST_CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 

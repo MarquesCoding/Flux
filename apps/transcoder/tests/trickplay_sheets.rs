@@ -1,6 +1,6 @@
 //! Seek-bar previews, against real media, through the real HTTP surface.
 //!
-//! The unit tests prove the filter chain and the cue geometry are what Flux
+//! The unit tests prove the filter chain and the cue geometry are what Valence
 //! meant to write. Only running ffmpeg proves the chain renders a sheet a
 //! browser can draw.
 
@@ -15,12 +15,12 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::trickplay::TrickplayRegistry;
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::trickplay::TrickplayRegistry;
 
 mod common;
 
@@ -28,7 +28,7 @@ use common::{building_name, ffmpeg, ffprobe};
 
 /// A file long enough to need more than one thumbnail.
 fn source_file() -> PathBuf {
-    let directory = std::env::temp_dir().join("flux-fixtures");
+    let directory = std::env::temp_dir().join("valence-fixtures");
 
     std::fs::create_dir_all(&directory).expect("creates the fixture directory");
 
@@ -68,10 +68,10 @@ fn source_file() -> PathBuf {
 fn app(name: &str) -> axum::Router {
     create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
-            cache_root: std::env::temp_dir().join(format!("flux-test-trickplay-{name}")),
+            cache_root: std::env::temp_dir().join(format!("valence-test-trickplay-{name}")),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),
@@ -212,10 +212,10 @@ async fn asking_twice_reuses_the_sheets_rather_than_decoding_again() {
 async fn refuses_a_file_outside_the_media_roots() {
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg(),
             ffprobe: ffprobe(),
-            cache_root: std::env::temp_dir().join("flux-test-trickplay-confined"),
+            cache_root: std::env::temp_dir().join("valence-test-trickplay-confined"),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),
@@ -273,14 +273,14 @@ fn runs_recorded(tally: &std::path::Path) -> usize {
 
 #[tokio::test]
 async fn asking_twice_at_once_renders_one_set_rather_than_two() {
-    let root = std::env::temp_dir().join("flux-test-trickplay-concurrent");
+    let root = std::env::temp_dir().join("valence-test-trickplay-concurrent");
     let _ = std::fs::remove_dir_all(&root);
 
     let (ffmpeg_path, tally) = counting_ffmpeg(&root.join("bin"));
 
     let app = create_router(AppState {
         registry: SessionRegistry::new(SessionConfig {
-            device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+            device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
             ffmpeg: ffmpeg_path,
             ffprobe: ffprobe(),
             cache_root: root.clone(),

@@ -1,11 +1,11 @@
 ---
 title: Playback and transcoding
-description: What Flux decides, why, and how to find out.
+description: What Valence decides, why, and how to find out.
 ---
 
 ## Why is this transcoding?
 
-Press the playback mode button while a film is playing and Flux will tell you,
+Press the playback mode button while a film is playing and Valence will tell you,
 per stream:
 
 ```
@@ -33,7 +33,7 @@ as a side effect.
 
 ## Direct play
 
-When nothing needs changing, Flux sends the original file over byte ranges: no
+When nothing needs changing, Valence sends the original file over byte ranges: no
 transcode, no remux, no segment cache, and no load on the media service at all.
 
 ## Seeking a transcode
@@ -52,7 +52,7 @@ the browser seeks it directly.
 
 ## Seek-bar previews
 
-Hovering the scrub bar shows the frame you would land on. Flux renders those
+Hovering the scrub bar shows the frame you would land on. Valence renders those
 thumbnails by decoding the file once, every ten seconds of runtime, into tiled
 JPEG sheets indexed with WebVTT.
 
@@ -66,7 +66,7 @@ the decoding time to rebuild it.
 
 ## Stats for nerds
 
-The sliders button on the control bar opens a panel showing everything Flux
+The sliders button on the control bar opens a panel showing everything Valence
 knows about what is on screen: the session and how it is being delivered, the
 decision and reason on each of the four axes, what the source actually is, and
 what the browser is managing to do with it — buffered ahead, how much has been
@@ -78,7 +78,7 @@ opens this panel and a confident zero would be a lie.
 
 ## Subtitles
 
-Flux plays the subtitle files sitting next to your media — what Jellyfin calls
+Valence plays the subtitle files sitting next to your media — what Jellyfin calls
 external subtitles. `Arrival (2016).en.srt`, `Arrival (2016).fr.forced.srt` and
 a `Subs/English.srt` are all found, with the language, forced and SDH flags
 read from the filename.
@@ -103,7 +103,7 @@ subtitles. Picking one restarts playback where you left off rather than at the
 beginning.
 
 Choosing a track rules out direct play. The original file carries every stream
-and leaves the choice to the browser, so selecting one specifically means Flux
+and leaves the choice to the browser, so selecting one specifically means Valence
 has to produce a stream containing only it.
 
 ### How captions look
@@ -118,7 +118,7 @@ right size differs per screen rather than per person.
 
 ## Skipping intros
 
-Flux marks the intro, recap and credits of an episode, and offers a button for
+Valence marks the intro, recap and credits of an episode, and offers a button for
 the first few seconds of each. Someone who wants to watch the theme should not
 spend the whole of it being asked whether they meant it.
 
@@ -129,7 +129,7 @@ or `Credits`, that is exact and free — nothing is detected and no audio is rea
 Only unambiguous names are used: `Part 1` might be anything, and guessing wrong
 skips the opening scene.
 
-**Listening.** Otherwise Flux compares the episodes of a season to each other.
+**Listening.** Otherwise Valence compares the episodes of a season to each other.
 The first ten minutes of each is decoded to mono, reduced to a compact hash per
 frame of its spectral shape, and every pair of episodes is compared at every
 plausible alignment. The longest run of matching frames is the audio those two

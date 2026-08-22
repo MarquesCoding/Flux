@@ -21,7 +21,7 @@ vi.mock('@ValenceClient/account/fetchApiKeys', () => ({
 const key = (overrides: Partial<ApiKey> = {}): ApiKey => ({
   id: 'key-1',
   name: 'Home Assistant',
-  start: 'flux_abc',
+  start: 'valence_abc',
   enabled: true,
   expiresAt: null,
   lastRequestAt: null,
@@ -65,7 +65,7 @@ describe('ApiKeyPanel', () => {
     render(<ApiKeyPanel />);
 
     expect(await screen.findByText('Home Assistant')).toBeInTheDocument();
-    expect(screen.getByText(/flux_abc/)).toBeInTheDocument();
+    expect(screen.getByText(/valence_abc/)).toBeInTheDocument();
   });
 
   it('says when a key was last used, in words rather than as a date', async () => {
@@ -91,7 +91,7 @@ describe('ApiKeyPanel', () => {
   it('makes a key with the name it was given', async () => {
     const user = userEvent.setup();
 
-    createMock.mockReturnValue(Promise.resolve({ ...key(), key: 'flux_secret' }));
+    createMock.mockReturnValue(Promise.resolve({ ...key(), key: 'valence_secret' }));
 
     render(<ApiKeyPanel />);
 
@@ -111,14 +111,14 @@ describe('ApiKeyPanel', () => {
   it('shows the key itself once it is made, and warns that it will not be again', async () => {
     const user = userEvent.setup();
 
-    createMock.mockReturnValue(Promise.resolve({ ...key(), key: 'flux_secret' }));
+    createMock.mockReturnValue(Promise.resolve({ ...key(), key: 'valence_secret' }));
 
     render(<ApiKeyPanel />);
 
     await user.type(await screen.findByLabelText('What is this key for?'), 'Dashboard');
     await user.click(screen.getByRole('button', { name: 'Create key' }));
 
-    expect(await screen.findByText('flux_secret')).toBeInTheDocument();
+    expect(await screen.findByText('valence_secret')).toBeInTheDocument();
     expect(screen.getByText(/will not be shown again/)).toBeInTheDocument();
   });
 

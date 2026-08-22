@@ -1,8 +1,8 @@
-# ADR-0018: FluxUI moves to Radix and shadcn's conventions
+# ADR-0018: ValenceUI moves to Radix and shadcn's conventions
 
 - **Status:** Accepted
 - **Date:** 2026-08-17
-- **Supersedes:** [ADR-0013](0013-fluxui-component-stack.md)
+- **Supersedes:** [ADR-0013](0013-valenceui-component-stack.md)
 - **Superseded by:** [ADR-0020](0020-icons-from-hugeicons-through-one-component.md),
   for its icon clause; [ADR-0021](0021-dialogs-are-built-on-base-ui.md), for its
   primitive clause and for dialogs only
@@ -15,7 +15,7 @@ and vendored components diverge. That was the right call for the question as it
 was asked in August, which was "which library do we depend on".
 
 The question has changed. The complaint that prompted this is not about which
-package supplies a popup — it is that motion in FluxUI is assembled by hand in
+package supplies a popup — it is that motion in ValenceUI is assembled by hand in
 each component. Thirteen components each wrote their own entrance, four easing
 curves were in use where the tokens define two, and a component's animation was
 a string of Tailwind classes that no other component could reuse without being
@@ -26,7 +26,7 @@ The owner has asked for the move explicitly, having read the objection.
 
 ## Decision
 
-FluxUI is built on **Radix primitives with shadcn/ui's conventions**, adapted to
+ValenceUI is built on **Radix primitives with shadcn/ui's conventions**, adapted to
 this repository's rules rather than copied from the registry.
 
 What is adopted:
@@ -39,11 +39,11 @@ What is adopted:
   declared once and resolved by one set of rules, replacing per-component lookup
   tables and the class strings each caller assembled.
 - **`tw-animate-css`** for enter and exit, so an animation is a named utility
-  rather than a hand-written transition. Every popup in FluxUI now shares one
+  rather than a hand-written transition. Every popup in ValenceUI now shares one
   vocabulary in `animations/motion.ts` instead of thirteen copies of it.
 - **Sonner** for toasts, wrapped so that callers never import it.
 - **shadcn's semantic tokens** — `background`, `foreground`, `card`, `popover`,
-  `primary`, `muted`, `destructive`, `input`, `ring` — mapped onto Flux's
+  `primary`, `muted`, `destructive`, `input`, `ring` — mapped onto Valence's
   existing palette rather than replacing it.
 
 What is **not** adopted, and this is the part that keeps ADR-0013's concern
@@ -54,14 +54,14 @@ answered:
   co-located tests, TSDoc on functions only — because generated components
   satisfy none of those and would fail the lint that enforces them.
 - **`accent` as shadcn defines it.** shadcn uses `accent` for a subtle hover
-  surface. Flux has used it for the brand colour since the beginning and the
+  surface. Valence has used it for the brand colour since the beginning and the
   application is full of it, so the brand keeps the name and shadcn's role is
   `subtle`. A token that means two things is worse than a token that differs
   from a convention.
 - **lucide-react.** Icons stay Remix Icon. Swapping an icon set buys nothing and
   changes every glyph in the product.
 
-FluxUI therefore remains a versioned library that plugin authors can build
+ValenceUI therefore remains a versioned library that plugin authors can build
 against, which is what ADR-0013 was protecting. What changed is what it is built
 _from_.
 

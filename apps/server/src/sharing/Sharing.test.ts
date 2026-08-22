@@ -29,7 +29,7 @@ const SHOW = '5d3e2c1b-0a9f-4e8d-9c7b-6a5f4e3d2c1b';
 
 const CREDENTIALS = {
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   password: 'a-long-enough-password',
 };
 
@@ -345,7 +345,7 @@ describe('opening a link as somebody with no account', () => {
 
     const joiner = response.headers
       .getSetCookie()
-      .find((one) => one.startsWith('flux_share_joiner='));
+      .find((one) => one.startsWith('valence_share_joiner='));
 
     expect(joiner).toMatch(/Max-Age=\d+/);
   });
@@ -365,7 +365,7 @@ describe('opening a link as somebody with no account', () => {
     });
 
     const joiner =
-      response.headers.getSetCookie().find((one) => one.startsWith('flux_share_joiner=')) ?? '';
+      response.headers.getSetCookie().find((one) => one.startsWith('valence_share_joiner=')) ?? '';
 
     const keptFor = Number(/Max-Age=(\d+)/.exec(joiner)?.[1] ?? '0');
 

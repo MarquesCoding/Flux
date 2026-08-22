@@ -26,7 +26,7 @@ const PLAN: PlaybackPlan = {
 };
 
 const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
-  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],
+  users: [{ id: 'usr_1', name: 'Dan', email: 'dan@valence.local', role: 'admin', createdAt: '' }],
   settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
   transcoder: {
     isReachable: true,

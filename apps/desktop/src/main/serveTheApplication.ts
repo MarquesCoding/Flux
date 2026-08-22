@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { app, net, protocol } from 'electron';
 import { theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 
-const SCHEME = 'flux';
+const SCHEME = 'valence';
 
 const HOST = 'app';
 
