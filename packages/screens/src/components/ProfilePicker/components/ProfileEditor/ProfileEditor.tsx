@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ImageAdd01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { ArrowsClockwiseIcon, ImageSquareIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { TextField } from '@FluxUI/TextField';
@@ -208,7 +208,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }
             }}
           >
-            <Icon of={RefreshIcon} size={16} />
+            <Icon of={ArrowsClockwiseIcon} size={16} />
             Different faces
           </Button>
 
@@ -221,7 +221,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
             >
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/10 hover:text-text">
-                <Icon of={ImageAdd01Icon} size={16} />
+                <Icon of={ImageSquareIcon} size={16} />
                 {photo === null ? 'Upload a photo' : photo.name}
               </span>
             </FilePicker>

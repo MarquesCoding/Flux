@@ -1,5 +1,10 @@
 import { Icon } from '@FluxUI/Icon';
-import { Copy01Icon, Download01Icon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
+import {
+  ArrowsClockwiseIcon,
+  CheckIcon,
+  CopyIcon,
+  DownloadSimpleIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -177,7 +182,7 @@ const LogsPanel = ({
               void load();
             }}
           >
-            <Icon of={RefreshIcon} size={15} />
+            <Icon of={ArrowsClockwiseIcon} size={15} />
           </Button>
 
           <Button
@@ -193,7 +198,7 @@ const LogsPanel = ({
               });
             }}
           >
-            {copied ? <Icon of={Tick02Icon} size={15} /> : <Icon of={Copy01Icon} size={15} />}
+            {copied ? <Icon of={CheckIcon} size={15} /> : <Icon of={CopyIcon} size={15} />}
           </Button>
 
           <Button
@@ -207,7 +212,7 @@ const LogsPanel = ({
               download('flux-log.txt', asText());
             }}
           >
-            <Icon of={Download01Icon} size={15} />
+            <Icon of={DownloadSimpleIcon} size={15} />
           </Button>
         </div>
       </CardHeader>

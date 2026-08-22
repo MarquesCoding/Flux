@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon, Copy01Icon } from '@hugeicons/core-free-icons';
+import { CopyIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Dialog } from '@FluxUI/Dialog';
@@ -126,7 +126,7 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
       <DialogContent>
         <DialogTitle title={`Share ${named}`}>
           <Button isIconOnly variant="ghost" label="Close" onClick={onClose}>
-            <Icon of={Cancel01Icon} size={20} />
+            <Icon of={XIcon} size={20} />
           </Button>
         </DialogTitle>
 
@@ -193,7 +193,7 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
                 });
               }}
             >
-              <Icon of={Copy01Icon} size={16} />
+              <Icon of={CopyIcon} size={16} />
               {isCopied ? 'Copied' : 'Copy the link'}
             </Button>
           </div>

@@ -1,14 +1,14 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  ArrowLeft01Icon,
-  ArrowTurnForwardIcon,
-  Cancel01Icon,
-  FavouriteIcon,
-  InformationCircleIcon,
+  ArrowUUpRightIcon,
+  CaretLeftIcon,
+  HeartIcon,
+  InfoIcon,
   PlayIcon,
-  Share01Icon,
-  UserGroupIcon,
-} from '@hugeicons/core-free-icons';
+  ShareNetworkIcon,
+  UsersThreeIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -165,9 +165,9 @@ const MediaDetailDialog = ({
                           }}
                         >
                           {isKept ? (
-                            <Icon of={FavouriteIcon} size={18} />
+                            <Icon of={HeartIcon} size={18} />
                           ) : (
-                            <Icon of={FavouriteIcon} size={18} />
+                            <Icon of={HeartIcon} size={18} />
                           )}
                         </Button>
                       ),
@@ -183,7 +183,7 @@ const MediaDetailDialog = ({
             {onBack === undefined ? null : (
               <div className="absolute left-4 top-4">
                 <Button variant="overlay" size="sm" isPill onClick={onBack}>
-                  <Icon of={ArrowLeft01Icon} size={16} />
+                  <Icon of={CaretLeftIcon} size={16} />
                   {backLabel ?? 'Back'}
                 </Button>
               </div>
@@ -191,7 +191,7 @@ const MediaDetailDialog = ({
 
             <div className="absolute right-4 top-4">
               <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-                <Icon of={Cancel01Icon} size={20} />
+                <Icon of={XIcon} size={20} />
               </Button>
             </div>
 
@@ -272,7 +272,7 @@ const MediaDetailDialog = ({
                     onPlay(shown, 0);
                   }}
                 >
-                  <Icon of={ArrowTurnForwardIcon} size={18} />
+                  <Icon of={ArrowUUpRightIcon} size={18} />
                   Start again
                 </Button>
               )}
@@ -286,7 +286,7 @@ const MediaDetailDialog = ({
                     onShare(shown);
                   }}
                 >
-                  <Icon of={Share01Icon} size={18} />
+                  <Icon of={ShareNetworkIcon} size={18} />
                   Share
                 </Button>
               )}
@@ -300,7 +300,7 @@ const MediaDetailDialog = ({
                     onStartParty(shown);
                   }}
                 >
-                  <Icon of={UserGroupIcon} size={18} />
+                  <Icon of={UsersThreeIcon} size={18} />
                   Watch together
                 </Button>
               )}
@@ -342,7 +342,7 @@ const MediaDetailDialog = ({
                 <p className="text-[0.95rem] leading-relaxed text-text">{metadata.overview}</p>
               ) : (
                 <p className="flex items-center gap-2 text-sm text-text-muted">
-                  <Icon of={InformationCircleIcon} size={16} />
+                  <Icon of={InfoIcon} size={16} />
                   No synopsis yet. Configure a metadata provider and rescan to fill this in.
                 </p>
               )}
@@ -382,7 +382,7 @@ const MediaDetailDialog = ({
                   </h3>
 
                   <p className="flex items-center gap-2 text-sm text-text-muted">
-                    <Icon of={InformationCircleIcon} size={16} />
+                    <Icon of={InfoIcon} size={16} />
                     Nobody is credited yet. A metadata provider supplies the cast.
                   </p>
                 </>

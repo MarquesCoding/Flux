@@ -1,10 +1,10 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  Cancel01Icon,
-  CastIcon,
-  NextIcon,
-  PictureInPictureOnIcon,
-} from '@hugeicons/core-free-icons';
+  PictureInPictureIcon,
+  ScreencastIcon,
+  SkipForwardIcon,
+  XIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@FluxUI/Button';
 import { Spinner } from '@FluxUI/Spinner';
@@ -111,6 +111,10 @@ const PARTY_NOTICE = 'party-notice';
 const CAST_NOTICE = 'cast-notice';
 
 const JUMP_SECONDS = 30;
+
+const CLEAR_OF_THE_CONTROLS = 12;
+
+const CLEAR_OF_THE_EDGE = 24;
 
 const FINISHED_WITHIN_SECONDS = 90;
 
@@ -260,6 +264,8 @@ const VideoPlayer = ({
     requestedQuality: readQualityPreference(),
   });
   const [heldFrame, setHeldFrame] = useState<{ url: string; isItemChange: boolean } | null>(null);
+  const controlsRef = useRef<HTMLDivElement>(null);
+  const [controlsTall, setControlsTall] = useState(0);
 
   const isAWindowOfOurOwn = isTheDesktopClient();
 
@@ -1383,6 +1389,26 @@ const VideoPlayer = ({
     void target.requestFullscreen?.();
   }, [isFullscreen]);
 
+  useEffect(() => {
+    const controls = controlsRef.current;
+
+    if (controls === null) {
+      return;
+    }
+
+    const watching = new ResizeObserver(([seen]) => {
+      const tall = Math.round(seen?.contentRect.height ?? 0);
+
+      setControlsTall((was) => (was === tall ? was : tall));
+    });
+
+    watching.observe(controls);
+
+    return () => {
+      watching.disconnect();
+    };
+  }, []);
+
   const isBarUp = !isIdle || isShowingStats || isMenuOpen;
   const isBarUpRef = useRef(isBarUp);
   isBarUpRef.current = isBarUp;
@@ -1566,7 +1592,7 @@ const VideoPlayer = ({
 
         <div className="flex w-24 shrink-0 justify-end">
           <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-            <Icon of={Cancel01Icon} size={20} />
+            <Icon of={XIcon} size={20} />
           </Button>
         </div>
       </header>
@@ -1609,7 +1635,7 @@ const VideoPlayer = ({
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <Icon of={PictureInPictureOnIcon} size={32} className="text-text-muted" />
+            <Icon of={PictureInPictureIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
@@ -1623,7 +1649,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
-            <Icon of={CastIcon} size={32} className="text-text-muted" />
+            <Icon of={ScreencastIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
@@ -1716,7 +1742,14 @@ const VideoPlayer = ({
         ) : null}
 
         {skippable === null ? null : (
-          <div className="absolute bottom-24 right-6 z-10">
+          <div
+            className="absolute right-6 z-10 transition-[bottom] duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none"
+            style={{
+              bottom: isBarUp
+                ? controlsTall + CLEAR_OF_THE_EDGE + CLEAR_OF_THE_CONTROLS
+                : CLEAR_OF_THE_EDGE,
+            }}
+          >
             <Button
               size="lg"
               variant="secondary"
@@ -1727,12 +1760,13 @@ const VideoPlayer = ({
               }}
             >
               {describeSkip(skippable)}
-              <Icon of={NextIcon} size={18} />
+              <Icon of={SkipForwardIcon} size={18} />
             </Button>
           </div>
         )}
 
         <div
+          ref={controlsRef}
           className={`absolute inset-x-3 bottom-3 transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
             isBarUp ? 'translate-y-0' : 'translate-y-[calc(100%_+_1.5rem)]'
           }`}

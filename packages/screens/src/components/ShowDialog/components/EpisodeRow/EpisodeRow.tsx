@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import { InfoIcon, PlayIcon } from '@phosphor-icons/react';
 import { Button } from '@FluxUI/Button';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
@@ -91,7 +91,7 @@ const EpisodeRow = ({
           onInspect(episode);
         }}
       >
-        <Icon of={InformationCircleIcon} size={18} />
+        <Icon of={InfoIcon} size={18} />
       </Button>
     )}
   </div>

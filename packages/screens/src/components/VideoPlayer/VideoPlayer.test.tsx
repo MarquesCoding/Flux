@@ -2377,3 +2377,28 @@ describe('in a window of our own', () => {
     expect(loadCastSenderMock).not.toHaveBeenCalled();
   });
 });
+
+describe('the skip button', () => {
+  it('sits clear of the controls rather than at a guessed height', async () => {
+    segmentsMock.mockResolvedValue([{ kind: 'intro', startSeconds: 0, endSeconds: 90 }]);
+
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    const skip = await screen.findByRole('button', { name: /skip/i });
+    const held = skip.parentElement;
+
+    expect(held?.className).toContain('absolute');
+    expect(held?.style.bottom).not.toBe('');
+  });
+
+  it('stands off the controls by their own height rather than a fixed number', async () => {
+    segmentsMock.mockResolvedValue([{ kind: 'intro', startSeconds: 0, endSeconds: 90 }]);
+
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
+
+    const skip = await screen.findByRole('button', { name: /skip/i });
+    const stood = Number.parseInt(skip.parentElement?.style.bottom ?? '0', 10);
+
+    expect(stood).toBeGreaterThanOrEqual(36);
+  });
+});

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Tick02Icon } from '@hugeicons/core-free-icons';
+import { CheckIcon } from '@phosphor-icons/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@FluxUI/cn';
 import { POPUP_MOTION } from '@FluxUI/animations/motion';
@@ -102,7 +102,7 @@ const OptionMenu = ({
                       </span>
 
                       <RadixMenu.ItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                        <Icon of={Tick02Icon} size={15} />
+                        <Icon of={CheckIcon} size={15} />
                       </RadixMenu.ItemIndicator>
                     </RadixMenu.RadioItem>
                   ))}

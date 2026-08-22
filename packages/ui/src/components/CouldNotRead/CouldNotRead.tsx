@@ -1,7 +1,7 @@
 import { Button } from '@FluxUI/Button';
 import { Icon } from '@FluxUI/Icon';
 import { cn } from '@FluxUI/cn';
-import { Alert02Icon } from '@hugeicons/core-free-icons';
+import { WarningIcon } from '@phosphor-icons/react';
 import type { CouldNotReadProps } from './CouldNotRead.types';
 
 /**
@@ -32,7 +32,7 @@ const CouldNotRead = ({
     role="alert"
     className={cn('flex flex-col items-center gap-3 px-6 py-10 text-center', className)}
   >
-    <Icon of={Alert02Icon} size={24} className="text-danger" />
+    <Icon of={WarningIcon} size={24} className="text-danger" />
 
     <p className="text-sm text-text-muted">
       {what} could not be read. The server may be unreachable, or this session may have ended.

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Delete02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { CheckIcon, TrashIcon } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -108,7 +108,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
 
               {viewing.isFinished ? (
                 <Badge tone="accent">
-                  <Icon of={Tick02Icon} size={12} />
+                  <Icon of={CheckIcon} size={12} />
                   Finished
                 </Badge>
               ) : null}
@@ -123,7 +123,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
                   void forgetOne(viewing.id);
                 }}
               >
-                <Icon of={Delete02Icon} size={16} />
+                <Icon of={TrashIcon} size={16} />
               </Button>
             </motion.li>
           ))}
@@ -158,7 +158,7 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
             void forgetTheLot();
           }}
         >
-          <Icon of={Delete02Icon} size={16} />
+          <Icon of={TrashIcon} size={16} />
           Forget everything
         </Button>
       </div>

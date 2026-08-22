@@ -1,4 +1,4 @@
-import { ArrowLeft01Icon, ArrowRight01Icon } from '@hugeicons/core-free-icons';
+import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { Button } from '@FluxUI/Button';
 import { Icon } from '@FluxUI/Icon';
 import { Logo } from '@FluxUI/Logo';
@@ -55,7 +55,7 @@ const WindowBar = ({ name, canGoBack, canGoForward, onBack, onForward }: WindowB
           onClick={onBack}
           className={AN_ARROW}
         >
-          <Icon of={ArrowLeft01Icon} size={16} />
+          <Icon of={CaretLeftIcon} size={16} />
         </Button>
 
         <Button
@@ -67,7 +67,7 @@ const WindowBar = ({ name, canGoBack, canGoForward, onBack, onForward }: WindowB
           onClick={onForward}
           className={AN_ARROW}
         >
-          <Icon of={ArrowRight01Icon} size={16} />
+          <Icon of={CaretRightIcon} size={16} />
         </Button>
       </div>
 

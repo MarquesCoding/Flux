@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { RefreshIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import { ArrowsClockwiseIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useCallback, useMemo, useState } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -133,7 +133,7 @@ const MediaPanel = ({
                 void rebuild(row.original);
               }}
             >
-              <Icon of={RefreshIcon} size={15} />
+              <Icon of={ArrowsClockwiseIcon} size={15} />
               {rebuilding === row.original.id
                 ? 'Rebuilding…'
                 : rebuilt.has(row.original.id)
@@ -149,7 +149,7 @@ const MediaPanel = ({
                 onCorrect(row.original);
               }}
             >
-              <Icon of={Search01Icon} size={15} />
+              <Icon of={MagnifyingGlassIcon} size={15} />
               Wrong match?
             </Button>
           </span>

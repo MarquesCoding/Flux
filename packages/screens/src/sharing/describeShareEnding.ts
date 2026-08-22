@@ -1,28 +1,28 @@
-import { Clock01Icon, EyeOffIcon, Unlink01Icon } from '@hugeicons/core-free-icons';
+import { ClockIcon, EyeSlashIcon, LinkBreakIcon } from '@phosphor-icons/react';
 import { SHARE_ENDING_SAID } from '@FluxContracts/schemas/Share';
-import type { IconSvgElement } from '@hugeicons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { ShareEnding } from '@FluxContracts/schemas/Share';
 
 type EndingTold = {
   said: string;
   detail: string;
-  icon: IconSvgElement;
+  icon: PhosphorIcon;
 };
 
-const TOLD: Record<ShareEnding, { detail: string; icon: IconSvgElement }> = {
+const TOLD: Record<ShareEnding, { detail: string; icon: PhosphorIcon }> = {
   withdrawn: {
     detail: 'Somebody stopped it working. Whoever sent it can send another.',
-    icon: Unlink01Icon,
+    icon: LinkBreakIcon,
   },
   expired: {
     detail:
       'It was made to last a while, and that while is over. Whoever sent it can send another.',
-    icon: Clock01Icon,
+    icon: ClockIcon,
   },
   spent: {
     detail:
       'It was made to be opened a set number of times, and it has been. Whoever sent it can send another.',
-    icon: EyeOffIcon,
+    icon: EyeSlashIcon,
   },
 };
 

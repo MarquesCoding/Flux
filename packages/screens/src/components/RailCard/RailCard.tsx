@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowTurnForwardIcon, FavouriteIcon, PlayIcon } from '@hugeicons/core-free-icons';
+import { ArrowUUpRightIcon, HeartIcon, PlayIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -356,7 +356,7 @@ const RailCard = ({
                         onPlay(media, 0);
                       }}
                     >
-                      <Icon of={ArrowTurnForwardIcon} size={17} />
+                      <Icon of={ArrowUUpRightIcon} size={17} />
                     </Button>
                   )}
 
@@ -373,9 +373,9 @@ const RailCard = ({
                       }}
                     >
                       {isKept ? (
-                        <Icon of={FavouriteIcon} size={17} />
+                        <Icon of={HeartIcon} size={17} />
                       ) : (
-                        <Icon of={FavouriteIcon} size={17} />
+                        <Icon of={HeartIcon} size={17} />
                       )}
                     </Button>
                   )}

@@ -1,4 +1,4 @@
-import { CompassIcon, GlobeIcon, Tv01Icon } from '@hugeicons/core-free-icons';
+import { CompassIcon, GlobeIcon, TelevisionIcon } from '@phosphor-icons/react';
 import { describe, expect, it } from 'vitest';
 import { deviceIconFor } from './deviceIcon';
 describe('deviceIconFor', () => {
@@ -15,6 +15,6 @@ describe('deviceIconFor', () => {
   });
 
   it('falls back to a plain device icon for a label it does not recognise', () => {
-    expect(deviceIconFor('Unknown device')).toBe(Tv01Icon);
+    expect(deviceIconFor('Unknown device')).toBe(TelevisionIcon);
   });
 });

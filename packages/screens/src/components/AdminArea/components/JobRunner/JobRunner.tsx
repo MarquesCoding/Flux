@@ -1,11 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import {
-  Calendar03Icon,
-  InformationCircleIcon,
-  MoreHorizontalIcon,
-  PlayIcon,
-  StopIcon,
-} from '@hugeicons/core-free-icons';
+import { CalendarIcon, DotsThreeIcon, InfoIcon, PlayIcon, StopIcon } from '@phosphor-icons/react';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
@@ -177,7 +171,7 @@ const JobRunner = ({
                 Running
               </Badge>
 
-              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
+              <Icon of={InfoIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -190,7 +184,7 @@ const JobRunner = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.label}`}
-              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
+              trigger={<Icon of={DotsThreeIcon} size={16} />}
               groups={[
                 {
                   items: [
@@ -221,7 +215,7 @@ const JobRunner = ({
                     {
                       id: 'schedule',
                       label: 'Edit schedule',
-                      icon: <Icon of={Calendar03Icon} size={15} />,
+                      icon: <Icon of={CalendarIcon} size={15} />,
                       onChoose: () => {
                         live.current.onOpenSchedule(row.original.kind);
                       },

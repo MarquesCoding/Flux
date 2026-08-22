@@ -47,9 +47,9 @@ export default tseslint.config(
                 'Parent-relative imports are banned. Use @FluxUI/*, @FluxCore/*, @FluxContracts/* or @FluxSDK/*.',
             },
             {
-              group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react'],
+              group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react', '@hugeicons/*'],
               message:
-                'Icons come from @hugeicons/core-free-icons, drawn by @FluxUI/Icon — see code standards section 10.',
+                'Icons come from @phosphor-icons/react, drawn by @FluxUI/Icon — see code standards section 10.',
             },
             {
               group: ['@base-ui/react', '@base-ui/react/*'],
@@ -57,10 +57,10 @@ export default tseslint.config(
                 'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
             },
             {
-              group: ['@hugeicons/react'],
-              importNames: ['HugeiconsIcon'],
+              group: ['@phosphor-icons/react'],
+              importNames: ['IconBase', 'IconContext', 'SSR'],
               message:
-                'Draw an icon with @FluxUI/Icon rather than the renderer, so the icon set stays swappable in one file.',
+                'Draw an icon with @FluxUI/Icon rather than the set itself, so the set stays swappable in one file.',
             },
           ],
         },

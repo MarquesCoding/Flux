@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowRight01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
+import { ArrowsClockwiseIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Badge } from '@FluxUI/Badge';
@@ -63,7 +63,7 @@ const Region = ({
           isLoading={isActionBusy}
         >
           {action}
-          {actionIcon ?? <Icon of={ArrowRight01Icon} size={14} />}
+          {actionIcon ?? <Icon of={CaretRightIcon} size={14} />}
         </Button>
       )}
     </header>
@@ -309,7 +309,7 @@ const OverviewPanel = ({
           title="Storage Flux is using"
           className="lg:col-span-4"
           action="Refresh"
-          actionIcon={<Icon of={RefreshIcon} size={14} />}
+          actionIcon={<Icon of={ArrowsClockwiseIcon} size={14} />}
           isActionBusy={isCounting}
           onAction={() => {
             void recount();
@@ -342,7 +342,7 @@ const OverviewPanel = ({
               }}
             >
               All work
-              <Icon of={ArrowRight01Icon} size={14} />
+              <Icon of={CaretRightIcon} size={14} />
             </Button>
           </CardHeader>
 

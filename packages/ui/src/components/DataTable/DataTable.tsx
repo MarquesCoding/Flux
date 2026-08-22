@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowDown01Icon, ArrowUp01Icon, UnfoldMoreIcon } from '@hugeicons/core-free-icons';
+import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { useTable } from '@tanstack/react-table';
 import { Button } from '@FluxUI/Button';
@@ -122,11 +122,11 @@ const DataTable = <Row extends RowData>({
                           <table.FlexRender header={header} />
 
                           {direction === 'asc' ? (
-                            <Icon of={ArrowUp01Icon} size={13} />
+                            <Icon of={CaretUpIcon} size={13} />
                           ) : direction === 'desc' ? (
-                            <Icon of={ArrowDown01Icon} size={13} />
+                            <Icon of={CaretDownIcon} size={13} />
                           ) : (
-                            <Icon of={UnfoldMoreIcon} size={13} className="opacity-40" />
+                            <Icon of={CaretUpDownIcon} size={13} className="opacity-40" />
                           )}
                         </Button>
                       ) : (

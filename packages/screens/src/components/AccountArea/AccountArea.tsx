@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Logout01Icon, PencilEdit01Icon } from '@hugeicons/core-free-icons';
+import { PencilSimpleIcon, SignOutIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@FluxUI/Button';
@@ -133,7 +133,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
                     setIsEditing(true);
                   }}
                 >
-                  <Icon of={PencilEdit01Icon} size={15} />
+                  <Icon of={PencilSimpleIcon} size={15} />
                   Change
                 </Button>
               )}
@@ -277,7 +277,7 @@ const AccountArea = ({ user, onChanged, onSignOut }: AccountAreaProps) => {
           </p>
 
           <Button variant="ghost" size="sm" isPill onClick={onSignOut}>
-            <Icon of={Logout01Icon} size={16} />
+            <Icon of={SignOutIcon} size={16} />
             Sign out
           </Button>
         </motion.footer>

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Clock01Icon, PauseCircleIcon, UserAdd01Icon, ViewIcon } from '@hugeicons/core-free-icons';
+import { ClockIcon, EyeIcon, PauseCircleIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
@@ -103,7 +103,7 @@ const PartyPanel = ({
 
       {!party.isHeld || waitingFor.length === 0 ? null : (
         <p className="flex items-center gap-2 rounded-lg bg-amber-400/10 px-3 py-2 text-xs leading-relaxed text-amber-200">
-          <Icon of={Clock01Icon} size={14} />
+          <Icon of={ClockIcon} size={14} />
           {waitingFor.length === 1
             ? `Waiting for ${waitingFor[0] ?? ''} to catch up`
             : `Waiting for ${waitingFor.length.toString()} people to catch up`}
@@ -161,7 +161,7 @@ const PartyPanel = ({
                     onAsk(person.id);
                   }}
                 >
-                  <Icon of={UserAdd01Icon} size={14} />
+                  <Icon of={UserPlusIcon} size={14} />
                   {asked.includes(person.id) ? 'Asked' : 'Ask'}
                 </Button>
               </li>
@@ -187,14 +187,14 @@ const PartyPanel = ({
 
               {member.connectionId === party.timekeeperId && (
                 <Badge size="sm" tone="quiet">
-                  <Icon of={Clock01Icon} size={12} />
+                  <Icon of={ClockIcon} size={12} />
                   Keeping time
                 </Badge>
               )}
 
               {member.isWatching ? (
                 <span className="flex items-center gap-1 text-xs text-white/70">
-                  <Icon of={ViewIcon} size={13} />
+                  <Icon of={EyeIcon} size={13} />
                   Watching
                 </span>
               ) : (
