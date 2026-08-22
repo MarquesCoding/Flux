@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { InformationCircleIcon } from '@hugeicons/core-free-icons';
+import { InfoIcon } from '@phosphor-icons/react';
 import { Button } from '@FluxUI/Button';
 import { HoverCard } from '@FluxUI/HoverCard';
 import { formatBytes } from '@FluxCore/functions/formatBytes';
@@ -47,7 +47,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
                     hasTooltip={false}
                     className="text-text-muted transition-colors hover:text-text"
                   >
-                    <Icon of={InformationCircleIcon} size={14} />
+                    <Icon of={InfoIcon} size={14} />
                   </Button>
                 </HoverCard>
               )}

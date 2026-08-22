@@ -1417,6 +1417,27 @@ impl TranscodePlan {
     }
 
     /// How the audio is treated, which is the same wherever it is asked for.
+    ///
+    /// Encoded audio is resampled with `async=1`, which is what keeps it beside
+    /// the picture. `FFmpeg` does not do this on its own: told nothing, it
+    /// writes out however many samples it decoded and lets the timestamps fall
+    /// where they may. A source whose audio has a gap in it — a stream that
+    /// starts late, a splice, a track that was itself remuxed once already —
+    /// then plays back progressively further ahead of the picture, because
+    /// every missing sample is a fraction of a second the audio never waits.
+    ///
+    /// `async=1` makes it wait: samples are padded where the source skipped and
+    /// dropped where it doubled, so the audio clock is held to the timeline
+    /// rather than to the count of samples decoded.
+    ///
+    /// It is deliberately not given `first_pts=0`, which is the other half of
+    /// the usual advice. That pins the first sample to zero, and every segment
+    /// here is cut with `-ss` and `-copyts` — its timestamps start at wherever
+    /// in the film it begins. Pinning those to zero would not correct an offset,
+    /// it would introduce one the length of everything before it.
+    ///
+    /// Copied audio is left alone, since a stream nothing decodes cannot be
+    /// filtered. Drift in a copied track is drift the source arrived with.
     fn push_audio_args(&self, args: &mut Vec<String>) {
         match &self.spec.audio {
             AudioAction::Copy => {
@@ -1434,6 +1455,8 @@ impl TranscodePlan {
                 args.push(channels.to_string());
                 args.push("-b:a".into());
                 args.push(format!("{max_bitrate_kbps}k"));
+                args.push("-af".into());
+                args.push("aresample=async=1".into());
             }
         }
     }
@@ -2851,6 +2874,52 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
         assert!(args.windows(2).any(|w| w == ["-c:v", "h264_videotoolbox"]));
         assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
+    }
+
+    /// A source whose audio has a gap in it plays progressively further ahead
+    /// of the picture, because every missing sample is a fraction of a second
+    /// the audio never waits. `FFmpeg` does not correct that unless asked.
+    #[test]
+    fn holds_encoded_audio_to_the_timeline_rather_than_to_its_own_samples() {
+        let args = plan(SessionSpec {
+            audio: AudioAction::Encode {
+                encoder: "aac".into(),
+                channels: 2,
+                max_bitrate_kbps: 192,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-af", "aresample=async=1"]));
+    }
+
+    /// Pinning the first sample to zero is the other half of the usual advice
+    /// and is wrong here: every segment is cut with `-ss` and `-copyts`, so its
+    /// timestamps begin wherever in the film it does.
+    #[test]
+    fn does_not_pin_the_first_sample_of_a_segment_to_zero() {
+        let args = plan(SessionSpec {
+            audio: AudioAction::Encode {
+                encoder: "aac".into(),
+                channels: 2,
+                max_bitrate_kbps: 192,
+            },
+            ..spec()
+        })
+        .to_ffmpeg_args();
+
+        assert!(!args.iter().any(|a| a.contains("first_pts")));
+    }
+
+    /// A stream nothing decodes cannot be filtered, and asking would fail the
+    /// whole command rather than the audio alone.
+    #[test]
+    fn leaves_copied_audio_unfiltered() {
+        let args = plan(spec()).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|w| w == ["-c:a", "copy"]));
+        assert!(!args.iter().any(|a| a == "-af"));
     }
 
     #[test]

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { StarIcon } from '@hugeicons/core-free-icons';
+import { StarIcon } from '@phosphor-icons/react';
 import { formatDuration } from '@FluxCore/functions/formatDuration';
 import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';

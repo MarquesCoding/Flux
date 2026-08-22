@@ -1,11 +1,11 @@
 import { Icon } from '@FluxUI/Icon';
 import {
-  Add01Icon,
-  Alert02Icon,
-  Delete02Icon,
-  MoreHorizontalIcon,
-  PencilEdit01Icon,
-} from '@hugeicons/core-free-icons';
+  DotsThreeIcon,
+  PencilSimpleIcon,
+  PlusIcon,
+  TrashIcon,
+  WarningIcon,
+} from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@FluxUI/ActionMenu';
 import { Badge } from '@FluxUI/Badge';
@@ -135,14 +135,14 @@ const RolesPanel = () => {
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
+              trigger={<Icon of={DotsThreeIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'edit',
                       label: 'Edit role',
-                      icon: <Icon of={PencilEdit01Icon} size={15} />,
+                      icon: <Icon of={PencilSimpleIcon} size={15} />,
                       onChoose: () => {
                         live.current.onEdit(row.original.id);
                       },
@@ -154,7 +154,7 @@ const RolesPanel = () => {
                     {
                       id: 'delete',
                       label: 'Delete role',
-                      icon: <Icon of={Delete02Icon} size={15} />,
+                      icon: <Icon of={TrashIcon} size={15} />,
                       isDestructive: true,
                       onChoose: () => {
                         live.current.onAskDelete(row.original);
@@ -178,7 +178,7 @@ const RolesPanel = () => {
           role="alert"
           className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
-          <Icon of={Alert02Icon} size={18} className="mt-0.5 shrink-0 text-danger" />
+          <Icon of={WarningIcon} size={18} className="mt-0.5 shrink-0 text-danger" />
           {refusal.message}
         </p>
       )}
@@ -193,7 +193,7 @@ const RolesPanel = () => {
               setIsCreating(true);
             }}
           >
-            <Icon of={Add01Icon} size={15} />
+            <Icon of={PlusIcon} size={15} />
             Create role
           </Button>
         </CardHeader>
@@ -355,7 +355,7 @@ const RolesPanel = () => {
                   role="alert"
                   className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
                 >
-                  <Icon of={Alert02Icon} size={16} className="mt-0.5 shrink-0 text-danger" />
+                  <Icon of={WarningIcon} size={16} className="mt-0.5 shrink-0 text-danger" />
                   {refusal.message}
                 </p>
               )}

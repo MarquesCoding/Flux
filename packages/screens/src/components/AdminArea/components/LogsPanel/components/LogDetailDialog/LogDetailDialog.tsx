@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Cancel01Icon } from '@hugeicons/core-free-icons';
+import { XIcon } from '@phosphor-icons/react';
 import { Dialog } from '@FluxUI/Dialog';
 import { DialogContent } from '@FluxUI/DialogContent';
 import { DialogTitle } from '@FluxUI/DialogTitle';
@@ -52,7 +52,7 @@ const LogDetailDialog = ({ record, isOpen, onClose }: LogDetailDialogProps) => {
     <Dialog label="Log record" isOpen={isOpen && record !== null} onClose={onClose}>
       <DialogTitle title="Log record">
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-          <Icon of={Cancel01Icon} size={16} />
+          <Icon of={XIcon} size={16} />
         </Button>
       </DialogTitle>
 

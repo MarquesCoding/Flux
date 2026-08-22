@@ -1,11 +1,11 @@
-import type { IconSvgElement } from '@hugeicons/react';
+import type { Icon as PhosphorIcon, IconWeight } from '@phosphor-icons/react';
 
 type IconProps = {
-  of: IconSvgElement;
-  whenActive?: IconSvgElement;
+  of: PhosphorIcon;
+  whenActive?: PhosphorIcon;
   isActive?: boolean;
   size?: number;
-  strokeWidth?: number;
+  weight?: IconWeight;
   className?: string;
   label?: string;
 };

@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { StarIcon } from '@hugeicons/core-free-icons';
+import { StarIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { cn } from '@FluxUI/cn';
 import { Button } from '@FluxUI/Button';

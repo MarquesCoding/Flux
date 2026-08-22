@@ -1,10 +1,10 @@
 # ADR-0020: Draw every icon from Hugeicons, through one component
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Date:** 2026-08-18
 - **Deciders:** Marques Scripps
 - **Supersedes:** the icon clause of [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)
-- **Superseded by:** —
+- **Superseded by:** [ADR-0028](0028-icons-from-phosphor-at-two-weights.md)
 
 ## Context
 

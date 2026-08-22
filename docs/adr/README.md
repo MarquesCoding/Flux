@@ -46,7 +46,7 @@ more valuable than a tidy directory.
 | [0017](0017-realtime-one-socket-two-feeds.md)                               | One realtime socket, with a viewer feed and an admin feed                                 | Accepted                           |
 | [0018](0018-fluxui-on-radix-and-shadcn-conventions.md)                      | FluxUI moves to Radix and shadcn's conventions                                            | Accepted, superseded by 0020, 0021 |
 | [0019](0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) | Server state in TanStack Query, addresses in TanStack Router                              | Accepted                           |
-| [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component                                         | Accepted                           |
+| [0020](0020-icons-from-hugeicons-through-one-component.md)                  | Icons from Hugeicons, drawn through one component                                         | Superseded by 0028                 |
 | [0021](0021-dialogs-are-built-on-base-ui.md)                                | Dialogs are built on Base UI                                                              | Accepted, amended by 0024          |
 | [0022](0022-the-application-is-a-package-and-a-client-is-a-host.md)         | The application is a package; a client is a host                                          | Accepted                           |
 | [0023](0023-screens-are-part-of-the-application-not-of-a-host.md)           | Screens are part of the application, not of a host                                        | Accepted                           |
@@ -54,6 +54,7 @@ more valuable than a tidy directory.
 | [0025](0025-the-desktop-client-is-electron.md)                              | The desktop client is Electron, chosen on what it can hold rather than what it can decode | Proposed                           |
 | [0026](0026-the-desktop-client-is-a-window-onto-the-server.md)              | The desktop client is a window onto the server, not a copy of it                          | Proposed                           |
 | [0027](0027-a-book-is-not-a-media-item.md)                                  | Keep books in tables of their own                                                         | Proposed                           |
+| [0028](0028-icons-from-phosphor-at-two-weights.md)                          | Icons from Phosphor, bold at rest and filled in force                                     | Accepted                           |
 
 ## Format
 

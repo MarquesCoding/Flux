@@ -1,5 +1,5 @@
-import { CompassIcon, GlobeIcon, Tv01Icon } from '@hugeicons/core-free-icons';
-import type { IconSvgElement } from '@hugeicons/react';
+import { CompassIcon, GlobeIcon, TelevisionIcon } from '@phosphor-icons/react';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 
 const BROWSERS = ['Edge', 'Opera', 'Chromium', 'Chrome', 'Firefox'] as const;
 
@@ -15,12 +15,12 @@ const BROWSERS = ['Edge', 'Opera', 'Chromium', 'Chrome', 'Firefox'] as const;
  * @param deviceLabel - What the session calls the device.
  * @returns The icon to draw.
  */
-const deviceIconFor = (deviceLabel: string): IconSvgElement => {
+const deviceIconFor = (deviceLabel: string): PhosphorIcon => {
   if (deviceLabel.startsWith('Safari')) {
     return CompassIcon;
   }
 
-  return BROWSERS.some((name) => deviceLabel.startsWith(name)) ? GlobeIcon : Tv01Icon;
+  return BROWSERS.some((name) => deviceLabel.startsWith(name)) ? GlobeIcon : TelevisionIcon;
 };
 
 export { deviceIconFor };

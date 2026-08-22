@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { Notification01Icon } from '@hugeicons/core-free-icons';
+import { BellIcon } from '@phosphor-icons/react';
 import { Badge } from '@FluxUI/Badge';
 import { Button } from '@FluxUI/Button';
 import { PopoverPanel } from '@FluxUI/PopoverPanel';
@@ -46,11 +46,7 @@ const NotificationBell = ({
       }}
       trigger={
         <span className="relative flex size-9 items-center justify-center">
-          {unread === 0 ? (
-            <Icon of={Notification01Icon} size={20} />
-          ) : (
-            <Icon of={Notification01Icon} size={20} />
-          )}
+          {unread === 0 ? <Icon of={BellIcon} size={20} /> : <Icon of={BellIcon} size={20} />}
 
           {unread === 0 ? null : (
             <Badge tone="accent" size="sm" className="absolute -right-1 -top-1">

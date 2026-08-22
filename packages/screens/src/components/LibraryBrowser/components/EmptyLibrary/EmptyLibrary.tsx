@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { FolderOpenIcon, Search01Icon } from '@hugeicons/core-free-icons';
+import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
 /**
@@ -15,7 +15,7 @@ const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibrary
   if (search !== '') {
     return (
       <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <Icon of={Search01Icon} size={28} className="text-text-muted" />
+        <Icon of={MagnifyingGlassIcon} size={28} className="text-text-muted" />
 
         <p className="text-sm font-medium text-text">Nothing matches “{search}”</p>
 

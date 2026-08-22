@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowLeft01Icon, ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { CaretLeftIcon, CaretRightIcon, CheckIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -212,7 +212,7 @@ const SettingsMenu = ({
                           <span className="truncate" title={answer ?? undefined}>
                             {answer}
                           </span>
-                          <Icon of={ArrowRight01Icon} size={16} className="shrink-0" />
+                          <Icon of={CaretRightIcon} size={16} className="shrink-0" />
                         </span>
                       </Button>
                     );
@@ -228,7 +228,7 @@ const SettingsMenu = ({
                         'shrink-0 border-b border-[var(--surface-line)] font-medium ',
                       )}
                     >
-                      <Icon of={ArrowLeft01Icon} size={18} />
+                      <Icon of={CaretLeftIcon} size={18} />
                       {opened.label}
                     </Button>,
 
@@ -254,7 +254,7 @@ const SettingsMenu = ({
                           >
                             <span className="flex size-4 shrink-0 items-center justify-center">
                               {choice.id === opened.selectedId ? (
-                                <Icon of={Tick02Icon} size={16} />
+                                <Icon of={CheckIcon} size={16} />
                               ) : null}
                             </span>
 

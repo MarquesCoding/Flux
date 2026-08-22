@@ -371,6 +371,14 @@ body {
   --dock-clearance: 4rem;
 }
 
+:root {
+  --flux-icon-second-tone: 0.42;
+}
+
+.flux-icon [opacity] {
+  opacity: var(--flux-icon-second-tone);
+}
+
 .flux-glass {
   background: var(--glass-tint);
   backdrop-filter: blur(24px) saturate(160%) brightness(var(--glass-brightness));

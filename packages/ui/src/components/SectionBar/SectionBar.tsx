@@ -1,5 +1,5 @@
 import { Icon } from '@FluxUI/Icon';
-import { ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
+import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
@@ -122,7 +122,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
 
                   {group.label}
 
-                  <Icon of={ArrowDown01Icon} size={14} />
+                  <Icon of={CaretDownIcon} size={14} />
                 </RadixMenu.Trigger>
 
                 <RadixMenu.Portal
@@ -162,7 +162,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                             {item.label}
 
                             <RadixMenu.ItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                              <Icon of={Tick02Icon} size={15} />
+                              <Icon of={CheckIcon} size={15} />
                             </RadixMenu.ItemIndicator>
                           </RadixMenu.RadioItem>
                         ))}
