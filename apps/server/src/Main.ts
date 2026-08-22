@@ -20,6 +20,8 @@ import { asJsonLog } from '@FluxServer/logging/asJsonLog';
 import { createLogScope } from '@FluxServer/logging/createLogScope';
 import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderIntake';
 import { withApiMemory } from '@FluxServer/monitor/withApiMemory';
+import { createJobHealthWatch } from '@FluxServer/jobs/createJobHealthWatch';
+import { labelForQueue } from '@FluxServer/jobs/labelForQueue';
 import { traceJobs } from '@FluxServer/logging/traceJobs';
 import { createPresenceService } from '@FluxServer/presence/PresenceService';
 import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
@@ -512,16 +514,45 @@ const catalogueWatch = createReachabilityWatch({
   },
 });
 
+const jobHealth = createJobHealthWatch({
+  onStalled: ({ kind, failures, everSucceeded, reason }) => {
+    const label = labelForQueue(kind);
+
+    log.error(
+      'jobs',
+      everSucceeded
+        ? `${label} has failed every time it has run since it last worked — ${failures.toString()} attempts, most recently: ${reason}`
+        : `${label} has never once succeeded — ${failures.toString()} attempts, most recently: ${reason}`,
+    );
+
+    void events.publish({
+      event: 'job.stalled',
+      data: { kind, label, failures, everSucceeded, reason },
+    });
+  },
+  onWorking: (kind) => {
+    const label = labelForQueue(kind);
+
+    log.info('jobs', `${label} has run without failing.`);
+
+    void events.publish({ event: 'job.working', data: { kind, label } });
+  },
+});
+
 /**
  * Announces a job that has ended, to whatever is subscribed — except the announcing job itself,
  * which would otherwise announce its own announcements for ever.
  *
  * @param outcome - Which job ended, what it was about, and whether it succeeded.
  */
-const announceFinishedJob = ({ kind, jobId, subject, reason }: FinishedJob): void => {
+const announceFinishedJob = (finished: FinishedJob): void => {
+  const { kind, jobId, subject, reason } = finished;
+
   if (kind === DELIVER_WEBHOOK_JOB) {
     return;
   }
+
+  jobHealth.record(finished);
 
   void events.publish(
     reason === null
@@ -1276,6 +1307,8 @@ const app = createApp({
     return { cache, artwork, libraryBytes: bytes };
   },
   monitor: async () => withApiMemory(await transcoder.readMonitor()),
+  stalledJobs: () =>
+    jobHealth.stalled().map((stall) => ({ ...stall, label: labelForQueue(stall.kind) })),
   readImage: (url) => images.read(url),
   isTranscoderReachable: () => transcoder.isReachable(),
   transcoderAddress: env.TRANSCODER_URL,

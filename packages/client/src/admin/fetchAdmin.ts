@@ -39,6 +39,21 @@ const AdminOverviewSchema = z.object({
     .object({ count: z.number(), bytes: z.number(), atMs: z.number() })
     .nullable()
     .default(null),
+  jobs: z
+    .object({
+      stalled: z
+        .array(
+          z.object({
+            kind: z.string(),
+            label: z.string(),
+            failures: z.number(),
+            everSucceeded: z.boolean(),
+            reason: z.string(),
+          }),
+        )
+        .default([]),
+    })
+    .default({ stalled: [] }),
 });
 
 const JobSchema = z.object({

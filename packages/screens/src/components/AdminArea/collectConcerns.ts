@@ -110,6 +110,24 @@ const collectConcerns = ({
     });
   }
 
+  const stalled = overview?.jobs.stalled ?? [];
+  const worst = stalled[0];
+
+  if (worst !== undefined) {
+    concerns.push({
+      id: 'stalled-jobs',
+      tone: 'broken',
+      title:
+        stalled.length === 1
+          ? worst.everSucceeded
+            ? `${worst.label} fails every time it runs`
+            : `${worst.label} has never once succeeded`
+          : `${stalled.length.toString()} kinds of job fail every time they run`,
+      detail: `Nothing on its schedule has happened since. Last failure: ${worst.reason}`,
+      panel: 'jobs',
+    });
+  }
+
   const resources = monitor?.resources ?? null;
 
   const memory = memoryEnvelope(resources);

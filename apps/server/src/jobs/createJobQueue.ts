@@ -1,6 +1,7 @@
 import { PgBoss } from 'pg-boss';
 import type { Job } from 'pg-boss';
 import { scheduleSendOptions } from './scheduleSendOptions';
+import { readJobPayload } from './readJobPayload';
 import type { JobProgress, JobQueue, JobState } from './JobQueue';
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
@@ -58,7 +59,6 @@ const createJobQueue = async ({
    * failures can be reported against something an operator recognises rather than against an
    * identifier.
    *
-   * @param kind - The kind of job.
    * @param payload - What it was enqueued with.
    * @returns What the job is about, or null where its payload names nothing.
    */
@@ -97,14 +97,15 @@ const createJobQueue = async ({
     }
 
     await boss.createQueue(kind);
-    await boss.work(kind, async (jobs: Job<{ [key: string]: JsonValue }>[]) => {
+    await boss.work(kind, async (jobs: Job<JsonValue>[]) => {
       for (const job of jobs) {
-        const subject = subjectOf(job.data);
+        const payload = readJobPayload(job.data);
+        const subject = subjectOf(payload);
 
         running.set(job.id, { kind, subject });
 
         try {
-          await handler(job.id, job.data);
+          await handler(job.id, payload);
 
           onFinished?.({ kind, jobId: job.id, subject, reason: null });
         } catch (error) {
@@ -187,7 +188,7 @@ const createJobQueue = async ({
     },
 
     setSchedule: async (queueName, key, cron, timezone) => {
-      await boss.schedule(queueName, cron, null, scheduleSendOptions(queueName, key, timezone));
+      await boss.schedule(queueName, cron, {}, scheduleSendOptions(queueName, key, timezone));
     },
 
     clearSchedule: async (queueName, key) => {

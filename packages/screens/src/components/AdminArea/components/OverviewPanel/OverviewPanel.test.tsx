@@ -38,6 +38,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
   artwork: null,
+  jobs: { stalled: [] },
   ...overrides,
 });
 
