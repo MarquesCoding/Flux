@@ -196,6 +196,52 @@ describe('formatWebhookBody', () => {
     expect(written.body).toContain('Nothing needs doing');
   });
 
+  it('says a job that has never once worked has never once worked', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'job.stalled',
+      data: {
+        kind: 'library.scan.scheduled',
+        label: 'Scan for changes',
+        failures: 457,
+        everSucceeded: false,
+        reason: 'Cannot read properties of null',
+      },
+    });
+
+    expect(written.body).toContain('Scan for changes');
+    expect(written.body).toContain('never once succeeded');
+    expect(written.body).toContain('457');
+    expect(written.body).toContain('Cannot read properties of null');
+  });
+
+  it('says a job that used to work has stopped working', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'job.stalled',
+      data: {
+        kind: 'server.checkDiskSpace',
+        label: 'Check disk space',
+        failures: 3,
+        everSucceeded: true,
+        reason: 'the disk is gone',
+      },
+    });
+
+    expect(written.body).toContain('since it last worked');
+  });
+
+  it('says a job that is working again needs nothing doing', () => {
+    const written = formatWebhookBody('ntfy', {
+      ...anEnvelope,
+      event: 'job.working',
+      data: { kind: 'server.checkDiskSpace', label: 'Check disk space' },
+    });
+
+    expect(written.body).toContain('Check disk space');
+    expect(written.body).toContain('Nothing needs doing');
+  });
+
   it('says which disk is filling and how much is left', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,

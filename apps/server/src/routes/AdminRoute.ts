@@ -52,6 +52,19 @@ const AdminOverviewSchema = z
       })
       .nullable()
       .default(null),
+    jobs: z
+      .object({
+        stalled: z.array(
+          z.object({
+            kind: z.string(),
+            label: z.string(),
+            failures: z.number().int().positive(),
+            everSucceeded: z.boolean(),
+            reason: z.string(),
+          }),
+        ),
+      })
+      .default({ stalled: [] }),
   })
   .openapi('AdminOverview');
 

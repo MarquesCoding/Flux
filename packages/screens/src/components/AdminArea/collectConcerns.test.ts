@@ -17,6 +17,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
   artwork: null,
+  jobs: { stalled: [] },
   ...overrides,
 });
 
@@ -294,6 +295,86 @@ describe('collectConcerns', () => {
 
     it('says nothing about a library that has been scanned', () => {
       expect(collectConcerns(healthy)).toEqual([]);
+    });
+
+    it('reports a kind of job that has never once succeeded', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          jobs: {
+            stalled: [
+              {
+                kind: 'library.scan.scheduled',
+                label: 'Scan for changes',
+                failures: 457,
+                everSucceeded: false,
+                reason: "Cannot read properties of null (reading 'libraryId')",
+              },
+            ],
+          },
+        }),
+      });
+
+      const stalled = concerns.find((concern) => concern.id === 'stalled-jobs');
+
+      expect(stalled?.title).toBe('Scan for changes has never once succeeded');
+      expect(stalled?.tone).toBe('broken');
+      expect(stalled?.panel).toBe('jobs');
+    });
+
+    it('tells a job that has stopped working from one that never worked', () => {
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          jobs: {
+            stalled: [
+              {
+                kind: 'server.checkDiskSpace',
+                label: 'Check disk space',
+                failures: 12,
+                everSucceeded: true,
+                reason: 'the disk is gone',
+              },
+            ],
+          },
+        }),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'stalled-jobs')?.title).toBe(
+        'Check disk space fails every time it runs',
+      );
+    });
+
+    it('counts them rather than listing every stalled kind', () => {
+      const stall = (kind: string, label: string) => ({
+        kind,
+        label,
+        failures: 3,
+        everSucceeded: false,
+        reason: 'no',
+      });
+
+      const concerns = collectConcerns({
+        ...healthy,
+        overview: healthyOverview({
+          jobs: {
+            stalled: [
+              stall('server.checkDiskSpace', 'Check disk space'),
+              stall('server.checkTranscoder', 'Check the transcoder'),
+            ],
+          },
+        }),
+      });
+
+      expect(concerns.find((concern) => concern.id === 'stalled-jobs')?.title).toBe(
+        '2 kinds of job fail every time they run',
+      );
+    });
+
+    it('says nothing about jobs while every kind still works', () => {
+      expect(
+        collectConcerns(healthy).find((concern) => concern.id === 'stalled-jobs'),
+      ).toBeUndefined();
     });
 
     it('reports memory that is nearly full', () => {

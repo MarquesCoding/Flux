@@ -59,6 +59,16 @@ const sentenceFor = (payload: WebhookPayload): string => {
       return 'The transcoder is answering again. Nothing needs doing.';
     }
 
+    case 'job.stalled': {
+      return payload.data.everSucceeded
+        ? `${payload.data.label} has failed every time it has run since it last worked — ${payload.data.failures.toString()} attempts, most recently: ${payload.data.reason}`
+        : `${payload.data.label} has never once succeeded — ${payload.data.failures.toString()} attempts, most recently: ${payload.data.reason}`;
+    }
+
+    case 'job.working': {
+      return `${payload.data.label} has run without failing. Nothing needs doing.`;
+    }
+
     case 'disk.low': {
       return `${payload.data.mountPoint} is running out of room — ${formatBytes(payload.data.availableBytes)} left of ${formatBytes(payload.data.totalBytes)}.`;
     }
