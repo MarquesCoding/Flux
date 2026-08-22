@@ -51,7 +51,7 @@ const CaptionStyleSchema = z.object({
 
 type CaptionStyle = z.infer<typeof CaptionStyleSchema>;
 
-const STORAGE_KEY = 'flux.captionStyle';
+const STORAGE_KEY = 'valence.captionStyle';
 
 const DEFAULT_CAPTION_STYLE: CaptionStyle = CaptionStyleSchema.parse({});
 

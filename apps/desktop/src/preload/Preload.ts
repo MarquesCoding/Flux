@@ -20,11 +20,11 @@ const alreadyFound = z.array(z.string()).catch([]).parse(ipcRenderer.sendSync(WH
 
 markTheDocument(document);
 
-document.addEventListener('flux:change-server', () => {
+document.addEventListener('valence:change-server', () => {
   ipcRenderer.send(CHANGE_SERVER);
 });
 
-document.addEventListener('flux:now-watching', (event) => {
+document.addEventListener('valence:now-watching', (event) => {
   ipcRenderer.send(NOW_WATCHING, event instanceof CustomEvent ? event.detail : null);
 });
 

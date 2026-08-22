@@ -1,8 +1,8 @@
 const MARK = 'valenceDesktop';
 
-const CHANGE_SERVER = 'flux:change-server';
+const CHANGE_SERVER = 'valence:change-server';
 
-const NOW_WATCHING = 'flux:now-watching';
+const NOW_WATCHING = 'valence:now-watching';
 
 type WhatIsBeingWatched = {
   kind: 'watching';

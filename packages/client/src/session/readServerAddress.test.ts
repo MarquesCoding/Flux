@@ -3,14 +3,14 @@ import { readServerAddress } from './readServerAddress';
 
 describe('readServerAddress', () => {
   it('keeps an address given in full', () => {
-    expect(readServerAddress('https://flux.example.com')).toEqual({
-      address: 'https://flux.example.com',
+    expect(readServerAddress('https://valence.example.com')).toEqual({
+      address: 'https://valence.example.com',
     });
   });
 
   it('assumes https for a bare host, which is what people type', () => {
-    expect(readServerAddress('flux.example.com')).toEqual({
-      address: 'https://flux.example.com',
+    expect(readServerAddress('valence.example.com')).toEqual({
+      address: 'https://valence.example.com',
     });
   });
 
@@ -27,8 +27,8 @@ describe('readServerAddress', () => {
   });
 
   it('drops a trailing slash, since every path is joined onto this', () => {
-    expect(readServerAddress('https://flux.example.com/')).toEqual({
-      address: 'https://flux.example.com',
+    expect(readServerAddress('https://valence.example.com/')).toEqual({
+      address: 'https://valence.example.com',
     });
   });
 
@@ -39,8 +39,8 @@ describe('readServerAddress', () => {
   });
 
   it('ignores the space somebody pasted with it', () => {
-    expect(readServerAddress('  https://flux.example.com  ')).toEqual({
-      address: 'https://flux.example.com',
+    expect(readServerAddress('  https://valence.example.com  ')).toEqual({
+      address: 'https://valence.example.com',
     });
   });
 
@@ -54,7 +54,7 @@ describe('readServerAddress', () => {
   });
 
   it('refuses a scheme a server is not reached over', () => {
-    expect(readServerAddress('ftp://flux.example.com')).toHaveProperty('problem');
+    expect(readServerAddress('ftp://valence.example.com')).toHaveProperty('problem');
   });
 
   it('says why, rather than refusing without a reason', () => {

@@ -4,6 +4,8 @@ let opened: Conf<Record<string, string>> | null = null;
 
 type PreferenceFile = {
   all: () => Record<string, string>;
+
+  read: (key: string) => string | null;
   write: (key: string, value: string) => void;
   forget: (key: string) => void;
 };
@@ -48,6 +50,11 @@ const thePreferenceFile = (): PreferenceFile => {
       }
 
       return everything;
+    },
+    read: (key) => {
+      const value = held.get(key);
+
+      return typeof value === 'string' ? value : null;
     },
     write: (key, value) => {
       held.set(key, value);

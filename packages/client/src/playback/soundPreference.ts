@@ -5,7 +5,7 @@ const SoundPreferenceSchema = z.enum(['muted', 'audible']);
 
 type SoundPreference = z.infer<typeof SoundPreferenceSchema>;
 
-const STORAGE_KEY = 'flux.soundPreference';
+const STORAGE_KEY = 'valence.soundPreference';
 
 const DEFAULT_SOUND_PREFERENCE: SoundPreference = 'muted';
 

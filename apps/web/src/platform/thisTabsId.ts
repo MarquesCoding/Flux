@@ -1,6 +1,6 @@
 import { randomId } from '@ValenceClient/platform/randomId';
 
-const STORAGE_KEY = 'flux.clientId';
+const STORAGE_KEY = 'valence.clientId';
 
 /**
  * Which open tab this is, made once and then kept for as long as the tab lives.

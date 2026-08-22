@@ -30,13 +30,13 @@ describe('isTheDesktopClient', () => {
 describe('askForADifferentServer', () => {
   it('asks the window, which is the only thing that can point itself somewhere else', () => {
     const heard = vi.fn();
-    document.addEventListener('flux:change-server', heard);
+    document.addEventListener('valence:change-server', heard);
 
     askForADifferentServer();
 
     expect(heard).toHaveBeenCalledOnce();
 
-    document.removeEventListener('flux:change-server', heard);
+    document.removeEventListener('valence:change-server', heard);
   });
 
   it('asks nothing in particular in a browser, where nobody is listening', () => {

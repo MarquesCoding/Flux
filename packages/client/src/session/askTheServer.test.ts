@@ -65,7 +65,7 @@ describe('a request that arrives already built', () => {
     const [sent] = fetchMock.mock.calls[0] ?? [];
     const asked = sent instanceof Request ? sent.url : String(sent);
 
-    expect(asked).not.toContain('flux.invalid');
+    expect(asked).not.toContain('valence.invalid');
   });
 
   it('is left alone where it is already asking for somewhere real', async () => {

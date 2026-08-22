@@ -1,6 +1,6 @@
 import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
-const STORAGE_KEY = 'flux.library.last';
+const STORAGE_KEY = 'valence.library.last';
 
 /**
  * Reads which library this viewer was last looking at.

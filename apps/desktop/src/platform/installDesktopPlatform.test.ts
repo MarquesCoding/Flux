@@ -39,9 +39,9 @@ describe('installDesktopPlatform', () => {
   it('writes the address down where the process that owns the window will read it', () => {
     installDesktopPlatform();
 
-    platformInUse().store.write('flux.server.address', 'https://flux.example.com');
+    platformInUse().store.write('valence.server.address', 'https://valence.example.com');
 
-    expect(onDisk.get('flux.server.address')).toBe('https://flux.example.com');
+    expect(onDisk.get('valence.server.address')).toBe('https://valence.example.com');
   });
 
   it('names the machine rather than the engine, so a sessions list reads like a household', () => {

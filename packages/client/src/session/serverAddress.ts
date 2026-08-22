@@ -1,6 +1,6 @@
 import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
-const KEY = 'flux.server.address';
+const KEY = 'valence.server.address';
 
 /**
  * Reads the server a client with a window of its own was told to watch.

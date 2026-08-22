@@ -411,7 +411,7 @@ describe('shown inside the desktop client', () => {
   it('asks the window when it is chosen', async () => {
     const heard = vi.fn();
     document.documentElement.dataset['valenceDesktop'] = 'true';
-    document.addEventListener('flux:change-server', heard);
+    document.addEventListener('valence:change-server', heard);
 
     renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
     await arrive();
@@ -419,7 +419,7 @@ describe('shown inside the desktop client', () => {
 
     expect(heard).toHaveBeenCalledOnce();
 
-    document.removeEventListener('flux:change-server', heard);
+    document.removeEventListener('valence:change-server', heard);
     delete document.documentElement.dataset['valenceDesktop'];
   });
 

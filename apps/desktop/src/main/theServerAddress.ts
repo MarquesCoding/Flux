@@ -1,6 +1,6 @@
 import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
 
-const KEY = 'flux.server.address';
+const KEY = 'valence.server.address';
 
 /**
  * Where this client has been told its Valence is, read from the same file the window writes it to.

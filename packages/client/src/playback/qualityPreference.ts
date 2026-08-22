@@ -6,7 +6,7 @@ const QualityPreferenceSchema = z.enum(['original', ...QUALITY_STEP_IDS]);
 
 type QualityPreference = z.infer<typeof QualityPreferenceSchema>;
 
-const STORAGE_KEY = 'flux.qualityPreference';
+const STORAGE_KEY = 'valence.qualityPreference';
 
 const DEFAULT_QUALITY_PREFERENCE: QualityPreference = 'original';
 

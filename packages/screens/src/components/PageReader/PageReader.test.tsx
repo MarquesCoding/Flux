@@ -197,6 +197,6 @@ describe('PageReader', () => {
     await userEvent.click(screen.getByRole('button', { name: 'How to read' }));
     await userEvent.click(screen.getByText('Two pages'));
 
-    expect(held.get('flux.reader')).toContain('"isDouble":true');
+    expect(held.get('valence.reader')).toContain('"isDouble":true');
   });
 });

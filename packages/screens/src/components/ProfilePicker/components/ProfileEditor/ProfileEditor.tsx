@@ -51,7 +51,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
   const [colour, setColour] = useState<ProfileColour>(profile?.colour ?? PROFILE_COLOURS[0]);
   const [avatar, setAvatar] = useState<Avatar>(profile?.avatar ?? { kind: 'initial' });
   const [seed, setSeed] = useState(
-    profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'flux'),
+    profile?.avatar.kind === 'drawn' ? profile.avatar.seed : (profile?.id ?? 'valence'),
   );
   const [photo, setPhoto] = useState<File | null>(null);
   const [askAfter, setAskAfter] = useState(

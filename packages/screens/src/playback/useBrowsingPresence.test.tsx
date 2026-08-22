@@ -58,11 +58,11 @@ beforeEach(() => {
   fetchProfiles.mockReset().mockResolvedValue([aProfile(true)]);
   readCurrentProfile.mockReset().mockReturnValue('profile-1');
   document.documentElement.dataset['valenceDesktop'] = 'true';
-  document.addEventListener('flux:now-watching', heard);
+  document.addEventListener('valence:now-watching', heard);
 });
 
 afterEach(() => {
-  document.removeEventListener('flux:now-watching', heard);
+  document.removeEventListener('valence:now-watching', heard);
   delete document.documentElement.dataset['valenceDesktop'];
 });
 

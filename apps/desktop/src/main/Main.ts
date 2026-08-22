@@ -17,6 +17,8 @@ import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
 import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import { keepLookingForAValence, lookForAValence } from '@ValenceDesktop/main/lookForAValence';
+import { carryOldKeysOver } from '@ValenceClient/platform/carryOldKeysOver';
+import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
 import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
 import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
 import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
@@ -90,8 +92,26 @@ const findAFlux = async (): Promise<void> => {
   stopLooking = keepLookingForAValence(offer);
 };
 
+/**
+ * Carries what this machine already remembers to the names it is remembered under now.
+ *
+ * The window does this for itself as it installs its platform, and this process cannot wait for it:
+ * it reads which server was chosen before there is a window at all, to know what to open. Read a
+ * moment too early, that key is absent and the client asks all over again for something it was
+ * already told.
+ *
+ * The same file either way, so whichever gets there first does the work and the other finds it done.
+ */
+const carryWhatThisMachineRemembers = (): void => {
+  const file = thePreferenceFile();
+
+  carryOldKeysOver({ read: file.read, write: file.write, forget: file.forget });
+};
+
 const start = async (): Promise<void> => {
   await app.whenReady();
+
+  carryWhatThisMachineRemembers();
 
   serveTheApplication();
   carryTheSessionToTheSocket();
