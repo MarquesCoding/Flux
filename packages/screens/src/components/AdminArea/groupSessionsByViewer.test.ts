@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupSessionsByViewer } from './groupSessionsByViewer';
-import type { ActiveSession } from '@FluxClient/admin/fetchAdmin';
+import type { ActiveSession } from '@ValenceClient/admin/fetchAdmin';
 
 const session = (overrides: Partial<ActiveSession> = {}): ActiveSession => ({
   clientId: 'cli_1',

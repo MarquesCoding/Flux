@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { DotFieldProps } from './DotField.types';
 
 const SPACING = 16;

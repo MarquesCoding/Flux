@@ -30,13 +30,13 @@ slow feedback is feedback that gets bypassed with `--no-verify`.
 
 Runs on every commit across all staged files. Owns everything that can be decided
 from the syntax tree alone: unused variables, import correctness, obvious
-correctness bugs, React hook rules, and the majority of the Flux custom rules.
+correctness bugs, React hook rules, and the majority of the Valence custom rules.
 
 ### ESLint — second, slower, type-aware only
 
 Configured with **only** rules that genuinely require the type checker:
 `no-floating-promises`, `no-misused-promises`, `no-unnecessary-condition`,
-`no-unsafe-*`, and the type-aware half of the Flux rules.
+`no-unsafe-*`, and the type-aware half of the Valence rules.
 
 **No rule is implemented in both.** Duplication produces conflicting autofixes
 and doubles the runtime for no benefit. If oxlint can decide it, oxlint owns it.

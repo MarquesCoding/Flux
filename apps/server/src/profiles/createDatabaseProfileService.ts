@@ -3,12 +3,15 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { extname, join } from 'node:path';
 import { and, asc, eq } from 'drizzle-orm';
 import { drawAvatar, isAvatarStyle } from './drawAvatar';
-import { viewerProfile, user } from '@FluxServer/db/Schema';
-import { STILL_WATCHING_DEFAULT, StillWatchingSchema } from '@FluxContracts/schemas/StillWatching';
-import { ProfileColourSchema, PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { viewerProfile, user } from '@ValenceServer/db/Schema';
+import {
+  STILL_WATCHING_DEFAULT,
+  StillWatchingSchema,
+} from '@ValenceContracts/schemas/StillWatching';
+import { ProfileColourSchema, PROFILE_COLOURS } from '@ValenceContracts/schemas/ViewerProfile';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { ProfileService } from './ProfileService';
-import type { ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ProfileColour, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const PHOTO_TYPES: Record<string, string> = {
   'image/jpeg': '.jpg',
@@ -144,7 +147,10 @@ const COLUMNS = {
  * @param photoDirectory - Where uploaded photographs are kept.
  * @returns The profile service.
  */
-const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string): ProfileService => {
+const createDatabaseProfileService = (
+  db: ValenceDatabase,
+  photoDirectory: string,
+): ProfileService => {
   const listFor = async (userId: string): Promise<ViewerProfile[]> => {
     const rows = await db
       .select(COLUMNS)
@@ -220,7 +226,7 @@ const createDatabaseProfileService = (db: FluxDatabase, photoDirectory: string):
         colour: created.colour,
         avatar: { kind: 'initial' },
         askStillWatchingAfter: STILL_WATCHING_DEFAULT,
-      showsWhatIamWatching: false,
+        showsWhatIamWatching: false,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };

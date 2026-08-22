@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { render } from '@testing-library/react';
-import { buildRouter } from '@FluxScreens/routes/buildRouter';
+import { buildRouter } from '@ValenceScreens/routes/buildRouter';
 import type { RenderResult } from '@testing-library/react';
 
 /**

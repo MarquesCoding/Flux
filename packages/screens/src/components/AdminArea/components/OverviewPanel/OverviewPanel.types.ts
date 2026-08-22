@@ -1,5 +1,5 @@
-import type { ActiveSession, AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { ActiveSession, AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 type OverviewPanelProps = {
   overview: AdminOverview | null;

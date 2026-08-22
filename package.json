@@ -1,5 +1,5 @@
 {
-  "name": "flux",
+  "name": "valence",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -12,7 +12,7 @@
     "dev": "turbo run dev",
     "test": "turbo run test",
     "test:coverage": "turbo run test -- --coverage",
-    "coverage": "pnpm test:coverage && pnpm --filter @flux/tools exec tsx coverageAverage/checkCoverageAverage.ts",
+    "coverage": "pnpm test:coverage && pnpm --filter @valence/tools exec tsx coverageAverage/checkCoverageAverage.ts",
     "typecheck": "turbo run typecheck",
     "lint": "oxlint && eslint . && tsx tools/comments/checkComments.ts",
     "lint:fix": "oxlint --fix && eslint . --fix && tsx tools/comments/checkComments.ts --fix",

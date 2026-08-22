@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetPlatform, platformInUse } from '@FluxClient/platform/installPlatform';
+import { forgetPlatform, platformInUse } from '@ValenceClient/platform/installPlatform';
 import { installDesktopPlatform } from './installDesktopPlatform';
 
 const onDisk = new Map<string, string>();
@@ -19,7 +19,7 @@ const aBridge = () => ({
 beforeEach(() => {
   forgetPlatform();
   onDisk.clear();
-  vi.stubGlobal('flux', aBridge());
+  vi.stubGlobal('valence', aBridge());
 });
 
 afterEach(() => {
@@ -36,25 +36,18 @@ describe('installDesktopPlatform', () => {
     expect(() => platformInUse()).not.toThrow();
   });
 
-
-
-
-
-
-
   it('writes the address down where the process that owns the window will read it', () => {
     installDesktopPlatform();
 
-    platformInUse().store.write('flux.server.address', 'https://flux.example.com');
+    platformInUse().store.write('valence.server.address', 'https://valence.example.com');
 
-    expect(onDisk.get('flux.server.address')).toBe('https://flux.example.com');
+    expect(onDisk.get('valence.server.address')).toBe('https://valence.example.com');
   });
-
 
   it('names the machine rather than the engine, so a sessions list reads like a household', () => {
     installDesktopPlatform();
 
-    expect(platformInUse().describeThisClient()).toContain('Flux');
+    expect(platformInUse().describeThisClient()).toContain('Valence');
   });
 
   it('opens no socket, since this page is gone before anything live would matter', () => {

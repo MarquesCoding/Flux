@@ -20,7 +20,7 @@ const validateAddLibraryForm = (values: AddLibraryFormValues): AddLibraryFormErr
   }
 
   if (values.path.trim().length === 0) {
-    errors.path = 'Enter the path to this library on the machine running Flux.';
+    errors.path = 'Enter the path to this library on the machine running Valence.';
   }
 
   return errors;

@@ -1,4 +1,4 @@
-import type { MediaGridSize } from '@FluxScreens/components/MediaGrid/MediaGrid.types';
+import type { MediaGridSize } from '@ValenceScreens/components/MediaGrid/MediaGrid.types';
 
 type GridSizeChooserProps = {
   value: MediaGridSize;

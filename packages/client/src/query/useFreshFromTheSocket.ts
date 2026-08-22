@@ -1,11 +1,11 @@
 import { useEffect } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { notificationQueries } from '@FluxClient/query/notificationQueries';
-import { sessionQueries } from '@FluxClient/query/sessionQueries';
-import { adminQueries } from '@FluxClient/query/adminQueries';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { notificationQueries } from '@ValenceClient/query/notificationQueries';
+import { sessionQueries } from '@ValenceClient/query/sessionQueries';
+import { adminQueries } from '@ValenceClient/query/adminQueries';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 
 type SaysWhatChanged = Pick<RealtimeClient, 'subscribe' | 'onResumed'>;
 

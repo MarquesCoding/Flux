@@ -11,8 +11,8 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use flux_transcoder::media::{Container, VideoRange};
-use flux_transcoder::probe::probe_media;
+use valence_transcoder::media::{Container, VideoRange};
+use valence_transcoder::probe::probe_media;
 
 mod common;
 
@@ -175,7 +175,7 @@ fn subtitles_mkv() -> PathBuf {
     )
 }
 
-async fn probe(path: &Path) -> flux_transcoder::media::MediaProbe {
+async fn probe(path: &Path) -> valence_transcoder::media::MediaProbe {
     probe_media(&ffprobe(), path)
         .await
         .expect("probes the fixture")

@@ -72,7 +72,7 @@ describe('findDisksUnderPressure', () => {
     expect(findDisksUnderPressure(['/media/films'], disks)).toHaveLength(1);
   });
 
-  it('ignores a full disk Flux does not write to', () => {
+  it('ignores a full disk Valence does not write to', () => {
     const disks = [disk('/media', 20 * TERABYTE, 10 * TERABYTE), disk('/snap/core', 1024, 0)];
 
     expect(findDisksUnderPressure(['/media/films'], disks)).toStrictEqual([]);

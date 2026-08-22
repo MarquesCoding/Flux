@@ -1,12 +1,12 @@
 import { act, waitFor } from '@testing-library/react';
-import { renderHookInACache } from '@FluxClient/testing/renderHookInACache';
+import { renderHookInACache } from '@ValenceClient/testing/renderHookInACache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useFavourites } from './useFavourites';
 
 const fetchFavourites = vi.fn<() => Promise<string[]>>();
 const setFavourite = vi.fn<(mediaId: string, isKept: boolean) => Promise<boolean>>();
 
-vi.mock('@FluxClient/library/fetchFavourites', () => ({
+vi.mock('@ValenceClient/library/fetchFavourites', () => ({
   fetchFavourites: () => fetchFavourites(),
   setFavourite: (mediaId: string, isKept: boolean) => setFavourite(mediaId, isKept),
 }));

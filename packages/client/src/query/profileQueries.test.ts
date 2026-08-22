@@ -1,16 +1,16 @@
 import { QueryClient } from '@tanstack/react-query';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { profileQueries } from './profileQueries';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const fetchProfiles = vi.fn<() => Promise<ViewerProfile[]>>();
 const readCurrentProfile = vi.fn<() => string | null>();
 
-vi.mock('@FluxClient/profiles/fetchProfiles', () => ({
+vi.mock('@ValenceClient/profiles/fetchProfiles', () => ({
   fetchProfiles: () => fetchProfiles(),
 }));
 
-vi.mock('@FluxClient/profiles/currentProfile', () => ({
+vi.mock('@ValenceClient/profiles/currentProfile', () => ({
   readCurrentProfile: () => readCurrentProfile(),
 }));
 

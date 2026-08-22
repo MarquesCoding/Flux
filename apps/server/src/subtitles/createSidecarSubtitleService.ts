@@ -1,6 +1,6 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
-import { toWebVtt } from '@FluxCore/functions/toWebVtt';
+import { toWebVtt } from '@ValenceCore/functions/toWebVtt';
 import { findSidecarSubtitles, SUBTITLE_DIRECTORIES } from './findSidecarSubtitles';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';

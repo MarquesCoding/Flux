@@ -77,7 +77,7 @@ describe('PopoverPanel', () => {
 
     await actor.click(screen.getByRole('button', { name: 'Episodes' }));
 
-    expect((await screen.findByText('Season one')).closest('.flux-glass')).not.toBeNull();
+    expect((await screen.findByText('Season one')).closest('.valence-glass')).not.toBeNull();
   });
 
   it('sets a display name so devtools can identify it', () => {

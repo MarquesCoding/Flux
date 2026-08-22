@@ -3,16 +3,16 @@ import { z } from 'zod';
 import { render, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useBrowsingPresence } from './useBrowsingPresence';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const fetchProfiles = vi.fn<() => Promise<ViewerProfile[]>>();
 const readCurrentProfile = vi.fn<() => string | null>();
 
-vi.mock('@FluxClient/profiles/fetchProfiles', () => ({
+vi.mock('@ValenceClient/profiles/fetchProfiles', () => ({
   fetchProfiles: () => fetchProfiles(),
 }));
 
-vi.mock('@FluxClient/profiles/currentProfile', () => ({
+vi.mock('@ValenceClient/profiles/currentProfile', () => ({
   readCurrentProfile: () => readCurrentProfile(),
 }));
 
@@ -57,17 +57,17 @@ beforeEach(() => {
   seen.length = 0;
   fetchProfiles.mockReset().mockResolvedValue([aProfile(true)]);
   readCurrentProfile.mockReset().mockReturnValue('profile-1');
-  document.documentElement.dataset['fluxDesktop'] = 'true';
-  document.addEventListener('flux:now-watching', heard);
+  document.documentElement.dataset['valenceDesktop'] = 'true';
+  document.addEventListener('valence:now-watching', heard);
 });
 
 afterEach(() => {
-  document.removeEventListener('flux:now-watching', heard);
-  delete document.documentElement.dataset['fluxDesktop'];
+  document.removeEventListener('valence:now-watching', heard);
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('useBrowsingPresence', () => {
-  it('says somebody has Flux open, so a status stands between the things they watch', async () => {
+  it('says somebody has Valence open, so a status stands between the things they watch', async () => {
     draw();
 
     await waitFor(() => {
@@ -88,7 +88,7 @@ describe('useBrowsingPresence', () => {
   });
 
   it('says nothing in a browser, which has no window to say it to', async () => {
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
 
     draw();
 

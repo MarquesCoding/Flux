@@ -1,16 +1,16 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { Toaster } from '@FluxUI/Toaster';
+import { Toaster } from '@ValenceUI/Toaster';
 import { MatchPicker } from './MatchPicker';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const searchCatalogueMock = vi.hoisted(() => vi.fn());
 const correctMatchMock = vi.hoisted(() => vi.fn());
 const forgetCorrectionMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/admin/fetchAdmin', () => ({ searchCatalogue: searchCatalogueMock }));
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/admin/fetchAdmin', () => ({ searchCatalogue: searchCatalogueMock }));
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   correctMatch: correctMatchMock,
   forgetCorrection: forgetCorrectionMock,
 }));

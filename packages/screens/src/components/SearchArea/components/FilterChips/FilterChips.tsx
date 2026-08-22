@@ -1,4 +1,4 @@
-import { Button } from '@FluxUI/Button';
+import { Button } from '@ValenceUI/Button';
 import type { FilterChipsProps } from './FilterChips.types';
 
 /**

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { resumeFor } from './resumeFor';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
 
 const progress = (positionSeconds: number, isFinished = false): Map<string, WatchProgress> =>
   new Map([

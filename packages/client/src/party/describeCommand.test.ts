@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeCommand } from './describeCommand';
-import type { PartyCommand, SequencedCommand } from '@FluxContracts/schemas/WatchParty';
+import type { PartyCommand, SequencedCommand } from '@ValenceContracts/schemas/WatchParty';
 
 const issued = (command: PartyCommand, byConnectionId = 'dan'): SequencedCommand => ({
   sequence: 1,

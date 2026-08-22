@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { Rail } from '@FluxUI/Rail';
-import { MediaCard } from '@FluxUI/MediaCard';
-import { Skeleton } from '@FluxUI/Skeleton';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { bookCoverUrl } from '@FluxClient/books/fetchBooks';
-import { bookQueries } from '@FluxClient/query/bookQueries';
+import { Rail } from '@ValenceUI/Rail';
+import { MediaCard } from '@ValenceUI/MediaCard';
+import { Skeleton } from '@ValenceUI/Skeleton';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { bookCoverUrl } from '@ValenceClient/books/fetchBooks';
+import { bookQueries } from '@ValenceClient/query/bookQueries';
 import type { BookRailProps } from './BookRail.types';
 
 const WAITING = 6;

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { RouterContextProvider } from '@tanstack/react-router';
-import { CacheScope } from '@FluxClient/testing/CacheScope';
-import { buildRouter } from '@FluxScreens/routes/buildRouter';
+import { CacheScope } from '@ValenceClient/testing/CacheScope';
+import { buildRouter } from '@ValenceScreens/routes/buildRouter';
 import type { AddressScopeProps } from './AddressScope.types';
 
 /**

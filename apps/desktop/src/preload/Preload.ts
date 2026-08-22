@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcRendererEvent } from 'electron';
-import { markTheDocument } from '@FluxDesktop/preload/markTheDocument';
+import { markTheDocument } from '@ValenceDesktop/preload/markTheDocument';
 import { z } from 'zod';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
+import { FOUND_A_VALENCE, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import {
   CHANGE_SERVER,
   NOW_WATCHING,
@@ -10,7 +10,7 @@ import {
   GO_TO_THE_SERVER,
   READ_EVERYTHING,
   WRITE_ONE,
-} from '@FluxDesktop/main/preferenceChannels';
+} from '@ValenceDesktop/main/preferenceChannels';
 
 const HeldSchema = z.record(z.string(), z.string()).catch({});
 
@@ -20,15 +20,15 @@ const alreadyFound = z.array(z.string()).catch([]).parse(ipcRenderer.sendSync(WH
 
 markTheDocument(document);
 
-document.addEventListener('flux:change-server', () => {
+document.addEventListener('valence:change-server', () => {
   ipcRenderer.send(CHANGE_SERVER);
 });
 
-document.addEventListener('flux:now-watching', (event) => {
+document.addEventListener('valence:now-watching', (event) => {
   ipcRenderer.send(NOW_WATCHING, event instanceof CustomEvent ? event.detail : null);
 });
 
-contextBridge.exposeInMainWorld('flux', {
+contextBridge.exposeInMainWorld('valence', {
   preferences: {
     held,
     write: (key: string, value: string) => {
@@ -48,10 +48,10 @@ contextBridge.exposeInMainWorld('flux', {
         listener(address);
       };
 
-      ipcRenderer.on(FOUND_A_FLUX, told);
+      ipcRenderer.on(FOUND_A_VALENCE, told);
 
       return () => {
-        ipcRenderer.removeListener(FOUND_A_FLUX, told);
+        ipcRenderer.removeListener(FOUND_A_VALENCE, told);
       };
     },
   },

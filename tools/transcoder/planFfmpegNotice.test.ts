@@ -24,8 +24,8 @@ describe('planFfmpegNotice', () => {
   it('names the variable whose path is not there', () => {
     const notice = planFfmpegNotice({ ffmpeg: FFMPEG, ffprobe: FFPROBE, exists: absent });
 
-    expect(notice).toContain('FLUX_FFMPEG points at /repo/.ffmpeg/ffmpeg');
-    expect(notice).toContain('FLUX_FFPROBE points at /repo/.ffmpeg/ffprobe');
+    expect(notice).toContain('VALENCE_FFMPEG points at /repo/.ffmpeg/ffmpeg');
+    expect(notice).toContain('VALENCE_FFPROBE points at /repo/.ffmpeg/ffprobe');
   });
 
   it('catches a deleted build behind a stale setting', () => {
@@ -35,14 +35,14 @@ describe('planFfmpegNotice', () => {
       exists: (path) => path !== FFMPEG,
     });
 
-    expect(notice).toContain('FLUX_FFMPEG points at');
-    expect(notice).not.toContain('FLUX_FFPROBE points at');
+    expect(notice).toContain('VALENCE_FFMPEG points at');
+    expect(notice).not.toContain('VALENCE_FFPROBE points at');
   });
 
   it('warns when only one of the pair is set, since they are read separately', () => {
     const notice = planFfmpegNotice({ ffmpeg: FFMPEG, ffprobe: undefined, exists: present });
 
-    expect(notice).toContain('FLUX_FFPROBE is not set');
+    expect(notice).toContain('VALENCE_FFPROBE is not set');
   });
 
   it('treats an empty value as unset rather than as a path', () => {

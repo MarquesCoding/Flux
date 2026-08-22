@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
+import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 type PreviewAbsence = 'pending' | 'absent' | null;
 
 type MediaPreviewProps = {

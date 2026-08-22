@@ -1,9 +1,9 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
-import { renderTheApp } from '@FluxScreens/testing/renderTheApp';
+import { renderTheApp } from '@ValenceScreens/testing/renderTheApp';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonValueSchema, type JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
+import { JsonValueSchema, type JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
 type FetchLike = (
   input: string,
@@ -17,7 +17,7 @@ const socket = vi.hoisted(() => ({
   sent: new Array<{ kind: string }>(),
 }));
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},
@@ -85,7 +85,7 @@ const setupComplete = {
 const user = {
   id: 'usr_1',
   name: 'Operator',
-  email: 'admin@flux.test',
+  email: 'admin@valence.test',
   emailVerified: false,
 };
 
@@ -269,21 +269,21 @@ describe('App routing', () => {
     fetchMock.mockReturnValue(new Promise(() => undefined));
     renderTheApp();
 
-    expect(await screen.findByRole('status', { name: 'Loading Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: 'Loading Valence' })).toBeInTheDocument();
   });
 
   it('shows the setup wizard when setup is incomplete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Set up Valence' })).toBeInTheDocument();
   });
 
   it('does not ask for a session before setup is complete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Set up Flux' });
+    await screen.findByRole('heading', { name: 'Set up Valence' });
 
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything());
   });
@@ -336,7 +336,7 @@ describe('App routing', () => {
     renderTheApp();
 
     expect(
-      await screen.findByRole('heading', { name: 'Flux is not reachable' }),
+      await screen.findByRole('heading', { name: 'Valence is not reachable' }),
     ).toBeInTheDocument();
   });
 
@@ -348,7 +348,7 @@ describe('App routing', () => {
     );
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Flux is not reachable' });
+    await screen.findByRole('heading', { name: 'Valence is not reachable' });
 
     expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument();
   });
@@ -360,7 +360,7 @@ describe('App routing', () => {
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
-    await screen.findByText('admin@flux.test');
+    await screen.findByText('admin@valence.test');
 
     serverState({ setup: setupComplete, session: null });
     await actor.click(screen.getByRole('button', { name: /Sign out/ }));
@@ -496,11 +496,11 @@ describe('App routing', () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Set up Flux' });
+    await screen.findByRole('heading', { name: 'Set up Valence' });
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
 
-    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Set up Valence' })).toBeInTheDocument();
   });
 
   it('closes an item that was opened for a look', async () => {

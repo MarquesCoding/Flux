@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_PAYLOAD_VERSION } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookOccurrence } from './EventBus';
 
 /**

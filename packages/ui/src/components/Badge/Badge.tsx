@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { BadgeProps, BadgeSize, BadgeTone } from './Badge.types';
 
 const TONE_CLASSES: Record<BadgeTone, string> = {

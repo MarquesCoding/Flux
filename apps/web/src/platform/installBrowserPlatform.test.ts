@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetPlatform, platformInUse } from '@FluxClient/platform/installPlatform';
+import { forgetPlatform, platformInUse } from '@ValenceClient/platform/installPlatform';
 import { installBrowserPlatform } from './installBrowserPlatform';
 
 beforeEach(() => {
@@ -13,7 +13,6 @@ afterEach(() => {
 });
 
 describe('installBrowserPlatform', () => {
-
   it('gives this tab an identity that survives being asked twice', () => {
     installBrowserPlatform();
 

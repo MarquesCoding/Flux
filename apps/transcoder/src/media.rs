@@ -20,7 +20,7 @@ pub enum VideoRange {
     DolbyVision,
 }
 
-/// A container format Flux recognises.
+/// A container format Valence recognises.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum Container {
@@ -103,7 +103,7 @@ pub struct Chapter {
     pub end_seconds: f64,
 }
 
-/// A video stream as Flux models it.
+/// A video stream as Valence models it.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct VideoStream {
@@ -150,7 +150,7 @@ pub struct VideoStream {
     pub rotation_degrees: Option<i32>,
 }
 
-/// An audio stream as Flux models it.
+/// An audio stream as Valence models it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct AudioStream {
@@ -174,7 +174,7 @@ pub struct AudioStream {
     pub is_atmos: bool,
 }
 
-/// A subtitle stream as Flux models it.
+/// A subtitle stream as Valence models it.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubtitleStream {
@@ -194,7 +194,7 @@ pub struct SubtitleStream {
     pub is_image_based: bool,
 }
 
-/// Everything Flux needs to know about a media file to negotiate playback.
+/// Everything Valence needs to know about a media file to negotiate playback.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct MediaProbe {
@@ -211,12 +211,12 @@ pub struct MediaProbe {
     /// Absent unless somebody asked, because answering costs a read of the
     /// whole packet index and most callers are probing for something else. The
     /// library scan asks, so the decision to copy or encode is made once per
-    /// file rather than once per session. See FLUX-125.
+    /// file rather than once per session. See VAL-125.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub can_copy_segments: Option<bool>,
 }
 
-/// Maps an ffmpeg subtitle codec name onto the Flux subtitle format names
+/// Maps an ffmpeg subtitle codec name onto the Valence subtitle format names
 /// shared with the client.
 #[must_use]
 pub fn subtitle_format(codec_name: &str) -> &'static str {
@@ -239,7 +239,7 @@ pub fn is_image_subtitle(format: &str) -> bool {
     matches!(format, "vobsub" | "pgs" | "dvbsub")
 }
 
-/// Maps an ffmpeg audio codec name onto the Flux audio codec names.
+/// Maps an ffmpeg audio codec name onto the Valence audio codec names.
 #[must_use]
 pub fn audio_codec(codec_name: &str) -> String {
     if codec_name.starts_with("pcm_") {
@@ -273,7 +273,7 @@ pub fn bit_depth_from_pix_fmt(pix_fmt: &str) -> Option<u8> {
     None
 }
 
-/// Maps an ffmpeg video codec name onto the Flux video codec names.
+/// Maps an ffmpeg video codec name onto the Valence video codec names.
 #[must_use]
 pub fn video_codec(codec_name: &str) -> String {
     match codec_name {

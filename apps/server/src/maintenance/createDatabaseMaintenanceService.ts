@@ -3,8 +3,8 @@ import {
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
-} from '@FluxServer/jobs/JobQueue';
-import type { JobQueue } from '@FluxServer/jobs/JobQueue';
+} from '@ValenceServer/jobs/JobQueue';
+import type { JobQueue } from '@ValenceServer/jobs/JobQueue';
 import type { MaintenanceService, QueuedJob } from './MaintenanceService';
 
 type CreateDatabaseMaintenanceServiceOptions = {

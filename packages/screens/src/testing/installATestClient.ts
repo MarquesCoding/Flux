@@ -1,5 +1,5 @@
-import { installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 
 /**
  * Tells the application it is running on a client, before anything asks it what kind.

@@ -1,7 +1,7 @@
 /**
  * Whether a client at this origin may read what the server answers.
  *
- * A browser served by Flux is same-origin and never asks. Anything else is a client with a window
+ * A browser served by Valence is same-origin and never asks. Anything else is a client with a window
  * of its own, and the only ones that may read a reply are the ones an operator named — the same
  * list better-auth is given, so a deployment configures where it may be reached from once.
  *

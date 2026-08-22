@@ -23,7 +23,7 @@ describe('the connection pool', () => {
   it('is made once for a client, not once per stream opened', async () => {
     agentsMade.count = 0;
 
-    const client = createTranscoderClient({ baseUrl: 'unix:/tmp/flux-test.sock' });
+    const client = createTranscoderClient({ baseUrl: 'unix:/tmp/valence-test.sock' });
 
     await client.openMonitorStream();
     await client.openMonitorStream();

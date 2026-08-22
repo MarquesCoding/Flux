@@ -1,11 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryAuth } from './createMemoryAuth';
-import { ownAddresses } from '@FluxServer/env/ownOrigins';
+import { ownAddresses } from '@ValenceServer/env/ownOrigins';
 
 const BASE_URL = 'http://localhost:8420';
 
 const credentials = {
-  email: 'viewer@flux.test',
+  email: 'viewer@valence.test',
   password: 'a-long-enough-password',
   name: 'Viewer',
 };
@@ -155,12 +155,12 @@ describe('createAuth', () => {
   it('marks cookies secure when the instance is served over tls', async () => {
     const { auth } = createMemoryAuth({
       COOKIE_SECURE: 'true',
-      BETTER_AUTH_URL: 'https://flux.example',
-      TRUSTED_ORIGINS: 'https://flux.example',
+      BETTER_AUTH_URL: 'https://valence.example',
+      TRUSTED_ORIGINS: 'https://valence.example',
     });
 
     const response = await auth.handler(
-      new Request('https://flux.example/api/auth/sign-up/email', {
+      new Request('https://valence.example/api/auth/sign-up/email', {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify(credentials),
@@ -219,7 +219,7 @@ describe('createAuth', () => {
 
     const response = await auth.handler(
       post('/api/auth/request-password-reset', {
-        email: 'nobody@flux.test',
+        email: 'nobody@valence.test',
         redirectTo: `${BASE_URL}/reset`,
       }),
     );
@@ -240,7 +240,7 @@ describe('createAuth', () => {
   it('exposes the device authorization endpoint for keyboard-less clients', async () => {
     const { auth } = createMemoryAuth();
 
-    const response = await auth.handler(post('/api/auth/device/code', { client_id: 'flux-tv' }));
+    const response = await auth.handler(post('/api/auth/device/code', { client_id: 'valence-tv' }));
 
     expect(response.status).toBe(200);
 
@@ -295,5 +295,3 @@ describe('createAuth', () => {
     expect(response.status).toBe(200);
   });
 });
-
-

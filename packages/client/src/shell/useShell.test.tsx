@@ -1,7 +1,7 @@
 import { render, renderHook, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { shellContext } from '@FluxClient/shell/shellContext';
-import { aShell } from '@FluxClient/testing/aShell';
+import { shellContext } from '@ValenceClient/shell/shellContext';
+import { aShell } from '@ValenceClient/testing/aShell';
 import { useShell } from './useShell';
 import type { ReactNode } from 'react';
 

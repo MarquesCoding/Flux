@@ -1,5 +1,5 @@
 import * as RadixProgress from '@radix-ui/react-progress';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { ProgressBarProps } from './ProgressBar.types';
 
 /**

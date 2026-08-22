@@ -1,10 +1,10 @@
-import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
-import { findSharedAudio, agreeRange } from '@FluxCore/functions/findSharedAudio';
+import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
+import { findSharedAudio, agreeRange } from '@ValenceCore/functions/findSharedAudio';
 import { INTRO_BOUNDS } from './SegmentProvider';
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
-import type { Range } from '@FluxCore/functions/findSharedAudio';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
+import type { Range } from '@ValenceCore/functions/findSharedAudio';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const WINDOW_SECONDS = 600;
 

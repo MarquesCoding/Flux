@@ -1,6 +1,6 @@
 import { cloneElement } from 'react';
 import * as RadixTabs from '@radix-ui/react-tabs';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { TabPanelProps } from './TabPanel.types';
 
 /**

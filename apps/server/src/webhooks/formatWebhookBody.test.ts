@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_PAYLOAD_VERSION } from '@ValenceContracts/schemas/Webhook';
 import { formatWebhookBody } from './formatWebhookBody';
-import type { WebhookPayload } from '@FluxContracts/schemas/Webhook';
+import type { WebhookPayload } from '@ValenceContracts/schemas/Webhook';
 
 const DiscordMessageSchema = z.object({ content: z.string() });
 

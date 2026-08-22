@@ -1,11 +1,11 @@
 import { act, screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
-import { authenticateWithPasskey } from '@FluxClient/session/auth';
-import { isPasskeySupported } from '@FluxScreens/passkeys/isPasskeySupported';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
   id: `00000000-0000-4000-8000-${at.toString().padStart(12, '0')}`,
@@ -23,16 +23,13 @@ const HOUSEHOLD = ['Marques', 'Sam', 'Mum'].map(profileOf);
 const many = (count: number): ViewerProfile[] =>
   Array.from({ length: count }, (_ignored, at) => profileOf(`Person ${(at + 1).toString()}`, at));
 
-vi.mock('@FluxClient/session/auth', () => ({
+vi.mock('@ValenceClient/session/auth', () => ({
   authenticateWithPasskey: vi.fn(),
 }));
 
-vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
+vi.mock('@ValenceScreens/passkeys/isPasskeySupported', () => ({
   isPasskeySupported: vi.fn(),
 }));
-
-
-
 
 const passkeyMock = vi.mocked(authenticateWithPasskey);
 const passkeySupportedMock = vi.mocked(isPasskeySupported);
@@ -401,20 +398,20 @@ describe('signing in with a passkey instead of a password', () => {
 
 describe('shown inside the desktop client', () => {
   it('offers a different server, which is the one thing a window can do and a browser cannot', async () => {
-    document.documentElement.dataset['fluxDesktop'] = 'true';
+    document.documentElement.dataset['valenceDesktop'] = 'true';
 
     renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
     await arrive();
 
     expect(screen.getByRole('button', { name: 'Use a different server' })).toBeInTheDocument();
 
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
   });
 
   it('asks the window when it is chosen', async () => {
     const heard = vi.fn();
-    document.documentElement.dataset['fluxDesktop'] = 'true';
-    document.addEventListener('flux:change-server', heard);
+    document.documentElement.dataset['valenceDesktop'] = 'true';
+    document.addEventListener('valence:change-server', heard);
 
     renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
     await arrive();
@@ -422,8 +419,8 @@ describe('shown inside the desktop client', () => {
 
     expect(heard).toHaveBeenCalledOnce();
 
-    document.removeEventListener('flux:change-server', heard);
-    delete document.documentElement.dataset['fluxDesktop'];
+    document.removeEventListener('valence:change-server', heard);
+    delete document.documentElement.dataset['valenceDesktop'];
   });
 
   it('offers nothing of the sort in a browser, which is already where it was opened', async () => {

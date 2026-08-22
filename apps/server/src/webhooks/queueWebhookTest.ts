@@ -1,4 +1,4 @@
-import { stampWebhookEnvelope } from '@FluxServer/events/stampWebhookEnvelope';
+import { stampWebhookEnvelope } from '@ValenceServer/events/stampWebhookEnvelope';
 import type { WebhookStore } from './WebhookStore';
 
 type QueueWebhookTestOptions = {

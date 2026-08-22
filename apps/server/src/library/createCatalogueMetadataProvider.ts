@@ -1,8 +1,8 @@
-import { wait } from '@FluxCore/functions/wait';
+import { wait } from '@ValenceCore/functions/wait';
 import { z } from 'zod';
-import { CAST_STORED } from '@FluxContracts/schemas/Person';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { CAST_STORED } from '@ValenceContracts/schemas/Person';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
 import { pickLogo } from './pickLogo';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
@@ -377,7 +377,7 @@ const createCatalogueMetadataProvider = ({
         : fromFilename.title;
 
       /**
-       * Turns a catalogue entry into the metadata Flux stores, taking only the fields it has a use for
+       * Turns a catalogue entry into the metadata Valence stores, taking only the fields it has a use for
        * and building full addresses for the artwork.
        *
        * @param detail - The catalogue's own record.

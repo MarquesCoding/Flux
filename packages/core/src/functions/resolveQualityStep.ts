@@ -2,9 +2,9 @@ import {
   QUALITY_STEPS,
   COMPRESSED_AUDIO_THRESHOLD_HEIGHT,
   COMPRESSED_AUDIO_MAX_BITRATE_KBPS,
-} from '@FluxContracts/schemas/QualityStep';
-import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+} from '@ValenceContracts/schemas/QualityStep';
+import type { QualityStepId } from '@ValenceContracts/schemas/QualityStep';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 
 type QualityClamp = {
   maxWidth: number;

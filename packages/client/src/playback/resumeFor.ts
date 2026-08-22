@@ -1,5 +1,5 @@
-import { isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import { isWorthResuming } from '@ValenceContracts/schemas/WatchProgress';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
 
 /**
  * Where this viewer left an item, when it is worth offering to come back to.

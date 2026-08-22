@@ -1,7 +1,7 @@
-import { LogPageSchema, LogRecordSchema } from '@FluxContracts/schemas/Log';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+import { LogPageSchema, LogRecordSchema } from '@ValenceContracts/schemas/Log';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 
 type Subscribes = Pick<RealtimeClient, 'subscribe'>;
 

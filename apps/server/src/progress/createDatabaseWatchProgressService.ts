@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { watchProgress } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { watchProgress } from '@ValenceServer/db/Schema';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { WatchProgressService } from './WatchProgressService';
 
 const LIMIT = 60;
@@ -13,7 +13,7 @@ const LIMIT = 60;
  * @param db - The database to read and write.
  * @returns The watch progress service.
  */
-const createDatabaseWatchProgressService = (db: FluxDatabase): WatchProgressService => ({
+const createDatabaseWatchProgressService = (db: ValenceDatabase): WatchProgressService => ({
   read: async (profileId, mediaId) => {
     const [row] = await db
       .select()

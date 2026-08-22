@@ -1,11 +1,11 @@
 ---
 title: Writing a plugin
-description: What a Flux plugin is, and what it is deliberately not allowed to do.
+description: What a Valence plugin is, and what it is deliberately not allowed to do.
 ---
 
 ## Plugins run in their own process
 
-A Flux plugin does not run inside the server. It runs in a child process with
+A Valence plugin does not run inside the server. It runs in a child process with
 no filesystem access, no network access and no subprocess access, and reaches
 everything through a broker that checks each call against the permissions the
 plugin declared.

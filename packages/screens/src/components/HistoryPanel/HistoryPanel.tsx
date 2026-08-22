@@ -1,16 +1,16 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CheckIcon, TrashIcon } from '@phosphor-icons/react';
 import { useMemo, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { Badge } from '@FluxUI/Badge';
-import { Spinner } from '@FluxUI/Spinner';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { forgetViewing, forgetHistory } from '@FluxClient/history/fetchHistory';
+import { Button } from '@ValenceUI/Button';
+import { Badge } from '@ValenceUI/Badge';
+import { Spinner } from '@ValenceUI/Spinner';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { forgetViewing, forgetHistory } from '@ValenceClient/history/fetchHistory';
 import { useInfiniteQuery, useQueryClient } from '@tanstack/react-query';
-import { viewingQueries } from '@FluxClient/query/viewingQueries';
-import { describeWhen } from '@FluxClient/history/describeWhen';
-import type { Viewing } from '@FluxContracts/schemas/Viewing';
+import { viewingQueries } from '@ValenceClient/query/viewingQueries';
+import { describeWhen } from '@ValenceClient/history/describeWhen';
+import type { Viewing } from '@ValenceContracts/schemas/Viewing';
 import type { HistoryPanelProps } from './HistoryPanel.types';
 import type { InfiniteData } from '@tanstack/react-query';
 

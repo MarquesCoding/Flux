@@ -2,11 +2,11 @@ import {
   scanLibrary,
   resetLibrary,
   regenerateLibraryPreviews,
-} from '@FluxClient/library/fetchLibrary';
-import { cancelJob, fetchRunningScans, runJob } from '@FluxClient/admin/fetchAdmin';
-import { waitForScanCompletion } from '@FluxClient/library/waitForScanCompletion';
-import type { ScanJob } from '@FluxClient/library/fetchLibrary';
-import type { Library } from '@FluxContracts/schemas/Library';
+} from '@ValenceClient/library/fetchLibrary';
+import { cancelJob, fetchRunningScans, runJob } from '@ValenceClient/admin/fetchAdmin';
+import { waitForScanCompletion } from '@ValenceClient/library/waitForScanCompletion';
+import type { ScanJob } from '@ValenceClient/library/fetchLibrary';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 type ScanEntry = {
   kind: string;

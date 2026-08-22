@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryHistoryService } from '@FluxServer/history/createMemoryHistoryService';
-import { MOST_PER_GAP_SECONDS } from '@FluxServer/progress/accumulateWatchTime';
-import { createMemoryProfileService } from '@FluxServer/profiles/createMemoryProfileService';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signUpForTest, TEST_ORIGIN } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryHistoryService } from '@ValenceServer/history/createMemoryHistoryService';
+import { MOST_PER_GAP_SECONDS } from '@ValenceServer/progress/accumulateWatchTime';
+import { createMemoryProfileService } from '@ValenceServer/profiles/createMemoryProfileService';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const ViewingSchema = z.object({
   id: z.string(),

@@ -1,9 +1,9 @@
 import { previewRequestFor } from './previewRequestFor';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import type {
   PreviewSweepSubject,
   TrickplayRequest,
-} from '@FluxServer/transcoder/TranscoderClient';
+} from '@ValenceServer/transcoder/TranscoderClient';
 
 type RebuildSubject = {
   path: string;

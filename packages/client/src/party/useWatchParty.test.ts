@@ -1,9 +1,13 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { useWatchParty } from './useWatchParty';
-import type { PartyMember, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
-import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
+import type {
+  PartyMember,
+  SequencedCommand,
+  WatchParty,
+} from '@ValenceContracts/schemas/WatchParty';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
+import type { RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
 const NOW_MS = 1_700_000_000_000;
 

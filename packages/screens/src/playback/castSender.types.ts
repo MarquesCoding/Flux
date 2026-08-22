@@ -30,7 +30,7 @@ type CastContext = {
 declare global {
   interface Window {
     __onGCastApiAvailable?: (isAvailable: boolean) => void;
-    __fluxCastSender?: Promise<CastContext | null>;
+    __valenceCastSender?: Promise<CastContext | null>;
     cast?: {
       framework: {
         CastContext: { getInstance: () => CastContext };
@@ -58,7 +58,7 @@ type ScriptHost = {
 
 type CastCarrier = {
   __onGCastApiAvailable?: (isAvailable: boolean) => void;
-  __fluxCastSender?: Promise<CastContext | null>;
+  __valenceCastSender?: Promise<CastContext | null>;
   cast?: {
     framework: {
       CastContext: { getInstance: () => CastContext };

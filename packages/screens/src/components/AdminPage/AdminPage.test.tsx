@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { AdminPage } from './AdminPage';
-import type { AdminAreaProps } from '@FluxScreens/components/AdminArea/AdminArea.types';
+import type { AdminAreaProps } from '@ValenceScreens/components/AdminArea/AdminArea.types';
 
 const drawn = vi.hoisted((): { props: AdminAreaProps | null } => ({ props: null }));
 
-vi.mock('@FluxScreens/components/AdminArea/AdminArea', () => ({
+vi.mock('@ValenceScreens/components/AdminArea/AdminArea', () => ({
   AdminArea: (props: AdminAreaProps) => {
     drawn.props = props;
 

@@ -1,17 +1,17 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ListIcon, XIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { Icon } from '@FluxUI/Icon';
-import { OptionMenu } from '@FluxUI/OptionMenu';
-import { Slider } from '@FluxUI/Slider';
-import { bookPageUrl } from '@FluxClient/books/fetchBooks';
-import { groupHolding, spreadsFor } from '@FluxScreens/reading/spreadsFor';
+import { Button } from '@ValenceUI/Button';
+import { Icon } from '@ValenceUI/Icon';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
+import { Slider } from '@ValenceUI/Slider';
+import { bookPageUrl } from '@ValenceClient/books/fetchBooks';
+import { groupHolding, spreadsFor } from '@ValenceScreens/reading/spreadsFor';
 import {
   readReaderPreferences,
   writeReaderPreferences,
-} from '@FluxScreens/reading/readerPreferences';
-import type { ReaderPreferences } from '@FluxScreens/reading/readerPreferences';
-import { CLOSEST, distanceBetween, heldWithin, scaleFrom } from '@FluxScreens/reading/pinch';
+} from '@ValenceScreens/reading/readerPreferences';
+import type { ReaderPreferences } from '@ValenceScreens/reading/readerPreferences';
+import { CLOSEST, distanceBetween, heldWithin, scaleFrom } from '@ValenceScreens/reading/pinch';
 import type { PageReaderProps } from './PageReader.types';
 
 const CHROME_LINGERS_MS = 2600;
@@ -38,7 +38,7 @@ const widthFor = (across: number): number => {
 };
 
 /**
- * Reads a book that was paginated before it ever reached Flux — a comic, a manga, a scanned volume.
+ * Reads a book that was paginated before it ever reached Valence — a comic, a manga, a scanned volume.
  *
  * The chrome is not there unless it is wanted. A page of a book is the whole point of the screen, so
  * the controls hide themselves and come back on a tap or a moved pointer, the way the player already
@@ -268,7 +268,7 @@ const PageReader = ({
 
   return (
     <div
-      className="flux-below-the-bar z-50 flex flex-col bg-black"
+      className="valence-below-the-bar z-50 flex flex-col bg-black"
       onPointerMove={wake}
       onTouchStart={(event) => {
         const [one, other] = [event.touches[0], event.touches[1]];

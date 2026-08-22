@@ -51,13 +51,13 @@ describe('Icon', () => {
   it('carries the class that decides how strong the second tone is', () => {
     const { container } = render(<Icon of={HouseIcon} />);
 
-    expect(container.querySelector('svg')).toHaveClass('flux-icon');
+    expect(container.querySelector('svg')).toHaveClass('valence-icon');
   });
 
   it('keeps the classes a caller gave it as well', () => {
     const { container } = render(<Icon of={HouseIcon} className="text-red-500" />);
 
-    expect(container.querySelector('svg')).toHaveClass('flux-icon', 'text-red-500');
+    expect(container.querySelector('svg')).toHaveClass('valence-icon', 'text-red-500');
   });
 
   it('draws any other weight a caller asks for', () => {

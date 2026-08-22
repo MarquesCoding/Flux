@@ -1,11 +1,11 @@
 import { useId } from 'react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { TextFieldProps } from './TextField.types';
 
 /**
  * The one place a single line of text is typed. Owns the label, the description and the error
  * together, so a field is always announced with whatever explains it rather than leaving a caller
- * to remember the wiring. Every text input in Flux is this or composes it — a bare input elsewhere
+ * to remember the wiring. Every text input in Valence is this or composes it — a bare input elsewhere
  * is lint-banned.
  *
  * @param label - What is being asked for, shown unless the caller hides it.
@@ -90,7 +90,7 @@ const TextField = ({
           }}
           autoFocus={hasFocusOnMount}
           className={cn(
-            'flux-field text-text outline-none',
+            'valence-field text-text outline-none',
             'transition-[color,border-color,box-shadow] duration-[var(--duration-instant)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none placeholder:text-text-muted',
             'focus-visible:ring-[3px] focus-visible:ring-ring/40',

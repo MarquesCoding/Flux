@@ -1,7 +1,7 @@
 import { motion } from 'motion/react';
-import { RevealItem } from '@FluxUI/RevealItem';
-import { groupVariants } from '@FluxUI/animations/reveal';
-import { RailCard } from '@FluxScreens/components/RailCard/RailCard';
+import { RevealItem } from '@ValenceUI/RevealItem';
+import { groupVariants } from '@ValenceUI/animations/reveal';
+import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
 import type { MediaGridProps, MediaGridSize } from './MediaGrid.types';
 
 const COLUMNS: Record<MediaGridSize, string> = {

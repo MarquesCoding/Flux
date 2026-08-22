@@ -4,7 +4,7 @@ import { shareQueries } from './shareQueries';
 
 const fetchShares = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/sharing/fetchShares', () => ({ fetchShares }));
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({ fetchShares }));
 
 const aCache = (): QueryClient =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } });

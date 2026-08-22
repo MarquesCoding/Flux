@@ -1,4 +1,4 @@
-import type { RatingSubject } from '@FluxClient/library/fetchRatings';
+import type { RatingSubject } from '@ValenceClient/library/fetchRatings';
 
 type RatingPanelProps = {
   subject: RatingSubject;

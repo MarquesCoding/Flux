@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   ArrowClockwiseIcon,
   ArrowsClockwiseIcon,
@@ -10,27 +10,27 @@ import {
   TrashIcon,
 } from '@phosphor-icons/react';
 import { useMemo, useRef, useState } from 'react';
-import { ActionMenu } from '@FluxUI/ActionMenu';
-import { Badge } from '@FluxUI/Badge';
-import { DataTable } from '@FluxUI/DataTable';
-import { HoverCard } from '@FluxUI/HoverCard';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { cn } from '@FluxUI/cn';
-import { describeScanResult } from '@FluxClient/admin/describeScanResult';
-import { AddLibraryDialog } from '@FluxScreens/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
-import { LibrarySettingsDialog } from '@FluxScreens/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
-import { ResetLibrariesDialog } from '@FluxScreens/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';
-import { ScanProgressBar } from '@FluxScreens/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
-import { describeScanKind } from '@FluxScreens/components/AdminArea/describeScanKind';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Library } from '@FluxContracts/schemas/Library';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { Badge } from '@ValenceUI/Badge';
+import { DataTable } from '@ValenceUI/DataTable';
+import { HoverCard } from '@ValenceUI/HoverCard';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { cn } from '@ValenceUI/cn';
+import { describeScanResult } from '@ValenceClient/admin/describeScanResult';
+import { AddLibraryDialog } from '@ValenceScreens/components/AdminArea/components/AddLibraryDialog/AddLibraryDialog';
+import { LibrarySettingsDialog } from '@ValenceScreens/components/AdminArea/components/LibrarySettingsDialog/LibrarySettingsDialog';
+import { ResetLibrariesDialog } from '@ValenceScreens/components/AdminArea/components/ResetLibrariesDialog/ResetLibrariesDialog';
+import { ScanProgressBar } from '@ValenceScreens/components/AdminArea/components/ScanProgressBar/ScanProgressBar';
+import { describeScanKind } from '@ValenceScreens/components/AdminArea/describeScanKind';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { Library } from '@ValenceContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
- * The folders Flux reads and what it is doing to them: adding one, scanning one or all of them,
+ * The folders Valence reads and what it is doing to them: adding one, scanning one or all of them,
  * rebuilding from nothing, regenerating previews, and each library's own settings. Progress is shown
  * against the library it belongs to rather than in one list, since which library is being worked on
  * is usually the thing worth knowing.

@@ -19,7 +19,7 @@ const pick = async (
 };
 
 describe('AddTriggerDialog', () => {
-  it('offers every trigger type Flux can schedule on', async () => {
+  it('offers every trigger type Valence can schedule on', async () => {
     const user = userEvent.setup();
     render(build());
 

@@ -1,4 +1,4 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';

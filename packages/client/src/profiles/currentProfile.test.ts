@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 import {
   readCurrentProfile,
   writeCurrentProfile,
   profileHeaders,
   STORAGE_KEY,
 } from './currentProfile';
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 let platform: Platform = aFakePlatform();
 
@@ -51,7 +51,7 @@ describe('profileHeaders', () => {
   it('says who is watching', () => {
     writeCurrentProfile('abc');
 
-    expect(profileHeaders()).toEqual({ 'x-flux-profile': 'abc' });
+    expect(profileHeaders()).toEqual({ 'x-valence-profile': 'abc' });
   });
 
   it('says nothing when nobody has been chosen, rather than naming nobody', () => {

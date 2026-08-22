@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readSessionOnce } from './readSessionOnce';
 import type { ResolvesSessions } from './readSessionOnce';
-import type { FluxAuth } from './Auth';
+import type { ValenceAuth } from './Auth';
 
-type Session = Awaited<ReturnType<FluxAuth['api']['getSession']>>;
+type Session = Awaited<ReturnType<ValenceAuth['api']['getSession']>>;
 
 /**
  * An authentication layer that counts how often it is asked.

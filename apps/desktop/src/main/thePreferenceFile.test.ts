@@ -42,15 +42,15 @@ describe('theServerAddress', () => {
   it('answers with what the window wrote down', async () => {
     const { theServerAddress } = await import('./theServerAddress');
 
-    held.set('flux.server.address', 'https://flux.example.com');
+    held.set('valence.server.address', 'https://valence.example.com');
 
-    expect(theServerAddress()).toBe('https://flux.example.com');
+    expect(theServerAddress()).toBe('https://valence.example.com');
   });
 
   it('forgets it when asked, so this client asks again', async () => {
     const { forgetTheServerAddress, theServerAddress } = await import('./theServerAddress');
 
-    held.set('flux.server.address', 'https://flux.example.com');
+    held.set('valence.server.address', 'https://valence.example.com');
     forgetTheServerAddress();
 
     expect(theServerAddress()).toBe('');
@@ -58,7 +58,7 @@ describe('theServerAddress', () => {
 });
 
 describe('thePreferenceFile', () => {
-  it('reads a dot in a key as part of the key, since every preference Flux has contains one', () => {
+  it('reads a dot in a key as part of the key, since every preference Valence has contains one', () => {
     thePreferenceFile();
 
     expect(asked[0]).toMatchObject({ accessPropertiesByDotNotation: false });
@@ -74,16 +74,16 @@ describe('thePreferenceFile', () => {
   it('hands back what it was told', () => {
     const file = thePreferenceFile();
 
-    file.write('flux.server.address', 'https://flux.example.com');
+    file.write('valence.server.address', 'https://valence.example.com');
 
-    expect(file.all()['flux.server.address']).toBe('https://flux.example.com');
+    expect(file.all()['valence.server.address']).toBe('https://valence.example.com');
   });
 
   it('lets go of what it was told to forget', () => {
     const file = thePreferenceFile();
 
-    file.write('flux.server.address', 'https://flux.example.com');
-    file.forget('flux.server.address');
+    file.write('valence.server.address', 'https://valence.example.com');
+    file.forget('valence.server.address');
 
     expect(file.all()).toEqual({});
   });

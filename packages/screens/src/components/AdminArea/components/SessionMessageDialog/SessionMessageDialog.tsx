@@ -1,13 +1,13 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { TextField } from '@FluxUI/TextField';
-import { SESSION_MESSAGE_MAX_LENGTH } from '@FluxContracts/schemas/SessionMessage';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { TextField } from '@ValenceUI/TextField';
+import { SESSION_MESSAGE_MAX_LENGTH } from '@ValenceContracts/schemas/SessionMessage';
 import type { SessionMessageDialogProps } from './SessionMessageDialog.types';
 
 /**

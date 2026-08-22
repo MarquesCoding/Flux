@@ -1,5 +1,5 @@
 import { cva } from 'class-variance-authority';
-import { PRESS_MOTION } from '@FluxUI/animations/motion';
+import { PRESS_MOTION } from '@ValenceUI/animations/motion';
 
 const buttonStyles = cva(
   [
@@ -14,7 +14,7 @@ const buttonStyles = cva(
       variant: {
         primary: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
         glossy:
-          'flux-gloss bg-white text-black shadow-xs hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
+          'valence-gloss bg-white text-black shadow-xs hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
         secondary:
           'border border-[var(--surface-line)] bg-secondary text-secondary-foreground shadow-xs hover:bg-[var(--surface-hover)]',
         ghost: 'bg-transparent text-foreground hover:bg-[var(--surface-hover)]',

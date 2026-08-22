@@ -1,15 +1,15 @@
-//! Checks that Flux reads the HDR systems it claims to know.
+//! Checks that Valence reads the HDR systems it claims to know.
 //!
 //! These two fixtures are the reason this file exists. Dolby Vision announces itself in a
 //! configuration record on the stream; HDR10+ rides in an SEI on every frame. A probe that reads
-//! only streams finds the first and never the second, which is exactly what Flux did — every
+//! only streams finds the first and never the second, which is exactly what Valence did — every
 //! HDR10+ file came back as plain HDR10 and `VideoRange::Hdr10Plus` could not be returned at all.
 //! The test that covered it passed throughout, because it put the metadata somewhere ffprobe never
 //! puts it.
 //!
 //! Neither can be authored by `FFmpeg`, so the fixtures are synthesised: an HDR10 base stream, the
 //! metadata written from a description rather than taken from any real file, and mkvmerge to mux
-//! it — `FFmpeg`'s own muxers lose a Dolby Vision RPU. See FLUX-132.
+//! it — `FFmpeg`'s own muxers lose a Dolby Vision RPU. See VAL-132.
 //!
 //! Skips loudly when they are absent. Build them with `pnpm fixtures:sync --tier 2`.
 
@@ -20,12 +20,12 @@ use std::path::PathBuf;
 mod common;
 
 use common::ffprobe;
-use flux_transcoder::media::{VideoRange, VideoStream};
-use flux_transcoder::probe::probe_media;
+use valence_transcoder::media::{VideoRange, VideoStream};
+use valence_transcoder::probe::probe_media;
 
 /// Where the corpus lives, matching `fixturesDirectory` on the TypeScript side.
 fn corpus_directory() -> PathBuf {
-    if let Ok(configured) = std::env::var("FLUX_FIXTURES_DIR") {
+    if let Ok(configured) = std::env::var("VALENCE_FIXTURES_DIR") {
         if !configured.trim().is_empty() {
             return PathBuf::from(configured);
         }
@@ -33,7 +33,7 @@ fn corpus_directory() -> PathBuf {
 
     let home = std::env::var("HOME").unwrap_or_default();
 
-    PathBuf::from(home).join(".cache").join("flux-fixtures")
+    PathBuf::from(home).join(".cache").join("valence-fixtures")
 }
 
 async fn video_of(name: &str) -> Option<VideoStream> {
@@ -68,7 +68,7 @@ async fn reads_dolby_vision_rather_than_the_hdr10_beneath_it() {
 
 /// And the HDR10 underneath it is read as well, which is what lets it be sent untouched.
 ///
-/// Reading the range alone is what made Flux re-encode this file for every screen in the house. The
+/// Reading the range alone is what made Valence re-encode this file for every screen in the house. The
 /// stream says `dv_bl_signal_compatibility_id` is one, meaning the base layer is ordinary HDR10, so
 /// an HDR10 client is sent the file as it is and shows the picture the format left for it.
 #[tokio::test]

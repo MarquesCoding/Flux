@@ -1,5 +1,5 @@
 [package]
-name = "flux-transcoder"
+name = "valence-transcoder"
 version.workspace = true
 edition.workspace = true
 rust-version.workspace = true
@@ -24,9 +24,9 @@ http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }
 
 [lib]
-name = "flux_transcoder"
+name = "valence_transcoder"
 path = "src/lib.rs"
 
 [[bin]]
-name = "flux-transcoder"
+name = "valence-transcoder"
 path = "src/main.rs"

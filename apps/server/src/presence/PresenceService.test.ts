@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPresenceService } from './PresenceService';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 

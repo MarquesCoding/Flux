@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   ArrowsClockwiseIcon,
   CheckIcon,
@@ -6,22 +6,22 @@ import {
   DownloadSimpleIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { DataTable } from '@FluxUI/DataTable';
-import { TextField } from '@FluxUI/TextField';
-import { LOG_LEVELS } from '@FluxContracts/schemas/Log';
-import { fetchLogs, watchLogs } from '@FluxClient/admin/fetchLogs';
-import { logsAsText } from '@FluxClient/admin/logsAsText';
-import { matchesLogQuery } from '@FluxClient/admin/matchesLogQuery';
-import { downloadText } from '@FluxScreens/admin/downloadText';
-import { describeLogTime } from '@FluxClient/admin/describeLogTime';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { DataTable } from '@ValenceUI/DataTable';
+import { TextField } from '@ValenceUI/TextField';
+import { LOG_LEVELS } from '@ValenceContracts/schemas/Log';
+import { fetchLogs, watchLogs } from '@ValenceClient/admin/fetchLogs';
+import { logsAsText } from '@ValenceClient/admin/logsAsText';
+import { matchesLogQuery } from '@ValenceClient/admin/matchesLogQuery';
+import { downloadText } from '@ValenceScreens/admin/downloadText';
+import { describeLogTime } from '@ValenceClient/admin/describeLogTime';
 import { LogDetailDialog } from './components/LogDetailDialog/LogDetailDialog';
-import type { BadgeTone } from '@FluxUI/Badge.types';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { LogLevel, LogRecord } from '@FluxContracts/schemas/Log';
+import type { BadgeTone } from '@ValenceUI/Badge.types';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { LogLevel, LogRecord } from '@ValenceContracts/schemas/Log';
 import type { LogsPanelProps } from './LogsPanel.types';
 
 const PAGE = 300;
@@ -209,7 +209,7 @@ const LogsPanel = ({
             label="Download what is shown"
             hasTooltip
             onClick={() => {
-              download('flux-log.txt', asText());
+              download('valence-log.txt', asText());
             }}
           >
             <Icon of={DownloadSimpleIcon} size={15} />

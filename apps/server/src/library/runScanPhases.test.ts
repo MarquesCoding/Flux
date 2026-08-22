@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { runScanPhases } from './runScanPhases';
 import type { Mock } from 'vitest';
-import type { ScanResult } from '@FluxContracts/schemas/Library';
+import type { ScanResult } from '@ValenceContracts/schemas/Library';
 
 type SpyingWork = {
   scan: Mock<() => Promise<ScanResult | null>>;

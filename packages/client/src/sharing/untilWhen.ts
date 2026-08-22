@@ -1,5 +1,5 @@
-import { saidWhen } from '@FluxClient/format/saidWhen';
-import type { Share } from '@FluxContracts/schemas/Share';
+import { saidWhen } from '@ValenceClient/format/saidWhen';
+import type { Share } from '@ValenceContracts/schemas/Share';
 
 /**
  * Says what still holds a link open, for one that is still working. A link with neither an end date

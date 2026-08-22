@@ -1,14 +1,14 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { XIcon } from '@phosphor-icons/react';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { Button } from '@FluxUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { Button } from '@ValenceUI/Button';
 import {
   describeAxis,
   describeVideoAxis,
   describeAudioAxis,
-} from '@FluxCore/functions/describePlaybackAxis';
+} from '@ValenceCore/functions/describePlaybackAxis';
 import type { SessionStatsDialogProps } from './SessionStatsDialog.types';
 
 type RowProps = {

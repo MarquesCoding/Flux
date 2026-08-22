@@ -71,30 +71,30 @@ describe('aDiscordActivity', () => {
     });
   });
 
-  it('draws the Flux logo where the catalogue has no picture to draw', () => {
+  it('draws the Valence logo where the catalogue has no picture to draw', () => {
     expect(aDiscordActivity(A_FILM, '0.0.0')?.assets).toMatchObject({
       large_image: 'logo',
-      large_text: 'Flux v0.0.0',
+      large_text: 'Valence v0.0.0',
     });
   });
 
   it('badges what is happening, which is what somebody looking wants to know', () => {
     expect(aDiscordActivity(AN_EPISODE, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxplay',
+      small_image: 'valenceplay',
       small_text: 'Playing',
     });
   });
 
   it('badges a pause, so a still status is not mistaken for a stuck one', () => {
     expect(aDiscordActivity({ ...AN_EPISODE, isPaused: true }, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxpause',
+      small_image: 'valencepause',
       small_text: 'Paused',
     });
   });
 
   it('badges browsing, which is somebody between things rather than stopped', () => {
     expect(aDiscordActivity({ kind: 'browsing' }, '0.0.0')?.assets).toMatchObject({
-      small_image: 'fluxsearch',
+      small_image: 'valencesearch',
       small_text: 'Browsing',
     });
   });
@@ -121,15 +121,15 @@ describe('aDiscordActivity', () => {
     expect(aDiscordActivity(null, '0.0.0')).toBeNull();
   });
 
-  it('says somebody has Flux open when they are between things, rather than nothing at all', () => {
+  it('says somebody has Valence open when they are between things, rather than nothing at all', () => {
     expect(aDiscordActivity({ kind: 'browsing' }, '0.0.0')?.details).toBe('Browsing the library');
   });
 
   it('draws the logo while browsing, so the status looks like the one beside it', () => {
     expect(aDiscordActivity({ kind: 'browsing' }, '0.0.0')?.assets).toMatchObject({
       large_image: 'logo',
-      large_text: 'Flux v0.0.0',
-      small_image: 'fluxsearch',
+      large_text: 'Valence v0.0.0',
+      small_image: 'valencesearch',
     });
   });
 
@@ -150,7 +150,7 @@ describe('aDiscordActivity', () => {
   });
 
   it('refuses a picture from anywhere else, which would publish where somebody keeps their server', () => {
-    const mine = 'https://flux.mine.local/api/media/1/poster';
+    const mine = 'https://valence.mine.local/api/media/1/poster';
 
     expect(aDiscordActivity({ ...AN_EPISODE, artwork: mine }, '0.0.0')?.assets).toMatchObject({
       large_image: 'logo',
@@ -165,8 +165,8 @@ describe('aDiscordActivity', () => {
     });
   });
 
-  it('says which Flux this is when somebody rests on the picture', () => {
-    expect(aDiscordActivity(AN_EPISODE, '1.2.3')?.assets.large_text).toBe('Flux v1.2.3');
+  it('says which Valence this is when somebody rests on the picture', () => {
+    expect(aDiscordActivity(AN_EPISODE, '1.2.3')?.assets.large_text).toBe('Valence v1.2.3');
   });
 
   it('sends a watch party as a group, so it draws the figure and the count', () => {

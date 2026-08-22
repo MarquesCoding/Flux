@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type { Logger } from './Logger';
 
 const TranscoderLineSchema = z.object({

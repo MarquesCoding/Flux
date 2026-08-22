@@ -3,7 +3,7 @@ import { describeGraphics } from './describeGraphics';
 
 describe('describeGraphics', () => {
   it('says there is nothing to read when no card answered', () => {
-    expect(describeGraphics(null)).toEqual({ value: '—', detail: 'No card Flux can read' });
+    expect(describeGraphics(null)).toEqual({ value: '—', detail: 'No card Valence can read' });
   });
 
   it('reports the encode block where the card names it', () => {

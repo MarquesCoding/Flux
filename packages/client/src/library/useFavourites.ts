@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { setFavourite } from '@FluxClient/library/fetchFavourites';
-import { viewingQueries } from '@FluxClient/query/viewingQueries';
+import { setFavourite } from '@ValenceClient/library/fetchFavourites';
+import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 
 type Favourites = {
   kept: Set<string>;

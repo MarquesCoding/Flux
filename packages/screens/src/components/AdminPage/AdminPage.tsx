@@ -1,5 +1,5 @@
-import { AdminArea } from '@FluxScreens/components/AdminArea/AdminArea';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
+import { AdminArea } from '@ValenceScreens/components/AdminArea/AdminArea';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
 
 /**
  * The server itself: what it is doing, what is on it, and who may do what.

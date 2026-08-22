@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { HistoryPanel } from './HistoryPanel';
-import type { Viewing } from '@FluxContracts/schemas/Viewing';
+import type { Viewing } from '@ValenceContracts/schemas/Viewing';
 
 const { fetchMock, forgetOneMock, forgetAllMock } = vi.hoisted(() => ({
   fetchMock: vi.fn(),
@@ -11,7 +11,7 @@ const { fetchMock, forgetOneMock, forgetAllMock } = vi.hoisted(() => ({
   forgetAllMock: vi.fn(),
 }));
 
-vi.mock('@FluxClient/history/fetchHistory', () => ({
+vi.mock('@ValenceClient/history/fetchHistory', () => ({
   fetchHistory: fetchMock,
   forgetViewing: forgetOneMock,
   forgetHistory: forgetAllMock,

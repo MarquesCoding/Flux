@@ -20,7 +20,7 @@ const anArchive = async (name: string, files: Record<string, Uint8Array>): Promi
 };
 
 beforeAll(async () => {
-  where = await mkdtemp(join(tmpdir(), 'flux-books-'));
+  where = await mkdtemp(join(tmpdir(), 'valence-books-'));
 });
 
 afterAll(async () => {

@@ -3,8 +3,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { TabBar } from './TabBar';
-import { TabPanel } from '@FluxUI/TabPanel';
-import { Tabs } from '@FluxUI/Tabs';
+import { TabPanel } from '@ValenceUI/TabPanel';
+import { Tabs } from '@ValenceUI/Tabs';
 
 const tabs = [
   { id: 'trending', label: 'Trending' },

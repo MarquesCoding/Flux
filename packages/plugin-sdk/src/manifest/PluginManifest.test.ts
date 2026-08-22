@@ -6,7 +6,7 @@ const validManifest = {
   name: 'TMDB Metadata',
   version: '1.2.0',
   apiVersion: '^1.0.0',
-  author: 'Flux Community',
+  author: 'Valence Community',
   description: 'Fetches film and series metadata from TMDB.',
   extensionPoints: ['MetadataProvider'],
   capabilities: [

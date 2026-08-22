@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { RealtimeEvent, RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 import {
   fetchAdminOverview,
   fetchMonitor,
@@ -24,9 +24,9 @@ import {
   watchActiveSessions,
   measureStorage,
 } from './fetchAdmin';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type { Monitor } from './fetchAdmin';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 
 type Answer = { ok: boolean; status: number; json: () => Promise<JsonValue> };
 
@@ -39,7 +39,7 @@ const OVERVIEW = {
     {
       id: 'abc',
       name: 'Marques',
-      email: 'marques@flux.local',
+      email: 'marques@valence.local',
       role: 'admin',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
@@ -52,7 +52,7 @@ const OVERVIEW = {
   },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '9.0',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],

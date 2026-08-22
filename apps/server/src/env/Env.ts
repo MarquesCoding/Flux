@@ -6,7 +6,7 @@ const DEFAULT_MEDIA_JOBS = Math.max(1, Math.min(4, Math.floor(cpus().length / 2)
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(8420),
-  DATABASE_URL: z.string().url().default('postgres://flux:flux@localhost:5432/flux'),
+  DATABASE_URL: z.string().url().default('postgres://valence:valence@localhost:5432/valence'),
   BETTER_AUTH_SECRET: z.string().min(32).default('development-secret-change-me-in-production'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:8420'),
   TRUSTED_ORIGINS: z
@@ -22,7 +22,7 @@ const EnvSchema = z.object({
     .enum(['true', 'false'])
     .default('false')
     .transform((value) => value === 'true'),
-  TRANSCODER_URL: z.string().min(1).default('unix:/run/flux-transcoder.sock'),
+  TRANSCODER_URL: z.string().min(1).default('unix:/run/valence-transcoder.sock'),
   MEDIA_JOBS: z.coerce.number().int().positive().default(DEFAULT_MEDIA_JOBS),
   CATALOGUE_API_KEY: z.string().default(''),
   IMAGE_CACHE_DIR: z.string().default('/cache/images'),

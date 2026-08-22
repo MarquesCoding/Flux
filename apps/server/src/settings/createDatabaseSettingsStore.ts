@@ -1,11 +1,11 @@
 import { eq } from 'drizzle-orm';
-import { serverSetting } from '@FluxServer/db/Schema';
+import { serverSetting } from '@ValenceServer/db/Schema';
 import { ServerSettingsSchema, SETTINGS_KEY } from './ServerSettings';
 import type { ServerSettings, SettingsStore } from './ServerSettings';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 
 type CreateDatabaseSettingsStoreOptions = {
-  db: FluxDatabase;
+  db: ValenceDatabase;
   defaults: ServerSettings;
 };
 

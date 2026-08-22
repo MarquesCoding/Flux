@@ -1,4 +1,4 @@
-const VERSION_PATTERN = /^ARG\s+FLUX_FFMPEG_VERSION=(?<version>\S+)\s*$/mu;
+const VERSION_PATTERN = /^ARG\s+VALENCE_FFMPEG_VERSION=(?<version>\S+)\s*$/mu;
 
 /**
  * Reads the FFmpeg version the shipped image is pinned to.
@@ -16,7 +16,7 @@ const pinnedFfmpegVersion = (dockerfile: string): string => {
 
   if (found === undefined) {
     throw new Error(
-      'The Dockerfile declares no ARG FLUX_FFMPEG_VERSION, so there is no pinned version to install.',
+      'The Dockerfile declares no ARG VALENCE_FFMPEG_VERSION, so there is no pinned version to install.',
     );
   }
 

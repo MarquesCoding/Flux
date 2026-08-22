@@ -1,17 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signUpForTest, TEST_ORIGIN } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryShareService } from '@FluxServer/sharing/createMemoryShareService';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signUpForTest, TEST_ORIGIN } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryShareService } from '@ValenceServer/sharing/createMemoryShareService';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
@@ -207,7 +207,7 @@ describe('every gated route, asked by somebody with no permissions', () => {
       'POST',
       `/api/admin/profiles/${LIBRARY_ID}/promote`,
       'account.manage',
-      { body: { email: 'dan@flux.local', password: 'a-long-enough-password' } },
+      { body: { email: 'dan@valence.local', password: 'a-long-enough-password' } },
     ],
     ['GET', '/api/admin/overview', 'server.monitor'],
     ['PATCH', '/api/admin/settings', 'server.settings'],

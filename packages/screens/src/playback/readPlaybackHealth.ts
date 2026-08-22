@@ -1,4 +1,4 @@
-import type { PlaybackHealth } from '@FluxScreens/components/VideoPlayer/components/StreamStats/StreamStats.types';
+import type { PlaybackHealth } from '@ValenceScreens/components/VideoPlayer/components/StreamStats/StreamStats.types';
 
 /**
  * Reads the last moment of the stream the element will let anybody seek to, which for a live

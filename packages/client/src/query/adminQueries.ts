@@ -6,17 +6,17 @@ import {
   fetchActiveSessions,
   fetchJobDefinitions,
   fetchJobSchedules,
-} from '@FluxClient/admin/fetchAdmin';
-import { fetchAccounts } from '@FluxClient/admin/fetchAccounts';
+} from '@ValenceClient/admin/fetchAdmin';
+import { fetchAccounts } from '@ValenceClient/admin/fetchAccounts';
 import {
   fetchRoles,
   fetchPermissionCatalogue,
   fetchAccountPermissions,
-} from '@FluxClient/admin/fetchRoles';
-import { fetchWebhooks, fetchWebhookDeliveries } from '@FluxClient/admin/fetchWebhooks';
-import { fetchEverybodysShares } from '@FluxClient/sharing/fetchShares';
-import { readWholeLibrary } from '@FluxClient/library/readWholeLibrary';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+} from '@ValenceClient/admin/fetchRoles';
+import { fetchWebhooks, fetchWebhookDeliveries } from '@ValenceClient/admin/fetchWebhooks';
+import { fetchEverybodysShares } from '@ValenceClient/sharing/fetchShares';
+import { readWholeLibrary } from '@ValenceClient/library/readWholeLibrary';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const ADMIN = ['admin'] as const;
 

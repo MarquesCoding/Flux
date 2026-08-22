@@ -13,7 +13,7 @@ type ResolveJobsTimezoneOptions = {
  *
  * Three sources in order of how deliberately they were chosen. What an operator set in the settings
  * wins, because it is the only one they picked on purpose. `TZ` comes next: it is how a container is
- * told where it lives, and Flux's image sets none, so a container reports `UTC` however far from it
+ * told where it lives, and Valence's image sets none, so a container reports `UTC` however far from it
  * the operator actually is. The host's own zone is right for a native install and is the last
  * source rather than the first for that reason.
  *

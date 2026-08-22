@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryJobScheduleService } from './createMemoryJobScheduleService';
-import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore';
+import { createMemorySettingsStore } from '@ValenceServer/settings/createMemorySettingsStore';
 import { DEFAULT_JOB_TRIGGERS } from './jobDefinitions';
 import { seedDefaultJobTriggers } from './seedDefaultJobTriggers';
-import type { ServerSettings } from '@FluxServer/settings/ServerSettings';
+import type { ServerSettings } from '@ValenceServer/settings/ServerSettings';
 
 const SETTINGS: ServerSettings = {
   trustedOrigins: [],

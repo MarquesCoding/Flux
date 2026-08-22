@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
-import { AUTH_BASE, askTheServer } from '@FluxClient/session/askTheServer';
+import { AUTH_BASE, askTheServer } from '@ValenceClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
-import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
-import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { Passkey } from '@FluxContracts/schemas/Passkey';
+import { writeCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import type { SessionUser } from '@ValenceContracts/schemas/Session';
+import type { Passkey } from '@ValenceContracts/schemas/Passkey';
 
 type RegisterOutcome =
   { kind: 'registered' } | { kind: 'cancelled' } | { kind: 'failed'; reason: string };
@@ -79,7 +79,7 @@ const wasCancelled = (error: object): boolean => {
  * library or the way in.
  *
  * Throws where the server could not be reached, rather than answering with nobody: a tab that cannot
- * reach Flux should say so, not offer the way in as though somebody had signed out.
+ * reach Valence should say so, not offer the way in as though somebody had signed out.
  *
  * @returns Who is signed in, or nobody.
  */
@@ -142,7 +142,7 @@ const registerPasskey = async (name: string): Promise<RegisterOutcome> => {
   const answer = await client.passkey.addPasskey({ name }).catch(() => null);
 
   if (answer === null) {
-    return { kind: 'failed', reason: 'Flux could not be reached.' };
+    return { kind: 'failed', reason: 'Valence could not be reached.' };
   }
 
   const error = answer.error ?? null;
@@ -169,7 +169,7 @@ const authenticateWithPasskey = async (): Promise<AuthenticateOutcome> => {
   const answer = await client.signIn.passkey().catch(() => null);
 
   if (answer === null) {
-    return { kind: 'failed', reason: 'Flux could not be reached.' };
+    return { kind: 'failed', reason: 'Valence could not be reached.' };
   }
 
   const error = answer.error ?? null;
@@ -237,7 +237,7 @@ const renamePasskey = async (id: string, name: string): Promise<boolean> => {
  * how this account is protected, and a borrowed session should not be able to make it.
  *
  * The server may answer that it enrolled a code sent by mail instead, which this account is not set
- * up for and Flux does not offer. There is nothing to show for that, so it is treated as nothing
+ * up for and Valence does not offer. There is nothing to show for that, so it is treated as nothing
  * rather than half a screen with no secret on it.
  *
  * @param password - The account's password.

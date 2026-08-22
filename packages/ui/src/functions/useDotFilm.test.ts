@@ -4,7 +4,7 @@ import { useDotFilm } from './useDotFilm';
 
 const SECONDS = 12;
 
-vi.mock('@FluxUI/badAppleFilm', () => ({
+vi.mock('@ValenceUI/badAppleFilm', () => ({
   loadBadAppleFilm: async () =>
     Promise.resolve({
       seconds: SECONDS,
@@ -13,7 +13,7 @@ vi.mock('@FluxUI/badAppleFilm', () => ({
       },
     }),
 }));
-import type { DotFieldFrame } from '@FluxUI/DotField.types';
+import type { DotFieldFrame } from '@ValenceUI/DotField.types';
 
 /**
  * Lets the fetch of the film settle. It is a promise rather than a wait, so this runs it out by

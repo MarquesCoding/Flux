@@ -1,4 +1,4 @@
-import type { DeviceStore } from '@FluxClient/platform/Platform.types';
+import type { DeviceStore } from '@ValenceClient/platform/Platform.types';
 
 /**
  * Where this client keeps what belongs to the machine rather than to the account — which server it
@@ -7,7 +7,7 @@ import type { DeviceStore } from '@FluxClient/platform/Platform.types';
  * A file held by the main process rather than the window's web storage, which is what a browser
  * would use. Web storage belongs to an origin, and this client does not keep one: it is served from
  * a dev server while it is being worked on and from a file once it is built, so anything kept in one
- * is invisible to the other — somebody would say where their Flux is, build the application, and be
+ * is invisible to the other — somebody would say where their Valence is, build the application, and be
  * asked again.
  *
  * Reads are answered from a copy the preload script took before the page ran, so nothing waits: a
@@ -21,7 +21,7 @@ import type { DeviceStore } from '@FluxClient/platform/Platform.types';
  * @returns The store.
  */
 const theDesktopsStore = (): DeviceStore => {
-  const { preferences } = window.flux;
+  const { preferences } = window.valence;
   const held = new Map(Object.entries(preferences.held));
 
   return {

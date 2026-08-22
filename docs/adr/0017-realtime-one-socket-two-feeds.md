@@ -8,7 +8,7 @@
 
 ## Context
 
-Flux had three server-sent event streams: the monitor report, the active session
+Valence had three server-sent event streams: the monitor report, the active session
 list, and presence. Each was opened separately with `EventSource`, each
 reimplemented its own lifecycle, and all three flowed one way only.
 
@@ -21,7 +21,7 @@ makes. Each new live feature — a log tail, a viewer feed — took another, and
 page would have started stalling on its own fetches. This limit applies whatever
 the traffic direction, so no amount of restraint about what to stream avoids it.
 
-The second is that almost nothing was live for the people actually using Flux.
+The second is that almost nothing was live for the people actually using Valence.
 Presence aside, a viewer saw no change until they reloaded: not a title finishing
 a scan, not a notification arriving, not their own name after changing it on
 another device. The live plumbing served the operator watching the server, not
@@ -74,7 +74,7 @@ transports doing one job is worse than either alone.
   otherwise have run the page out of sockets.
 - Live updates for viewers, not only operators.
 - One authentication, one reconnect, one backoff, written once.
-- A bidirectional channel, which is what [FLUX-15](https://linear.app/flux-streaming/issue/FLUX-15)
+- A bidirectional channel, which is what [VAL-15](https://linear.app/valence-streaming/issue/VAL-15)
   needs and would otherwise have required building alongside the SSE stack.
 - Presence keyed to the socket itself, so the thing that notices a tab arrive is
   the thing that notices it go.
@@ -99,7 +99,7 @@ transports doing one job is worse than either alone.
 - Consuming a feed with a plain `curl` against an SSE endpoint, which was a
   pleasant debugging property.
 - Fanning out from more than one process without introducing something shared, so
-  a multi-process deployment ([FLUX-49](https://linear.app/flux-streaming/issue/FLUX-49))
+  a multi-process deployment ([VAL-49](https://linear.app/valence-streaming/issue/VAL-49))
   would have to revisit this.
 
 ## Alternatives considered
@@ -118,13 +118,13 @@ asked every few seconds by every tab is more load than a socket, and still feels
 slow.
 
 **Redis or another broker for fan-out.** Rejected: the registry is in-process
-because Flux is one process. A broker earns its place when there is more than one
+because Valence is one process. A broker earns its place when there is more than one
 of something to coordinate, and there is not.
 
 ## Revisit when
 
-- Flux supports more than one server process, at which point an in-process
+- Valence supports more than one server process, at which point an in-process
   registry cannot fan out and this needs a shared one.
 - A feature needs every individual change rather than a coalesced summary.
-- HTTP/3 is the floor everywhere Flux runs, which removes the connection limit
+- HTTP/3 is the floor everywhere Valence runs, which removes the connection limit
   that is the strongest argument here — though not the bidirectional one.

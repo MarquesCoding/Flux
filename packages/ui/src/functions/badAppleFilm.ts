@@ -1,5 +1,5 @@
-import { readMaskFrames } from '@FluxUI/readMaskFrames';
-import type { DotFieldFilm } from '@FluxUI/DotField.types';
+import { readMaskFrames } from '@ValenceUI/readMaskFrames';
+import type { DotFieldFilm } from '@ValenceUI/DotField.types';
 
 const STAGE = 4 / 3;
 

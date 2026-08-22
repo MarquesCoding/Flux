@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { AddressScope } from '@FluxScreens/testing/AddressScope';
+import { AddressScope } from '@ValenceScreens/testing/AddressScope';
 import type { ReactElement } from 'react';
 import type { RenderOptions, RenderResult } from '@testing-library/react';
 

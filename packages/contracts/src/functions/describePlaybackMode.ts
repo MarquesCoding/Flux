@@ -1,4 +1,4 @@
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 
 const PLAYBACK_MODES = ['DirectPlay', 'Remux', 'DirectStream', 'Transcode'] as const;
 

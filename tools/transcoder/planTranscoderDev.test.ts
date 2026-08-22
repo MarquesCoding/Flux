@@ -4,11 +4,11 @@ import { planTranscoderDev } from './planTranscoderDev';
 describe('planTranscoderDev', () => {
   it('starts the media service on the socket the server dials', () => {
     const plan = planTranscoderDev({
-      transcoderUrl: 'unix:/tmp/flux-transcoder.sock',
+      transcoderUrl: 'unix:/tmp/valence-transcoder.sock',
       isRustInstalled: true,
     });
 
-    expect(plan).toEqual({ kind: 'run', socketPath: '/tmp/flux-transcoder.sock' });
+    expect(plan).toEqual({ kind: 'run', socketPath: '/tmp/valence-transcoder.sock' });
   });
 
   it('stops with the variable to set when nothing names an address', () => {
@@ -35,7 +35,7 @@ describe('planTranscoderDev', () => {
 
   it('asks for Rust only when it would be the thing to run', () => {
     const plan = planTranscoderDev({
-      transcoderUrl: 'unix:/tmp/flux-transcoder.sock',
+      transcoderUrl: 'unix:/tmp/valence-transcoder.sock',
       isRustInstalled: false,
     });
 

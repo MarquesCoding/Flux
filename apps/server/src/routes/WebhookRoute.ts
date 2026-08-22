@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from '@ValenceContracts/schemas/Webhook';
 
 const WebhookError = z.object({ error: z.string() }).openapi('WebhookError');
 
@@ -68,7 +68,7 @@ const createWebhookRoute = createRoute({
       content: { 'application/json': { schema: CreatedWebhook } },
     },
     400: {
-      description: 'Flux will not send deliveries to that address',
+      description: 'Valence will not send deliveries to that address',
       content: { 'application/json': { schema: WebhookError } },
     },
     401: {

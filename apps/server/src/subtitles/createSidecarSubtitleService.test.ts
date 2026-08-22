@@ -9,7 +9,7 @@ const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const SUB_RIP = '1\n00:00:01,000 --> 00:00:03,000\nHello\n';
 
 const library = async (files: Record<string, string>) => {
-  const root = await mkdtemp(join(tmpdir(), 'flux-subs-'));
+  const root = await mkdtemp(join(tmpdir(), 'valence-subs-'));
   const video = join(root, 'Arrival (2016).mkv');
 
   await writeFile(video, 'not really a film');

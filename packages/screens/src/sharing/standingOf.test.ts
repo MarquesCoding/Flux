@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { standingOf } from './standingOf';
-import type { Share } from '@FluxContracts/schemas/Share';
+import type { Share } from '@ValenceContracts/schemas/Share';
 
 const NOW = Date.parse('2026-08-18T00:00:00.000Z');
 

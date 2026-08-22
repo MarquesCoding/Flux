@@ -1,4 +1,4 @@
-import { toWebVtt } from '@FluxCore/functions/toWebVtt';
+import { toWebVtt } from '@ValenceCore/functions/toWebVtt';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 

@@ -4,7 +4,7 @@ import {
   BookSchema,
   ReadingProgressSchema,
   SaveReadingProgressSchema,
-} from '@FluxContracts/schemas/Book';
+} from '@ValenceContracts/schemas/Book';
 
 const BookError = z.object({ error: z.string() }).openapi('BookError');
 

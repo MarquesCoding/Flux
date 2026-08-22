@@ -10,7 +10,7 @@ const RENDER_AT = 2;
  * A PDF holds instructions, not pictures — text, vectors and fonts that mean nothing until somebody
  * decides how large to draw them. So a page here is rendered, at twice its nominal size so it holds
  * up on a screen that has more pixels than points, and handed over as a picture like every other
- * page in Flux. What reaches a reader is the same whatever the file was.
+ * page in Valence. What reaches a reader is the same whatever the file was.
  *
  * Drawing is not free, which is the whole reason pages are cached. It is also the reason the size is
  * fixed here rather than taken from the request: a reader that asked for a different width on every

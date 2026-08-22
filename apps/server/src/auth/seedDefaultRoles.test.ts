@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore';
+import { createMemorySettingsStore } from '@ValenceServer/settings/createMemorySettingsStore';
 import { createMemoryPermissionService } from './createMemoryPermissionService';
 import { seedDefaultRoles } from './seedDefaultRoles';
 import type { SeedableAccount } from './seedDefaultRoles';

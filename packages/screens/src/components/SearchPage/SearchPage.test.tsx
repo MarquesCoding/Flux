@@ -1,11 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { SearchPage } from './SearchPage';
-import type { SearchAreaProps } from '@FluxScreens/components/SearchArea/SearchArea.types';
+import type { SearchAreaProps } from '@ValenceScreens/components/SearchArea/SearchArea.types';
 
 const drawn = vi.hoisted((): { props: SearchAreaProps | null } => ({ props: null }));
 
-vi.mock('@FluxScreens/components/SearchArea/SearchArea', () => ({
+vi.mock('@ValenceScreens/components/SearchArea/SearchArea', () => ({
   SearchArea: (props: SearchAreaProps) => {
     drawn.props = props;
 

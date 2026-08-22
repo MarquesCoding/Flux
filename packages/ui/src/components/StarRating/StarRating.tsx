@@ -1,8 +1,8 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { StarIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { cn } from '@FluxUI/cn';
-import { Button } from '@FluxUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { Button } from '@ValenceUI/Button';
 import type { StarRatingProps, StarRatingSize } from './StarRating.types';
 
 const STEPS = [1, 2, 3, 4, 5] as const;

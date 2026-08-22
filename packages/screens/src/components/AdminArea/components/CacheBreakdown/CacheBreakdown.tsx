@@ -1,16 +1,16 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { InfoIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { HoverCard } from '@FluxUI/HoverCard';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
+import { Button } from '@ValenceUI/Button';
+import { HoverCard } from '@ValenceUI/HoverCard';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import { cacheRows } from './cacheRows';
 import type { CacheBreakdownProps } from './CacheBreakdown.types';
 
 /**
- * What Flux itself is keeping on the disk, a kind at a time: preview clips, scrub thumbnails,
+ * What Valence itself is keeping on the disk, a kind at a time: preview clips, scrub thumbnails,
  * artwork, and what is being written for sessions running now. The library's own files are shown
- * beside them for scale, since the useful question is usually how much Flux has added to what was
+ * beside them for scale, since the useful question is usually how much Valence has added to what was
  * already there.
  *
  * @param cache - What the monitor found on disk, or null while it is still counting.
@@ -65,7 +65,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
       <p className="text-xs text-text-muted">
         {cache === null && artwork === null
           ? 'Counting what is on the disk.'
-          : `${formatBytes(total)} of Flux's own files · counted ${describeSince(
+          : `${formatBytes(total)} of Valence's own files · counted ${describeSince(
               new Date(cache?.atMs ?? artwork?.atMs ?? 0).toISOString(),
               Date.now(),
             )}`}

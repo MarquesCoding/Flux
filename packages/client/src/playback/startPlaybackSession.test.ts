@@ -8,9 +8,9 @@ import {
   sendPresenceHeartbeat,
   describeWhy,
 } from './startPlaybackSession';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 
 type JsonRequestInit = Omit<RequestInit, 'body'> & { body?: string };
 
@@ -160,7 +160,7 @@ describe('startPlaybackSession', () => {
 
     expect(outcome).toMatchObject({
       kind: 'failed',
-      reason: 'The server sent a response Flux could not read.',
+      reason: 'The server sent a response Valence could not read.',
     });
   });
 });
@@ -299,4 +299,3 @@ describe('describeWhy', () => {
     expect(reasons).toEqual(['Subtitles: pgs is image based']);
   });
 });
-

@@ -69,7 +69,7 @@ const SaveReadingProgressSchema = z.object({
  * Which way a book is read where nobody has said, decided by what it is.
  *
  * Manga is read right to left, and a comic or a novel left to right. Neither is knowable from the
- * file, so the layout stands in for it: a fixed-page book in a Flux library is overwhelmingly manga,
+ * file, so the layout stands in for it: a fixed-page book in a Valence library is overwhelmingly manga,
  * and anybody it is wrong for can say so once and be remembered.
  *
  * @param layout - Whether the book paginates ahead of time or reflows.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createLogger } from './createLogger';
 import type { LogStore, StoredLog } from './Logger';
-import type { Schedule } from '@FluxServer/realtime/createCoalescer';
-import type { LogContext, LogRecord } from '@FluxContracts/schemas/Log';
+import type { Schedule } from '@ValenceServer/realtime/createCoalescer';
+import type { LogContext, LogRecord } from '@ValenceContracts/schemas/Log';
 
 const createWorld = (options?: {
   failing?: boolean;

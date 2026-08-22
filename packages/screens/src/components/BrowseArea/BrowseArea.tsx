@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Spinner } from '@FluxUI/Spinner';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { Spinner } from '@ValenceUI/Spinner';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { collapseToShows } from '@FluxClient/library/pickFeatured';
-import { MediaGrid } from '@FluxScreens/components/MediaGrid/MediaGrid';
-import { GridSizeChooser } from '@FluxScreens/components/GridSizeChooser/GridSizeChooser';
-import { readGridSize, saveGridSize } from '@FluxScreens/library/gridSizePreference';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { collapseToShows } from '@ValenceClient/library/pickFeatured';
+import { MediaGrid } from '@ValenceScreens/components/MediaGrid/MediaGrid';
+import { GridSizeChooser } from '@ValenceScreens/components/GridSizeChooser/GridSizeChooser';
+import { readGridSize, saveGridSize } from '@ValenceScreens/library/gridSizePreference';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
 const PAGE_SIZE = 120;

@@ -1,16 +1,16 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createMemoryPlaybackService } from '@FluxServer/playback/createMemoryPlaybackService';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createMemoryPlaybackService } from '@ValenceServer/playback/createMemoryPlaybackService';
 
 const adminPayload = {
-  admin: { name: 'Operator', email: 'admin@flux.test', password: 'a-long-enough-password' },
+  admin: { name: 'Operator', email: 'admin@valence.test', password: 'a-long-enough-password' },
   trustedOrigins: ['http://192.168.1.40:8420'],
   cookieSecure: false,
 };
@@ -76,7 +76,7 @@ describe('setup status', () => {
   it('reports a secure context when reached over https', async () => {
     const { app } = buildApp(0);
 
-    const response = await app.request('https://flux.example/api/setup/status');
+    const response = await app.request('https://valence.example/api/setup/status');
 
     expect(await response.json()).toMatchObject({ isSecureContext: true });
   });
@@ -101,7 +101,7 @@ describe('setup completion', () => {
 
     expect(response.status).toBe(200);
     expect(await response.json()).toMatchObject({ isComplete: true });
-    expect(promoteToAdmin).toHaveBeenCalledWith('admin@flux.test');
+    expect(promoteToAdmin).toHaveBeenCalledWith('admin@valence.test');
     expect(await settings.read()).toMatchObject({
       trustedOrigins: ['http://192.168.1.40:8420'],
       cookieSecure: false,
@@ -132,7 +132,10 @@ describe('setup completion', () => {
     state.users = 1;
 
     const second = await app.request(
-      postSetup({ ...adminPayload, admin: { ...adminPayload.admin, email: 'attacker@flux.test' } }),
+      postSetup({
+        ...adminPayload,
+        admin: { ...adminPayload.admin, email: 'attacker@valence.test' },
+      }),
     );
 
     expect(first.status).toBe(200);

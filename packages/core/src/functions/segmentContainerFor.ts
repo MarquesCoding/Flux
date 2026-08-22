@@ -1,4 +1,4 @@
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 
 type SegmentContainer = 'fmp4' | 'mpegts';
 
@@ -11,10 +11,10 @@ type SegmentContainer = 'fmp4' | 'mpegts';
  * tvOS. A transport stream also costs a few percent of packet overhead and has to be transmuxed in
  * the browser before anything can decode it.
  *
- * Flux delivered every segment as MPEG-TS for a while because a copied open-GOP HEVC film stopped
+ * Valence delivered every segment as MPEG-TS for a while because a copied open-GOP HEVC film stopped
  * twenty-three seconds in as fragmented MP4. The container was not the fault: the segments were
  * opening on cuts a decoder cannot start at, and the media service refuses those before it agrees
- * to copy a source. See FLUX-124.
+ * to copy a source. See VAL-124.
  *
  * @param profile - What the device says it can play.
  * @returns The container to ask the media service for.

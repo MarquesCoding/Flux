@@ -8,11 +8,11 @@ const fetchProfiles = vi.hoisted(() => vi.fn());
 const fetchEveryone = vi.hoisted(() => vi.fn());
 const fetchSetupStatus = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/session/auth', () => ({ fetchSession }));
-vi.mock('@FluxClient/session/readVersion', () => ({ readVersion }));
-vi.mock('@FluxClient/profiles/fetchProfiles', () => ({ fetchProfiles }));
-vi.mock('@FluxClient/profiles/fetchEveryone', () => ({ fetchEveryone }));
-vi.mock('@FluxClient/setup/fetchSetupStatus', () => ({ fetchSetupStatus }));
+vi.mock('@ValenceClient/session/auth', () => ({ fetchSession }));
+vi.mock('@ValenceClient/session/readVersion', () => ({ readVersion }));
+vi.mock('@ValenceClient/profiles/fetchProfiles', () => ({ fetchProfiles }));
+vi.mock('@ValenceClient/profiles/fetchEveryone', () => ({ fetchEveryone }));
+vi.mock('@ValenceClient/setup/fetchSetupStatus', () => ({ fetchSetupStatus }));
 
 const aCache = (): QueryClient =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } });

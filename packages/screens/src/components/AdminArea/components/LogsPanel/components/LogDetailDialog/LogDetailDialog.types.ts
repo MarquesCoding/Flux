@@ -1,4 +1,4 @@
-import type { LogRecord } from '@FluxContracts/schemas/Log';
+import type { LogRecord } from '@ValenceContracts/schemas/Log';
 
 type LogDetailDialogProps = {
   record: LogRecord | null;

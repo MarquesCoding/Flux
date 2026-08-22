@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { deliveredBitrateKbps } from '@FluxClient/playback/deliveredBitrateKbps';
-import { teachShakaOurScheme } from '@FluxScreens/playback/teachShakaOurScheme';
-import type { ShakaNetworking } from '@FluxScreens/playback/teachShakaOurScheme';
+import { deliveredBitrateKbps } from '@ValenceClient/playback/deliveredBitrateKbps';
+import { teachShakaOurScheme } from '@ValenceScreens/playback/teachShakaOurScheme';
+import type { ShakaNetworking } from '@ValenceScreens/playback/teachShakaOurScheme';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 type ShakaVariant = {
@@ -169,7 +169,7 @@ const faultFrom = (event: Event): PlaybackFault | null => {
  * 4K HEVC remux, the picture skipped 17.292s to 17.458s, again at 35.833s and again at 46.958s — a
  * reorder window of frames lost at a segment join each time, while the sound played through and
  * nothing was counted as dropped. The same segments through hls.js lost none of them, which is what
- * showed the fault was here rather than in what Flux had produced.
+ * showed the fault was here rather than in what Valence had produced.
  *
  * It is not a trade against seeking, which was the reason to doubt it. Seeks landed closer and
  * settled quicker than the default — within a frame at worst against 42ms, and 35ms against 108ms —

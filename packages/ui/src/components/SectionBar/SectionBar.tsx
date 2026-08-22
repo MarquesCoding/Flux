@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretDownIcon, CheckIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import { Button } from '@FluxUI/Button';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { Button } from '@ValenceUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { SectionBarProps } from './SectionBar.types';
 
 const PILL = [
@@ -23,7 +23,7 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
  *
  * A family opens on a press rather than on a pointer resting over it. Opening on hover reads well
  * until it meets a click: the pointer opens the menu, the click that follows toggles it, and the
- * menu shuts on the very press meant to open it. Every other menu in Flux opens on a press, and one
+ * menu shuts on the very press meant to open it. Every other menu in Valence opens on a press, and one
  * that behaves like the rest is worth more than one that anticipates.
  *
  * @param groups - The sections, in groups.
@@ -78,7 +78,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
         setPointedAt(null);
       }}
       className={cn(
-        'flux-rail flux-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+        'valence-rail valence-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
         className,
       )}
     >
@@ -133,7 +133,7 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
                     align="start"
                     aria-label={group.label}
                     className={cn(
-                      'flux-glass flex min-w-44 flex-col rounded-lg p-1.5 text-sm text-text',
+                      'valence-glass flex min-w-44 flex-col rounded-lg p-1.5 text-sm text-text',
                       POPUP_MOTION,
                     )}
                   >

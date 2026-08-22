@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   PictureInPictureIcon,
   ScreencastIcon,
@@ -6,88 +6,91 @@ import {
   XIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Spinner } from '@FluxUI/Spinner';
-import { useNowPlaying } from '@FluxScreens/playback/useNowPlaying';
-import { useDiscordPresence } from '@FluxScreens/playback/useDiscordPresence';
-import { profileQueries } from '@FluxClient/query/profileQueries';
-import { VideoSurface } from '@FluxUI/VideoSurface';
-import { SubtitleCues } from '@FluxScreens/components/SubtitleCues/SubtitleCues';
-import { isTheDesktopClient } from '@FluxScreens/desktop/theDesktopShell';
-import { detectFromBrowser } from '@FluxScreens/playback/detectDeviceProfile';
-import { qualityStepCostsFor } from '@FluxClient/playback/qualityStepCostsFor';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
-import { onPresenceEvent } from '@FluxClient/presence/presenceEvents';
+import { Button } from '@ValenceUI/Button';
+import { Spinner } from '@ValenceUI/Spinner';
+import { useNowPlaying } from '@ValenceScreens/playback/useNowPlaying';
+import { useDiscordPresence } from '@ValenceScreens/playback/useDiscordPresence';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
+import { VideoSurface } from '@ValenceUI/VideoSurface';
+import { SubtitleCues } from '@ValenceScreens/components/SubtitleCues/SubtitleCues';
+import { isTheDesktopClient } from '@ValenceScreens/desktop/theDesktopShell';
+import { detectFromBrowser } from '@ValenceScreens/playback/detectDeviceProfile';
+import { qualityStepCostsFor } from '@ValenceClient/playback/qualityStepCostsFor';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
+import { onPresenceEvent } from '@ValenceClient/presence/presenceEvents';
 import {
   startPlaybackSession,
   stopPlaybackSession,
   stopWatching,
   heartbeatPlaybackSession,
   sendPresenceHeartbeat,
-} from '@FluxClient/playback/startPlaybackSession';
-import { attachShaka, CRITICAL } from '@FluxScreens/playback/attachShaka';
-import type { DeliveredFormat } from '@FluxScreens/playback/attachShaka';
+} from '@ValenceClient/playback/startPlaybackSession';
+import { attachShaka, CRITICAL } from '@ValenceScreens/playback/attachShaka';
+import type { DeliveredFormat } from '@ValenceScreens/playback/attachShaka';
 import {
   describePlaybackFailure,
   PlaybackEngineErrorSchema,
-} from '@FluxClient/playback/describePlaybackFailure';
+} from '@ValenceClient/playback/describePlaybackFailure';
 import {
   watchCastState,
   isReachableOrigin,
   promptForDevice,
   absoluteStreamUrl,
-} from '@FluxScreens/playback/castPlayback';
-import { handOverToDevice } from '@FluxScreens/playback/handOverToDevice';
-import { loadCastSender, castStateOf, castStream } from '@FluxScreens/playback/castSender';
-import { fetchTrickplay } from '@FluxScreens/playback/fetchTrickplay';
-import { popOutWithCaptions } from '@FluxScreens/playback/popOutWithCaptions';
-import { captureFrame } from '@FluxScreens/playback/captureFrame';
-import { readPlaybackHealth, bufferedAhead } from '@FluxScreens/playback/readPlaybackHealth';
+} from '@ValenceScreens/playback/castPlayback';
+import { handOverToDevice } from '@ValenceScreens/playback/handOverToDevice';
+import { loadCastSender, castStateOf, castStream } from '@ValenceScreens/playback/castSender';
+import { fetchTrickplay } from '@ValenceScreens/playback/fetchTrickplay';
+import { popOutWithCaptions } from '@ValenceScreens/playback/popOutWithCaptions';
+import { captureFrame } from '@ValenceScreens/playback/captureFrame';
+import { readPlaybackHealth, bufferedAhead } from '@ValenceScreens/playback/readPlaybackHealth';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   defaultTrackId,
   trackForLanguage,
   SUBTITLES_OFF,
-} from '@FluxClient/playback/fetchSubtitles';
+} from '@ValenceClient/playback/fetchSubtitles';
 import {
   readCaptionStyle,
   saveCaptionStyle,
   DEFAULT_CAPTION_STYLE,
-} from '@FluxScreens/playback/captionStyle';
+} from '@ValenceScreens/playback/captionStyle';
 import {
   readQualityPreference,
   saveQualityPreference,
-} from '@FluxClient/playback/qualityPreference';
-import { fetchSegments, skippableAt, describeSkip } from '@FluxClient/playback/fetchSegments';
-import { reportWatchProgress, REPORT_EVERY_MILLISECONDS } from '@FluxClient/playback/watchProgress';
+} from '@ValenceClient/playback/qualityPreference';
+import { fetchSegments, skippableAt, describeSkip } from '@ValenceClient/playback/fetchSegments';
+import {
+  reportWatchProgress,
+  REPORT_EVERY_MILLISECONDS,
+} from '@ValenceClient/playback/watchProgress';
 import {
   readPlaybackPreferences,
   writePlaybackPreferences,
-} from '@FluxScreens/playback/playbackPreferences';
-import { describeAudioTrack } from '@FluxCore/functions/describeTrack';
-import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
+} from '@ValenceScreens/playback/playbackPreferences';
+import { describeAudioTrack } from '@ValenceCore/functions/describeTrack';
+import { listAvailableQualitySteps } from '@ValenceCore/functions/listAvailableQualitySteps';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { TrickplayPreview } from './components/TrickplayPreview/TrickplayPreview';
 import { PlayerControls } from './components/PlayerControls/PlayerControls';
 import { StreamStats } from './components/StreamStats/StreamStats';
-import { cn } from '@FluxUI/cn';
-import { Toaster } from '@FluxUI/Toaster';
-import { notify } from '@FluxUI/notify';
-import { correctDrift } from '@FluxCore/functions/correctDrift';
-import { whatToReport } from '@FluxCore/functions/whatToReport';
-import { describeCommand } from '@FluxClient/party/describeCommand';
-import type { Trickplay } from '@FluxScreens/playback/fetchTrickplay';
-import type { PoppedOut } from '@FluxScreens/playback/popOutWithCaptions';
-import type { CastState } from '@FluxScreens/playback/castPlayback.types';
-import type { CastContext } from '@FluxScreens/playback/castSender.types';
-import type { StartedSession } from '@FluxClient/playback/startPlaybackSession';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
-import type { SubtitleTrack } from '@FluxClient/playback/fetchSubtitles';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import { cn } from '@ValenceUI/cn';
+import { Toaster } from '@ValenceUI/Toaster';
+import { notify } from '@ValenceUI/notify';
+import { correctDrift } from '@ValenceCore/functions/correctDrift';
+import { whatToReport } from '@ValenceCore/functions/whatToReport';
+import { describeCommand } from '@ValenceClient/party/describeCommand';
+import type { Trickplay } from '@ValenceScreens/playback/fetchTrickplay';
+import type { PoppedOut } from '@ValenceScreens/playback/popOutWithCaptions';
+import type { CastState } from '@ValenceScreens/playback/castPlayback.types';
+import type { CastContext } from '@ValenceScreens/playback/castSender.types';
+import type { StartedSession } from '@ValenceClient/playback/startPlaybackSession';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
+import type { SubtitleTrack } from '@ValenceClient/playback/fetchSubtitles';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types';
-import type { QualityPreference } from '@FluxClient/playback/qualityPreference';
+import type { QualityPreference } from '@ValenceClient/playback/qualityPreference';
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types';
 
 type FullscreenTarget = {
@@ -1684,7 +1687,7 @@ const VideoPlayer = ({
               size="lg"
             />
 
-            <p className="flux-glass rounded-md px-4 py-1.5 text-sm text-white">
+            <p className="valence-glass rounded-md px-4 py-1.5 text-sm text-white">
               {party?.isHeld === true
                 ? waitingWord(party.waitingFor)
                 : 'Waiting for more of the film'}
@@ -1842,7 +1845,7 @@ const VideoPlayer = ({
 
               if (!isReachableOrigin(window.location.origin)) {
                 notify.failed(
-                  'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                  'Open Valence at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
                   { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
 
@@ -1867,7 +1870,7 @@ const VideoPlayer = ({
                 notify.failed(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
-                    : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
+                    : 'This browser only casts over a secure connection. Serve Valence over HTTPS, or use Safari, which will cast from here as it is.',
                   { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
               });

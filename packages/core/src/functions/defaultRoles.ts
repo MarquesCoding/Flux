@@ -1,4 +1,4 @@
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 type DefaultRole = {
   name: string;

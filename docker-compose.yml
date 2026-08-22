@@ -3,20 +3,20 @@ services:
     image: postgres:17-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_USER: flux
-      POSTGRES_PASSWORD: flux
-      POSTGRES_DB: flux
+      POSTGRES_USER: valence
+      POSTGRES_PASSWORD: valence
+      POSTGRES_DB: valence
     volumes:
       - db-data:/var/lib/postgresql/data
     ports:
       - '5432:5432'
     healthcheck:
-      test: ['CMD-SHELL', 'pg_isready -U flux']
+      test: ['CMD-SHELL', 'pg_isready -U valence']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  flux:
+  valence:
     build: .
     restart: unless-stopped
     depends_on:
@@ -24,7 +24,7 @@ services:
         condition: service_healthy
     environment:
       NODE_ENV: production
-      DATABASE_URL: postgres://flux:flux@db:5432/flux
+      DATABASE_URL: postgres://valence:valence@db:5432/valence
       PORT: '8420'
       BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET in .env}
       BETTER_AUTH_URL: ${BETTER_AUTH_URL:-http://localhost:8420}
@@ -42,7 +42,7 @@ services:
       - config:/config
       - cache:/cache
       - transcodes:/transcodes
-      - ${FLUX_MEDIA_PATH:-./media}:/media:ro
+      - ${VALENCE_MEDIA_PATH:-./media}:/media:ro
 
 volumes:
   db-data:

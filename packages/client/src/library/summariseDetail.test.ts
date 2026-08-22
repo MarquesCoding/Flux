@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { summariseDetail } from './summariseDetail';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const detail = (overrides: Partial<MediaDetail> = {}): MediaDetail => ({
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',

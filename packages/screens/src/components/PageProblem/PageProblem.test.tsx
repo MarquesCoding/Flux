@@ -15,10 +15,10 @@ describe('PageProblem', () => {
     expect(screen.getByRole('alert')).toBeInTheDocument();
   });
 
-  it('says the rest of Flux is still running, since it is', () => {
+  it('says the rest of Valence is still running, since it is', () => {
     render(<PageProblem />);
 
-    expect(screen.getByText(/rest of Flux is still running/)).toBeInTheDocument();
+    expect(screen.getByText(/rest of Valence is still running/)).toBeInTheDocument();
   });
 
   it('offers a way to try again', async () => {

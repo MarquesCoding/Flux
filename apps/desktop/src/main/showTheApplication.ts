@@ -1,8 +1,8 @@
-import { ORIGIN } from '@FluxDesktop/main/serveTheApplication';
-import type { Fillable } from '@FluxDesktop/main/TheWindow.types';
+import { ORIGIN } from '@ValenceDesktop/main/serveTheApplication';
+import type { Fillable } from '@ValenceDesktop/main/TheWindow.types';
 
 /**
- * Puts Flux in the window.
+ * Puts Valence in the window.
  *
  * There is only one address now, and it is this client's own: the pages are ours, served from our
  * scheme, and what they ask of a server goes out through the process that owns this window. That is

@@ -22,7 +22,7 @@ let where = '';
 let path = '';
 
 beforeAll(async () => {
-  where = await mkdtemp(join(tmpdir(), 'flux-pdf-'));
+  where = await mkdtemp(join(tmpdir(), 'valence-pdf-'));
   path = join(where, 'a.pdf');
 
   await writeFile(path, A_DOCUMENT);

@@ -1,14 +1,14 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CopyIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { TextField } from '@FluxUI/TextField';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { TextField } from '@ValenceUI/TextField';
 import { Choice } from './components/Choice/Choice';
-import { createShare, shareAddress } from '@FluxClient/sharing/fetchShares';
-import type { NewShare } from '@FluxContracts/schemas/Share';
+import { createShare, shareAddress } from '@ValenceClient/sharing/fetchShares';
+import type { NewShare } from '@ValenceContracts/schemas/Share';
 import type { ShareDialogProps } from './ShareDialog.types';
 
 const LASTS = [

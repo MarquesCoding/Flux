@@ -1,4 +1,4 @@
-import type { Favourite } from '@FluxContracts/schemas/Favourite';
+import type { Favourite } from '@ValenceContracts/schemas/Favourite';
 
 type FavouriteService = {
   list: (profileId: string) => Promise<Favourite[]>;

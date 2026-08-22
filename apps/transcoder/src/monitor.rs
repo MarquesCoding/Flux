@@ -99,7 +99,7 @@ pub struct ProcessUse {
 /// What the whole deployment is using, and what it is allowed.
 ///
 /// Read from the cgroup, which is the only thing here that can see both halves
-/// of Flux: the API server is a sibling process this one cannot reach through
+/// of Valence: the API server is a sibling process this one cannot reach through
 /// the process tree. Nothing off Linux, and nothing where the hierarchy cannot
 /// be trusted to describe a container rather than a host.
 #[derive(Debug, Clone, Copy, Serialize)]
@@ -134,7 +134,7 @@ pub struct ResourceUse {
     pub system_memory_total_bytes: u64,
     pub cpu_count: usize,
     /// What the media service process itself is using, on its own. Whoever
-    /// reads this adds the children to it: neither figure is what Flux costs
+    /// reads this adds the children to it: neither figure is what Valence costs
     /// without the other, and during a conversion almost all of it is theirs.
     pub service_cpu_percent: f32,
     pub service_memory_bytes: u64,

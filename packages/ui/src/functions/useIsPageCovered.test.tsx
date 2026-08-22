@@ -1,6 +1,6 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
-import { coverPage, forgetPageCovers } from '@FluxUI/pageCover';
+import { coverPage, forgetPageCovers } from '@ValenceUI/pageCover';
 import { useIsPageCovered } from './useIsPageCovered';
 
 afterEach(() => {

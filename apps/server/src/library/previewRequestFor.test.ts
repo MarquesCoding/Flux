@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { previewRequestFor } from './previewRequestFor';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 
 const stream = (index: number, language: string | null): AudioStream => ({
   index,

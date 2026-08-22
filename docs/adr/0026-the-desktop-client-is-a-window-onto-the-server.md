@@ -12,7 +12,7 @@
 is built on. This settles what it _is_, which turned out to be the question that
 decided everything else about it.
 
-A desktop client can get Flux's screens into a window two ways. It can ship them —
+A desktop client can get Valence's screens into a window two ways. It can ship them —
 bundle `packages/screens`, serve them from itself, and talk to the server over the
 API. Or it can load them from the server, the way a browser does.
 
@@ -48,14 +48,14 @@ All of it worked. None of it should have been necessary.
 `showTheApplication` reads the address somebody gave and calls `loadURL` on it.
 That is the architecture.
 
-**What this client ships is one screen** — which Flux is yours — shown until
+**What this client ships is one screen** — which Valence is yours — shown until
 somebody has said, and never drawn again after. From there the window is a browser
 looking at their server, with the things a browser cannot have built around it.
 
 **Nothing about authentication is this client's business.** Signing in, a second
 factor, a passkey, a saved password and a password manager all work because they
 are happening on the server's own origin in Chromium, exactly as they do in a
-browser. better-auth needs no Electron configuration, and Flux needs no Electron
+browser. better-auth needs no Electron configuration, and Valence needs no Electron
 integration package.
 
 This is how Jellyfin's desktop client works, and the reasons are the same.
@@ -69,7 +69,7 @@ flag, no trusted origin for the desktop, no deep link, no scheme, no authorizati
 code. Two thousand lines went with the decision, and the main process is seven
 kilobytes.
 
-**Everything a browser can do, this client can do**, including the things Flux has
+**Everything a browser can do, this client can do**, including the things Valence has
 not built yet, because they arrive with the server's pages rather than needing a
 desktop release.
 
@@ -93,7 +93,7 @@ true, but it is a real difference: a bundled client could at least draw itself a
 explain, and this one shows what a browser shows when a site is unreachable.
 
 **The look of the desktop client is the server's to decide.** A viewer on an old
-server gets that server's Flux. That is the point, but it means the desktop client
+server gets that server's Valence. That is the point, but it means the desktop client
 cannot lead the web application by a release.
 
 **Native features must reach across a page the server drew.** Media keys, a tray,
@@ -107,7 +107,7 @@ address is wrong, unreachable, or later moves is the whole of its own experience
 
 ### What this forecloses
 
-Shipping a different Flux than the server's — a desktop-only screen, a beta client
+Shipping a different Valence than the server's — a desktop-only screen, a beta client
 against a stable server, an offline library. Any of those means bundling the
 application again, and bundling it brings back everything above.
 
@@ -129,7 +129,7 @@ the half of the application that took two refactors to make portable.
 
 ## Revisit when
 
-Somebody wants Flux in a window while the server is off — downloads for a flight,
+Somebody wants Valence in a window while the server is off — downloads for a flight,
 say. That is the one thing this decision genuinely gives up, and it would need a
 bundled shell beside the window rather than instead of it.
 

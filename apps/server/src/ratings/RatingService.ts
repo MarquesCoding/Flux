@@ -1,4 +1,4 @@
-import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
+import type { HouseholdRating, Rating } from '@ValenceContracts/schemas/Rating';
 
 type RatingSubject = { mediaId: string } | { seriesId: string };
 

@@ -2,11 +2,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibrarySettingsDialog } from './LibrarySettingsDialog';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 const updateLibraryMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   updateLibrary: updateLibraryMock,
 }));
 

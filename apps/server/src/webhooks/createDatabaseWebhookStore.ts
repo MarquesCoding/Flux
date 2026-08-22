@@ -1,11 +1,11 @@
 import { randomBytes, randomUUID } from 'node:crypto';
 import { and, asc, desc, eq, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
-import { toIso } from '@FluxCore/functions/toIso';
-import { webhookDelivery, webhookSubscription } from '@FluxServer/db/Schema';
-import { WebhookEventSchema, WebhookPresetSchema } from '@FluxContracts/schemas/Webhook';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import { toIso } from '@ValenceCore/functions/toIso';
+import { webhookDelivery, webhookSubscription } from '@ValenceServer/db/Schema';
+import { WebhookEventSchema, WebhookPresetSchema } from '@ValenceContracts/schemas/Webhook';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
+import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
 const WEBHOOK_SECRET_PREFIX = 'whsec_';
@@ -16,12 +16,12 @@ const StoredEventsSchema = z.array(WebhookEventSchema);
 
 /**
  * Webhook subscriptions and their delivery history, held in Postgres — who asked about what, and
- * what happened when Flux tried to tell them.
+ * what happened when Valence tried to tell them.
  *
  * @param db - The database to read and write.
  * @returns The webhook store.
  */
-const createDatabaseWebhookStore = (db: FluxDatabase): WebhookStore => {
+const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
   const readRow = (row: typeof webhookSubscription.$inferSelect): WebhookSubscription[] => {
     const events = StoredEventsSchema.safeParse(row.events);
     const preset = WebhookPresetSchema.safeParse(row.preset);

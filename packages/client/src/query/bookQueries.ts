@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchBook, fetchBooks, fetchReadingProgress } from '@FluxClient/books/fetchBooks';
+import { fetchBook, fetchBooks, fetchReadingProgress } from '@ValenceClient/books/fetchBooks';
 
 const BOOKS = ['books'] as const;
 

@@ -4,7 +4,7 @@ import type {
   WebhookEvent,
   WebhookPreset,
   WebhookSubscription,
-} from '@FluxContracts/schemas/Webhook';
+} from '@ValenceContracts/schemas/Webhook';
 
 type NewWebhookSubscription = {
   name: string;

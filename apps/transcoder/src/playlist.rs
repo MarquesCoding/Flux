@@ -1,4 +1,4 @@
-//! The playlist Flux writes for itself.
+//! The playlist Valence writes for itself.
 //!
 //! Today ffmpeg's HLS muxer writes it, growing an `EVENT` playlist as segments
 //! appear. That makes the playlist a report of what has been transcoded rather
@@ -13,7 +13,7 @@
 //! before them, not the container. Those cuts are refused before a copy is
 //! agreed to, so what reaches the muxer starts where a decoder can. Measured
 //! against the same film: HEVC Main 10 in fragmented MP4 plays every frame.
-//! See [`crate::keyframes::Cut::is_safe`], FLUX-114 and FLUX-124.
+//! See [`crate::keyframes::Cut::is_safe`], VAL-114 and VAL-124.
 //!
 //! A `VOD` playlist covering the whole film says where every segment is before
 //! any of them exist. The player can then ask for any one of them, and the
@@ -112,7 +112,7 @@ pub fn target_duration(lengths: &[f64]) -> u64 {
 
 /// What the segment at an index is called.
 ///
-/// Matches `-hls_segment_filename segment%05d.<ext>`, so a playlist Flux writes
+/// Matches `-hls_segment_filename segment%05d.<ext>`, so a playlist Valence writes
 /// and segments ffmpeg writes agree on names without either being told.
 #[must_use]
 pub fn segment_name(index: usize, container: SegmentContainer) -> String {

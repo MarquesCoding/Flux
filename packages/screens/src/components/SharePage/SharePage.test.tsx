@@ -1,13 +1,13 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
-import { shareEndingFor } from '@FluxClient/sharing/shareEndingFor';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
+import { shareEndingFor } from '@ValenceClient/sharing/shareEndingFor';
 import { SharePage } from './SharePage';
-import type { ShareAreaProps } from '@FluxScreens/components/ShareArea/ShareArea.types';
-import type { VideoPlayerProps } from '@FluxScreens/components/VideoPlayer/VideoPlayer.types';
+import type { ShareAreaProps } from '@ValenceScreens/components/ShareArea/ShareArea.types';
+import type { VideoPlayerProps } from '@ValenceScreens/components/VideoPlayer/VideoPlayer.types';
 
-vi.mock('@FluxClient/sharing/shareEndingFor', () => ({
+vi.mock('@ValenceClient/sharing/shareEndingFor', () => ({
   shareEndingFor: vi.fn(),
 }));
 
@@ -33,7 +33,7 @@ const ARRIVAL = {
   seriesId: null,
 };
 
-vi.mock('@FluxScreens/components/ShareArea/ShareArea', () => ({
+vi.mock('@ValenceScreens/components/ShareArea/ShareArea', () => ({
   ShareArea: (props: ShareAreaProps) => {
     drawn.share = props;
 
@@ -50,7 +50,7 @@ vi.mock('@FluxScreens/components/ShareArea/ShareArea', () => ({
   },
 }));
 
-vi.mock('@FluxScreens/components/VideoPlayer/VideoPlayer', () => ({
+vi.mock('@ValenceScreens/components/VideoPlayer/VideoPlayer', () => ({
   VideoPlayer: (props: VideoPlayerProps) => {
     drawn.player = props;
 
@@ -85,7 +85,7 @@ beforeEach(() => {
 
 describe('SharePage', () => {
   it('opens what the link in the address points at', () => {
-    renderInAnAddress(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Valence" />);
 
     expect(drawn.share?.token).toBe('a-token');
   });
@@ -93,7 +93,7 @@ describe('SharePage', () => {
   it('plays what the guest chose', async () => {
     const actor = userEvent.setup();
 
-    renderInAnAddress(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Valence" />);
 
     await actor.click(screen.getByRole('button', { name: 'Play it' }));
 
@@ -103,7 +103,7 @@ describe('SharePage', () => {
   it('picks up where a guest got to, for as long as the page lives', async () => {
     const actor = userEvent.setup();
 
-    renderInAnAddress(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Valence" />);
 
     await actor.click(screen.getByRole('button', { name: 'Play it' }));
     await actor.click(screen.getByRole('button', { name: 'Watch a bit' }));
@@ -117,7 +117,7 @@ describe('SharePage', () => {
 
     const user = userEvent.setup();
 
-    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Valence" askEveryMilliseconds={5} />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
 
@@ -134,7 +134,7 @@ describe('SharePage', () => {
   it('asks nothing while nothing is playing, since the screen asks for itself', async () => {
     vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
 
-    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Valence" askEveryMilliseconds={5} />);
 
     await new Promise((settle) => setTimeout(settle, 30));
 
@@ -146,7 +146,7 @@ describe('SharePage', () => {
 
     const user = userEvent.setup();
 
-    renderInAnAddress(<SharePage name="Flux" askEveryMilliseconds={5} />);
+    renderInAnAddress(<SharePage name="Valence" askEveryMilliseconds={5} />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
     await waitFor(() => {
@@ -159,7 +159,7 @@ describe('SharePage', () => {
   it('puts a guest back on the screen that explains itself once they close the notice', async () => {
     const user = userEvent.setup();
 
-    renderInAnAddress(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Valence" />);
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
     await user.click(screen.getByRole('button', { name: 'Stop' }));
@@ -168,7 +168,7 @@ describe('SharePage', () => {
   });
 
   it('has nothing to resume before anything has been watched', () => {
-    renderInAnAddress(<SharePage name="Flux" />);
+    renderInAnAddress(<SharePage name="Valence" />);
 
     expect(drawn.share?.resumeFor?.(ARRIVAL.id)).toBeNull();
   });

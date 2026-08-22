@@ -197,7 +197,7 @@ describe('deliveredFormat', () => {
 });
 
 describe('deliveredFormat, a playlist that declares no bandwidth', () => {
-  it('reports the measured rate rather than the nought Flux own playlists give', () => {
+  it('reports the measured rate rather than the nought Valence own playlists give', () => {
     const found = deliveredFormat([{ active: true, bandwidth: 0 }], { streamBandwidth: 0 }, 700);
 
     expect(found?.bitrateKbps).toBe(700);

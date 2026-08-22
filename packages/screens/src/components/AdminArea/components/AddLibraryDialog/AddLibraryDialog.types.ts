@@ -1,4 +1,4 @@
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 type AddLibraryDialogProps = {
   isOpen: boolean;

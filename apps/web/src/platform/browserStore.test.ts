@@ -13,20 +13,20 @@ const store = theBrowsersStore();
 
 describe('theBrowsersStore', () => {
   it('reads back what it was given', () => {
-    store.write('flux.thing', 'kept');
+    store.write('valence.thing', 'kept');
 
-    expect(store.read('flux.thing')).toBe('kept');
+    expect(store.read('valence.thing')).toBe('kept');
   });
 
   it('says nothing for something it was never given', () => {
-    expect(store.read('flux.nothing')).toBeNull();
+    expect(store.read('valence.nothing')).toBeNull();
   });
 
   it('forgets what it is asked to forget', () => {
-    store.write('flux.thing', 'kept');
-    store.forget('flux.thing');
+    store.write('valence.thing', 'kept');
+    store.forget('valence.thing');
 
-    expect(store.read('flux.thing')).toBeNull();
+    expect(store.read('valence.thing')).toBeNull();
   });
 
   it('answers with nothing where storage is refused, as a private window refuses it', () => {
@@ -34,7 +34,7 @@ describe('theBrowsersStore', () => {
       throw new Error('private mode');
     });
 
-    expect(store.read('flux.thing')).toBeNull();
+    expect(store.read('valence.thing')).toBeNull();
   });
 
   it('carries on where a write is refused, rather than stopping anybody watching', () => {
@@ -43,7 +43,7 @@ describe('theBrowsersStore', () => {
     });
 
     expect(() => {
-      store.write('flux.thing', 'kept');
+      store.write('valence.thing', 'kept');
     }).not.toThrow();
   });
 
@@ -53,7 +53,7 @@ describe('theBrowsersStore', () => {
     });
 
     expect(() => {
-      store.forget('flux.thing');
+      store.forget('valence.thing');
     }).not.toThrow();
   });
 });

@@ -48,7 +48,7 @@ const ContainerSchema = z
   .string()
   .min(1)
   .describe(
-    'What the demuxer calls this format, or `unknown` where Flux has no name for it. Open for the same reason as the video codec.',
+    'What the demuxer calls this format, or `unknown` where Valence has no name for it. Open for the same reason as the video codec.',
   );
 
 const SubtitleFormatSchema = z.enum([
@@ -105,7 +105,7 @@ const MediaItemSchema = z.object({
     .boolean()
     .default(true)
     .describe(
-      'Whether this source can be delivered by copying it. False when its own keyframes cannot yield segments a player will take, either because a decoder cannot start at them or because avoiding those makes the segments far too long. True where a file predates knowing, which is what Flux assumed anyway.',
+      'Whether this source can be delivered by copying it. False when its own keyframes cannot yield segments a player will take, either because a decoder cannot start at them or because avoiding those makes the segments far too long. True where a file predates knowing, which is what Valence assumed anyway.',
     ),
   width: z.number().int().positive(),
   height: z.number().int().positive(),

@@ -58,13 +58,13 @@ const watching = (overrides: Partial<DiscordPresence> = {}) => {
 
 beforeEach(() => {
   seen.length = 0;
-  document.documentElement.dataset['fluxDesktop'] = 'true';
-  document.addEventListener('flux:now-watching', heard);
+  document.documentElement.dataset['valenceDesktop'] = 'true';
+  document.addEventListener('valence:now-watching', heard);
 });
 
 afterEach(() => {
-  document.removeEventListener('flux:now-watching', heard);
-  delete document.documentElement.dataset['fluxDesktop'];
+  document.removeEventListener('valence:now-watching', heard);
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('useDiscordPresence', () => {
@@ -115,7 +115,7 @@ describe('useDiscordPresence', () => {
   });
 
   it('says nothing in a browser, which has no window to publish it', () => {
-    delete document.documentElement.dataset['fluxDesktop'];
+    delete document.documentElement.dataset['valenceDesktop'];
 
     watching();
 
@@ -192,7 +192,7 @@ describe('useDiscordPresence', () => {
       raw.push(said === null ? null : said.kind);
     };
 
-    document.addEventListener('flux:now-watching', listen);
+    document.addEventListener('valence:now-watching', listen);
 
     const Showing = ({ isPlaying }: { isPlaying: boolean }) => {
       useDiscordPresence({
@@ -212,7 +212,7 @@ describe('useDiscordPresence', () => {
 
     rerender(<Showing isPlaying={false} />);
 
-    document.removeEventListener('flux:now-watching', listen);
+    document.removeEventListener('valence:now-watching', listen);
 
     expect(raw).toContain('watching');
     expect(raw).not.toContain('browsing');
@@ -226,7 +226,7 @@ describe('useDiscordPresence', () => {
       raw.push(said === null ? null : said.kind);
     };
 
-    document.addEventListener('flux:now-watching', listen);
+    document.addEventListener('valence:now-watching', listen);
 
     const Showing = () => {
       useDiscordPresence({
@@ -242,7 +242,7 @@ describe('useDiscordPresence', () => {
 
     render(<Showing />);
 
-    document.removeEventListener('flux:now-watching', listen);
+    document.removeEventListener('valence:now-watching', listen);
 
     expect(raw).not.toContain('browsing');
     expect(raw.at(-1)).toBeNull();
@@ -256,7 +256,7 @@ describe('useDiscordPresence', () => {
       raw.push(said === null ? null : said.kind);
     };
 
-    document.addEventListener('flux:now-watching', listen);
+    document.addEventListener('valence:now-watching', listen);
 
     const { unmount } = watching({ isAllowed: true, isPlaying: true });
 
@@ -264,7 +264,7 @@ describe('useDiscordPresence', () => {
 
     unmount();
 
-    document.removeEventListener('flux:now-watching', listen);
+    document.removeEventListener('valence:now-watching', listen);
 
     expect(raw).toContain('browsing');
   });

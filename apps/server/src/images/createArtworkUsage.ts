@@ -1,6 +1,6 @@
 import { readdir, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
+import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
 
 type ArtworkUsage = {
   count: number;

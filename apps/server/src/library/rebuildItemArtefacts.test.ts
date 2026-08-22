@@ -1,11 +1,11 @@
 import { describe, expect, it, vi } from 'vitest';
 import { rebuildItemArtefacts } from './rebuildItemArtefacts';
 import type { RebuildSubject } from './rebuildItemArtefacts';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import type {
   PreviewSweepSubject,
   TrickplayRequest,
-} from '@FluxServer/transcoder/TranscoderClient';
+} from '@ValenceServer/transcoder/TranscoderClient';
 
 const GEOMETRY = { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 };
 

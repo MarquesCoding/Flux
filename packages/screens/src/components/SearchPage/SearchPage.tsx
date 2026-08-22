@@ -1,9 +1,9 @@
-import { SearchArea } from '@FluxScreens/components/SearchArea/SearchArea';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
-import { useFavourites } from '@FluxClient/library/useFavourites';
-import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
-import { resumeFor } from '@FluxClient/playback/resumeFor';
+import { SearchArea } from '@ValenceScreens/components/SearchArea/SearchArea';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
+import { useFavourites } from '@ValenceClient/library/useFavourites';
+import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
+import { resumeFor } from '@ValenceClient/playback/resumeFor';
 
 /**
  * Searching the whole server, and narrowing what comes back.

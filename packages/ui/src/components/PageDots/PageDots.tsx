@@ -1,6 +1,6 @@
-import { Button } from '@FluxUI/Button';
-import { Tooltip } from '@FluxUI/Tooltip';
-import { cn } from '@FluxUI/cn';
+import { Button } from '@ValenceUI/Button';
+import { Tooltip } from '@ValenceUI/Tooltip';
+import { cn } from '@ValenceUI/cn';
 import type { PageDotsProps } from './PageDots.types';
 
 /**
@@ -62,7 +62,7 @@ const PageDots = ({
               {selectedIndex === index && fillMilliseconds !== undefined ? (
                 <span
                   key={selectedIndex}
-                  className="flux-dot-fill block h-full w-full origin-left rounded-full bg-text"
+                  className="valence-dot-fill block h-full w-full origin-left rounded-full bg-text"
                   style={{
                     animationDuration: `${fillMilliseconds.toString()}ms`,
                     animationPlayState: isFillPaused ? 'paused' : 'running',

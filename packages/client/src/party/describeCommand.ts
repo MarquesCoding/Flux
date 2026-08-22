@@ -1,5 +1,5 @@
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import type { SequencedCommand } from '@FluxContracts/schemas/WatchParty';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import type { SequencedCommand } from '@ValenceContracts/schemas/WatchParty';
 
 /**
  * What to tell the room about something somebody else just did to the picture.

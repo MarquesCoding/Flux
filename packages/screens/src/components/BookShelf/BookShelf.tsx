@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { BookRail } from '@FluxScreens/components/BookRail/BookRail';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
 import type { BookShelfProps } from './BookShelf.types';
 
 /**

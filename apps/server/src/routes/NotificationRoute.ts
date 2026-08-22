@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { NOTIFICATION_EVENTS } from '@FluxContracts/schemas/Notification';
+import { NOTIFICATION_EVENTS } from '@ValenceContracts/schemas/Notification';
 
 const NotificationError = z.object({ error: z.string() }).openapi('NotificationError');
 

@@ -6,7 +6,7 @@ vi.mock('electron', () => ({
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
 }));
 
-vi.mock('@FluxDesktop/main/theServerAddress', () => ({ theServerAddress: () => '' }));
+vi.mock('@ValenceDesktop/main/theServerAddress', () => ({ theServerAddress: () => '' }));
 
 const { showTheApplication } = await import('./showTheApplication');
 
@@ -15,12 +15,12 @@ const aWindow = () => ({
 });
 
 describe('showTheApplication', () => {
-  it('opens this client, which draws Flux rather than fetching it as pages', async () => {
+  it('opens this client, which draws Valence rather than fetching it as pages', async () => {
     const window = aWindow();
 
     await showTheApplication(window);
 
-    expect(window.loadURL).toHaveBeenCalledWith('flux://app/');
+    expect(window.loadURL).toHaveBeenCalledWith('valence://app/');
   });
 
   it('opens the same address whether or not a server has been named', async () => {

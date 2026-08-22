@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { relayMonitor } from './relayMonitor';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const streamOf = (text: string): ReadableStream<Uint8Array> => {
   const encoder = new TextEncoder();

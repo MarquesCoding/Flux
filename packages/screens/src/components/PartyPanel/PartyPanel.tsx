@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ClockIcon, EyeIcon, PauseCircleIcon, UserPlusIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Switch } from '@FluxUI/Switch';
-import { TextField } from '@FluxUI/TextField';
-import { whereTheRoomIs } from '@FluxCore/functions/whereTheRoomIs';
-import type { PartyMember } from '@FluxContracts/schemas/WatchParty';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Switch } from '@ValenceUI/Switch';
+import { TextField } from '@ValenceUI/TextField';
+import { whereTheRoomIs } from '@ValenceCore/functions/whereTheRoomIs';
+import type { PartyMember } from '@ValenceContracts/schemas/WatchParty';
 import type { PartyPanelProps } from './PartyPanel.types';
 
 const ROLE_LABELS = { host: 'Host', coHost: 'Co-host', guest: 'Guest' } as const;

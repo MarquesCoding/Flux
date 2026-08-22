@@ -1,4 +1,4 @@
-const ALREADY_SET = /^\s*(?:FLUX_FFMPEG|FLUX_FFPROBE)\s*=/mu;
+const ALREADY_SET = /^\s*(?:VALENCE_FFMPEG|VALENCE_FFPROBE)\s*=/mu;
 
 type EnvFileWithFfmpegOptions = {
   existing: string;
@@ -29,13 +29,13 @@ const envFileWithFfmpeg = ({
 
   const added = [
     '',
-    "# Flux's own FFmpeg, fetched by pnpm ffmpeg:sync.",
+    "# Valence's own FFmpeg, fetched by pnpm ffmpeg:sync.",
     '#',
     '# Left unset, the media service falls back to whatever ffmpeg is on PATH, which on a Mac is',
     "# Homebrew's — and that build has no overlay_videotoolbox and no tonemap_videotoolbox, so",
     '# subtitles and HDR quietly leave the hardware.',
-    `FLUX_FFMPEG=${ffmpeg}`,
-    `FLUX_FFPROBE=${ffprobe}`,
+    `VALENCE_FFMPEG=${ffmpeg}`,
+    `VALENCE_FFPROBE=${ffprobe}`,
     '',
   ].join('\n');
 

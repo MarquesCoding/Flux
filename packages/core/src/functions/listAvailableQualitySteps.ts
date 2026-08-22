@@ -1,7 +1,7 @@
-import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep';
-import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
-import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import { QUALITY_STEPS } from '@ValenceContracts/schemas/QualityStep';
+import { resolveQualityStep } from '@ValenceCore/functions/resolveQualityStep';
+import type { QualityStepId } from '@ValenceContracts/schemas/QualityStep';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 
 /**
  * Lists the quality steps worth offering for a particular file.

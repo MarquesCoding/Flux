@@ -1,25 +1,25 @@
-import { readCatalogueReference } from '@FluxCore/functions/readCatalogueReference';
-import type { RunningJob } from '@FluxServer/jobs/JobQueue';
-import type { CatalogueMatch } from '@FluxServer/library/MetadataProvider';
+import { readCatalogueReference } from '@ValenceCore/functions/readCatalogueReference';
+import type { RunningJob } from '@ValenceServer/jobs/JobQueue';
+import type { CatalogueMatch } from '@ValenceServer/library/MetadataProvider';
 import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { apiReference } from '@scalar/hono-api-reference';
-import { suggestTrustedOrigins } from '@FluxServer/setup/suggestTrustedOrigins';
-import type { FluxAuth } from '@FluxServer/auth/Auth';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
-import { allowCrossOriginClients } from '@FluxServer/auth/allowCrossOriginClients';
-import { DEFAULT_LIMIT } from '@FluxServer/library/LibraryService';
-import { splitPersonCredits } from '@FluxServer/library/splitPersonCredits';
-import type { LibraryService } from '@FluxServer/library/LibraryService';
-import type { SubtitleService } from '@FluxServer/subtitles/SubtitleService';
-import type { SegmentService } from '@FluxServer/segments/SegmentService';
-import type { WatchProgressService } from '@FluxServer/progress/WatchProgressService';
-import type { FavouriteService } from '@FluxServer/favourites/FavouriteService';
-import type { RatingService } from '@FluxServer/ratings/RatingService';
-import type { ShareService } from '@FluxServer/sharing/ShareService';
-import type { ShareSessions } from '@FluxServer/sharing/createShareSessions';
-import type { PlaybackService, PreviewRead } from '@FluxServer/playback/PlaybackService';
-import { createPresenceService } from '@FluxServer/presence/PresenceService';
-import type { PresenceService } from '@FluxServer/presence/PresenceService';
+import { suggestTrustedOrigins } from '@ValenceServer/setup/suggestTrustedOrigins';
+import type { ValenceAuth } from '@ValenceServer/auth/Auth';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
+import { allowCrossOriginClients } from '@ValenceServer/auth/allowCrossOriginClients';
+import { DEFAULT_LIMIT } from '@ValenceServer/library/LibraryService';
+import { splitPersonCredits } from '@ValenceServer/library/splitPersonCredits';
+import type { LibraryService } from '@ValenceServer/library/LibraryService';
+import type { SubtitleService } from '@ValenceServer/subtitles/SubtitleService';
+import type { SegmentService } from '@ValenceServer/segments/SegmentService';
+import type { WatchProgressService } from '@ValenceServer/progress/WatchProgressService';
+import type { FavouriteService } from '@ValenceServer/favourites/FavouriteService';
+import type { RatingService } from '@ValenceServer/ratings/RatingService';
+import type { ShareService } from '@ValenceServer/sharing/ShareService';
+import type { ShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import type { PlaybackService, PreviewRead } from '@ValenceServer/playback/PlaybackService';
+import { createPresenceService } from '@ValenceServer/presence/PresenceService';
+import type { PresenceService } from '@ValenceServer/presence/PresenceService';
 import { healthRoute } from './routes/HealthRoute';
 import {
   listLibrariesRoute,
@@ -53,8 +53,8 @@ import {
 import {
   presenceHeartbeatRoute,
   presenceStopWatchingRoute,
-} from '@FluxServer/routes/PresenceRoute';
-import { mediaImageRoute } from '@FluxServer/routes/ImageRoute';
+} from '@ValenceServer/routes/PresenceRoute';
+import { mediaImageRoute } from '@ValenceServer/routes/ImageRoute';
 import {
   listBooksRoute,
   readBookCoverRoute,
@@ -64,14 +64,14 @@ import {
   readBookRoute,
   readReadingProgressRoute,
   saveReadingProgressRoute,
-} from '@FluxServer/routes/BookRoute';
-import { listSegmentsRoute } from '@FluxServer/routes/SegmentRoute';
+} from '@ValenceServer/routes/BookRoute';
+import { listSegmentsRoute } from '@ValenceServer/routes/SegmentRoute';
 import {
   listProgressRoute,
   recordProgressRoute,
   forgetProgressRoute,
-} from '@FluxServer/routes/ProgressRoute';
-import { readPersonRoute, readPersonCreditsRoute } from '@FluxServer/routes/PersonRoute';
+} from '@ValenceServer/routes/ProgressRoute';
+import { readPersonRoute, readPersonCreditsRoute } from '@ValenceServer/routes/PersonRoute';
 import {
   createShareRoute,
   listSharesRoute,
@@ -79,21 +79,21 @@ import {
   revokeShareRoute,
   revokeAnybodysShareRoute,
   openShareRoute,
-} from '@FluxServer/routes/ShareRoute';
-import { SHARE_COOKIE, createShareGate } from '@FluxServer/sharing/createShareGate';
-import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
-import { rememberGuestFor } from '@FluxServer/sharing/rememberGuestFor';
+} from '@ValenceServer/routes/ShareRoute';
+import { SHARE_COOKIE, createShareGate } from '@ValenceServer/sharing/createShareGate';
+import { howShareEnded, isShareLive, whyShareEnded } from '@ValenceContracts/schemas/Share';
+import { rememberGuestFor } from '@ValenceServer/sharing/rememberGuestFor';
 import { getCookie, setCookie } from 'hono/cookie';
 import { randomUUID } from 'node:crypto';
 
-const SHARE_JOINER = 'flux_share_joiner';
+const SHARE_JOINER = 'valence_share_joiner';
 
 const GUEST_REMEMBERED_FOR_SECONDS = 30 * 86_400;
 import {
   listFavouritesRoute,
   keepFavouriteRoute,
   dropFavouriteRoute,
-} from '@FluxServer/routes/FavouriteRoute';
+} from '@ValenceServer/routes/FavouriteRoute';
 import {
   listRatingsRoute,
   rateMediaRoute,
@@ -102,7 +102,7 @@ import {
   rateSeriesRoute,
   clearSeriesRatingRoute,
   readSeriesHouseholdRatingRoute,
-} from '@FluxServer/routes/RatingRoute';
+} from '@ValenceServer/routes/RatingRoute';
 import {
   adminOverviewRoute,
   adminLogsRoute,
@@ -120,23 +120,23 @@ import {
   adminJobSchedulesRoute,
   adminAddJobTriggerRoute,
   adminRemoveJobTriggerRoute,
-} from '@FluxServer/routes/AdminRoute';
+} from '@ValenceServer/routes/AdminRoute';
 import {
   listDevicesRoute,
   endDeviceRoute,
   endOtherDevicesRoute,
-} from '@FluxServer/routes/DeviceRoute';
-import { describeDevice } from '@FluxServer/account/describeDevice';
+} from '@ValenceServer/routes/DeviceRoute';
+import { describeDevice } from '@ValenceServer/account/describeDevice';
 import {
   listProfilesRoute,
   createProfileRoute,
   updateProfileRoute,
   deleteProfileRoute,
   promoteProfileRoute,
-} from '@FluxServer/routes/ProfileRoute';
-import { listSubtitlesRoute, readSubtitleRoute } from '@FluxServer/routes/SubtitleRoute';
+} from '@ValenceServer/routes/ProfileRoute';
+import { listSubtitlesRoute, readSubtitleRoute } from '@ValenceServer/routes/SubtitleRoute';
 import { setupStatusRoute, setupCompleteRoute } from './routes/SetupRoute';
-import { JOB_DEFINITIONS, RESET_LIBRARY_JOB } from '@FluxServer/jobs/jobDefinitions';
+import { JOB_DEFINITIONS, RESET_LIBRARY_JOB } from '@ValenceServer/jobs/jobDefinitions';
 import {
   SCAN_LIBRARY_JOB,
   REGENERATE_PREVIEWS_JOB,
@@ -147,24 +147,24 @@ import {
   CLEANUP_ARTEFACT_CACHE_JOB,
   CLEANUP_SESSIONS_JOB,
   CHECK_CATALOGUE_CONNECTIVITY_JOB,
-} from '@FluxServer/jobs/JobQueue';
-import { createMemoryMaintenanceService } from '@FluxServer/maintenance/createMemoryMaintenanceService';
-import type { MaintenanceService } from '@FluxServer/maintenance/MaintenanceService';
-import { createMemoryJobScheduleService } from '@FluxServer/jobs/createMemoryJobScheduleService';
-import type { JobScheduleService } from '@FluxServer/jobs/JobScheduleService';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { JobStall } from '@FluxServer/jobs/createJobHealthWatch';
-import { drawAvatar, isAvatarStyle } from '@FluxServer/profiles/drawAvatar';
-import { shiftWebVtt } from '@FluxCore/functions/shiftWebVtt';
-import type { ProfileService } from '@FluxServer/profiles/ProfileService';
-import type { BookService } from '@FluxServer/books/createDatabaseBookService';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
-import { createSessionGate } from '@FluxServer/auth/createSessionGate';
-import { createBetterAuthAdminBlock } from '@FluxServer/auth/createBetterAuthAdminBlock';
-import { checkRoleChange } from '@FluxServer/auth/checkRoleChange';
-import { checkAccountAction } from '@FluxServer/auth/checkAccountAction';
-import type { AccountActionRefusal } from '@FluxServer/auth/checkAccountAction';
+} from '@ValenceServer/jobs/JobQueue';
+import { createMemoryMaintenanceService } from '@ValenceServer/maintenance/createMemoryMaintenanceService';
+import type { MaintenanceService } from '@ValenceServer/maintenance/MaintenanceService';
+import { createMemoryJobScheduleService } from '@ValenceServer/jobs/createMemoryJobScheduleService';
+import type { JobScheduleService } from '@ValenceServer/jobs/JobScheduleService';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { JobStall } from '@ValenceServer/jobs/createJobHealthWatch';
+import { drawAvatar, isAvatarStyle } from '@ValenceServer/profiles/drawAvatar';
+import { shiftWebVtt } from '@ValenceCore/functions/shiftWebVtt';
+import type { ProfileService } from '@ValenceServer/profiles/ProfileService';
+import type { BookService } from '@ValenceServer/books/createDatabaseBookService';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
+import { createSessionGate } from '@ValenceServer/auth/createSessionGate';
+import { createBetterAuthAdminBlock } from '@ValenceServer/auth/createBetterAuthAdminBlock';
+import { checkRoleChange } from '@ValenceServer/auth/checkRoleChange';
+import { checkAccountAction } from '@ValenceServer/auth/checkAccountAction';
+import type { AccountActionRefusal } from '@ValenceServer/auth/checkAccountAction';
 import {
   listAccountsRoute,
   banAccountRoute,
@@ -172,9 +172,9 @@ import {
   removeAccountRoute,
   inviteAccountRoute,
   editAccountRoute,
-} from '@FluxServer/routes/AccountRoute';
-import type { RoleChangeRefusal } from '@FluxServer/auth/checkRoleChange';
-import { PERMISSIONS } from '@FluxContracts/schemas/Permission';
+} from '@ValenceServer/routes/AccountRoute';
+import type { RoleChangeRefusal } from '@ValenceServer/auth/checkRoleChange';
+import { PERMISSIONS } from '@ValenceContracts/schemas/Permission';
 import {
   listPermissionsRoute,
   listRolesRoute,
@@ -186,15 +186,15 @@ import {
   removeRoleRoute,
   setOverrideRoute,
   clearOverrideRoute,
-} from '@FluxServer/routes/RoleRoute';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createBetterAuthApiKeyService } from '@FluxServer/auth/createBetterAuthApiKeyService';
+} from '@ValenceServer/routes/RoleRoute';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createBetterAuthApiKeyService } from '@ValenceServer/auth/createBetterAuthApiKeyService';
 import {
   listApiKeysRoute,
   createApiKeyRoute,
   updateApiKeyRoute,
   revokeApiKeyRoute,
-} from '@FluxServer/routes/ApiKeyRoute';
+} from '@ValenceServer/routes/ApiKeyRoute';
 import {
   listWebhooksRoute,
   createWebhookRoute,
@@ -204,9 +204,9 @@ import {
   listWebhookDeliveriesRoute,
   redeliverWebhookRoute,
   DELIVERY_PAGE,
-} from '@FluxServer/routes/WebhookRoute';
-import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
-import { createMemoryNotificationStore } from '@FluxServer/notifications/createMemoryNotificationStore';
+} from '@ValenceServer/routes/WebhookRoute';
+import { createMemoryWebhookStore } from '@ValenceServer/webhooks/createMemoryWebhookStore';
+import { createMemoryNotificationStore } from '@ValenceServer/notifications/createMemoryNotificationStore';
 import {
   clearNotificationsRoute,
   listNotificationsRoute,
@@ -216,32 +216,32 @@ import {
   subscribeToPushRoute,
   unsubscribeFromPushRoute,
   NOTIFICATION_PAGE,
-} from '@FluxServer/routes/NotificationRoute';
+} from '@ValenceServer/routes/NotificationRoute';
 import {
   DEFAULT_NOTIFICATION_PREFERENCE,
   NOTIFICATION_EVENTS,
-} from '@FluxContracts/schemas/Notification';
-import type { NotificationStore } from '@FluxServer/notifications/NotificationStore';
-import { isSafeWebhookUrl } from '@FluxServer/webhooks/isSafeWebhookUrl';
-import { queueWebhookTest } from '@FluxServer/webhooks/queueWebhookTest';
-import { queueWebhookRedelivery } from '@FluxServer/webhooks/queueWebhookRedelivery';
-import { narrowToKey } from '@FluxServer/auth/narrowToKey';
-import { watchedBetween } from '@FluxServer/progress/accumulateWatchTime';
-import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
-import type { PermissionService } from '@FluxServer/auth/PermissionService';
-import type { ApiKeyService } from '@FluxServer/auth/ApiKeyService';
-import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
-import type { RealtimePublisher } from '@FluxServer/realtime/RealtimePublisher';
-import type { LogStore } from '@FluxServer/logging/Logger';
+} from '@ValenceContracts/schemas/Notification';
+import type { NotificationStore } from '@ValenceServer/notifications/NotificationStore';
+import { isSafeWebhookUrl } from '@ValenceServer/webhooks/isSafeWebhookUrl';
+import { queueWebhookTest } from '@ValenceServer/webhooks/queueWebhookTest';
+import { queueWebhookRedelivery } from '@ValenceServer/webhooks/queueWebhookRedelivery';
+import { narrowToKey } from '@ValenceServer/auth/narrowToKey';
+import { watchedBetween } from '@ValenceServer/progress/accumulateWatchTime';
+import { readSessionOnce } from '@ValenceServer/auth/readSessionOnce';
+import type { PermissionService } from '@ValenceServer/auth/PermissionService';
+import type { ApiKeyService } from '@ValenceServer/auth/ApiKeyService';
+import type { WebhookStore } from '@ValenceServer/webhooks/WebhookStore';
+import type { RealtimePublisher } from '@ValenceServer/realtime/RealtimePublisher';
+import type { LogStore } from '@ValenceServer/logging/Logger';
 import {
   listHistoryRoute,
   forgetViewingRoute,
   forgetHistoryRoute,
-} from '@FluxServer/routes/HistoryRoute';
-import type { HistoryService } from '@FluxServer/history/HistoryService';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+} from '@ValenceServer/routes/HistoryRoute';
+import type { HistoryService } from '@ValenceServer/history/HistoryService';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
-const PROFILE_HEADER = 'x-flux-profile';
+const PROFILE_HEADER = 'x-valence-profile';
 
 /**
  * Picks the headers worth carrying from a media file the server is forwarding — the type, the
@@ -278,7 +278,7 @@ const forwardedFileHeaders = (
  *
  * A session is named by a hash of what was asked for, and that hash says nothing about how the
  * segments were muxed. Change the muxer and the same address answers with different bytes — which
- * is not a theory: it happened during FLUX-145, where a browser went on playing segments produced
+ * is not a theory: it happened during VAL-145, where a browser went on playing segments produced
  * before a fix because it had them already. Sessions are short-lived and their segments are read
  * once, so there is nothing to gain by keeping them and a stale film to lose.
  *
@@ -332,7 +332,7 @@ type StorageCount = {
 };
 
 type CreateAppOptions = {
-  auth: FluxAuth;
+  auth: ValenceAuth;
   settings: SettingsStore;
   trustedOrigins?: () => Promise<readonly string[]>;
   countUsers: () => Promise<number>;
@@ -409,7 +409,7 @@ type CreateAppOptions = {
 };
 
 /**
- * Builds the Flux HTTP application.
+ * Builds the Valence HTTP application.
  */
 const createApp = ({
   auth,
@@ -1154,7 +1154,7 @@ const createApp = ({
     const asked = context.req.valid('json');
 
     if (!isSafeWebhookUrl(asked.url)) {
-      return context.json({ error: 'Flux will not send deliveries to that address.' }, 400);
+      return context.json({ error: 'Valence will not send deliveries to that address.' }, 400);
     }
 
     const made = await webhooks.create(asked);
@@ -1515,7 +1515,7 @@ const createApp = ({
 
   app.get('/api/profiles/avatars/:style', (context) => {
     const style = context.req.param('style');
-    const seed = context.req.query('seed') ?? 'flux';
+    const seed = context.req.query('seed') ?? 'valence';
 
     if (!isAvatarStyle(style)) {
       return context.json({ error: 'No such style.' }, 404);
@@ -3049,7 +3049,7 @@ const createApp = ({
   app.doc('/api/openapi.json', {
     openapi: '3.1.0',
     info: {
-      title: 'Flux API',
+      title: 'Valence API',
       version: SERVER_VERSION,
       description: 'Self-hosted streaming platform API.',
     },
@@ -3057,7 +3057,7 @@ const createApp = ({
 
   app.get(
     '/api/reference',
-    apiReference({ spec: { url: '/api/openapi.json' }, pageTitle: 'Flux API' }),
+    apiReference({ spec: { url: '/api/openapi.json' }, pageTitle: 'Valence API' }),
   );
 
   return app;

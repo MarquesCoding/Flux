@@ -1,6 +1,6 @@
-import { Button } from '@FluxUI/Button';
-import { Icon } from '@FluxUI/Icon';
-import { cn } from '@FluxUI/cn';
+import { Button } from '@ValenceUI/Button';
+import { Icon } from '@ValenceUI/Icon';
+import { cn } from '@ValenceUI/cn';
 import { WarningIcon } from '@phosphor-icons/react';
 import type { CouldNotReadProps } from './CouldNotRead.types';
 

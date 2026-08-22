@@ -1,9 +1,9 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { notify } from '@FluxUI/notify';
-import { AccountArea } from '@FluxScreens/components/AccountArea/AccountArea';
-import { signOut } from '@FluxClient/session/auth';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
+import { notify } from '@ValenceUI/notify';
+import { AccountArea } from '@ValenceScreens/components/AccountArea/AccountArea';
+import { signOut } from '@ValenceClient/session/auth';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
 
 /**
  * This account: who it is, how it signs in, what it is signed in on, and what it has watched.

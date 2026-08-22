@@ -1,5 +1,5 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { FavouriteListSchema } from '@FluxContracts/schemas/Favourite';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { FavouriteListSchema } from '@ValenceContracts/schemas/Favourite';
 
 /**
  * Everything this viewer has kept. Kept per profile rather than per account, since what one person in

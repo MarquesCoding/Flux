@@ -1,5 +1,5 @@
-import { DEFAULT_ROLES, DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { DEFAULT_ROLES, DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 import type { PermissionService } from './PermissionService';
 
 type SeedableAccount = {

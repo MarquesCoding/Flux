@@ -1,9 +1,9 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { PlaylistIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { PopoverPanel } from '@FluxUI/PopoverPanel';
-import { MediaCard } from '@FluxUI/MediaCard';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { PopoverPanel } from '@ValenceUI/PopoverPanel';
+import { MediaCard } from '@ValenceUI/MediaCard';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import type { EpisodeMenuProps } from './EpisodeMenu.types';
 
 /**

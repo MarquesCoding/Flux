@@ -7,8 +7,8 @@ describe('envFileWithFfmpeg', () => {
   it('adds both paths, because they are read independently', () => {
     const updated = envFileWithFfmpeg({ existing: 'PORT=8420\n', ...PATHS });
 
-    expect(updated).toContain('FLUX_FFMPEG=/repo/.ffmpeg/ffmpeg');
-    expect(updated).toContain('FLUX_FFPROBE=/repo/.ffmpeg/ffprobe');
+    expect(updated).toContain('VALENCE_FFMPEG=/repo/.ffmpeg/ffmpeg');
+    expect(updated).toContain('VALENCE_FFPROBE=/repo/.ffmpeg/ffprobe');
   });
 
   it('keeps what the file already said', () => {
@@ -18,21 +18,23 @@ describe('envFileWithFfmpeg', () => {
   });
 
   it('leaves a file that already points somewhere deliberate', () => {
-    const existing = 'FLUX_FFMPEG=/opt/mine/ffmpeg\n';
+    const existing = 'VALENCE_FFMPEG=/opt/mine/ffmpeg\n';
 
     expect(envFileWithFfmpeg({ existing, ...PATHS })).toBeUndefined();
   });
 
   it('leaves a file that sets only the probe, which is the half that gets forgotten', () => {
-    const existing = 'FLUX_FFPROBE=/opt/mine/ffprobe\n';
+    const existing = 'VALENCE_FFPROBE=/opt/mine/ffprobe\n';
 
     expect(envFileWithFfmpeg({ existing, ...PATHS })).toBeUndefined();
   });
 
   it('does not mistake a commented example for a setting', () => {
-    const existing = '# FLUX_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg\n';
+    const existing = '# VALENCE_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg\n';
 
-    expect(envFileWithFfmpeg({ existing, ...PATHS })).toContain('FLUX_FFMPEG=/repo/.ffmpeg/ffmpeg');
+    expect(envFileWithFfmpeg({ existing, ...PATHS })).toContain(
+      'VALENCE_FFMPEG=/repo/.ffmpeg/ffmpeg',
+    );
   });
 
   it('does not run the first line into the last one', () => {

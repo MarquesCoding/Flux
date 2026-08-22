@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { QrCode } from './QrCode';
 
-const OTP_URI = 'otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Flux';
+const OTP_URI = 'otpauth://totp/Valence:admin@valence.test?secret=JBSWY3DPEHPK3PXP&issuer=Valence';
 
 describe('QrCode', () => {
   it('renders the value as an image with an accessible name', async () => {

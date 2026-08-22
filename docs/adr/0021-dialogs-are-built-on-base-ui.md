@@ -3,13 +3,13 @@
 - **Status:** Accepted
 - **Date:** 2026-08-18
 - **Deciders:** Marques Scripps
-- **Supersedes:** [0018](0018-fluxui-on-radix-and-shadcn-conventions.md), for its
+- **Supersedes:** [0018](0018-valenceui-on-radix-and-shadcn-conventions.md), for its
   primitive clause and for dialogs only
 - **Superseded by:** —
 
 ## Context
 
-[ADR-0018](0018-fluxui-on-radix-and-shadcn-conventions.md) chose Radix over Base
+[ADR-0018](0018-valenceui-on-radix-and-shadcn-conventions.md) chose Radix over Base
 UI while saying plainly that Base UI was the better library. The reason was the
 ecosystem: "every animation recipe worth borrowing is written against Radix's
 `data-[state]` attributes."
@@ -49,7 +49,7 @@ attribution above. The second was closer than it was given credit for.
 **Leaving is eased on `--ease-in-out`, arriving on `--ease-out`.** This is one
 half of the fix for the reported bug and it is independent of the primitive.
 
-The other half was not in FluxUI at all. Both detail dialogs derived their
+The other half was not in ValenceUI at all. Both detail dialogs derived their
 contents from the same value that dismisses them, so an overview, a cast and a
 seasons list all became nothing in the render that began the exit, and the panel
 spent that exit as an empty box. `useHeldWhileLeaving` in the web app holds them
@@ -57,10 +57,10 @@ until the leaving is done. Confirmed working together.
 
 **`Dialog` is built on Base UI. Nothing else is.**
 
-`@base-ui/react` is a dependency of FluxUI, and `packages/ui/src/components/Dialog`
+`@base-ui/react` is a dependency of ValenceUI, and `packages/ui/src/components/Dialog`
 is the only file permitted to import it. Building a second component on Base UI
 is a new decision to be taken on its own merits, not a precedent set by this one.
-Everything else in FluxUI stays on Radix under 0018.
+Everything else in ValenceUI stays on Radix under 0018.
 
 The leaving classes hang on `data-open` and `data-closed` rather than
 `data-[state=open]` and `data-[state=closed]`, because those are what Base UI
@@ -88,11 +88,11 @@ assumed to be, which is worth something on its own after three wrong diagnoses.
 
 **Two primitive libraries for one component.** `@base-ui/react` is installed for
 a single file. That is a real cost and the reason this ADR is scoped as narrowly
-as it is: the alternative reading — "FluxUI is moving to Base UI" — is not what
+as it is: the alternative reading — "ValenceUI is moving to Base UI" — is not what
 was decided.
 
 **One component speaks a different attribute vocabulary.** Every other popup in
-FluxUI animates off `data-[state]`; `Dialog` animates off `data-open`. Anyone
+ValenceUI animates off `data-[state]`; `Dialog` animates off `data-open`. Anyone
 copying motion between them has to translate.
 
 **A media card is left with a focus ring** after the dialog over it is dismissed.
@@ -104,7 +104,7 @@ exit animation, so it needs a different answer.
 
 ## Alternatives considered
 
-**Rebuild FluxUI from the shadcn registry on Base UI.** Tried, and reverted. All
+**Rebuild ValenceUI from the shadcn registry on Base UI.** Tried, and reverted. All
 sixty-three registry components were generated and the fifty-three hand-written
 ones set aside, on the reasoning that a complete set is a better thing to restyle
 from than a set grown one screen at a time. It was abandoned because it delivered
@@ -120,7 +120,7 @@ than the weakest, because the bug turned out not to be the primitive. Reverting
 and cost nothing if it works. It is untested, which is the only reason this ADR
 still reads the way it does.
 
-**Move all of FluxUI to Base UI.** The honest end state if more components turn
+**Move all of ValenceUI to Base UI.** The honest end state if more components turn
 out to need it. It is a much larger decision than one bug justifies, and taking
 it now would be deciding it by momentum rather than on the merits.
 

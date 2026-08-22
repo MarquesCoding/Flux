@@ -15,10 +15,10 @@ import {
   or,
   sql,
 } from 'drizzle-orm';
-import { book, bookChapter, library, mediaItem, rating, series } from '@FluxServer/db/Schema';
-import { LibraryKindSchema, MediaDetailSchema } from '@FluxContracts/schemas/Library';
-import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { book, bookChapter, library, mediaItem, rating, series } from '@ValenceServer/db/Schema';
+import { LibraryKindSchema, MediaDetailSchema } from '@ValenceContracts/schemas/Library';
+import { AudioStreamSchema } from '@ValenceContracts/schemas/MediaItem';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import {
   createMediaStore,
   listOutstandingFor,
@@ -27,31 +27,31 @@ import {
 } from './createMediaStore';
 import { fetchLogos } from './fetchLogos';
 import { scanLibrary } from './scanLibrary';
-import { scanBookLibrary } from '@FluxServer/books/scanBookLibrary';
-import type { BookStore } from '@FluxServer/books/scanBookLibrary';
+import { scanBookLibrary } from '@ValenceServer/books/scanBookLibrary';
+import type { BookStore } from '@ValenceServer/books/scanBookLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import { resolveSeriesShape } from './MetadataProvider';
 import { regeneratePreviews } from './regeneratePreviews';
 import { generateTrickplay } from './generateTrickplay';
 import { rebuildItemArtefacts } from './rebuildItemArtefacts';
-import { toIso } from '@FluxCore/functions/toIso';
+import { toIso } from '@ValenceCore/functions/toIso';
 import {
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-} from '@FluxServer/playback/PlaybackService';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+} from '@ValenceServer/playback/PlaybackService';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type {
   Library,
   MediaDetail,
   MediaSummary,
   ScanResult,
-} from '@FluxContracts/schemas/Library';
+} from '@ValenceContracts/schemas/Library';
 import type { MediaFileSystem, ScanPhase } from './scanLibrary';
 import type { MetadataProvider, SeriesShape } from './MetadataProvider';
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { ShowDetail } from '@ValenceContracts/schemas/Show';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 import type { LibraryService, ListItemsOptions } from './LibraryService';
 import {
   SCAN_LIBRARY_JOB,
@@ -60,14 +60,14 @@ import {
   REGENERATE_TRICKPLAY_JOB,
   FETCH_LOGOS_JOB,
   DETECT_SEGMENTS_JOB,
-} from '@FluxServer/jobs/JobQueue';
-import type { JobQueue } from '@FluxServer/jobs/JobQueue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+} from '@ValenceServer/jobs/JobQueue';
+import type { JobQueue } from '@ValenceServer/jobs/JobQueue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
   atOnce?: number;
-  db: FluxDatabase;
+  db: ValenceDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
   jobs: JobQueue;
@@ -401,7 +401,7 @@ const createDatabaseLibraryService = ({
    * their mount was missing.
    *
    * @param row - The library row as stored.
-   * @returns The counts from the last scan, or null where none has run since Flux began recording.
+   * @returns The counts from the last scan, or null where none has run since Valence began recording.
    */
   const readLastScan = (row: {
     lastScanAdded: number | null;

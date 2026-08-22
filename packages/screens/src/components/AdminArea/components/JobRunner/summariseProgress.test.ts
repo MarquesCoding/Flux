@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { summariseProgress } from './summariseProgress';
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 const entry = (
   phase: string | null,

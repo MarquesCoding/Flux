@@ -7,7 +7,7 @@ import { openComicRar } from './openComicRar';
 let where = '';
 
 beforeAll(async () => {
-  where = await mkdtemp(join(tmpdir(), 'flux-rar-'));
+  where = await mkdtemp(join(tmpdir(), 'valence-rar-'));
 });
 
 afterAll(async () => {

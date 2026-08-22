@@ -1,7 +1,7 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { InfoIcon, PlayIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { Button } from '@ValenceUI/Button';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import type { EpisodeRowProps } from './EpisodeRow.types';
 
 /**

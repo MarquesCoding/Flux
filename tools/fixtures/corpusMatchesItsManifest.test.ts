@@ -55,7 +55,7 @@ describe('the corpus matches what the matrix claims', () => {
       const path = join(directory, fixtureFileName(fixture));
 
       const probe = spawnSync(
-        process.env['FLUX_FFPROBE'] ?? 'ffprobe',
+        process.env['VALENCE_FFPROBE'] ?? 'ffprobe',
         [
           '-v',
           'error',
@@ -150,7 +150,7 @@ describe('the corpus matches what the matrix claims', () => {
       if (fixture.video.refFrames > 0) {
         it('encodes with the reference frame count it claims', () => {
           const trace = spawnSync(
-            process.env['FLUX_FFMPEG'] ?? 'ffmpeg',
+            process.env['VALENCE_FFMPEG'] ?? 'ffmpeg',
             [
               '-v',
               'trace',

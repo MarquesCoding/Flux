@@ -114,7 +114,7 @@ describe('groupBareNumberedEpisodes', () => {
     ).toBe(0);
   });
 
-  it('calls a specials folder season zero, the way the rest of Flux does', () => {
+  it('calls a specials folder season zero, the way the rest of Valence does', () => {
     const found = groupBareNumberedEpisodes([
       '/media/Show/Specials/Show - 01.mkv',
       '/media/Show/Specials/Show - 02.mkv',

@@ -1,4 +1,4 @@
-import type { AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
 
 type CacheBreakdownProps = {
   cache: Monitor['cache'];

@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfilePicker } from './ProfilePicker';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
   id: `00000000-0000-4000-8000-${at.toString().padStart(12, '0')}`,

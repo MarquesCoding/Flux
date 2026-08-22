@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { BackdropScrimProps } from './BackdropScrim.types';
 
 /**

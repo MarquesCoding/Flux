@@ -1,7 +1,7 @@
 import tseslint from 'typescript-eslint';
 import { noComments } from './tools/eslint/noComments';
 
-const flux = {
+const valence = {
   rules: {
     'no-comments': noComments,
   },
@@ -28,9 +28,9 @@ export default tseslint.config(
         tsconfigRootDir: import.meta.dirname,
       },
     },
-    plugins: { flux },
+    plugins: { valence },
     rules: {
-      'flux/no-comments': 'error',
+      'valence/no-comments': 'error',
       '@typescript-eslint/no-floating-promises': 'error',
       '@typescript-eslint/no-misused-promises': 'error',
       '@typescript-eslint/no-unnecessary-condition': 'error',
@@ -44,23 +44,23 @@ export default tseslint.config(
             {
               group: ['../*'],
               message:
-                'Parent-relative imports are banned. Use @FluxUI/*, @FluxCore/*, @FluxContracts/* or @FluxSDK/*.',
+                'Parent-relative imports are banned. Use @ValenceUI/*, @ValenceCore/*, @ValenceContracts/* or @ValenceSDK/*.',
             },
             {
               group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react', '@hugeicons/*'],
               message:
-                'Icons come from @phosphor-icons/react, drawn by @FluxUI/Icon — see code standards section 10.',
+                'Icons come from @phosphor-icons/react, drawn by @ValenceUI/Icon — see code standards section 10.',
             },
             {
               group: ['@base-ui/react', '@base-ui/react/*'],
               message:
-                'Base UI is for Dialog alone — see ADR-0021. Everything else in FluxUI is Radix.',
+                'Base UI is for Dialog alone — see ADR-0021. Everything else in ValenceUI is Radix.',
             },
             {
               group: ['@phosphor-icons/react'],
               importNames: ['IconBase', 'IconContext', 'SSR'],
               message:
-                'Draw an icon with @FluxUI/Icon rather than the set itself, so the set stays swappable in one file.',
+                'Draw an icon with @ValenceUI/Icon rather than the set itself, so the set stays swappable in one file.',
             },
           ],
         },
@@ -140,14 +140,14 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@FluxWeb/*'],
+              group: ['@ValenceWeb/*'],
               message:
                 'The application cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0022.',
             },
             {
-              group: ['@FluxUI/*'],
+              group: ['@ValenceUI/*'],
               message:
-                'The application does not draw. A component belongs to a client, and a shape both need belongs to @FluxContracts.',
+                'The application does not draw. A component belongs to a client, and a shape both need belongs to @ValenceContracts.',
             },
           ],
         },
@@ -162,7 +162,7 @@ export default tseslint.config(
         {
           patterns: [
             {
-              group: ['@FluxWeb/*'],
+              group: ['@ValenceWeb/*'],
               message:
                 'A screen cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0023.',
             },

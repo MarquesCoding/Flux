@@ -19,12 +19,12 @@ use axum::http::{Request, StatusCode};
 use http_body_util::BodyExt;
 use tower::ServiceExt;
 
-use flux_transcoder::monitor::{Journal, Monitor};
-use flux_transcoder::preview::PreviewRegistry;
-use flux_transcoder::queue::WorkQueue;
-use flux_transcoder::router::{create_router, AppState};
-use flux_transcoder::session::{SessionConfig, SessionRegistry};
-use flux_transcoder::transcode_plan::{
+use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewRegistry;
+use valence_transcoder::queue::WorkQueue;
+use valence_transcoder::router::{create_router, AppState};
+use valence_transcoder::session::{SessionConfig, SessionRegistry};
+use valence_transcoder::transcode_plan::{
     AudioAction, HardwareAccel, SegmentContainer, SessionSpec, SubtitleAction, VideoAction,
 };
 
@@ -138,7 +138,7 @@ fn source_file() -> PathBuf {
 /// it. Production has a single registry that deduplicates; tests do not.
 fn registry(name: &str) -> SessionRegistry {
     SessionRegistry::new(SessionConfig {
-        device: flux_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
+        device: valence_transcoder::transcode_plan::DEFAULT_DEVICE.to_owned(),
         ffmpeg: ffmpeg(),
         ffprobe: ffprobe(),
         cache_root: cache_root(name),
@@ -148,14 +148,14 @@ fn registry(name: &str) -> SessionRegistry {
 }
 
 fn cache_root(name: &str) -> PathBuf {
-    std::env::temp_dir().join(format!("flux-test-transcodes-{name}"))
+    std::env::temp_dir().join(format!("valence-test-transcodes-{name}"))
 }
 
 fn app(registry: SessionRegistry) -> axum::Router {
     create_router(AppState {
         registry,
         ffprobe: ffprobe(),
-        trickplay: flux_transcoder::trickplay::TrickplayRegistry::default(),
+        trickplay: valence_transcoder::trickplay::TrickplayRegistry::default(),
         previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),
         queue: WorkQueue::new(1),

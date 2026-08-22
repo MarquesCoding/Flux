@@ -1,4 +1,4 @@
-import { rampVolume } from '@FluxScreens/playback/rampVolume';
+import { rampVolume } from '@ValenceScreens/playback/rampVolume';
 
 /**
  * Takes a clip's sound down to nothing before it is put away, so one leaving the screen falls quiet

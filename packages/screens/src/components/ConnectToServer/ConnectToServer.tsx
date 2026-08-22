@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { Logo } from '@FluxUI/Logo';
-import { Spinner } from '@FluxUI/Spinner';
-import { readServerAddress } from '@FluxClient/session/readServerAddress';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { Logo } from '@ValenceUI/Logo';
+import { Spinner } from '@ValenceUI/Spinner';
+import { readServerAddress } from '@ValenceClient/session/readServerAddress';
 import { reachServer } from './reachServer';
 import type { ConnectToServerProps } from './ConnectToServer.types';
 
 /**
- * Asks which Flux this client is for, which a client that serves its own pages has no way of
+ * Asks which Valence this client is for, which a client that serves its own pages has no way of
  * knowing and a browser never has to ask.
  *
  * The address is tried before it is kept. A typo that is only discovered at the next request looks
@@ -22,12 +22,12 @@ import type { ConnectToServerProps } from './ConnectToServer.types';
  * A server running on this machine is found rather than asked for, and offered as something to
  * press. Finding one is not the same as it being theirs — somebody may run two, or be setting one up
  * while watching another — so it is offered rather than assumed, and the box is still there for
- * anybody whose Flux is somewhere else.
+ * anybody whose Valence is somewhere else.
  *
  * @param onConnected - Told the address, once something answered at it.
  * @param startWith - What to put in the box, for somebody being asked again.
  * @param couldNotReach - The address that stopped answering, where that is why they are here.
- * @param reach - How to ask whether a Flux is there, which a test replaces.
+ * @param reach - How to ask whether a Valence is there, which a test replaces.
  * @param found - Servers already found on this machine, which have answered before being offered.
  */
 const ConnectToServer = ({
@@ -41,7 +41,7 @@ const ConnectToServer = ({
   const [problem, setProblem] = useState<string | null>(
     couldNotReach === undefined
       ? null
-      : `Flux at ${couldNotReach} could not be reached. Check that it is running.`,
+      : `Valence at ${couldNotReach} could not be reached. Check that it is running.`,
   );
   const [asking, setAsking] = useState(false);
 
@@ -63,7 +63,7 @@ const ConnectToServer = ({
 
     if (!answered) {
       setProblem(
-        `Nothing answered at ${read.address}. Check the address and that Flux is running.`,
+        `Nothing answered at ${read.address}. Check the address and that Valence is running.`,
       );
 
       return;
@@ -84,7 +84,7 @@ const ConnectToServer = ({
         <Logo size={32} className="self-start" />
 
         <div className="flex flex-col gap-1.5">
-          <h1 className="text-xl font-medium text-text">Which Flux is yours?</h1>
+          <h1 className="text-xl font-medium text-text">Which Valence is yours?</h1>
           <p className="text-sm text-text-muted">
             The address of your server, the same one you would open in a browser.
           </p>
@@ -115,7 +115,7 @@ const ConnectToServer = ({
           label="Server address"
           value={typed}
           onValueChange={setTyped}
-          placeholder="flux.example.com"
+          placeholder="valence.example.com"
           hasFocusOnMount
           {...(problem === null ? {} : { error: problem })}
         />

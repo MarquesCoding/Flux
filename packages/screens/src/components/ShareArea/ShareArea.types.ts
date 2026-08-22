@@ -1,5 +1,5 @@
-import type { ShareEnding } from '@FluxContracts/schemas/Share';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { ShareEnding } from '@ValenceContracts/schemas/Share';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type ShareAreaProps = {
   token: string;

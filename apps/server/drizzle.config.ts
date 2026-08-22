@@ -28,6 +28,6 @@ export default defineConfig({
   out: './drizzle',
   dialect: 'postgresql',
   dbCredentials: {
-    url: process.env.DATABASE_URL ?? 'postgres://flux:flux@localhost:5432/flux',
+    url: process.env.DATABASE_URL ?? 'postgres://valence:valence@localhost:5432/valence',
   },
 });

@@ -1,9 +1,9 @@
-const FLUX_EASE = {
+const VALENCE_EASE = {
   soft: [0.22, 1, 0.36, 1],
   spring: [0.34, 1.4, 0.64, 1],
 } as const;
 
-const FLUX_TOKENS = {
+const VALENCE_TOKENS = {
   color: {
     surface: 'var(--color-surface)',
     surfaceRaised: 'var(--color-surface-raised)',
@@ -35,7 +35,7 @@ const FLUX_TOKENS = {
     normal: 0.22,
     slow: 0.38,
   },
-  ease: FLUX_EASE,
+  ease: VALENCE_EASE,
 } as const;
 
-export { FLUX_TOKENS };
+export { VALENCE_TOKENS };

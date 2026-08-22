@@ -1,8 +1,8 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { TabPanel } from './TabPanel';
-import { TabBar } from '@FluxUI/TabBar';
-import { Tabs } from '@FluxUI/Tabs';
+import { TabBar } from '@ValenceUI/TabBar';
+import { Tabs } from '@ValenceUI/Tabs';
 
 const tabs = [
   { id: 'one', label: 'One' },

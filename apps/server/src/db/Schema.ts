@@ -748,14 +748,14 @@ const authSchema = {
   apikey,
 };
 
-const fluxSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };
+const valenceSchema = { userProfile, viewerProfile, serverSetting, library, mediaItem };
 
 export {
   accountActivity,
   watchHistory,
   series,
   authSchema,
-  fluxSchema,
+  valenceSchema,
   library,
   mediaOverride,
   mediaItem,

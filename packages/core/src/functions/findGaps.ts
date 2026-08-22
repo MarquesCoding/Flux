@@ -1,4 +1,4 @@
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
+import type { ShowDetail } from '@ValenceContracts/schemas/Show';
 
 type Gaps = {
   seasons: number[];
@@ -68,7 +68,7 @@ const numbersIn = (show: ShowDetail, seasonNumber: number): number[] =>
  * no catalogue to ask, absence is only reported between the episodes actually held, since nothing
  * else can be known from the files alone.
  *
- * @param show - The programme as Flux holds it, with the catalogue's shape when one was fetched.
+ * @param show - The programme as Valence holds it, with the catalogue's shape when one was fetched.
  * @returns The missing seasons, the missing episodes by season, and whether a catalogue said so.
  */
 const findGaps = (show: ShowDetail): Gaps => {

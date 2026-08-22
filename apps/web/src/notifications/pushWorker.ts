@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type PushMessage = {
   data: { json: () => JsonValue } | null;
@@ -42,7 +42,7 @@ declare function addEventListener(
 ): void;
 
 const PushContentSchema = z.object({
-  title: z.string().default('Flux'),
+  title: z.string().default('Valence'),
   body: z.string().default('Something new to watch'),
   link: z.string().nullish(),
 });
@@ -68,7 +68,7 @@ const readContent = (event: PushMessage) => {
 addEventListener('push', (event) => {
   const { title, body, link } = readContent(event);
 
-  const tag = 'flux-media-added';
+  const tag = 'valence-media-added';
 
   event.waitUntil(
     registration.showNotification(title, {

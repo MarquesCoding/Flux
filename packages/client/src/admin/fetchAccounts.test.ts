@@ -6,7 +6,7 @@ import {
   removeAccount,
   inviteAccount,
 } from './fetchAccounts';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type Answer = { ok: boolean; status: number; json: () => Promise<JsonValue> };
 
@@ -17,7 +17,7 @@ const fetchMock = vi.fn<FetchLike>();
 const ACCOUNT = {
   id: 'user-1',
   name: 'Marques',
-  email: 'marques@flux.local',
+  email: 'marques@valence.local',
   createdAt: '2026-01-01T00:00:00.000Z',
   isBanned: false,
   banReason: null,
@@ -95,7 +95,7 @@ describe('acting on an account', () => {
       () =>
         inviteAccount({
           name: 'Dan',
-          email: 'dan@flux.local',
+          email: 'dan@valence.local',
           password: 'a-long-enough-password',
         }),
       '/api/admin/accounts',
@@ -140,10 +140,10 @@ describe('acting on an account', () => {
     });
   }
 
-  it('sends the password with an invitation, since Flux cannot post a link', async () => {
+  it('sends the password with an invitation, since Valence cannot post a link', async () => {
     answering({});
 
-    await inviteAccount({ name: 'Dan', email: 'dan@flux.local', password: 'a-long-password' });
+    await inviteAccount({ name: 'Dan', email: 'dan@valence.local', password: 'a-long-password' });
 
     const [, init] = fetchMock.mock.calls.at(-1) ?? [];
 

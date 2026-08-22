@@ -3,7 +3,7 @@ import {
   ViewerProfileSchema,
   ViewerProfileRequestSchema,
   ViewerProfileListSchema,
-} from '@FluxContracts/schemas/ViewerProfile';
+} from '@ValenceContracts/schemas/ViewerProfile';
 
 const ProfileError = z.object({ error: z.string() }).openapi('ProfileError');
 

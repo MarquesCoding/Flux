@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { resolveMetadata, resolveSeriesShape } from './MetadataProvider';
 import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
 import type { MediaFacts, MetadataProvider } from './MetadataProvider';
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
+import type { MediaProbe } from '@ValenceServer/transcoder/TranscoderClient';
 
 const probe: MediaProbe = {
   container: 'mkv',

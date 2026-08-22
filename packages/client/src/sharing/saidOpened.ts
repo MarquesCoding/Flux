@@ -1,4 +1,4 @@
-import type { Share } from '@FluxContracts/schemas/Share';
+import type { Share } from '@ValenceContracts/schemas/Share';
 
 /**
  * Says how often a link has been opened, against its allowance where it has one. The plural follows

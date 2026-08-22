@@ -1,6 +1,6 @@
-import { FromServerSchema } from '@FluxContracts/schemas/Realtime';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { FromClient, RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import { FromServerSchema } from '@ValenceContracts/schemas/Realtime';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { FromClient, RealtimeEvent, RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
 
 type Handlers = {
   onOpen: () => void;

@@ -36,14 +36,14 @@ describe('cleanBookDocument', () => {
     );
   });
 
-  it("drops the book's own styling, since Flux decides how a book is set", () => {
+  it("drops the book's own styling, since Valence decides how a book is set", () => {
     const clean = cleanBookDocument('<style>p { color: red }</style><p>Hello</p>', asIs);
 
     expect(clean).not.toContain('color');
     expect(clean).toContain('Hello');
   });
 
-  it('points a picture back at Flux, since a book keeps its pictures inside itself', () => {
+  it('points a picture back at Valence, since a book keeps its pictures inside itself', () => {
     expect(cleanBookDocument('<img src="images/one.png" alt="a" />', asIs)).toContain(
       '/api/books/1/resource/images/one.png',
     );

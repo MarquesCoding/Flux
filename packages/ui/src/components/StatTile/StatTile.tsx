@@ -1,5 +1,5 @@
-import { Card } from '@FluxUI/Card';
-import { cn } from '@FluxUI/cn';
+import { Card } from '@ValenceUI/Card';
+import { cn } from '@ValenceUI/cn';
 import type { StatTileProps } from './StatTile.types';
 
 /**

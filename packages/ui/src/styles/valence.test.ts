@@ -1,10 +1,10 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 
-const stylesheet = readFileSync('src/styles/flux.css', 'utf8');
+const stylesheet = readFileSync('src/styles/valence.css', 'utf8');
 
-describe('the Flux stylesheet', () => {
-  it('tells Tailwind where FluxUI lives', () => {
+describe('the Valence stylesheet', () => {
+  it('tells Tailwind where ValenceUI lives', () => {
     expect(stylesheet).toMatch(/@source\s+'\.\.\/?'/);
   });
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { watchPermissionChanges } from './watchPermissionChanges';
-import type { PermissionService } from '@FluxServer/auth/PermissionService';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { PermissionService } from '@ValenceServer/auth/PermissionService';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const createService = (): PermissionService => ({
   resolve: () => Promise.resolve(new Set<Permission>()),

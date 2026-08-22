@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { toDataURL } from 'qrcode';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { QrCodeProps } from './QrCode.types';
 
 const DEFAULT_SIZE = 192;

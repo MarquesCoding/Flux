@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { createInertJobQueue } from '@FluxServer/jobs/createInertJobQueue';
+import { createInertJobQueue } from '@ValenceServer/jobs/createInertJobQueue';
 import { createDatabaseMaintenanceService } from './createDatabaseMaintenanceService';
 
 describe('createDatabaseMaintenanceService', () => {

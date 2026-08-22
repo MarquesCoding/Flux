@@ -6,7 +6,7 @@ const UUID_VARIANT_BYTE = 8;
  * Makes a random identifier without requiring a secure context.
  *
  * `crypto.randomUUID` is only defined where the page is a secure context, which
- * a self-hosted Flux reached at `http://192.168.1.10` is not — browsers grant
+ * a self-hosted Valence reached at `http://192.168.1.10` is not — browsers grant
  * that status to `localhost` and to HTTPS, and to nothing else. Calling it on a
  * plain LAN address throws, and the throw unmounted the whole application: the
  * splash screen appeared, presence started, and the tab went blank.

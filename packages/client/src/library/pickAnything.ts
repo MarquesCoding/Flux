@@ -1,6 +1,6 @@
-import { fetchLibraries, fetchLibraryItems } from '@FluxClient/library/fetchLibrary';
-import { fetchShows } from '@FluxClient/library/fetchShows';
-import type { LibraryKind } from '@FluxContracts/schemas/Library';
+import { fetchLibraries, fetchLibraryItems } from '@ValenceClient/library/fetchLibrary';
+import { fetchShows } from '@ValenceClient/library/fetchShows';
+import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 import type { Surprise } from './pickAnything.types';
 
 type Shelf = {

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
-import { cn } from '@FluxUI/cn';
-import { Button } from '@FluxUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { Button } from '@ValenceUI/Button';
 import type { ReadMoreProps } from './ReadMore.types';
 
 const CLAMP_CLASSES: Record<number, string> = {

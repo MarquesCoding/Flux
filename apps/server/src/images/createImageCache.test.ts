@@ -26,7 +26,7 @@ const respondWith = (options: {
 };
 
 const cache = async (fetchImpl: ImageFetcher, onProblem?: (url: string, why: string) => void) => {
-  const directory = await mkdtemp(join(tmpdir(), 'flux-images-'));
+  const directory = await mkdtemp(join(tmpdir(), 'valence-images-'));
 
   return {
     directory,

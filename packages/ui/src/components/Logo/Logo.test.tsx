@@ -30,9 +30,9 @@ const layersOf = (container: HTMLElement): HTMLElement[] =>
 
 describe('Logo', () => {
   it('says what it is where it stands for the whole name', () => {
-    render(<Logo label="Flux" />);
+    render(<Logo label="Valence" />);
 
-    expect(screen.getByRole('img', { name: 'Flux' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Valence' })).toBeInTheDocument();
   });
 
   it('is hidden from anything reading the page where a name sits beside it', () => {
@@ -45,7 +45,7 @@ describe('Logo', () => {
     const { container } = render(<Logo />);
 
     expect(layersOf(container)).toHaveLength(1);
-    expect(layersOf(container)[0]?.style.maskImage).toContain('flux-logo.svg');
+    expect(layersOf(container)[0]?.style.maskImage).toContain('valence-logo.svg');
   });
 
   it('lays a second copy of the mark behind it to draw a keyline, and hides it otherwise', () => {
@@ -53,8 +53,8 @@ describe('Logo', () => {
     const { container: plain } = render(<Logo />);
 
     expect(layersOf(edged)).toHaveLength(2);
-    expect(edged.innerHTML).toContain('flux-logo-edge');
-    expect(plain.innerHTML).not.toContain('flux-logo-edge');
+    expect(edged.innerHTML).toContain('valence-logo-edge');
+    expect(plain.innerHTML).not.toContain('valence-logo-edge');
   });
 
   it('gives an edged mark a solid body, since a keyline behind dots would show through', () => {
@@ -76,14 +76,14 @@ describe('Logo', () => {
   it('fills itself with dots where asked, inside the shape it is cut to', () => {
     const { container } = render(<Logo isDotted />);
 
-    expect(container.innerHTML).toContain('flux-logo-dots');
-    expect(layersOf(container)[0]?.style.maskImage).toContain('flux-logo.svg');
+    expect(container.innerHTML).toContain('valence-logo-dots');
+    expect(layersOf(container)[0]?.style.maskImage).toContain('valence-logo.svg');
   });
 
   it('is solid ink otherwise, since dots turn to mush at the size of a dock', () => {
     const { container } = render(<Logo />);
 
-    expect(container.innerHTML).not.toContain('flux-logo-dots');
+    expect(container.innerHTML).not.toContain('valence-logo-dots');
     expect(container.innerHTML).toContain('conic-gradient');
   });
 
@@ -91,8 +91,8 @@ describe('Logo', () => {
     const { container: still } = render(<Logo isDotted />);
     const { container: waving } = render(<Logo isDotted isAnimated />);
 
-    expect(still.innerHTML).not.toContain('flux-logo-wave');
-    expect(waving.innerHTML).toContain('flux-logo-wave');
+    expect(still.innerHTML).not.toContain('valence-logo-wave');
+    expect(waving.innerHTML).toContain('valence-logo-wave');
   });
 
   it('keeps its colour when it is made of dots, since dots are still the mark', () => {
@@ -113,6 +113,22 @@ describe('Logo', () => {
     const { container } = render(<Logo />);
 
     expect(container.innerHTML).not.toContain('animate-');
-    expect(container.innerHTML).not.toContain('flux-logo-wave');
+    expect(container.innerHTML).not.toContain('valence-logo-wave');
+  });
+});
+
+describe('the shape of the mark', () => {
+  it('is drawn to its own proportions rather than squared off', () => {
+    const { container } = render(<Logo size={100} />);
+    const held = container.firstElementChild;
+
+    expect(held).toHaveStyle({ height: '100px' });
+    expect(held).not.toHaveStyle({ width: '100px' });
+  });
+
+  it('holds its proportions where a class sets the size instead', () => {
+    const { container } = render(<Logo className="h-8" />);
+
+    expect(container.firstElementChild).toHaveStyle({ aspectRatio: String(624 / 458) });
   });
 });

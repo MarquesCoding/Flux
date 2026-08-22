@@ -1,7 +1,7 @@
 import { CaretLeftIcon, CaretRightIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { Icon } from '@FluxUI/Icon';
-import { Logo } from '@FluxUI/Logo';
+import { Button } from '@ValenceUI/Button';
+import { Icon } from '@ValenceUI/Icon';
+import { Logo } from '@ValenceUI/Logo';
 import type { WindowBarProps } from './WindowBar.types';
 
 const PAST_THE_TRAFFIC_LIGHTS = 'w-[68px]';

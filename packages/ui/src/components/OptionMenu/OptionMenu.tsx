@@ -1,9 +1,9 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CheckIcon } from '@phosphor-icons/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { OptionMenuProps } from './OptionMenu.types';
 
 /**
@@ -62,7 +62,7 @@ const OptionMenu = ({
           aria-label={label}
           {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
           className={cn(
-            'flux-glass z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
+            'valence-glass z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
             POPUP_MOTION,
           )}
         >

@@ -1,9 +1,9 @@
-import { mayHearTopic, splitByEntitlement } from '@FluxContracts/schemas/Realtime';
+import { mayHearTopic, splitByEntitlement } from '@ValenceContracts/schemas/Realtime';
 import { createCoalescer } from './createCoalescer';
 import type { Coalesced, Schedule } from './createCoalescer';
 import type { Entitlements } from './createEntitlements';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { FromServer, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { FromServer, RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
 
 type RealtimeConnection = {
   id: string;

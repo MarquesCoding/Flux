@@ -20,7 +20,7 @@ describe('validateAddLibraryForm', () => {
 
   it('requires a path', () => {
     expect(validateAddLibraryForm({ name: 'Films', path: '' }).path).toEqual(
-      'Enter the path to this library on the machine running Flux.',
+      'Enter the path to this library on the machine running Valence.',
     );
   });
 });

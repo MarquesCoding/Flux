@@ -1,7 +1,7 @@
 import { formatWebhookBody } from './formatWebhookBody';
 import { isSafeWebhookUrl } from './isSafeWebhookUrl';
 import { signWebhookPayload, WEBHOOK_SIGNATURE_HEADER } from './signWebhookPayload';
-import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
+import type { WebhookPayload, WebhookPreset } from '@ValenceContracts/schemas/Webhook';
 
 const WEBHOOK_TIMEOUT_MILLISECONDS = 10_000;
 
@@ -45,7 +45,7 @@ const deliverWebhook = async (
   timeoutMilliseconds: number = WEBHOOK_TIMEOUT_MILLISECONDS,
 ): Promise<WebhookAttempt> => {
   if (!isSafeWebhookUrl(target.url)) {
-    return { ok: false, status: null, error: 'Flux will not send deliveries to that address.' };
+    return { ok: false, status: null, error: 'Valence will not send deliveries to that address.' };
   }
 
   const call: WebhookFetcher =
@@ -63,7 +63,7 @@ const deliverWebhook = async (
       method: 'POST',
       headers: {
         'content-type': contentType,
-        'user-agent': 'Flux',
+        'user-agent': 'Valence',
         [WEBHOOK_SIGNATURE_HEADER]: signWebhookPayload(target.secret, body),
       },
       body,

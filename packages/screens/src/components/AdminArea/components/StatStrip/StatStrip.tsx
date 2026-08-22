@@ -1,4 +1,4 @@
-import { StatTile } from '@FluxUI/StatTile';
+import { StatTile } from '@ValenceUI/StatTile';
 import type { StatStripProps } from './StatStrip.types';
 
 /**

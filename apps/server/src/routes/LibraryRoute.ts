@@ -6,11 +6,11 @@ import {
   MediaDetailSchema,
   LibraryFacetsSchema,
   LIBRARY_KINDS,
-} from '@FluxContracts/schemas/Library';
+} from '@ValenceContracts/schemas/Library';
 import {
   ShowListSchema as ShowListContract,
   ShowDetailSchema as ShowDetailContract,
-} from '@FluxContracts/schemas/Show';
+} from '@ValenceContracts/schemas/Show';
 
 const Library = LibrarySchema.openapi('Library');
 const MediaSummary = MediaSummarySchema.openapi('MediaSummary');

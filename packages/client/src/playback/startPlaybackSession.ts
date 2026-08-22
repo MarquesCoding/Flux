@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { QualityPreference } from './qualityPreference';
 
 const DeliverySchema = z.union([
@@ -73,14 +73,14 @@ const startPlaybackSession = async (
       kind: 'failed',
       reason: body.success
         ? body.data.error
-        : `Flux asked for something the server would not accept (${response.status.toString()}).`,
+        : `Valence asked for something the server would not accept (${response.status.toString()}).`,
     };
   }
 
   const parsed = StartedSessionSchema.safeParse(await response.json());
 
   if (!parsed.success) {
-    return { kind: 'failed', reason: 'The server sent a response Flux could not read.' };
+    return { kind: 'failed', reason: 'The server sent a response Valence could not read.' };
   }
 
   return { kind: 'started', session: parsed.data };
@@ -93,9 +93,7 @@ const startPlaybackSession = async (
  * @param sessionId - The session to stop.
  */
 const stopPlaybackSession = async (sessionId: string): Promise<void> => {
-  await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(
-    () => undefined,
-  );
+  await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(() => undefined);
 };
 
 /**

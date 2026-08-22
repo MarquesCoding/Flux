@@ -13,11 +13,11 @@ const AVATAR_STYLES = {
 type AvatarStyle = keyof typeof AVATAR_STYLES;
 
 /**
- * Decides whether a stored value names a style Flux actually draws, so a value written by a newer
+ * Decides whether a stored value names a style Valence actually draws, so a value written by a newer
  * version falls back rather than rendering nothing.
  *
  * @param candidate - The style as stored.
- * @returns Whether it is one Flux can draw.
+ * @returns Whether it is one Valence can draw.
  */
 const isAvatarStyle = (candidate: string): candidate is AvatarStyle =>
   Object.hasOwn(AVATAR_STYLES, candidate);

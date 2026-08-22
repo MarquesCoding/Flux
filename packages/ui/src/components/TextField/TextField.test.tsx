@@ -31,9 +31,9 @@ describe('TextField', () => {
     const user = userEvent.setup();
     render(<Harness />);
 
-    await user.type(screen.getByLabelText('Email'), 'flux');
+    await user.type(screen.getByLabelText('Email'), 'valence');
 
-    expect(screen.getByLabelText('Email')).toHaveValue('flux');
+    expect(screen.getByLabelText('Email')).toHaveValue('valence');
   });
 
   it('renders a description linked to the input', () => {

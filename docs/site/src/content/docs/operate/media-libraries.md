@@ -1,9 +1,9 @@
 ---
 title: Media libraries
-description: How Flux reads your files, and what it will never do to them.
+description: How Valence reads your files, and what it will never do to them.
 ---
 
-## Flux never writes to your library
+## Valence never writes to your library
 
 `/media` is mounted read-only, and that is an architectural rule rather than a
 default. No metadata sidecars, no renamed files, no "organise" feature that
@@ -40,7 +40,7 @@ An ordinary scan only probes files whose size or modification time changed.
 That is what makes rescanning a library of thousands of files cheap enough to
 do often.
 
-It also means a change in how Flux _reads_ a file never reaches media already
+It also means a change in how Valence _reads_ a file never reaches media already
 in the library, because the file on disk did not change. After upgrading to a
 release that fixes probing, or installing a metadata plugin, use a full rescan:
 
@@ -54,7 +54,7 @@ disappeared are still removed either way.
 
 ## Where titles come from
 
-Flux ships one metadata provider, and it reads the filename. `Arrival (2016).mkv`
+Valence ships one metadata provider, and it reads the filename. `Arrival (2016).mkv`
 becomes _Arrival_, 2016. Scene-release noise — resolutions, codecs, group tags —
 is stripped.
 
@@ -64,7 +64,7 @@ series name for anything that looks like an episode. The filename reader stays
 behind it, so a catalogue that is unconfigured, down, or simply ignorant of a
 file leaves you with the name on disk rather than a blank entry.
 
-Artwork is fetched once and cached in `IMAGE_CACHE_DIR`, then served by Flux.
+Artwork is fetched once and cached in `IMAGE_CACHE_DIR`, then served by Valence.
 A browser drawing your library therefore never talks to the catalogue, which is
 the point of self-hosting, and your covers do not vanish when a third party
 reorganises its URLs.
@@ -86,7 +86,7 @@ name finds their films and half a remembered plot finds the film it belongs to.
 
 The filters beside it narrow rather than search: genre, decade, and a rating
 floor. They combine, so "the well-reviewed science fiction of the nineties" is
-one set of presses rather than a question Flux cannot answer.
+one set of presses rather than a question Valence cannot answer.
 
 Every filter is offered only where something answers to it. A library with no
 westerns in it is not shown a western chip, and one nobody has matched against

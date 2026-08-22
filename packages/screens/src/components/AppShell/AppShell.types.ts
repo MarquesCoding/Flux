@@ -1,6 +1,6 @@
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
+import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 import type { ReactNode } from 'react';
-import type { LibraryKind } from '@FluxContracts/schemas/Library';
+import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 
 const BROWSE_SECTIONS = ['home', 'shows', 'films', 'new', 'favourites', 'read'] as const;
 

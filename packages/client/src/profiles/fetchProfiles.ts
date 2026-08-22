@@ -1,6 +1,6 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
-import type { Avatar, ProfileColour, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { ViewerProfileListSchema } from '@ValenceContracts/schemas/ViewerProfile';
+import type { Avatar, ProfileColour, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 /**
  * The profiles on this account, each with their own history, favourites and watch progress.

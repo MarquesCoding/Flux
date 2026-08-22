@@ -54,7 +54,7 @@
 use std::path::{Path, PathBuf};
 use std::process::Command;
 
-use flux_transcoder::transcode_plan::{
+use valence_transcoder::transcode_plan::{
     frame_route, AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SegmentContainer,
     SegmentStart, SessionSpec, SubtitleAction, TranscodePlan, VideoAction, RUN_PLAYLIST_NAME,
 };
@@ -66,7 +66,7 @@ use common::{ffmpeg, ffprobe};
 /// The codecs `negotiatePlayback` calls image based, by their ffprobe names.
 ///
 /// `IMAGE_SUBTITLE_FORMATS` in `negotiatePlayback.ts` lists the same three
-/// under Flux's own shorter names. Both lists exist because the negotiation
+/// under Valence's own shorter names. Both lists exist because the negotiation
 /// reads a normalised name off a `MediaItem` and this reads what ffprobe
 /// printed, and they have to agree about which files force a burn-in.
 const IMAGE_SUBTITLE_CODECS: [&str; 3] = ["hdmv_pgs_subtitle", "dvd_subtitle", "dvb_subtitle"];
@@ -91,7 +91,7 @@ const FULL: DeviceFilters = DeviceFilters {
 
 /// Where the corpus lives, matching `fixturesDirectory` on the TypeScript side.
 fn corpus_directory() -> PathBuf {
-    if let Ok(configured) = std::env::var("FLUX_FIXTURES_DIR") {
+    if let Ok(configured) = std::env::var("VALENCE_FIXTURES_DIR") {
         if !configured.trim().is_empty() {
             return PathBuf::from(configured);
         }
@@ -99,7 +99,7 @@ fn corpus_directory() -> PathBuf {
 
     let home = std::env::var("HOME").unwrap_or_default();
 
-    PathBuf::from(home).join(".cache").join("flux-fixtures")
+    PathBuf::from(home).join(".cache").join("valence-fixtures")
 }
 
 /// The corpus fixtures carrying a bitmap subtitle.
@@ -318,7 +318,7 @@ fn a_composited_burn_in_names_its_own_streams() {
         return;
     }
 
-    let output = std::env::temp_dir().join("flux-image-subtitle-route");
+    let output = std::env::temp_dir().join("valence-image-subtitle-route");
     std::fs::create_dir_all(&output).expect("creates the output directory");
 
     for path in bitmap_fixtures() {
@@ -354,7 +354,7 @@ fn a_composited_burn_in_names_its_own_streams() {
 /// The software burn-in runs, and writes segments with the subtitle in them.
 ///
 /// The route 18.6% of the library takes on a build without a compositor, which
-/// is every stock one. Runs `FFmpeg` for real against the arguments Flux would
+/// is every stock one. Runs `FFmpeg` for real against the arguments Valence would
 /// have given it: a filtergraph that is merely well formed still fails if the
 /// overlay cannot find its stream, and that failure would otherwise be a
 /// session that never starts rather than a test that goes red.
@@ -366,7 +366,7 @@ fn a_software_burn_in_actually_encodes() {
 
     for path in bitmap_fixtures() {
         let name = name_of(&path);
-        let output = std::env::temp_dir().join(format!("flux-burn-in-{name}"));
+        let output = std::env::temp_dir().join(format!("valence-burn-in-{name}"));
 
         let _ = std::fs::remove_dir_all(&output);
         std::fs::create_dir_all(&output).expect("creates the output directory");
@@ -448,7 +448,7 @@ fn a_software_burn_in_draws_the_subtitle() {
         return;
     }
 
-    let output = std::env::temp_dir().join("flux-burn-in-frames");
+    let output = std::env::temp_dir().join("valence-burn-in-frames");
 
     for path in bitmap_fixtures() {
         let name = name_of(&path);

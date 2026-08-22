@@ -1,10 +1,10 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
 import type { ReactNode } from 'react';
-import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));
@@ -16,7 +16,7 @@ vi.mock('motion/react', async () => ({
 
 const detailMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
@@ -26,7 +26,7 @@ const preview = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
+vi.mock('@ValenceScreens/components/MediaPreview/MediaPreview', () => ({
   MediaPreview: ({
     actions,
     onPlayingChange,

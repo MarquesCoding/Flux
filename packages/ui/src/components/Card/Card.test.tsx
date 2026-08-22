@@ -12,31 +12,31 @@ describe('Card', () => {
   it('is a solid surface by default, since glass everywhere reads as fog', () => {
     const { container } = render(<Card>Figures</Card>);
 
-    expect(container.firstChild).toHaveClass('flux-surface');
-    expect(container.firstChild).not.toHaveClass('flux-glass');
+    expect(container.firstChild).toHaveClass('valence-surface');
+    expect(container.firstChild).not.toHaveClass('valence-glass');
   });
 
   it('can be glass, for a surface floating over artwork', () => {
     const { container } = render(<Card tone="glass">Figures</Card>);
 
-    expect(container.firstChild).toHaveClass('flux-glass');
+    expect(container.firstChild).toHaveClass('valence-glass');
   });
 
   it('carries no material at all when its contents supply their own', () => {
     const { container } = render(<Card tone="plain">Figures</Card>);
 
-    expect(container.firstChild).not.toHaveClass('flux-surface');
-    expect(container.firstChild).not.toHaveClass('flux-glass');
+    expect(container.firstChild).not.toHaveClass('valence-surface');
+    expect(container.firstChild).not.toHaveClass('valence-glass');
   });
 
   it('lifts under a pointer only when it is a way somewhere', () => {
     const { container, rerender } = render(<Card>Figures</Card>);
 
-    expect(container.firstChild).not.toHaveClass('flux-lift');
+    expect(container.firstChild).not.toHaveClass('valence-lift');
 
     rerender(<Card isInteractive>Figures</Card>);
 
-    expect(container.firstChild).toHaveClass('flux-lift');
+    expect(container.firstChild).toHaveClass('valence-lift');
   });
 
   it('becomes whichever element the layout around it needs', () => {
@@ -49,7 +49,7 @@ describe('Card', () => {
     const { container } = render(<Card className="w-64">Figures</Card>);
 
     expect(container.firstChild).toHaveClass('w-64');
-    expect(container.firstChild).toHaveClass('flux-surface');
+    expect(container.firstChild).toHaveClass('valence-surface');
   });
 
   it('sets a display name so devtools can identify it', () => {

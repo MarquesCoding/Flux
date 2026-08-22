@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebhookPayloadSchema } from '@FluxContracts/schemas/Webhook';
+import { WebhookPayloadSchema } from '@ValenceContracts/schemas/Webhook';
 import { createMemoryWebhookStore } from './createMemoryWebhookStore';
 import { queueWebhookTest } from './queueWebhookTest';
 import type { WebhookStore } from './WebhookStore';

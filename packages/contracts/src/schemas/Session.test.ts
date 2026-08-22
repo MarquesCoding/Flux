@@ -4,7 +4,7 @@ import { GetSessionResponseSchema, SignInResponseSchema } from './Session';
 const user = {
   id: 'usr_1',
   name: 'Operator',
-  email: 'admin@flux.test',
+  email: 'admin@valence.test',
   emailVerified: false,
 };
 
@@ -15,7 +15,7 @@ describe('GetSessionResponseSchema', () => {
 
   it('accepts a session body', () => {
     expect(GetSessionResponseSchema.parse({ user })).toMatchObject({
-      user: { email: 'admin@flux.test' },
+      user: { email: 'admin@valence.test' },
     });
   });
 
@@ -38,7 +38,7 @@ describe('SignInResponseSchema', () => {
   it('accepts a successful sign in', () => {
     const parsed = SignInResponseSchema.parse({ redirect: false, token: 'abc', user });
 
-    expect(parsed).toMatchObject({ user: { email: 'admin@flux.test' } });
+    expect(parsed).toMatchObject({ user: { email: 'admin@valence.test' } });
   });
 
   it('accepts a two factor challenge', () => {

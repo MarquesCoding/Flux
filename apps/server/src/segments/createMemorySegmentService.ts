@@ -1,5 +1,5 @@
 import type { SegmentService } from './SegmentService';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 type MemoryState = Record<string, MediaSegment[]>;
 

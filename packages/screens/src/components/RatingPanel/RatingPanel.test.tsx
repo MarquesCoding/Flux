@@ -1,13 +1,13 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { RatingPanel } from './RatingPanel';
-import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
+import type { HouseholdRating } from '@ValenceContracts/schemas/Rating';
 
 const fetchHouseholdRating = vi.fn<() => Promise<HouseholdRating>>();
 
-vi.mock('@FluxClient/library/fetchRatings', () => ({
+vi.mock('@ValenceClient/library/fetchRatings', () => ({
   fetchHouseholdRating: () => fetchHouseholdRating(),
 }));
 

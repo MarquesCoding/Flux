@@ -23,11 +23,11 @@ describe('ConnectToServer', () => {
   it('keeps the address once something answered at it', async () => {
     const world = shown(answering());
 
-    await world.actor.type(world.field(), 'flux.example.com');
+    await world.actor.type(world.field(), 'valence.example.com');
     await world.actor.click(world.connect());
 
     await waitFor(() => {
-      expect(world.onConnected).toHaveBeenCalledWith('https://flux.example.com');
+      expect(world.onConnected).toHaveBeenCalledWith('https://valence.example.com');
     });
   });
 
@@ -35,22 +35,22 @@ describe('ConnectToServer', () => {
     const reach = answering();
     const world = shown(reach);
 
-    await world.actor.type(world.field(), '  flux.example.com/  ');
+    await world.actor.type(world.field(), '  valence.example.com/  ');
     await world.actor.click(world.connect());
 
     await waitFor(() => {
-      expect(reach).toHaveBeenCalledWith('https://flux.example.com');
+      expect(reach).toHaveBeenCalledWith('https://valence.example.com');
     });
   });
 
   it('keeps nothing where nothing answered, and says where it looked', async () => {
     const world = shown(vi.fn(() => Promise.resolve(false)));
 
-    await world.actor.type(world.field(), 'flux.example.com');
+    await world.actor.type(world.field(), 'valence.example.com');
     await world.actor.click(world.connect());
 
     expect(
-      await screen.findByText(/nothing answered at https:\/\/flux\.example\.com/i),
+      await screen.findByText(/nothing answered at https:\/\/valence\.example\.com/i),
     ).toBeInTheDocument();
     expect(world.onConnected).not.toHaveBeenCalled();
   });
@@ -85,7 +85,7 @@ describe('ConnectToServer', () => {
         }),
     );
 
-    await world.actor.type(world.field(), 'flux.example.com');
+    await world.actor.type(world.field(), 'valence.example.com');
     await world.actor.click(world.connect());
 
     expect(await screen.findByText(/looking for it/i)).toBeInTheDocument();
@@ -103,13 +103,13 @@ describe('coming back because the server stopped answering', () => {
     render(
       <ConnectToServer
         onConnected={vi.fn()}
-        startWith="https://flux.example.com"
-        couldNotReach="https://flux.example.com"
+        startWith="https://valence.example.com"
+        couldNotReach="https://valence.example.com"
       />,
     );
 
     expect(
-      screen.getByText(/Flux at https:\/\/flux\.example\.com could not be reached/),
+      screen.getByText(/Valence at https:\/\/valence\.example\.com could not be reached/),
     ).toBeInTheDocument();
   });
 
@@ -117,12 +117,12 @@ describe('coming back because the server stopped answering', () => {
     render(
       <ConnectToServer
         onConnected={vi.fn()}
-        startWith="https://flux.example.com"
-        couldNotReach="https://flux.example.com"
+        startWith="https://valence.example.com"
+        couldNotReach="https://valence.example.com"
       />,
     );
 
-    expect(screen.getByLabelText('Server address')).toHaveValue('https://flux.example.com');
+    expect(screen.getByLabelText('Server address')).toHaveValue('https://valence.example.com');
   });
 
   it('says nothing of the sort on a first launch', () => {

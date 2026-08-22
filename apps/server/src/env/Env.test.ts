@@ -15,9 +15,9 @@ describe('readEnv', () => {
   });
 
   it('splits trusted origins on commas and trims them', () => {
-    const env = readEnv({ TRUSTED_ORIGINS: 'https://flux.example, http://192.168.1.40:8420' });
+    const env = readEnv({ TRUSTED_ORIGINS: 'https://valence.example, http://192.168.1.40:8420' });
 
-    expect(env.TRUSTED_ORIGINS).toEqual(['https://flux.example', 'http://192.168.1.40:8420']);
+    expect(env.TRUSTED_ORIGINS).toEqual(['https://valence.example', 'http://192.168.1.40:8420']);
   });
 
   it('reads secure cookies as a boolean', () => {

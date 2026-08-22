@@ -152,7 +152,7 @@ mod tests {
     use std::time::Duration;
 
     fn root(name: &str) -> std::path::PathBuf {
-        let path = std::env::temp_dir().join(format!("flux-sweep-{name}"));
+        let path = std::env::temp_dir().join(format!("valence-sweep-{name}"));
 
         std::fs::remove_dir_all(&path).ok();
         std::fs::create_dir_all(&path).expect("creates the root");
@@ -217,7 +217,7 @@ mod tests {
 
     #[tokio::test]
     async fn does_nothing_when_there_is_no_cache_yet() {
-        let missing = std::env::temp_dir().join("flux-sweep-absent-directory");
+        let missing = std::env::temp_dir().join("valence-sweep-absent-directory");
 
         std::fs::remove_dir_all(&missing).ok();
 

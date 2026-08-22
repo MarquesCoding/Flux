@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { CAST_SHOWN, CAST_STORED } from '@FluxContracts/schemas/Person';
+import { CAST_SHOWN, CAST_STORED } from '@ValenceContracts/schemas/Person';
 import {
   createCatalogueMetadataProvider,
   readYear,
@@ -11,8 +11,8 @@ import {
 } from './createCatalogueMetadataProvider';
 import type { Fetcher } from './createCatalogueMetadataProvider';
 import type { MediaFacts } from './MetadataProvider';
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { MediaProbe } from '@ValenceServer/transcoder/TranscoderClient';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const probe: MediaProbe = {
   container: 'mkv',

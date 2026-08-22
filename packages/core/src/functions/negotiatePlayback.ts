@@ -1,12 +1,12 @@
-import type { MediaItem, SubtitleFormat, VideoRange } from '@FluxContracts/schemas/MediaItem';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { MediaItem, SubtitleFormat, VideoRange } from '@ValenceContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type {
   AudioDecision,
   ContainerDecision,
   PlaybackPlan,
   SubtitleDecision,
   VideoDecision,
-} from '@FluxContracts/schemas/PlaybackPlan';
+} from '@ValenceContracts/schemas/PlaybackPlan';
 import type { QualityClamp } from './resolveQualityStep';
 import { selectAudioStream } from './describeTrack';
 import { encodeBitrateFor } from './encodeBitrateFor';
@@ -82,7 +82,7 @@ const rangeFor = (media: MediaItem, profile: DeviceProfile): VideoRange | null =
  * is and it is within any ceiling asked for, or transcode it down to what it can.
  *
  * Bitrate takes the tighter of whatever ceilings exist, because that one is about what a network
- * can carry rather than a matter of taste — but a browser cannot state it and Flux stopped
+ * can carry rather than a matter of taste — but a browser cannot state it and Valence stopped
  * inventing it on the browser's behalf, so in practice the only ceiling is a rung somebody pinned.
  * Resolution is not a ceiling at all, for the same reason and more plainly: only a rung somebody
  * pinned can force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible
@@ -306,7 +306,7 @@ const decideVideo = (
  * Measured on a Mac playing an E-AC-3 5.1 film through Safari with AirPods in: the output reports
  * two channels and always will, because AirPods are a stereo endpoint and macOS renders spatial
  * audio into them. Refusing 5.1 on that number sent a stereo downmix to the one arrangement that
- * had something to do with the other four channels. See FLUX-152.
+ * had something to do with the other four channels. See VAL-152.
  *
  * `maxAudioChannels` still says what to encode to once something else has forced an encode, which
  * is what it is good for: a stereo device has no use for a 5.1 encode.

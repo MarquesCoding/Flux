@@ -52,24 +52,24 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@flux/client':
-        specifier: workspace:*
-        version: link:../../packages/client
-      '@flux/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@flux/screens':
-        specifier: workspace:*
-        version: link:../../packages/screens
-      '@flux/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
       '@tanstack/react-router':
         specifier: ^1.170.29
         version: 1.170.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@valence/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@valence/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@valence/screens':
+        specifier: workspace:*
+        version: link:../../packages/screens
+      '@valence/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)
@@ -149,15 +149,6 @@ importers:
       '@dicebear/core':
         specifier: ^9.4.3
         version: 9.4.3
-      '@flux/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@flux/core':
-        specifier: workspace:*
-        version: link:../../packages/core
-      '@flux/plugin-sdk':
-        specifier: workspace:*
-        version: link:../../packages/plugin-sdk
       '@hono/node-server':
         specifier: ^1.13.7
         version: 1.19.17(hono@4.13.1)
@@ -170,6 +161,15 @@ importers:
       '@scalar/hono-api-reference':
         specifier: ^0.5.165
         version: 0.5.184(hono@4.13.1)
+      '@valence/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@valence/core':
+        specifier: workspace:*
+        version: link:../../packages/core
+      '@valence/plugin-sdk':
+        specifier: workspace:*
+        version: link:../../packages/plugin-sdk
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)
@@ -243,24 +243,24 @@ importers:
 
   apps/web:
     dependencies:
-      '@flux/client':
-        specifier: workspace:*
-        version: link:../../packages/client
-      '@flux/contracts':
-        specifier: workspace:*
-        version: link:../../packages/contracts
-      '@flux/screens':
-        specifier: workspace:*
-        version: link:../../packages/screens
-      '@flux/ui':
-        specifier: workspace:*
-        version: link:../../packages/ui
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
       '@tanstack/react-router':
         specifier: ^1.170.29
         version: 1.170.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@valence/client':
+        specifier: workspace:*
+        version: link:../../packages/client
+      '@valence/contracts':
+        specifier: workspace:*
+        version: link:../../packages/contracts
+      '@valence/screens':
+        specifier: workspace:*
+        version: link:../../packages/screens
+      '@valence/ui':
+        specifier: workspace:*
+        version: link:../../packages/ui
       react:
         specifier: ^19.0.0
         version: 19.2.8
@@ -335,15 +335,15 @@ importers:
       '@better-auth/passkey':
         specifier: ^1.7.1
         version: 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.8)(kysely@0.29.4)(nanostores@1.4.2))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-auth@1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10))(better-call@1.4.0(zod@4.4.3))(nanostores@1.4.2)
-      '@flux/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@flux/core':
-        specifier: workspace:*
-        version: link:../core
       '@tanstack/react-query':
         specifier: ^5.101.4
         version: 5.101.4(react@19.2.8)
+      '@valence/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@valence/core':
+        specifier: workspace:*
+        version: link:../core
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)
@@ -388,7 +388,7 @@ importers:
 
   packages/core:
     dependencies:
-      '@flux/contracts':
+      '@valence/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -404,7 +404,7 @@ importers:
 
   packages/plugin-sdk:
     dependencies:
-      '@flux/contracts':
+      '@valence/contracts':
         specifier: workspace:*
         version: link:../contracts
       zod:
@@ -423,18 +423,6 @@ importers:
       '@better-auth/passkey':
         specifier: ^1.7.1
         version: 1.7.1(@better-auth/core@1.7.1(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-call@1.4.0(zod@4.4.3))(jose@6.2.8)(kysely@0.29.4)(nanostores@1.4.2))(@better-auth/utils@0.4.2)(@better-fetch/fetch@1.3.1)(better-auth@1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10))(better-call@1.4.0(zod@4.4.3))(nanostores@1.4.2)
-      '@flux/client':
-        specifier: workspace:*
-        version: link:../client
-      '@flux/contracts':
-        specifier: workspace:*
-        version: link:../contracts
-      '@flux/core':
-        specifier: workspace:*
-        version: link:../core
-      '@flux/ui':
-        specifier: workspace:*
-        version: link:../ui
       '@phosphor-icons/react':
         specifier: ^2.1.10
         version: 2.1.10(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
@@ -444,6 +432,18 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.29
         version: 1.170.29(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@valence/client':
+        specifier: workspace:*
+        version: link:../client
+      '@valence/contracts':
+        specifier: workspace:*
+        version: link:../contracts
+      '@valence/core':
+        specifier: workspace:*
+        version: link:../core
+      '@valence/ui':
+        specifier: workspace:*
+        version: link:../ui
       better-auth:
         specifier: ^1.7.1
         version: 1.7.1(@prisma/client@5.22.0)(better-sqlite3@12.11.1)(drizzle-kit@0.31.10)(drizzle-orm@0.45.2(@prisma/client@5.22.0)(@types/pg@8.21.0)(better-sqlite3@12.11.1)(kysely@0.29.4)(pg@8.23.0))(pg@8.23.0)(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(vitest@4.1.10)

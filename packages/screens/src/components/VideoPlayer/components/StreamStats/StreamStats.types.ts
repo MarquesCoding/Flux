@@ -1,6 +1,6 @@
-import type { DeliveredFormat } from '@FluxScreens/playback/attachShaka';
-import type { StartedSession } from '@FluxClient/playback/startPlaybackSession';
-import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { DeliveredFormat } from '@ValenceScreens/playback/attachShaka';
+import type { StartedSession } from '@ValenceClient/playback/startPlaybackSession';
+import type { MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type PlaybackHealth = {
   positionSeconds: number;

@@ -1,8 +1,8 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
-import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
-import type { WatchPartyState } from '@FluxClient/party/useWatchParty';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
+import type { SessionUser } from '@ValenceContracts/schemas/Session';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
+import type { WatchPartyState } from '@ValenceClient/party/useWatchParty';
 
 type MoodLight = {
   color: string;

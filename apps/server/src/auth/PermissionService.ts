@@ -1,4 +1,4 @@
-import type { Permission, PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
+import type { Permission, PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
 
 type PermissionService = {
   resolve: (userId: string) => Promise<ReadonlySet<Permission>>;

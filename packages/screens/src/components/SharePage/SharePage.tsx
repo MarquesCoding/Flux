@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react';
-import { ShareArea } from '@FluxScreens/components/ShareArea/ShareArea';
-import { VideoPlayer } from '@FluxScreens/components/VideoPlayer/VideoPlayer';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { shareEndingFor } from '@FluxClient/sharing/shareEndingFor';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShareEnding } from '@FluxContracts/schemas/Share';
+import { ShareArea } from '@ValenceScreens/components/ShareArea/ShareArea';
+import { VideoPlayer } from '@ValenceScreens/components/VideoPlayer/VideoPlayer';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { shareEndingFor } from '@ValenceClient/sharing/shareEndingFor';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShareEnding } from '@ValenceContracts/schemas/Share';
 import type { SharePageProps } from './SharePage.types';
 
 const ASK_EVERY_MILLISECONDS = 5000;
@@ -61,7 +61,7 @@ const SharePage = ({ name, askEveryMilliseconds = ASK_EVERY_MILLISECONDS }: Shar
 
   if (playing !== null) {
     return (
-      <main className="flux-below-the-bar z-40 flex flex-col bg-black">
+      <main className="valence-below-the-bar z-40 flex flex-col bg-black">
         <VideoPlayer
           media={playing}
           startSeconds={reached.get(playing.id) ?? 0}

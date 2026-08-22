@@ -5,20 +5,20 @@ describe('describeThisDesktop', () => {
   it('names the machine rather than the WebView nobody chose', () => {
     expect(
       describeThisDesktop('Mozilla/5.0 (Macintosh; Intel Mac OS X) AppleWebKit/605.1.15'),
-    ).toBe('Flux on macOS');
+    ).toBe('Valence on macOS');
   });
 
   it('recognises Windows', () => {
     expect(describeThisDesktop('Mozilla/5.0 (Windows NT 10.0; Win64; x64)')).toBe(
-      'Flux on Windows',
+      'Valence on Windows',
     );
   });
 
   it('recognises Linux', () => {
-    expect(describeThisDesktop('Mozilla/5.0 (X11; Linux x86_64)')).toBe('Flux on Linux');
+    expect(describeThisDesktop('Mozilla/5.0 (X11; Linux x86_64)')).toBe('Valence on Linux');
   });
 
   it('still says what it is where the machine is not recognised', () => {
-    expect(describeThisDesktop('')).toBe('Flux for desktop');
+    expect(describeThisDesktop('')).toBe('Valence for desktop');
   });
 });

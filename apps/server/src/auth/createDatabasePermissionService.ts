@@ -1,16 +1,16 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { resolvePermissions } from '@FluxCore/functions/resolvePermissions';
-import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
-import type { Permission, PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
-import { role, rolePermission, userPermissionOverride, userRole } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { resolvePermissions } from '@ValenceCore/functions/resolvePermissions';
+import { ADMINISTRATOR } from '@ValenceContracts/schemas/Permission';
+import type { Permission, PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
+import { role, rolePermission, userPermissionOverride, userRole } from '@ValenceServer/db/Schema';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import { readPermission } from './readPermission';
 import type { PermissionService } from './PermissionService';
 
 /**
  * Reads permission rows into grants, dropping any naming a permission or an effect this version of
- * Flux does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
+ * Valence does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
  * discarded than guessed at.
  *
  * @param rows - The rows as stored.
@@ -34,7 +34,7 @@ const readGrants = (rows: readonly { permission: string; effect: string }[]): Pe
  * @param db - The database to read and write.
  * @returns The permission service.
  */
-const createDatabasePermissionService = (db: FluxDatabase): PermissionService => {
+const createDatabasePermissionService = (db: ValenceDatabase): PermissionService => {
   const permissionsByRole = async (
     roleIds: readonly string[],
   ): Promise<Map<string, Permission[]>> => {

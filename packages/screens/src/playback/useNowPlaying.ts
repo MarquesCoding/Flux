@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import {
   artworkFetchedForTheSystem,
   artworkTheSystemAccepts,
-} from '@FluxScreens/playback/artworkTheSystemAccepts';
+} from '@ValenceScreens/playback/artworkTheSystemAccepts';
 
 const A_SKIP = 10;
 
@@ -87,7 +87,7 @@ const useNowPlaying = ({
     const describe = (artwork: { src: string; sizes: string }[]): void => {
       session.metadata = new MediaMetadata({
         title,
-        artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Flux',
+        artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Valence',
         album: episode,
         artwork,
       });

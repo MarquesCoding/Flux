@@ -1,7 +1,7 @@
 import * as RadixHoverCard from '@radix-ui/react-hover-card';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { HoverCardProps } from './HoverCard.types';
 
 /**
@@ -39,7 +39,7 @@ const HoverCard = ({
           sideOffset={8}
           data-slot="hover-card-content"
           className={cn(
-            'z-50 flux-glass w-72 rounded-lg p-4 text-sm text-text outline-none',
+            'z-50 valence-glass w-72 rounded-lg p-4 text-sm text-text outline-none',
             POPUP_MOTION,
             className,
           )}

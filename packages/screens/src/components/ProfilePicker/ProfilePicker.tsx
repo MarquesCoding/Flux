@@ -1,13 +1,13 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { PencilSimpleIcon, PlusIcon, TrashIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { removeProfile } from '@FluxClient/profiles/fetchProfiles';
-import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
+import { Button } from '@ValenceUI/Button';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { removeProfile } from '@ValenceClient/profiles/fetchProfiles';
+import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
 import { ProfileEditor } from './components/ProfileEditor/ProfileEditor';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfilePickerProps } from './ProfilePicker.types';
 
 const PROFILE_LIMIT = 6;

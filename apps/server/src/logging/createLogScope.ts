@@ -1,5 +1,5 @@
 import { AsyncLocalStorage } from 'node:async_hooks';
-import type { LogContext } from '@FluxContracts/schemas/Log';
+import type { LogContext } from '@ValenceContracts/schemas/Log';
 
 type LogScope = {
   during: <Answer>(context: Partial<LogContext>, run: () => Promise<Answer>) => Promise<Answer>;

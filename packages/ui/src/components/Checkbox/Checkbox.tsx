@@ -1,8 +1,8 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CheckIcon } from '@phosphor-icons/react';
 import { useId } from 'react';
 import * as RadixCheckbox from '@radix-ui/react-checkbox';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { CheckboxProps } from './Checkbox.types';
 
 /**

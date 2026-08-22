@@ -1,5 +1,5 @@
 import * as RadixSwitch from '@radix-ui/react-switch';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { SwitchProps } from './Switch.types';
 
 /**

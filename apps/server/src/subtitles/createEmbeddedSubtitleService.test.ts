@@ -83,7 +83,7 @@ describe('marksHearingImpaired', () => {
 });
 
 describe('createEmbeddedSubtitleService', () => {
-  it('offers what is inside the container, which is why VLC finds tracks Flux once did not', async () => {
+  it('offers what is inside the container, which is why VLC finds tracks Valence once did not', async () => {
     const { service } = build([streamOf()]);
 
     await expect(service.list(MEDIA_ID)).resolves.toHaveLength(1);

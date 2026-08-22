@@ -1,4 +1,4 @@
-import type { SetupStatus } from '@FluxContracts/schemas/Setup';
+import type { SetupStatus } from '@ValenceContracts/schemas/Setup';
 
 type SetupWizardProps = {
   status: SetupStatus;

@@ -1,8 +1,8 @@
-const MARK = 'fluxDesktop';
+const MARK = 'valenceDesktop';
 
-const CHANGE_SERVER = 'flux:change-server';
+const CHANGE_SERVER = 'valence:change-server';
 
-const NOW_WATCHING = 'flux:now-watching';
+const NOW_WATCHING = 'valence:now-watching';
 
 type WhatIsBeingWatched = {
   kind: 'watching';
@@ -22,7 +22,7 @@ type WhatIsBeingWatched = {
 type WhatIsBeingDone = WhatIsBeingWatched | { kind: 'browsing' };
 
 /**
- * Whether these pages are being shown inside Flux's own window rather than a browser.
+ * Whether these pages are being shown inside Valence's own window rather than a browser.
  *
  * They are the same pages either way — a desktop client is a window pointed at a server, and what it
  * loads is what the server sends anybody. What tells them apart is a mark the window puts on the

@@ -1,4 +1,4 @@
-import { ownOrigins } from '@FluxServer/env/ownOrigins';
+import { ownOrigins } from '@ValenceServer/env/ownOrigins';
 type TrustedOriginsOptions = {
   configured: readonly string[];
   port: number;
@@ -9,7 +9,7 @@ type TrustedOriginsOptions = {
  * Every origin this deployment answers to.
  *
  * The environment is unioned with the stored settings rather than consulted only at setup, which is
- * the fault FLUX-144 fixed: an operator editing `TRUSTED_ORIGINS` afterwards changed nothing,
+ * the fault VAL-144 fixed: an operator editing `TRUSTED_ORIGINS` afterwards changed nothing,
  * silently. The addresses this machine holds are added, since a client reaching this server by one of
  * them is reaching this server.
  *

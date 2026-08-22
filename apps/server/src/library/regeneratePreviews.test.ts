@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { regeneratePreviews } from './regeneratePreviews';
 import type { PreviewStore } from './regeneratePreviews';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 

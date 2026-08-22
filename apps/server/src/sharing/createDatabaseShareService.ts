@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
-import { mediaItem, series, share, shareVisit, user } from '@FluxServer/db/Schema';
-import { isShareLive } from '@FluxContracts/schemas/Share';
+import { mediaItem, series, share, shareVisit, user } from '@ValenceServer/db/Schema';
+import { isShareLive } from '@ValenceContracts/schemas/Share';
 import { hashShareToken, makeShareToken } from './shareToken';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { AdminShare, Share, ShareKind } from '@FluxContracts/schemas/Share';
+import type { ValenceDatabase } from '@ValenceServer/db/Database';
+import type { AdminShare, Share, ShareKind } from '@ValenceContracts/schemas/Share';
 import type { ResolvedShare, ShareService } from './ShareService';
 
 const LIMIT = 500;
@@ -12,7 +12,7 @@ const LIMIT = 500;
 const GONE = 'Something no longer here';
 
 /**
- * Reads a stored kind back as one Flux recognises, so a row written by a later version does not
+ * Reads a stored kind back as one Valence recognises, so a row written by a later version does not
  * arrive as a share of some kind this code has never heard of.
  *
  * @param stored - The kind as the column holds it.
@@ -38,7 +38,7 @@ const readKind = (stored: string): ShareKind | null =>
  * @param db - The database, which is what knows how to build the count.
  * @returns The selection both listings read.
  */
-const columnsFor = (db: FluxDatabase) => ({
+const columnsFor = (db: ValenceDatabase) => ({
   id: share.id,
   kind: share.kind,
   mediaItemId: share.mediaItemId,
@@ -76,7 +76,7 @@ type ShareRow = {
  * @param db - The database to read and write.
  * @returns The share service.
  */
-const createDatabaseShareService = (db: FluxDatabase): ShareService => {
+const createDatabaseShareService = (db: ValenceDatabase): ShareService => {
   const COLUMNS = columnsFor(db);
 
   const countViews = async (shareId: string): Promise<number> => {

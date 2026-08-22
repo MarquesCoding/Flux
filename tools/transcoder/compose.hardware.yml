@@ -11,8 +11,8 @@ services:
       context: ../..
     entrypoint: ['bash', '/probe/probeHardware.sh']
     environment:
-      FLUX_FFMPEG: ${FLUX_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}
-      FLUX_VAAPI_DEVICE: ${FLUX_VAAPI_DEVICE:-/dev/dri/renderD128}
+      VALENCE_FFMPEG: ${VALENCE_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}
+      VALENCE_VAAPI_DEVICE: ${VALENCE_VAAPI_DEVICE:-/dev/dri/renderD128}
     devices:
       - /dev/dri:/dev/dri
     volumes:

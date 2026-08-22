@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
-import type { Library, MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { Library, MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { LibraryService, ListItemsOptions } from './LibraryService';
-import type { Person } from '@FluxContracts/schemas/Person';
+import type { Person } from '@ValenceContracts/schemas/Person';
 
 /**
  * Cuts everything held about an item down to what a browser needs to draw it. Written once and used

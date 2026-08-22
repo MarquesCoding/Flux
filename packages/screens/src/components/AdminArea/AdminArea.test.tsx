@@ -1,24 +1,24 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
-import { installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
-import type { Connect, Handlers } from '@FluxClient/realtime/createRealtimeClient';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
+import type { Connect, Handlers } from '@ValenceClient/realtime/createRealtimeClient';
 import { AdminArea } from './AdminArea';
 import { resetForTests as resetScanCoordinator } from './scanCoordinator';
-import type { AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type { AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 
 const OVERVIEW: AdminOverview = {
   users: [
     {
       id: 'abc',
       name: 'Marques',
-      email: 'marques@flux.local',
+      email: 'marques@valence.local',
       role: 'admin',
       createdAt: '2026-01-01T00:00:00.000Z',
     },
@@ -31,7 +31,7 @@ const OVERVIEW: AdminOverview = {
   },
   transcoder: {
     isReachable: true,
-    address: 'unix:/tmp/flux-transcoder.sock',
+    address: 'unix:/tmp/valence-transcoder.sock',
     ffmpegVersion: '9.0.1',
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
@@ -403,7 +403,7 @@ describe('AdminArea', () => {
         ...OVERVIEW,
         transcoder: {
           isReachable: false,
-          address: 'unix:/tmp/flux-transcoder.sock',
+          address: 'unix:/tmp/valence-transcoder.sock',
           ffmpegVersion: null,
           ffmpegSupported: true,
           hardwareAccels: [],
@@ -423,10 +423,10 @@ describe('AdminArea', () => {
     expect(await screen.findByText('42%')).toBeInTheDocument();
   });
 
-  it('says how much of the busy processor is Flux itself', async () => {
+  it('says how much of the busy processor is Valence itself', async () => {
     renderInAnAddress(<AdminArea />);
 
-    expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
+    expect(await screen.findByText('10 cores · Valence 19%')).toBeInTheDocument();
   });
 
   it('says the graphics figure is the whole card when the encoder cannot be read', async () => {
@@ -442,7 +442,7 @@ describe('AdminArea', () => {
     expect(await screen.findByText('Apple M5 Pro · encoder not readable')).toBeInTheDocument();
   });
 
-  it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {
+  it('reports room left on the disk the library is on, not on the one Valence boots from', async () => {
     renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('2.0 TB free')).toBeInTheDocument();
@@ -698,7 +698,7 @@ describe('AdminArea', () => {
     await goTo(actor, 'Settings');
 
     expect(await screen.findByText('Signing in')).toBeInTheDocument();
-    expect(screen.queryByText('marques@flux.local')).not.toBeInTheDocument();
+    expect(screen.queryByText('marques@valence.local')).not.toBeInTheDocument();
   });
 
   it('draws something rather than nothing before the server has answered', () => {

@@ -1,4 +1,4 @@
-import { describeLanguage, readLanguage } from '@FluxCore/functions/describeTrack';
+import { describeLanguage, readLanguage } from '@ValenceCore/functions/describeTrack';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 

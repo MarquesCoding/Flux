@@ -10,22 +10,22 @@ const IS_MAC = process.platform === 'darwin';
  * replaces the one Electron provides — so leaving it out would take copy and paste with it.
  *
  * Changing server has to be a menu item rather than a button on a screen. Once the window is showing
- * the server's own pages there is no screen of ours left to put it on, and the server's Flux has no
+ * the server's own pages there is no screen of ours left to put it on, and the server's Valence has no
  * idea it is being looked at through a window that could be pointed somewhere else. A menu is the
  * part of a desktop application that belongs to the application rather than to what it is showing,
  * which is exactly what this is.
  *
  * It is under File on every platform, and on the application menu as well where there is one. The
  * application menu takes its name from the bundle rather than from anything here, so somebody
- * looking for Flux may be reading a menu called something else — and somebody who cannot find the
+ * looking for Valence may be reading a menu called something else — and somebody who cannot find the
  * thing that points this window at their server has an application that does nothing.
  *
  * @param changeServer - What to do when somebody asks for a different one.
  * @returns The menu, already set.
  */
 const theApplicationMenu = (changeServer: () => void): Menu => {
-  const flux: MenuItemConstructorOptions = {
-    label: 'Flux',
+  const valence: MenuItemConstructorOptions = {
+    label: 'Valence',
     submenu: [
       { role: 'about' },
       { type: 'separator' },
@@ -50,7 +50,7 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
   };
 
   const menu = Menu.buildFromTemplate([
-    ...(IS_MAC ? [flux] : []),
+    ...(IS_MAC ? [valence] : []),
     file,
     { role: 'editMenu' },
     {
@@ -72,9 +72,9 @@ const theApplicationMenu = (changeServer: () => void): Menu => {
       role: 'help',
       submenu: [
         {
-          label: 'Flux on the web',
+          label: 'Valence on the web',
           click: () => {
-            void shell.openExternal('https://github.com/MarquesCoding/Flux');
+            void shell.openExternal('https://github.com/MarquesCoding/Valence');
           },
         },
       ],

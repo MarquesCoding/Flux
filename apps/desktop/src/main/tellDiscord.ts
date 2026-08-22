@@ -5,10 +5,10 @@ import {
   FRAME,
   HANDSHAKE,
   readDiscordFrames,
-} from '@FluxDesktop/main/aDiscordFrame';
-import { aDiscordActivity } from '@FluxDesktop/main/aDiscordActivity';
-import { whereDiscordListens } from '@FluxDesktop/main/whereDiscordListens';
-import type { WhatIsPlaying } from '@FluxDesktop/main/aDiscordActivity';
+} from '@ValenceDesktop/main/aDiscordFrame';
+import { aDiscordActivity } from '@ValenceDesktop/main/aDiscordActivity';
+import { whereDiscordListens } from '@ValenceDesktop/main/whereDiscordListens';
+import type { WhatIsPlaying } from '@ValenceDesktop/main/aDiscordActivity';
 
 const CLIENT_ID = '1539800715281563738';
 
@@ -35,7 +35,7 @@ type Presence = {
  * @param temporary - Where this machine keeps this user's temporary files, which is where Discord
  *   listens on a Mac. Passed in rather than read from the environment, which does not always carry
  *   it.
- * @param version - Which Flux this is, for the picture to say when somebody rests on it.
+ * @param version - Which Valence this is, for the picture to say when somebody rests on it.
  * @returns How to say what is playing, and how to stop.
  */
 const tellDiscord = (temporary: string, version: string): Presence => {

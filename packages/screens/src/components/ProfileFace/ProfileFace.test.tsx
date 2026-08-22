@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileFace } from './ProfileFace';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const PROFILE: ViewerProfile = {
   id: '00000000-0000-4000-8000-000000000001',
@@ -40,7 +40,7 @@ describe('ProfileFace', () => {
     expect(container.firstElementChild?.getAttribute('style')).toContain('rgb(58, 142, 232)');
   });
 
-  it('draws a picture through Flux when there is one', () => {
+  it('draws a picture through Valence when there is one', () => {
     const { container } = render(
       <ProfileFace
         profile={{ ...PROFILE, avatar: { kind: 'drawn', style: 'bottts', seed: 'a' } }}

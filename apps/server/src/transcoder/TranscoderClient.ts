@@ -1,7 +1,7 @@
 import { Agent, fetch as undiciFetch } from 'undici';
 import { z } from 'zod';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type HttpResponse = {
   ok: boolean;
@@ -308,7 +308,7 @@ const narrow = <TBody>(response: {
 });
 
 /**
- * The ordinary network fetch, narrowed to what Flux uses.
+ * The ordinary network fetch, narrowed to what Valence uses.
  */
 const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init));
 

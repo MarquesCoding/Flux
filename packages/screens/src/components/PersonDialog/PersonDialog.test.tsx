@@ -1,20 +1,20 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { PersonDialog } from './PersonDialog';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { Person, PersonCredits } from '@FluxContracts/schemas/Person';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { Person, PersonCredits } from '@ValenceContracts/schemas/Person';
 
 const personMock = vi.hoisted(() => vi.fn());
 const creditsMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchPerson', () => ({
+vi.mock('@ValenceClient/library/fetchPerson', () => ({
   fetchPerson: personMock,
   fetchPersonCredits: creditsMock,
 }));
 
-vi.mock('@FluxScreens/components/RailCard/RailCard', () => ({
+vi.mock('@ValenceScreens/components/RailCard/RailCard', () => ({
   RailCard: ({ media }: { media: MediaSummary }) => <span>{media.title}</span>,
 }));
 

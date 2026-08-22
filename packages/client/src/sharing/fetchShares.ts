@@ -1,20 +1,20 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
 import {
   AdminShareListSchema,
   CreatedShareSchema,
   ShareEndingSchema,
   ShareListSchema,
-} from '@FluxContracts/schemas/Share';
-import { MediaSummarySchema } from '@FluxContracts/schemas/Library';
+} from '@ValenceContracts/schemas/Share';
+import { MediaSummarySchema } from '@ValenceContracts/schemas/Library';
 import type {
   AdminShare,
   CreatedShare,
   NewShare,
   Share,
   ShareEnding,
-} from '@FluxContracts/schemas/Share';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+} from '@ValenceContracts/schemas/Share';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const OpenedShareSchema = z.object({
   kind: z.enum(['item', 'series']),

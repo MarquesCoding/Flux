@@ -1,5 +1,5 @@
 {
-  "name": "@flux/client",
+  "name": "@valence/client",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -10,8 +10,8 @@
   },
   "dependencies": {
     "@better-auth/passkey": "^1.7.1",
-    "@flux/contracts": "workspace:*",
-    "@flux/core": "workspace:*",
+    "@valence/contracts": "workspace:*",
+    "@valence/core": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "better-auth": "^1.7.1",
     "zod": "^4.4.3"

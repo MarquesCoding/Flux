@@ -1,8 +1,8 @@
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Spinner } from '@FluxUI/Spinner';
-import { WEBHOOK_EVENT_LABELS } from '@FluxContracts/schemas/Webhook';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Spinner } from '@ValenceUI/Spinner';
+import { WEBHOOK_EVENT_LABELS } from '@ValenceContracts/schemas/Webhook';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import type { DeliveryHistoryProps } from './DeliveryHistory.types';
 
 /**

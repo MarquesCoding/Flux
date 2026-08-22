@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { DeliveryHistory } from './DeliveryHistory';
-import type { WebhookDelivery } from '@FluxContracts/schemas/Webhook';
+import type { WebhookDelivery } from '@ValenceContracts/schemas/Webhook';
 
 const aDelivery = (overrides: Partial<WebhookDelivery> = {}): WebhookDelivery => ({
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

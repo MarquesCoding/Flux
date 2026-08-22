@@ -1,22 +1,22 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ArrowsClockwiseIcon, CaretRightIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { cn } from '@FluxUI/cn';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { BackgroundJobs } from '@FluxScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
-import { CacheBreakdown } from '@FluxScreens/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
-import { TrendChart } from '@FluxUI/TrendChart';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
-import { describeQueueKind } from '@FluxScreens/components/AdminArea/describeQueueKind';
-import { describeAcceleration } from '@FluxScreens/components/AdminArea/describeAcceleration';
-import { memoryEnvelope } from '@FluxScreens/components/AdminArea/memoryEnvelope';
-import { measureStorage } from '@FluxClient/admin/fetchAdmin';
-import type { StorageCount } from '@FluxClient/admin/fetchAdmin';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { cn } from '@ValenceUI/cn';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
+import { CacheBreakdown } from '@ValenceScreens/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
+import { TrendChart } from '@ValenceUI/TrendChart';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describeQueueKind';
+import { describeAcceleration } from '@ValenceScreens/components/AdminArea/describeAcceleration';
+import { memoryEnvelope } from '@ValenceScreens/components/AdminArea/memoryEnvelope';
+import { measureStorage } from '@ValenceClient/admin/fetchAdmin';
+import type { StorageCount } from '@ValenceClient/admin/fetchAdmin';
 import type { OverviewPanelProps } from './OverviewPanel.types';
 
 /**
@@ -174,7 +174,7 @@ const OverviewPanel = ({
               <dt className="shrink-0 text-text-muted">Graphics</dt>
               <dd className="min-w-0 truncate text-text">
                 {resources?.graphics === null || resources?.graphics === undefined
-                  ? 'None Flux can read'
+                  ? 'None Valence can read'
                   : resources.graphics.encoderPercent === null
                     ? `${resources.graphics.name} · encoder not readable`
                     : resources.graphics.name}
@@ -306,7 +306,7 @@ const OverviewPanel = ({
         </Region>
 
         <Region
-          title="Storage Flux is using"
+          title="Storage Valence is using"
           className="lg:col-span-4"
           action="Refresh"
           actionIcon={<Icon of={ArrowsClockwiseIcon} size={14} />}

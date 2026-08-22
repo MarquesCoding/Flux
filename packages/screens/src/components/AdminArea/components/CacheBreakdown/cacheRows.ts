@@ -1,5 +1,5 @@
-import type { AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
+import type { AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 
 type CacheRow = {
   label: string;
@@ -21,7 +21,7 @@ const counted = (count: number, one: string, many: string): string =>
   count === 1 ? `1 ${one}` : `${count.toString()} ${many}`;
 
 /**
- * Builds the rows of the disk breakdown, one per kind of thing Flux keeps, each with its size and how
+ * Builds the rows of the disk breakdown, one per kind of thing Valence keeps, each with its size and how
  * many of it there are. Anything not yet counted is shown as still counting rather than as zero —
  * zero is a claim, and the wrong one while a count is in progress.
  *

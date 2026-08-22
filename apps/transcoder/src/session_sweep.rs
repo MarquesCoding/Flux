@@ -337,7 +337,7 @@ mod tests {
     const MARKER: u64 = 2;
 
     fn root(name: &str) -> PathBuf {
-        let path = std::env::temp_dir().join(format!("flux-evict-{name}"));
+        let path = std::env::temp_dir().join(format!("valence-evict-{name}"));
 
         std::fs::remove_dir_all(&path).ok();
         std::fs::create_dir_all(&path).expect("the root can be made");
@@ -501,7 +501,7 @@ mod tests {
     #[tokio::test]
     async fn says_nothing_happened_on_a_cache_that_is_not_there() {
         let report = evict(
-            &std::env::temp_dir().join("flux-evict-absent"),
+            &std::env::temp_dir().join("valence-evict-absent"),
             &HashSet::<String>::new(),
             &Budget::default(),
         )

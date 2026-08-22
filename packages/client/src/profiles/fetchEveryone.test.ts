@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { fetchEveryone, signInAsProfile } from './fetchEveryone';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 type Answer = {
   ok: boolean;
@@ -133,7 +133,7 @@ describe('signInAsProfile', () => {
 
     await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({
       kind: 'refused',
-      reason: 'Flux could not be reached.',
+      reason: 'Valence could not be reached.',
     });
   });
 
