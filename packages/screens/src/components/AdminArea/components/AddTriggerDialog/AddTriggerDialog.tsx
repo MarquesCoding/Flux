@@ -1,15 +1,15 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretUpDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { OptionMenu } from '@FluxUI/OptionMenu';
-import { TextField } from '@FluxUI/TextField';
-import { DAY_NAMES } from '@FluxClient/admin/describeTrigger';
-import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
+import { TextField } from '@ValenceUI/TextField';
+import { DAY_NAMES } from '@ValenceClient/admin/describeTrigger';
+import type { ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
 import type { AddTriggerDialogProps } from './AddTriggerDialog.types';
 
 const TRIGGER_TYPES = [

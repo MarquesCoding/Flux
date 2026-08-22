@@ -1,11 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPartyClient } from './createPartyClient';
-import { whereTheRoomIs } from '@FluxCore/functions/whereTheRoomIs';
-import { whoIsHoldingUp } from '@FluxCore/functions/whoIsHoldingUp';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
+import { whereTheRoomIs } from '@ValenceCore/functions/whereTheRoomIs';
+import { whoIsHoldingUp } from '@ValenceCore/functions/whoIsHoldingUp';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
 import type { PartyClient } from './createPartyClient';
-import type { PartyRole, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+import type { PartyRole, SequencedCommand, WatchParty } from '@ValenceContracts/schemas/WatchParty';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 
 const ASK_THE_CLOCK_EVERY_MS = 5000;
 

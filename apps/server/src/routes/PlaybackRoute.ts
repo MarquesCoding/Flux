@@ -1,8 +1,8 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
-import { QualityStepIdSchema } from '@FluxContracts/schemas/QualityStep';
-import { PLAYBACK_MODES } from '@FluxContracts/functions/describePlaybackMode';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { DeviceProfileSchema } from '@ValenceContracts/schemas/DeviceProfile';
+import { QualityStepIdSchema } from '@ValenceContracts/schemas/QualityStep';
+import { PLAYBACK_MODES } from '@ValenceContracts/functions/describePlaybackMode';
 const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError');
 
 const ExplainResponse = z

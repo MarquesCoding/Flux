@@ -1,4 +1,4 @@
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 /**
  * Works out what an API key may actually do, which is never more than the account that issued it —

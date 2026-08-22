@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { fetchSegments, skippableAt, describeSkip } from './fetchSegments';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const intro: MediaSegment = {
   kind: 'intro',

@@ -1,15 +1,15 @@
 import { useState } from 'react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
-import { Switch } from '@FluxUI/Switch';
-import { WEBHOOK_EVENT_LABELS } from '@FluxContracts/schemas/Webhook';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { Switch } from '@ValenceUI/Switch';
+import { WEBHOOK_EVENT_LABELS } from '@ValenceContracts/schemas/Webhook';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import { AddWebhookDialog } from './components/AddWebhookDialog/AddWebhookDialog';
 import { DeliveryHistory } from './components/DeliveryHistory/DeliveryHistory';
-import type { WebhookSubscription } from '@FluxContracts/schemas/Webhook';
+import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhooksPanelProps } from './WebhooksPanel.types';
 
 /**

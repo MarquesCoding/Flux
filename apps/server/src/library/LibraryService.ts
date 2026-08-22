@@ -3,9 +3,9 @@ import type {
   LibraryFacets,
   MediaDetail,
   MediaSummary,
-} from '@FluxContracts/schemas/Library';
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
-import type { Person } from '@FluxContracts/schemas/Person';
+} from '@ValenceContracts/schemas/Library';
+import type { ShowDetail, ShowSummary } from '@ValenceContracts/schemas/Show';
+import type { Person } from '@ValenceContracts/schemas/Person';
 
 type ListItemsOptions = {
   search?: string;

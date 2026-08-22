@@ -1,6 +1,10 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { FromClient, FromServer } from '@FluxContracts/schemas/Realtime';
-import type { PartyNotice, SequencedCommand, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { FromClient, FromServer } from '@ValenceContracts/schemas/Realtime';
+import type {
+  PartyNotice,
+  SequencedCommand,
+  WatchParty,
+} from '@ValenceContracts/schemas/WatchParty';
 import type { PartyRegistry } from './createPartyRegistry';
 
 type PartySpeaker = {

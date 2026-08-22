@@ -15,8 +15,8 @@ const startAfresh = async (): Promise<() => RealtimeClient> => {
   listening = null;
   opened = 0;
 
-  const { installPlatform } = await import('@FluxClient/platform/installPlatform');
-  const { aFakePlatform } = await import('@FluxClient/testing/aFakePlatform');
+  const { installPlatform } = await import('@ValenceClient/platform/installPlatform');
+  const { aFakePlatform } = await import('@ValenceClient/testing/aFakePlatform');
 
   installPlatform({
     ...aFakePlatform(),

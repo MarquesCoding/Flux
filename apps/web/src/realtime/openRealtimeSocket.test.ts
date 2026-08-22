@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { openRealtimeSocket } from './openRealtimeSocket';
-import type { Handlers } from '@FluxClient/realtime/createRealtimeClient';
+import type { Handlers } from '@ValenceClient/realtime/createRealtimeClient';
 
 class FakeSocket {
   static last: FakeSocket | null = null;

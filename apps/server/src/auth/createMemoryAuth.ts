@@ -1,10 +1,10 @@
 import { memoryAdapter } from 'better-auth/adapters/memory';
 import { createAuth } from './Auth';
 import type { FluxAuth } from './Auth';
-import { readEnv } from '@FluxServer/env/Env';
-import type { Env } from '@FluxServer/env/Env';
-import { createMemorySettingsStore } from '@FluxServer/settings/createMemorySettingsStore';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { readEnv } from '@ValenceServer/env/Env';
+import type { Env } from '@ValenceServer/env/Env';
+import { createMemorySettingsStore } from '@ValenceServer/settings/createMemorySettingsStore';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 
 const TEST_SECRET = 'flux-test-secret-value-at-least-32-chars';
 

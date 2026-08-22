@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { isPlausible, resolveSegments } from './SegmentProvider';
 import type { SegmentCandidate, SegmentProvider } from './SegmentProvider';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 const EPISODE_SECONDS = 2700;
 

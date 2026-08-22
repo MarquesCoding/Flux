@@ -1,10 +1,10 @@
 import { useCallback } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { SplashScreen } from '@FluxUI/SplashScreen';
-import { SetupWizard } from '@FluxScreens/components/SetupWizard/SetupWizard';
-import { sessionQueries } from '@FluxClient/query/sessionQueries';
-import { useFreshFromTheSocket } from '@FluxClient/query/useFreshFromTheSocket';
+import { SplashScreen } from '@ValenceUI/SplashScreen';
+import { SetupWizard } from '@ValenceScreens/components/SetupWizard/SetupWizard';
+import { sessionQueries } from '@ValenceClient/query/sessionQueries';
+import { useFreshFromTheSocket } from '@ValenceClient/query/useFreshFromTheSocket';
 import type { AppProps } from './App.types';
 
 /**

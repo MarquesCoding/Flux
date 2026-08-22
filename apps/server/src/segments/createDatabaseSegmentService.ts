@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { eq } from 'drizzle-orm';
-import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment';
-import { mediaSegment } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { MediaSegmentSchema } from '@ValenceContracts/schemas/MediaSegment';
+import { mediaSegment } from '@ValenceServer/db/Schema';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
 import type { SegmentService } from './SegmentService';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 /**
  * The marked stretches of each item — intros, outros, recaps — held in Postgres, so detection runs

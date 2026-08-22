@@ -24,12 +24,12 @@ const fetchAccounts = vi.hoisted(() => vi.fn());
 const readWholeLibrary = vi.hoisted(() => vi.fn());
 const fetchEverybodysShares = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/admin/fetchAdmin', () => admin);
-vi.mock('@FluxClient/admin/fetchRoles', () => roles);
-vi.mock('@FluxClient/admin/fetchWebhooks', () => webhooks);
-vi.mock('@FluxClient/admin/fetchAccounts', () => ({ fetchAccounts }));
-vi.mock('@FluxClient/library/readWholeLibrary', () => ({ readWholeLibrary }));
-vi.mock('@FluxClient/sharing/fetchShares', () => ({ fetchEverybodysShares }));
+vi.mock('@ValenceClient/admin/fetchAdmin', () => admin);
+vi.mock('@ValenceClient/admin/fetchRoles', () => roles);
+vi.mock('@ValenceClient/admin/fetchWebhooks', () => webhooks);
+vi.mock('@ValenceClient/admin/fetchAccounts', () => ({ fetchAccounts }));
+vi.mock('@ValenceClient/library/readWholeLibrary', () => ({ readWholeLibrary }));
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({ fetchEverybodysShares }));
 
 const aCache = (): QueryClient =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } });

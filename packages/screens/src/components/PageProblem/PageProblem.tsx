@@ -1,4 +1,4 @@
-import { Button } from '@FluxUI/Button';
+import { Button } from '@ValenceUI/Button';
 
 /**
  * What is shown where one page has failed, instead of the whole application going white.

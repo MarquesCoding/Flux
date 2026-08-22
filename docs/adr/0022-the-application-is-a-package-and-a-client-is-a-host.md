@@ -28,7 +28,7 @@ address; and a `MoodLight`, which the shell was borrowing from FluxUI.
 
 ## Decision
 
-**The application is `@flux/client`. A client is a host.** The package holds what
+**The application is `@valence/client`. A client is a host.** The package holds what
 Flux _is_ — what the server is asked, what the answers mean, what is worth
 caching. `apps/web` holds what a browser _is_: an entry point, a router, a
 service worker, the Shaka engine, and one implementation of each port.
@@ -49,9 +49,9 @@ functions — a reader called from a query has no React context to reach into.
 client that forgets to say what it is fails at once instead of quietly behaving
 as though nobody is watching and no preference was ever chosen.
 
-**The boundary is enforced rather than described.** ESLint refuses `@FluxWeb/*`
-and `@FluxUI/*` inside the package. The application does not reach into a client
-and does not draw; a shape both need belongs to `@FluxContracts`.
+**The boundary is enforced rather than described.** ESLint refuses `@ValenceWeb/*`
+and `@ValenceUI/*` inside the package. The application does not reach into a client
+and does not draw; a shape both need belongs to `@ValenceContracts`.
 
 ## Consequences
 

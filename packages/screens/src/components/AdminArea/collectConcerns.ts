@@ -1,9 +1,9 @@
-import type { ActiveSession, AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { ActiveSession, AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
 import { fluxCpuShare } from './fluxCpuShare';
 import { libraryDisk } from './libraryDisk';
 import { memoryEnvelope } from './memoryEnvelope';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 
 type ConcernTone = 'broken' | 'attention' | 'setup';
 

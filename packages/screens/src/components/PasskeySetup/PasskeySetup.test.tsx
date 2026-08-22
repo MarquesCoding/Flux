@@ -9,14 +9,14 @@ const deletePasskeyMock = vi.hoisted(() => vi.fn());
 const renamePasskeyMock = vi.hoisted(() => vi.fn());
 const describeUnavailabilityMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/session/auth', () => ({
+vi.mock('@ValenceClient/session/auth', () => ({
   registerPasskey: registerPasskeyMock,
   listPasskeys: listPasskeysMock,
   deletePasskey: deletePasskeyMock,
   renamePasskey: renamePasskeyMock,
 }));
 
-vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
+vi.mock('@ValenceScreens/passkeys/isPasskeySupported', () => ({
   isPasskeySupported: () => describeUnavailabilityMock() === null,
   describePasskeyUnavailability: describeUnavailabilityMock,
 }));

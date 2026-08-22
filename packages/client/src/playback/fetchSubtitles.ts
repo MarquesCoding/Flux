@@ -1,4 +1,4 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
 
 const SubtitleTrackSchema = z.object({

@@ -1,7 +1,7 @@
-import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
+import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
 import { previewRequestFor } from './previewRequestFor';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 type PreviewStore = {
   listOutstanding: (

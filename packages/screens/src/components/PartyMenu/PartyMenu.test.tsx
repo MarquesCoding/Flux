@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { PartyMenu } from './PartyMenu';
-import type { PartyMember, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { PartyMember, WatchParty } from '@ValenceContracts/schemas/WatchParty';
 
 const member = (over?: Partial<PartyMember>): PartyMember => ({
   connectionId: 'dan',

@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { pickAnything } from './pickAnything';
-import type { MediaSummary, LibraryKind } from '@FluxContracts/schemas/Library';
-import type { ShowSummary } from '@FluxContracts/schemas/Show';
+import type { MediaSummary, LibraryKind } from '@ValenceContracts/schemas/Library';
+import type { ShowSummary } from '@ValenceContracts/schemas/Show';
 
 type Page = { items: MediaSummary[]; total: number };
 
@@ -10,13 +10,13 @@ const fetchLibraryItems =
   vi.fn<(libraryId: string, options?: { limit?: number; offset?: number }) => Promise<Page>>();
 const fetchShows = vi.fn<(libraryId: string) => Promise<ShowSummary[]>>();
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchLibraries: () => fetchLibraries(),
   fetchLibraryItems: (libraryId: string, options?: { limit?: number; offset?: number }) =>
     fetchLibraryItems(libraryId, options),
 }));
 
-vi.mock('@FluxClient/library/fetchShows', () => ({
+vi.mock('@ValenceClient/library/fetchShows', () => ({
   fetchShows: (libraryId: string) => fetchShows(libraryId),
 }));
 

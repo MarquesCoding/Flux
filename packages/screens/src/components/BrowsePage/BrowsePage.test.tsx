@@ -1,9 +1,9 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { BrowsePage } from './BrowsePage';
-import type { BrowseAreaProps } from '@FluxScreens/components/BrowseArea/BrowseArea.types';
+import type { BrowseAreaProps } from '@ValenceScreens/components/BrowseArea/BrowseArea.types';
 
 const drawn = vi.hoisted((): { props: BrowseAreaProps | null } => ({ props: null }));
 
@@ -25,7 +25,7 @@ const TED = {
   seriesTitle: 'Ted Lasso',
 };
 
-vi.mock('@FluxScreens/components/BrowseArea/BrowseArea', () => ({
+vi.mock('@ValenceScreens/components/BrowseArea/BrowseArea', () => ({
   BrowseArea: (props: BrowseAreaProps) => {
     drawn.props = props;
 

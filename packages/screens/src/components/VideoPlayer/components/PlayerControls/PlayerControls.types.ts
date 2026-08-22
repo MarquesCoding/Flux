@@ -1,10 +1,10 @@
-import type { CastState } from '@FluxScreens/playback/castPlayback.types';
+import type { CastState } from '@ValenceScreens/playback/castPlayback.types';
 import type { ReactNode } from 'react';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { CaptionStyle } from '@FluxScreens/playback/captionStyle';
-import type { SubtitleTrack } from '@FluxClient/playback/fetchSubtitles';
-import type { QualityPreference } from '@FluxClient/playback/qualityPreference';
-import type { QualityStepId } from '@FluxContracts/schemas/QualityStep';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { CaptionStyle } from '@ValenceScreens/playback/captionStyle';
+import type { SubtitleTrack } from '@ValenceClient/playback/fetchSubtitles';
+import type { QualityPreference } from '@ValenceClient/playback/qualityPreference';
+import type { QualityStepId } from '@ValenceContracts/schemas/QualityStep';
 
 type AudioTrack = {
   index: number;

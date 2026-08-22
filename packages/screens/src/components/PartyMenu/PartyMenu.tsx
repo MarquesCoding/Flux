@@ -1,9 +1,9 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { UsersThreeIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
-import { PopoverPanel } from '@FluxUI/PopoverPanel';
-import { Button } from '@FluxUI/Button';
-import { PartyPanel } from '@FluxScreens/components/PartyPanel/PartyPanel';
+import { PopoverPanel } from '@ValenceUI/PopoverPanel';
+import { Button } from '@ValenceUI/Button';
+import { PartyPanel } from '@ValenceScreens/components/PartyPanel/PartyPanel';
 import type { PartyMenuProps } from './PartyMenu.types';
 
 /**

@@ -1,5 +1,5 @@
-import { formatBytes } from '@FluxCore/functions/formatBytes';
-import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import type { WebhookPayload, WebhookPreset } from '@ValenceContracts/schemas/Webhook';
 
 type WebhookRequestBody = {
   body: string;

@@ -1,10 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountArea } from './AccountArea';
-import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { SessionUser } from '@ValenceContracts/schemas/Session';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const USER: SessionUser = {
   id: '00000000-0000-4000-8000-000000000001',

@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { GlassElevation, GlassPanelProps } from './GlassPanel.types';
 
 const ELEVATION_CLASSES: Record<GlassElevation, string> = {

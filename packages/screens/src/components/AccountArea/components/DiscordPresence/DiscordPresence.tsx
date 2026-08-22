@@ -1,10 +1,10 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { Switch } from '@FluxUI/Switch';
-import { saveProfile } from '@FluxClient/profiles/fetchProfiles';
-import { profileQueries } from '@FluxClient/query/profileQueries';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { Switch } from '@ValenceUI/Switch';
+import { saveProfile } from '@ValenceClient/profiles/fetchProfiles';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
 import type { DiscordPresenceProps } from './DiscordPresence.types';
 
 /**

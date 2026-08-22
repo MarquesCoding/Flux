@@ -1,5 +1,5 @@
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
-import type { LogPage } from '@FluxClient/admin/fetchLogs';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
+import type { LogPage } from '@ValenceClient/admin/fetchLogs';
 
 type LogsPanelProps = {
   read?: (query: Partial<LogQuery>) => Promise<LogPage>;

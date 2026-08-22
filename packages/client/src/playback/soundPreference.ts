@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
 const SoundPreferenceSchema = z.enum(['muted', 'audible']);
 

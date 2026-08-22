@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   BellIcon,
   BookOpenIcon,
@@ -15,18 +15,18 @@ import {
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { ActionMenu } from '@FluxUI/ActionMenu';
-import { Button } from '@FluxUI/Button';
-import { NavDock } from '@FluxUI/NavDock';
-import { MoodBackground } from '@FluxUI/MoodBackground';
-import { useDotFilm } from '@FluxUI/useDotFilm';
-import { useKonamiCode } from '@FluxUI/useKonamiCode';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { Button } from '@ValenceUI/Button';
+import { NavDock } from '@ValenceUI/NavDock';
+import { MoodBackground } from '@ValenceUI/MoodBackground';
+import { useDotFilm } from '@ValenceUI/useDotFilm';
+import { useKonamiCode } from '@ValenceUI/useKonamiCode';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
-import type { IconGesture } from '@FluxUI/AnimatedIcon.types';
-import type { NavDockAction, NavDockItem } from '@FluxUI/NavDock.types';
-import type { LibraryKind } from '@FluxContracts/schemas/Library';
+import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
+import type { NavDockAction, NavDockItem } from '@ValenceUI/NavDock.types';
+import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 import type { AppShellProps, ShellSection } from './AppShell.types';
 
 const FADING = 1.2;

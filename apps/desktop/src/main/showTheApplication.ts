@@ -1,5 +1,5 @@
-import { ORIGIN } from '@FluxDesktop/main/serveTheApplication';
-import type { Fillable } from '@FluxDesktop/main/TheWindow.types';
+import { ORIGIN } from '@ValenceDesktop/main/serveTheApplication';
+import type { Fillable } from '@ValenceDesktop/main/TheWindow.types';
 
 /**
  * Puts Valence in the window.

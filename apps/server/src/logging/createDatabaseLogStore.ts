@@ -1,8 +1,8 @@
 import { and, count, desc, eq, gte, inArray, lt, lte, sql } from 'drizzle-orm';
-import { logRecord } from '@FluxServer/db/Schema';
-import { LogLevelSchema, LogSourceSchema } from '@FluxContracts/schemas/Log';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
+import { logRecord } from '@ValenceServer/db/Schema';
+import { LogLevelSchema, LogSourceSchema } from '@ValenceContracts/schemas/Log';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
 import type { LogStore, StoredLog } from './Logger';
 
 type Row = typeof logRecord.$inferSelect;

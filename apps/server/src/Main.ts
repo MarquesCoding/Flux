@@ -7,29 +7,29 @@ import { createNodeWebSocket } from '@hono/node-ws';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { and, count, eq, gt, lt, lte, sql } from 'drizzle-orm';
 import { createApp } from './App';
-import { createRealtimeRegistry } from '@FluxServer/realtime/createRealtimeRegistry';
-import { createRealtimeHandler } from '@FluxServer/realtime/createRealtimeHandler';
-import { createRealtimeClock } from '@FluxServer/realtime/createRealtimeClock';
-import { createEntitlements } from '@FluxServer/realtime/createEntitlements';
-import { watchPermissionChanges } from '@FluxServer/realtime/watchPermissionChanges';
-import { relayMonitor } from '@FluxServer/realtime/relayMonitor';
-import { createPartyRegistry } from '@FluxServer/parties/createPartyRegistry';
-import { createLogger } from '@FluxServer/logging/createLogger';
-import { createDatabaseLogStore } from '@FluxServer/logging/createDatabaseLogStore';
-import { asJsonLog } from '@FluxServer/logging/asJsonLog';
-import { createLogScope } from '@FluxServer/logging/createLogScope';
-import { createTranscoderIntake } from '@FluxServer/logging/createTranscoderIntake';
-import { withApiMemory } from '@FluxServer/monitor/withApiMemory';
-import { createJobHealthWatch } from '@FluxServer/jobs/createJobHealthWatch';
-import { labelForQueue } from '@FluxServer/jobs/labelForQueue';
-import { traceJobs } from '@FluxServer/logging/traceJobs';
-import { createPresenceService } from '@FluxServer/presence/PresenceService';
-import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
-import { createAuth } from '@FluxServer/auth/Auth';
-import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
-import type { RealtimeSession } from '@FluxServer/realtime/createRealtimeHandler';
-import { createDatabase } from '@FluxServer/db/Database';
-import { findPendingMigrations } from '@FluxServer/db/findPendingMigrations';
+import { createRealtimeRegistry } from '@ValenceServer/realtime/createRealtimeRegistry';
+import { createRealtimeHandler } from '@ValenceServer/realtime/createRealtimeHandler';
+import { createRealtimeClock } from '@ValenceServer/realtime/createRealtimeClock';
+import { createEntitlements } from '@ValenceServer/realtime/createEntitlements';
+import { watchPermissionChanges } from '@ValenceServer/realtime/watchPermissionChanges';
+import { relayMonitor } from '@ValenceServer/realtime/relayMonitor';
+import { createPartyRegistry } from '@ValenceServer/parties/createPartyRegistry';
+import { createLogger } from '@ValenceServer/logging/createLogger';
+import { createDatabaseLogStore } from '@ValenceServer/logging/createDatabaseLogStore';
+import { asJsonLog } from '@ValenceServer/logging/asJsonLog';
+import { createLogScope } from '@ValenceServer/logging/createLogScope';
+import { createTranscoderIntake } from '@ValenceServer/logging/createTranscoderIntake';
+import { withApiMemory } from '@ValenceServer/monitor/withApiMemory';
+import { createJobHealthWatch } from '@ValenceServer/jobs/createJobHealthWatch';
+import { labelForQueue } from '@ValenceServer/jobs/labelForQueue';
+import { traceJobs } from '@ValenceServer/logging/traceJobs';
+import { createPresenceService } from '@ValenceServer/presence/PresenceService';
+import { readSessionOnce } from '@ValenceServer/auth/readSessionOnce';
+import { createAuth } from '@ValenceServer/auth/Auth';
+import { trustedOriginsFor } from '@ValenceServer/auth/trustedOriginsFor';
+import type { RealtimeSession } from '@ValenceServer/realtime/createRealtimeHandler';
+import { createDatabase } from '@ValenceServer/db/Database';
+import { findPendingMigrations } from '@ValenceServer/db/findPendingMigrations';
 import {
   user,
   library,
@@ -39,34 +39,34 @@ import {
   viewerProfile,
   session,
   deviceCode,
-} from '@FluxServer/db/Schema';
-import { readEnv } from '@FluxServer/env/Env';
-import { createDatabaseSettingsStore } from '@FluxServer/settings/createDatabaseSettingsStore';
-import { createDatabaseLibraryService } from '@FluxServer/library/createDatabaseLibraryService';
-import { runScanPhases } from '@FluxServer/library/runScanPhases';
-import { createCatalogueMetadataProvider } from '@FluxServer/library/createCatalogueMetadataProvider';
-import { createFilenameMetadataProvider } from '@FluxServer/library/createFilenameMetadataProvider';
-import { createMediaFileSystem } from '@FluxServer/library/createMediaFileSystem';
-import { createTranscoderClient } from '@FluxServer/transcoder/TranscoderClient';
-import { createImageCache } from '@FluxServer/images/createImageCache';
-import { createArtworkUsage } from '@FluxServer/images/createArtworkUsage';
-import { detectLibrarySegments } from '@FluxServer/segments/detectLibrarySegments';
-import { createDatabaseWatchProgressService } from '@FluxServer/progress/createDatabaseWatchProgressService';
-import { createDatabaseFavouriteService } from '@FluxServer/favourites/createDatabaseFavouriteService';
-import { createDatabaseRatingService } from '@FluxServer/ratings/createDatabaseRatingService';
-import { createDatabaseShareService } from '@FluxServer/sharing/createDatabaseShareService';
-import { createShareSessions } from '@FluxServer/sharing/createShareSessions';
-import { createDatabaseSegmentService } from '@FluxServer/segments/createDatabaseSegmentService';
-import { createFingerprintSegmentProvider } from '@FluxServer/segments/createFingerprintSegmentProvider';
-import { createSidecarSubtitleService } from '@FluxServer/subtitles/createSidecarSubtitleService';
-import { createDatabaseProfileService } from '@FluxServer/profiles/createDatabaseProfileService';
-import { createDatabaseBookService } from '@FluxServer/books/createDatabaseBookService';
-import { ViewerProfileSchema } from '@FluxContracts/schemas/ViewerProfile';
-import { createEmbeddedSubtitleService } from '@FluxServer/subtitles/createEmbeddedSubtitleService';
-import { createLayeredSubtitleService } from '@FluxServer/subtitles/createLayeredSubtitleService';
-import { createPlaybackService } from '@FluxServer/playback/createPlaybackService';
-import { createJobQueue } from '@FluxServer/jobs/createJobQueue';
-import type { FinishedJob } from '@FluxServer/jobs/createJobQueue';
+} from '@ValenceServer/db/Schema';
+import { readEnv } from '@ValenceServer/env/Env';
+import { createDatabaseSettingsStore } from '@ValenceServer/settings/createDatabaseSettingsStore';
+import { createDatabaseLibraryService } from '@ValenceServer/library/createDatabaseLibraryService';
+import { runScanPhases } from '@ValenceServer/library/runScanPhases';
+import { createCatalogueMetadataProvider } from '@ValenceServer/library/createCatalogueMetadataProvider';
+import { createFilenameMetadataProvider } from '@ValenceServer/library/createFilenameMetadataProvider';
+import { createMediaFileSystem } from '@ValenceServer/library/createMediaFileSystem';
+import { createTranscoderClient } from '@ValenceServer/transcoder/TranscoderClient';
+import { createImageCache } from '@ValenceServer/images/createImageCache';
+import { createArtworkUsage } from '@ValenceServer/images/createArtworkUsage';
+import { detectLibrarySegments } from '@ValenceServer/segments/detectLibrarySegments';
+import { createDatabaseWatchProgressService } from '@ValenceServer/progress/createDatabaseWatchProgressService';
+import { createDatabaseFavouriteService } from '@ValenceServer/favourites/createDatabaseFavouriteService';
+import { createDatabaseRatingService } from '@ValenceServer/ratings/createDatabaseRatingService';
+import { createDatabaseShareService } from '@ValenceServer/sharing/createDatabaseShareService';
+import { createShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import { createDatabaseSegmentService } from '@ValenceServer/segments/createDatabaseSegmentService';
+import { createFingerprintSegmentProvider } from '@ValenceServer/segments/createFingerprintSegmentProvider';
+import { createSidecarSubtitleService } from '@ValenceServer/subtitles/createSidecarSubtitleService';
+import { createDatabaseProfileService } from '@ValenceServer/profiles/createDatabaseProfileService';
+import { createDatabaseBookService } from '@ValenceServer/books/createDatabaseBookService';
+import { ViewerProfileSchema } from '@ValenceContracts/schemas/ViewerProfile';
+import { createEmbeddedSubtitleService } from '@ValenceServer/subtitles/createEmbeddedSubtitleService';
+import { createLayeredSubtitleService } from '@ValenceServer/subtitles/createLayeredSubtitleService';
+import { createPlaybackService } from '@ValenceServer/playback/createPlaybackService';
+import { createJobQueue } from '@ValenceServer/jobs/createJobQueue';
+import type { FinishedJob } from '@ValenceServer/jobs/createJobQueue';
 import {
   SCAN_LIBRARY_JOB,
   READ_AGAIN_JOB,
@@ -93,48 +93,48 @@ import {
   PRUNE_LOGS_JOB,
   DeliverWebhookJobSchema,
   scheduleTriggerKind,
-} from '@FluxServer/jobs/JobQueue';
-import { createDatabaseWebhookStore } from '@FluxServer/webhooks/createDatabaseWebhookStore';
-import { createDatabaseNotificationStore } from '@FluxServer/notifications/createDatabaseNotificationStore';
-import { notifyHousehold } from '@FluxServer/notifications/notifyHousehold';
-import { summariseNewMedia } from '@FluxServer/notifications/summariseNewMedia';
-import { readDigestWindow } from '@FluxServer/notifications/readDigestWindow';
+} from '@ValenceServer/jobs/JobQueue';
+import { createDatabaseWebhookStore } from '@ValenceServer/webhooks/createDatabaseWebhookStore';
+import { createDatabaseNotificationStore } from '@ValenceServer/notifications/createDatabaseNotificationStore';
+import { notifyHousehold } from '@ValenceServer/notifications/notifyHousehold';
+import { summariseNewMedia } from '@ValenceServer/notifications/summariseNewMedia';
+import { readDigestWindow } from '@ValenceServer/notifications/readDigestWindow';
 import webPush from 'web-push';
-import type { VapidKeys } from '@FluxServer/notifications/sendWebPush';
-import { runWebhookDelivery } from '@FluxServer/webhooks/runWebhookDelivery';
-import { createWebhookEventBus } from '@FluxServer/events/createWebhookEventBus';
-import { createReachabilityWatch } from '@FluxServer/events/createReachabilityWatch';
-import { createDiskPressureWatch } from '@FluxServer/events/createDiskPressureWatch';
-import { MonitorDisksSchema } from '@FluxServer/maintenance/DiskUse';
+import type { VapidKeys } from '@ValenceServer/notifications/sendWebPush';
+import { runWebhookDelivery } from '@ValenceServer/webhooks/runWebhookDelivery';
+import { createWebhookEventBus } from '@ValenceServer/events/createWebhookEventBus';
+import { createReachabilityWatch } from '@ValenceServer/events/createReachabilityWatch';
+import { createDiskPressureWatch } from '@ValenceServer/events/createDiskPressureWatch';
+import { MonitorDisksSchema } from '@ValenceServer/maintenance/DiskUse';
 import {
   findDisksUnderPressure,
   findMountFor,
-} from '@FluxServer/maintenance/findDisksUnderPressure';
-import { createDatabaseMaintenanceService } from '@FluxServer/maintenance/createDatabaseMaintenanceService';
-import { cleanupImageCache } from '@FluxServer/maintenance/cleanupImageCache';
-import { sweepArtefactCache } from '@FluxServer/maintenance/sweepArtefactCache';
-import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
+} from '@ValenceServer/maintenance/findDisksUnderPressure';
+import { createDatabaseMaintenanceService } from '@ValenceServer/maintenance/createDatabaseMaintenanceService';
+import { cleanupImageCache } from '@ValenceServer/maintenance/cleanupImageCache';
+import { sweepArtefactCache } from '@ValenceServer/maintenance/sweepArtefactCache';
+import { AudioStreamSchema } from '@ValenceContracts/schemas/MediaItem';
 import {
   TRICKPLAY_INTERVAL_SECONDS,
   TRICKPLAY_TILE_WIDTH,
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
-} from '@FluxServer/playback/PlaybackService';
-import { cleanupSessions } from '@FluxServer/maintenance/cleanupSessions';
-import { checkCatalogueConnectivity } from '@FluxServer/maintenance/checkCatalogueConnectivity';
-import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@FluxServer/jobs/jobDefinitions';
-import { createJobScheduleService } from '@FluxServer/jobs/createJobScheduleService';
-import { resolveJobsTimezone } from '@FluxServer/jobs/resolveJobsTimezone';
-import { createDatabaseJobTriggerStore } from '@FluxServer/jobs/createDatabaseJobTriggerStore';
-import { markJobComplete } from '@FluxServer/library/createMediaStore';
-import { createWorkLock } from '@FluxServer/jobs/createWorkLock';
-import { seedDefaultJobTriggers } from '@FluxServer/jobs/seedDefaultJobTriggers';
-import { seedDefaultRoles } from '@FluxServer/auth/seedDefaultRoles';
-import { DEFAULT_ROLE_NAME } from '@FluxCore/functions/defaultRoles';
-import { createDatabaseHistoryService } from '@FluxServer/history/createDatabaseHistoryService';
-import { createDatabaseSignInStore } from '@FluxServer/accounts/createDatabaseSignInStore';
-import { recordSignIn } from '@FluxServer/accounts/recordSignIn';
-import { createDatabasePermissionService } from '@FluxServer/auth/createDatabasePermissionService';
+} from '@ValenceServer/playback/PlaybackService';
+import { cleanupSessions } from '@ValenceServer/maintenance/cleanupSessions';
+import { checkCatalogueConnectivity } from '@ValenceServer/maintenance/checkCatalogueConnectivity';
+import { RESET_LIBRARY_JOB, scheduleQueueNameFor } from '@ValenceServer/jobs/jobDefinitions';
+import { createJobScheduleService } from '@ValenceServer/jobs/createJobScheduleService';
+import { resolveJobsTimezone } from '@ValenceServer/jobs/resolveJobsTimezone';
+import { createDatabaseJobTriggerStore } from '@ValenceServer/jobs/createDatabaseJobTriggerStore';
+import { markJobComplete } from '@ValenceServer/library/createMediaStore';
+import { createWorkLock } from '@ValenceServer/jobs/createWorkLock';
+import { seedDefaultJobTriggers } from '@ValenceServer/jobs/seedDefaultJobTriggers';
+import { seedDefaultRoles } from '@ValenceServer/auth/seedDefaultRoles';
+import { DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
+import { createDatabaseHistoryService } from '@ValenceServer/history/createDatabaseHistoryService';
+import { createDatabaseSignInStore } from '@ValenceServer/accounts/createDatabaseSignInStore';
+import { recordSignIn } from '@ValenceServer/accounts/recordSignIn';
+import { createDatabasePermissionService } from '@ValenceServer/auth/createDatabasePermissionService';
 const ChapterListSchema = z.array(
   z.object({
     title: z.string().nullable(),
@@ -309,7 +309,7 @@ const reportPendingMigrations = async (): Promise<void> => {
 
   log.error(
     'server',
-    `This database has not run ${pending.length.toString()} migration${pending.length === 1 ? '' : 's'} the repository carries: ${pending.join(', ')}. Reads of the tables they change will fail until \`pnpm --filter @flux/server db:migrate\` is run.`,
+    `This database has not run ${pending.length.toString()} migration${pending.length === 1 ? '' : 's'} the repository carries: ${pending.join(', ')}. Reads of the tables they change will fail until \`pnpm --filter @valence/server db:migrate\` is run.`,
   );
 };
 

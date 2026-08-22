@@ -1,7 +1,7 @@
 import { formatWebhookBody } from './formatWebhookBody';
 import { isSafeWebhookUrl } from './isSafeWebhookUrl';
 import { signWebhookPayload, WEBHOOK_SIGNATURE_HEADER } from './signWebhookPayload';
-import type { WebhookPayload, WebhookPreset } from '@FluxContracts/schemas/Webhook';
+import type { WebhookPayload, WebhookPreset } from '@ValenceContracts/schemas/Webhook';
 
 const WEBHOOK_TIMEOUT_MILLISECONDS = 10_000;
 

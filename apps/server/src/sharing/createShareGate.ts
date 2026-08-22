@@ -1,6 +1,6 @@
 import { createMiddleware } from 'hono/factory';
 import { getCookie } from 'hono/cookie';
-import { howShareEnded, isShareLive, whyShareEnded } from '@FluxContracts/schemas/Share';
+import { howShareEnded, isShareLive, whyShareEnded } from '@ValenceContracts/schemas/Share';
 import { covers, reachOf } from './shareReach';
 import type { ShareService } from './ShareService';
 import type { ShareSessions } from './createShareSessions';

@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, lt } from 'drizzle-orm';
-import { watchHistory, mediaItem } from '@FluxServer/db/Schema';
+import { watchHistory, mediaItem } from '@ValenceServer/db/Schema';
 import { decideViewing } from './decideViewing';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
 import type { HistoryService, Viewing } from './HistoryService';
 
 type Row = {

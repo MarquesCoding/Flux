@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { JobRunner } from './JobRunner';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { JobDefinition } from '@FluxClient/admin/fetchAdmin';
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { JobDefinition } from '@ValenceClient/admin/fetchAdmin';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 const DEFINITIONS: JobDefinition[] = [
   {

@@ -1,9 +1,13 @@
 import { z } from 'zod';
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
-import { profileHeaders } from '@FluxClient/profiles/currentProfile';
-import { BookDetailSchema, BookSchema, ReadingProgressSchema } from '@FluxContracts/schemas/Book';
-import type { Book, BookDetail, ReadingProgress } from '@FluxContracts/schemas/Book';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { readFromServerOrAbsent } from '@ValenceClient/query/readFromServerOrAbsent';
+import { profileHeaders } from '@ValenceClient/profiles/currentProfile';
+import {
+  BookDetailSchema,
+  BookSchema,
+  ReadingProgressSchema,
+} from '@ValenceContracts/schemas/Book';
+import type { Book, BookDetail, ReadingProgress } from '@ValenceContracts/schemas/Book';
 
 const BookListSchema = z.object({ books: z.array(BookSchema) });
 

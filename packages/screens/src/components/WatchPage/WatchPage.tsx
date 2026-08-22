@@ -1,18 +1,18 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { SplashScreen } from '@FluxUI/SplashScreen';
-import { VideoPlayer } from '@FluxScreens/components/VideoPlayer/VideoPlayer';
-import { PartyMenu } from '@FluxScreens/components/PartyMenu/PartyMenu';
-import { PartyPasswordDialog } from '@FluxScreens/components/PartyPasswordDialog/PartyPasswordDialog';
-import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@FluxClient/party/whereToBegin';
-import { invitationTo } from '@FluxScreens/party/invitationTo';
-import { countCarriedOn } from '@FluxClient/playback/countCarriedOn';
-import { decideWhatFollows } from '@FluxClient/playback/decideWhatFollows';
-import { findSiblings, nextEpisode } from '@FluxClient/library/pickFeatured';
-import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@FluxContracts/schemas/WatchProgress';
-import { STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
+import { SplashScreen } from '@ValenceUI/SplashScreen';
+import { VideoPlayer } from '@ValenceScreens/components/VideoPlayer/VideoPlayer';
+import { PartyMenu } from '@ValenceScreens/components/PartyMenu/PartyMenu';
+import { PartyPasswordDialog } from '@ValenceScreens/components/PartyPasswordDialog/PartyPasswordDialog';
+import { whereToBegin, WAIT_FOR_THE_ROOM_MS } from '@ValenceClient/party/whereToBegin';
+import { invitationTo } from '@ValenceScreens/party/invitationTo';
+import { countCarriedOn } from '@ValenceClient/playback/countCarriedOn';
+import { decideWhatFollows } from '@ValenceClient/playback/decideWhatFollows';
+import { findSiblings, nextEpisode } from '@ValenceClient/library/pickFeatured';
+import { watchedFraction, FINISHED_WITHIN_SECONDS } from '@ValenceContracts/schemas/WatchProgress';
+import { STILL_WATCHING_OFF } from '@ValenceContracts/schemas/StillWatching';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
 
 const PROGRESS_EVERY_SECONDS = 5;
 

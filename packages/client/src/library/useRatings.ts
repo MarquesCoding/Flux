@@ -1,8 +1,8 @@
 import { useMemo } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { setRating } from '@FluxClient/library/fetchRatings';
-import { viewingQueries } from '@FluxClient/query/viewingQueries';
-import type { RatingSubject } from '@FluxClient/library/fetchRatings';
+import { setRating } from '@ValenceClient/library/fetchRatings';
+import { viewingQueries } from '@ValenceClient/query/viewingQueries';
+import type { RatingSubject } from '@ValenceClient/library/fetchRatings';
 
 type Ratings = {
   ratingFor: (subject: RatingSubject) => number | null;

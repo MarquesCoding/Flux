@@ -1,25 +1,25 @@
 import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain } from 'electron';
-import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
+import { answerAboutPreferences } from '@ValenceDesktop/main/answerAboutPreferences';
 import {
   CHANGE_SERVER,
   GO_TO_THE_SERVER,
   NOW_WATCHING,
-} from '@FluxDesktop/main/preferenceChannels';
-import { openTheWindow } from '@FluxDesktop/main/openTheWindow';
-import { theApplicationMenu } from '@FluxDesktop/main/theApplicationMenu';
-import { theDockIcon } from '@FluxDesktop/main/theDockIcon';
-import { tellDiscord } from '@FluxDesktop/main/tellDiscord';
-import { whatIsPlaying } from '@FluxDesktop/main/whatIsPlaying';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { theWindowsOwnMenu } from '@FluxDesktop/main/theWindowsOwnMenu';
-import { forgetTheServerAddress, theServerAddress } from '@FluxDesktop/main/theServerAddress';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
-import { keepLookingForAFlux, lookForAFlux } from '@FluxDesktop/main/lookForAFlux';
-import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
-import { claimTheScheme, serveTheApplication } from '@FluxDesktop/main/serveTheApplication';
-import { carryTheSessionToTheSocket } from '@FluxDesktop/main/carryTheSessionToTheSocket';
+} from '@ValenceDesktop/main/preferenceChannels';
+import { openTheWindow } from '@ValenceDesktop/main/openTheWindow';
+import { theApplicationMenu } from '@ValenceDesktop/main/theApplicationMenu';
+import { theDockIcon } from '@ValenceDesktop/main/theDockIcon';
+import { tellDiscord } from '@ValenceDesktop/main/tellDiscord';
+import { whatIsPlaying } from '@ValenceDesktop/main/whatIsPlaying';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
+import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
+import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
+import { keepLookingForAFlux, lookForAFlux } from '@ValenceDesktop/main/lookForAFlux';
+import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
+import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
+import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
 
 const WHERE_IT_HAS_ALWAYS_BEEN = 'Flux';
 

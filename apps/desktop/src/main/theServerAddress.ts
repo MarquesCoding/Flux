@@ -1,4 +1,4 @@
-import { thePreferenceFile } from '@FluxDesktop/main/thePreferenceFile';
+import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
 
 const KEY = 'flux.server.address';
 

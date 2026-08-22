@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
+import { QUALITY_STEPS } from '@ValenceContracts/schemas/QualityStep';
 import { resolveQualityStep } from './resolveQualityStep';
 import { listAvailableQualitySteps } from './listAvailableQualitySteps';
 

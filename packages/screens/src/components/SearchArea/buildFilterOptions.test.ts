@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildFilterOptions } from './buildFilterOptions';
-import type { LibraryFacets } from '@FluxContracts/schemas/Library';
+import type { LibraryFacets } from '@ValenceContracts/schemas/Library';
 
 const facets = (overrides: Partial<LibraryFacets> = {}): LibraryFacets => ({
   genres: [],

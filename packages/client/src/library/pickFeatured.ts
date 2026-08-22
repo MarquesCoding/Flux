@@ -1,4 +1,4 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 /**
  * Decides which of two episodes should stand for a whole programme, preferring the earliest — a

@@ -1,5 +1,5 @@
-import { openShare } from '@FluxClient/sharing/fetchShares';
-import type { ShareEnding } from '@FluxContracts/schemas/Share';
+import { openShare } from '@ValenceClient/sharing/fetchShares';
+import type { ShareEnding } from '@ValenceContracts/schemas/Share';
 
 /**
  * Asks whether a link has stopped working, and why, for a guest whose stream has just failed. A

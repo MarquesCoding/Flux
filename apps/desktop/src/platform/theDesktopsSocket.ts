@@ -1,5 +1,5 @@
-import { serverAddress } from '@FluxClient/session/serverAddress';
-import type { Connect } from '@FluxClient/realtime/createRealtimeClient';
+import { serverAddress } from '@ValenceClient/session/serverAddress';
+import type { Connect } from '@ValenceClient/realtime/createRealtimeClient';
 
 const PATH = '/api/realtime';
 

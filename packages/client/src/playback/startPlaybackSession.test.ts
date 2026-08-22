@@ -8,9 +8,9 @@ import {
   sendPresenceHeartbeat,
   describeWhy,
 } from './startPlaybackSession';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 
 type JsonRequestInit = Omit<RequestInit, 'body'> & { body?: string };
 

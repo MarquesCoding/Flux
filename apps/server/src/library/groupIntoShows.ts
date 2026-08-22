@@ -1,8 +1,8 @@
-import { addedAtMs } from '@FluxCore/functions/addedAtMs';
-import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import { showSlug } from '@FluxCore/functions/showSlug';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
+import { addedAtMs } from '@ValenceCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import { showSlug } from '@ValenceCore/functions/showSlug';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShowDetail, ShowSummary } from '@ValenceContracts/schemas/Show';
 
 /**
  * Gathers every item belonging to the same programme, keyed by the series identifier where a

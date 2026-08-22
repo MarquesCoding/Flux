@@ -1,4 +1,4 @@
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
+import type { ShowDetail } from '@ValenceContracts/schemas/Show';
 
 type Gaps = {
   seasons: number[];

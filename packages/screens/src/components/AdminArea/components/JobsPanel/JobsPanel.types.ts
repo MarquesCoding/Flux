@@ -3,9 +3,9 @@ import type {
   JobTrigger,
   Monitor,
   ScheduleTrigger,
-} from '@FluxClient/admin/fetchAdmin';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+} from '@ValenceClient/admin/fetchAdmin';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 type JobsPanelProps = {
   isUnreachable?: boolean;

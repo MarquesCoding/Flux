@@ -1,5 +1,5 @@
 import { createReachabilityWatch } from './createReachabilityWatch';
-import type { DiskUse } from '@FluxServer/maintenance/DiskUse';
+import type { DiskUse } from '@ValenceServer/maintenance/DiskUse';
 
 type CreateDiskPressureWatchOptions = {
   onLow: (disk: DiskUse) => void;

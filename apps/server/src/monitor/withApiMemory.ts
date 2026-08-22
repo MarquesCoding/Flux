@@ -1,4 +1,4 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 /**
  * Adds what this process is holding to a monitor reading, so that what Valence costs counts both halves

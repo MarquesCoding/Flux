@@ -1,6 +1,6 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { ViewingListSchema, ForgottenSchema } from '@FluxContracts/schemas/Viewing';
-import type { Viewing } from '@FluxContracts/schemas/Viewing';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { ViewingListSchema, ForgottenSchema } from '@ValenceContracts/schemas/Viewing';
+import type { Viewing } from '@ValenceContracts/schemas/Viewing';
 
 const A_PAGE = 30;
 

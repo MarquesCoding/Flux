@@ -1,5 +1,5 @@
 {
-  "name": "@flux/desktop",
+  "name": "@valence/desktop",
   "version": "0.0.0",
   "productName": "Valence",
   "private": true,
@@ -12,10 +12,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@flux/client": "workspace:*",
-    "@flux/contracts": "workspace:*",
-    "@flux/screens": "workspace:*",
-    "@flux/ui": "workspace:*",
+    "@valence/client": "workspace:*",
+    "@valence/contracts": "workspace:*",
+    "@valence/screens": "workspace:*",
+    "@valence/ui": "workspace:*",
     "@tanstack/react-query": "^5.101.4",
     "@tanstack/react-router": "^1.170.29",
     "better-auth": "^1.7.1",

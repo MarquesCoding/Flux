@@ -1,5 +1,5 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { LogRecord } from '@FluxContracts/schemas/Log';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { LogRecord } from '@ValenceContracts/schemas/Log';
 
 /**
  * A log record as plain JSON, for sending down the socket that carries the live tail.

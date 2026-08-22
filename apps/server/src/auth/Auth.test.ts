@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { createMemoryAuth } from './createMemoryAuth';
-import { ownAddresses } from '@FluxServer/env/ownOrigins';
+import { ownAddresses } from '@ValenceServer/env/ownOrigins';
 
 const BASE_URL = 'http://localhost:8420';
 
@@ -295,5 +295,3 @@ describe('createAuth', () => {
     expect(response.status).toBe(200);
   });
 });
-
-

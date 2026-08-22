@@ -1,7 +1,7 @@
 import { ClockIcon, EyeSlashIcon, LinkBreakIcon } from '@phosphor-icons/react';
-import { SHARE_ENDING_SAID } from '@FluxContracts/schemas/Share';
+import { SHARE_ENDING_SAID } from '@ValenceContracts/schemas/Share';
 import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
-import type { ShareEnding } from '@FluxContracts/schemas/Share';
+import type { ShareEnding } from '@ValenceContracts/schemas/Share';
 
 type EndingTold = {
   said: string;

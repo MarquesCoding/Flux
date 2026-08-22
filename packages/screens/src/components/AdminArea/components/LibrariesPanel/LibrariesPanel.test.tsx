@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { LibrariesPanel } from './LibrariesPanel';
-import type { Library } from '@FluxContracts/schemas/Library';
-import type { ScanEntry } from '@FluxScreens/components/AdminArea/scanCoordinator';
+import type { Library } from '@ValenceContracts/schemas/Library';
+import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 
 const library = (overrides: Partial<Library> = {}): Library => ({
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',

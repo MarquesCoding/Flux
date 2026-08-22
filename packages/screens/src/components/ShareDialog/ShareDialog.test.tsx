@@ -2,14 +2,14 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ShareDialog } from './ShareDialog';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { NewShare } from '@FluxContracts/schemas/Share';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { NewShare } from '@ValenceContracts/schemas/Share';
 
 const createMock = vi.hoisted(() =>
   vi.fn<(asked: NewShare) => Promise<{ token: string } | null>>(),
 );
 
-vi.mock('@FluxClient/sharing/fetchShares', () => ({
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({
   createShare: createMock,
   shareAddress: (token: string, origin: string) => `${origin}/share/${token}`,
 }));

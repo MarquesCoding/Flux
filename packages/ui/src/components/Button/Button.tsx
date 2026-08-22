@@ -1,7 +1,7 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import { buttonStyles } from './buttonStyles';
-import { Spinner } from '@FluxUI/Spinner';
-import { Tooltip } from '@FluxUI/Tooltip';
+import { Spinner } from '@ValenceUI/Spinner';
+import { Tooltip } from '@ValenceUI/Tooltip';
 import type { ButtonProps } from './Button.types';
 
 /**

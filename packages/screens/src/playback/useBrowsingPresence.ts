@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { profileQueries } from '@FluxClient/query/profileQueries';
-import { isTheDesktopClient, nowWatching } from '@FluxScreens/desktop/theDesktopShell';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
+import { isTheDesktopClient, nowWatching } from '@ValenceScreens/desktop/theDesktopShell';
 
 /**
  * Says that somebody has Valence open, so their status stands between the things they watch.

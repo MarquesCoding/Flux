@@ -1,4 +1,4 @@
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 
 type SegmentContainer = 'fmp4' | 'mpegts';
 

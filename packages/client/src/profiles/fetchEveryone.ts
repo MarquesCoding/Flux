@@ -1,8 +1,8 @@
-import { askTheServer } from '@FluxClient/session/askTheServer';
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { askTheServer } from '@ValenceClient/session/askTheServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
-import { ViewerProfileListSchema } from '@FluxContracts/schemas/ViewerProfile';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { ViewerProfileListSchema } from '@ValenceContracts/schemas/ViewerProfile';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const TwoFactorPendingSchema = z.object({ twoFactorRedirect: z.literal(true) });
 

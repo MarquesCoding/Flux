@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetPlatform, platformInUse } from '@FluxClient/platform/installPlatform';
+import { forgetPlatform, platformInUse } from '@ValenceClient/platform/installPlatform';
 import { installDesktopPlatform } from './installDesktopPlatform';
 
 const onDisk = new Map<string, string>();

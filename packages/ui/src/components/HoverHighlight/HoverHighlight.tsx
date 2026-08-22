@@ -1,6 +1,6 @@
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { FLUX_TOKENS } from '@FluxUI/tokens';
+import { cn } from '@ValenceUI/cn';
+import { FLUX_TOKENS } from '@ValenceUI/tokens';
 import type { HoverHighlightProps } from './HoverHighlight.types';
 
 const RADIUS_CLASSES = {

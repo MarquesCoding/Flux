@@ -1,10 +1,10 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import { ScanJobSchema } from '@FluxClient/library/fetchLibrary';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
-import type { ScanJob } from '@FluxClient/library/fetchLibrary';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { ScanJobSchema } from '@ValenceClient/library/fetchLibrary';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
+import type { ScanJob } from '@ValenceClient/library/fetchLibrary';
 
 const AdminUserSchema = z.object({
   id: z.string(),

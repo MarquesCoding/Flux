@@ -1,9 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
 import { PageReader } from './PageReader';
-import type { Book, BookChapter } from '@FluxContracts/schemas/Book';
+import type { Book, BookChapter } from '@ValenceContracts/schemas/Book';
 
 const held = new Map<string, string>();
 

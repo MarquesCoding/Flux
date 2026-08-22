@@ -1,8 +1,8 @@
 import { createMiddleware } from 'hono/factory';
-import { isPublicRoute } from '@FluxServer/auth/isPublicRoute';
-import { readSessionOnce } from '@FluxServer/auth/readSessionOnce';
+import { isPublicRoute } from '@ValenceServer/auth/isPublicRoute';
+import { readSessionOnce } from '@ValenceServer/auth/readSessionOnce';
 import type { MiddlewareHandler } from 'hono';
-import type { FluxAuth } from '@FluxServer/auth/Auth';
+import type { FluxAuth } from '@ValenceServer/auth/Auth';
 
 /**
  * Middleware that requires a session for everything the allowlist does not excuse.

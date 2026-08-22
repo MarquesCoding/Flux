@@ -5,8 +5,8 @@ import { readEpisodeFromPath } from './readEpisodeFromPath';
 import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
-import type { MediaProbe, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
-import type { ScanResult } from '@FluxContracts/schemas/Library';
+import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
+import type { ScanResult } from '@ValenceContracts/schemas/Library';
 
 type ScannedFile = {
   path: string;

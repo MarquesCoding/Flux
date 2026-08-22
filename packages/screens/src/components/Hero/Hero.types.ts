@@ -1,5 +1,5 @@
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MoodLight } from '@ValenceUI/MoodBackground.types';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type HeroProps = {
   items: MediaSummary[];

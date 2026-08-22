@@ -44,7 +44,7 @@ The site builds with a sitemap, which needs to know its own public address.
 Set `FLUX_DOCS_SITE` when you build:
 
 ```sh
-FLUX_DOCS_SITE=https://docs.example.org pnpm --filter @flux/docs build
+FLUX_DOCS_SITE=https://docs.example.org pnpm --filter @valence/docs build
 ```
 
 Without it the build falls back to `http://localhost:4321`, which is right for

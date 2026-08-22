@@ -1,5 +1,5 @@
 import { session } from 'electron';
-import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 
 const SOCKETS = { urls: ['ws://*/*', 'wss://*/*'] };
 

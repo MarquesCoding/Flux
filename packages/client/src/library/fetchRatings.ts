@@ -1,6 +1,6 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { HouseholdRatingSchema, RatingListSchema } from '@FluxContracts/schemas/Rating';
-import type { HouseholdRating, Rating } from '@FluxContracts/schemas/Rating';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { HouseholdRatingSchema, RatingListSchema } from '@ValenceContracts/schemas/Rating';
+import type { HouseholdRating, Rating } from '@ValenceContracts/schemas/Rating';
 
 type RatingSubject = { mediaId: string } | { seriesId: string };
 

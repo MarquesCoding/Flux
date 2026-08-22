@@ -1,9 +1,9 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { InfoIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { HoverCard } from '@FluxUI/HoverCard';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
+import { Button } from '@ValenceUI/Button';
+import { HoverCard } from '@ValenceUI/HoverCard';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import { cacheRows } from './cacheRows';
 import type { CacheBreakdownProps } from './CacheBreakdown.types';
 

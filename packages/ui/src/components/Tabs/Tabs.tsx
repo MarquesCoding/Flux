@@ -1,5 +1,5 @@
 import * as RadixTabs from '@radix-ui/react-tabs';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { TabsProps } from './Tabs.types';
 
 /**

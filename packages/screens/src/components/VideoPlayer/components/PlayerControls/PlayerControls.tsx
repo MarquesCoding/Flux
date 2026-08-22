@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   ArrowUUpLeftIcon,
   ArrowUUpRightIcon,
@@ -22,14 +22,14 @@ import {
   SubtitlesIcon,
   TextAaIcon,
 } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { Slider } from '@FluxUI/Slider';
-import { SettingsMenu } from '@FluxUI/SettingsMenu';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { SUBTITLES_OFF } from '@FluxClient/playback/fetchSubtitles';
-import { QUALITY_STEPS } from '@FluxContracts/schemas/QualityStep';
-import { CaptionSettings } from '@FluxScreens/components/VideoPlayer/components/CaptionSettings/CaptionSettings';
-import { EpisodeMenu } from '@FluxScreens/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu';
+import { Button } from '@ValenceUI/Button';
+import { Slider } from '@ValenceUI/Slider';
+import { SettingsMenu } from '@ValenceUI/SettingsMenu';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { SUBTITLES_OFF } from '@ValenceClient/playback/fetchSubtitles';
+import { QUALITY_STEPS } from '@ValenceContracts/schemas/QualityStep';
+import { CaptionSettings } from '@ValenceScreens/components/VideoPlayer/components/CaptionSettings/CaptionSettings';
+import { EpisodeMenu } from '@ValenceScreens/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu';
 import { SKIP_SECONDS, PLAYBACK_RATES } from './PlayerControls.types';
 import type { PlayerControlsProps } from './PlayerControls.types';
 

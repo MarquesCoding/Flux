@@ -1,4 +1,4 @@
-import { randomId } from '@FluxClient/platform/randomId';
+import { randomId } from '@ValenceClient/platform/randomId';
 
 const id = randomId();
 

@@ -1,5 +1,5 @@
-import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type Season = {
   seasonNumber: number | null;

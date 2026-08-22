@@ -1,4 +1,4 @@
-import { formatBytes } from '@FluxCore/functions/formatBytes';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 
 /**
  * Says how much memory Valence is holding, in words that stay honest at the edges: a reading that was

@@ -1,5 +1,5 @@
-import { selectAudioStream } from '@FluxCore/functions/describeTrack';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import { selectAudioStream } from '@ValenceCore/functions/describeTrack';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 
 type PreviewSubject = {
   path: string;

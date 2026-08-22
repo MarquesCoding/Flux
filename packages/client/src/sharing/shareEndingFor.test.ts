@@ -3,7 +3,7 @@ import { shareEndingFor } from './shareEndingFor';
 
 const openShare = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/sharing/fetchShares', () => ({ openShare }));
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({ openShare }));
 
 beforeEach(() => {
   vi.clearAllMocks();

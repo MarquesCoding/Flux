@@ -1,31 +1,34 @@
-import { Icon } from '@FluxUI/Icon';
-import { Logo } from '@FluxUI/Logo';
+import { Icon } from '@ValenceUI/Icon';
+import { Logo } from '@ValenceUI/Logo';
 import { CaretLeftIcon, CaretRightIcon, KeyIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { cn } from '@FluxUI/cn';
-import { TextField } from '@FluxUI/TextField';
-import { MoodBackground } from '@FluxUI/MoodBackground';
-import { PageDots } from '@FluxUI/PageDots';
-import { Spinner } from '@FluxUI/Spinner';
+import { Button } from '@ValenceUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { TextField } from '@ValenceUI/TextField';
+import { MoodBackground } from '@ValenceUI/MoodBackground';
+import { PageDots } from '@ValenceUI/PageDots';
+import { Spinner } from '@ValenceUI/Spinner';
 import {
   revealVariants,
   revealTransition,
   staggerVariants,
   liquidSpring,
   stillTransition,
-} from '@FluxUI/animations/reveal';
-import { signInAsProfile } from '@FluxClient/profiles/fetchEveryone';
-import { askForADifferentServer, isTheDesktopClient } from '@FluxScreens/desktop/theDesktopShell';
+} from '@ValenceUI/animations/reveal';
+import { signInAsProfile } from '@ValenceClient/profiles/fetchEveryone';
+import {
+  askForADifferentServer,
+  isTheDesktopClient,
+} from '@ValenceScreens/desktop/theDesktopShell';
 import { useQuery } from '@tanstack/react-query';
-import { sessionQueries } from '@FluxClient/query/sessionQueries';
-import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
-import { TwoFactorChallenge } from '@FluxScreens/components/TwoFactorChallenge/TwoFactorChallenge';
-import { isPasskeySupported } from '@FluxScreens/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@FluxClient/session/auth';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { sessionQueries } from '@ValenceClient/query/sessionQueries';
+import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
+import { TwoFactorChallenge } from '@ValenceScreens/components/TwoFactorChallenge/TwoFactorChallenge';
+import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
+import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
 const OURS = 'valence';

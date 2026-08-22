@@ -1,8 +1,8 @@
-import { wait } from '@FluxCore/functions/wait';
+import { wait } from '@ValenceCore/functions/wait';
 import { z } from 'zod';
-import { CAST_STORED } from '@FluxContracts/schemas/Person';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { CAST_STORED } from '@ValenceContracts/schemas/Person';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
 import { pickLogo } from './pickLogo';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';

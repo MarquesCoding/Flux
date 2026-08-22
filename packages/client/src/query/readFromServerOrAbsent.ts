@@ -1,6 +1,6 @@
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { RequestFailed } from '@FluxClient/query/RequestFailed';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { RequestFailed } from '@ValenceClient/query/RequestFailed';
 
 const ABSENT = 404;
 

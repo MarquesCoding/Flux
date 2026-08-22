@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { and, avg, count, desc, eq, inArray, isNull } from 'drizzle-orm';
-import { rating } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
+import { rating } from '@ValenceServer/db/Schema';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { HouseholdRating } from '@ValenceContracts/schemas/Rating';
 import type { RatingService, RatingSubject } from './RatingService';
 
 const LIMIT = 1000;

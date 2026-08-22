@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import { negotiatePlayback } from './negotiatePlayback';
 
 const media: MediaItem = {

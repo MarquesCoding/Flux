@@ -3,16 +3,16 @@ import { and, desc, eq, isNull, lt, sql } from 'drizzle-orm';
 import {
   DEFAULT_NOTIFICATION_PREFERENCE,
   NotificationEventSchema,
-} from '@FluxContracts/schemas/Notification';
+} from '@ValenceContracts/schemas/Notification';
 import {
   notification,
   notificationPreference,
   pushSubscription,
   user,
-} from '@FluxServer/db/Schema';
-import { toIso } from '@FluxCore/functions/toIso';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { Notification } from '@FluxContracts/schemas/Notification';
+} from '@ValenceServer/db/Schema';
+import { toIso } from '@ValenceCore/functions/toIso';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { Notification } from '@ValenceContracts/schemas/Notification';
 import { A_MINUTE, LASTS_FOR_MINUTES } from './hasExpired';
 import type { NotificationStore } from './NotificationStore';
 

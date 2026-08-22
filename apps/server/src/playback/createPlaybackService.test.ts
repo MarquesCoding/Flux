@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createPlaybackService } from './createPlaybackService';
-import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { SessionSpec, Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import { previewRequestFor } from '@ValenceServer/library/previewRequestFor';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { SessionSpec, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 import type { MediaLookup } from './createPlaybackService';
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';

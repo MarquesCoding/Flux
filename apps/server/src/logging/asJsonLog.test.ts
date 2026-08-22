@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { asJsonLog } from './asJsonLog';
-import { LogRecordSchema } from '@FluxContracts/schemas/Log';
-import type { LogRecord } from '@FluxContracts/schemas/Log';
+import { LogRecordSchema } from '@ValenceContracts/schemas/Log';
+import type { LogRecord } from '@ValenceContracts/schemas/Log';
 
 const record: LogRecord = {
   id: 'one',

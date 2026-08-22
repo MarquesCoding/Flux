@@ -1,6 +1,6 @@
 import { eq, sql } from 'drizzle-orm';
-import { accountActivity } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { accountActivity } from '@ValenceServer/db/Schema';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
 import type { SignInStore } from './recordSignIn';
 
 /**

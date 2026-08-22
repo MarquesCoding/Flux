@@ -1,10 +1,10 @@
-import { listAvailableQualitySteps } from '@FluxCore/functions/listAvailableQualitySteps';
-import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
-import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
-import { describeRungCost } from '@FluxClient/playback/describeRungCost';
-import type { QualityPreference } from '@FluxClient/playback/qualityPreference';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import { listAvailableQualitySteps } from '@ValenceCore/functions/listAvailableQualitySteps';
+import { negotiatePlayback } from '@ValenceCore/functions/negotiatePlayback';
+import { resolveQualityStep } from '@ValenceCore/functions/resolveQualityStep';
+import { describeRungCost } from '@ValenceClient/playback/describeRungCost';
+import type { QualityPreference } from '@ValenceClient/playback/qualityPreference';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 
 type QualityStepCostsForOptions = {
   media: MediaItem;

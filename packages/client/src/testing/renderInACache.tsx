@@ -1,5 +1,5 @@
 import { render } from '@testing-library/react';
-import { CacheScope } from '@FluxClient/testing/CacheScope';
+import { CacheScope } from '@ValenceClient/testing/CacheScope';
 import type { ReactElement } from 'react';
 import type { RenderOptions, RenderResult } from '@testing-library/react';
 

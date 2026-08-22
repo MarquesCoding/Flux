@@ -1,6 +1,6 @@
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import { readEventStream } from './readEventStream';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type RelayMonitorOptions = {
   open: () => Promise<ReadableStream<Uint8Array> | null>;

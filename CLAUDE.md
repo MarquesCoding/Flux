@@ -15,8 +15,8 @@ reference, not a substitute for reading it.
 
 1. **TypeScript and Rust only.** No JavaScript files, including config.
 2. **No duplication across modules.** Needed twice means extracted and shared.
-3. **No `../` imports.** Use `@FluxUI/*`, `@FluxClient/*`, `@FluxContracts/*`,
-   `@FluxCore/*`, `@FluxSDK/*`.
+3. **No `../` imports.** Use `@ValenceUI/*`, `@ValenceClient/*`, `@ValenceContracts/*`,
+   `@ValenceCore/*`, `@ValenceSDK/*`.
 4. **No `index.ts` / `index.tsx`.** No barrel files, ever.
 5. **`export { ComponentName }`** — named exports only, no default exports and
    no module objects. One member per file, filename matches the member. Set
@@ -34,7 +34,7 @@ reference, not a substitute for reading it.
    Every other control composes one of those; there is no `IconButton`. ESLint
    enforces it.
 9. **No raw SVG anywhere.** Icons come from `@phosphor-icons/react` and are
-   drawn by `@FluxUI/Icon`, never by the renderer directly.
+   drawn by `@ValenceUI/Icon`, never by the renderer directly.
 10. **Every function and component has a co-located Vitest test.**
 11. **Conventional Commits.**
 
@@ -88,8 +88,8 @@ that runs it
 | `packages/screens` | What Flux looks like: every screen, and the routes onto them |
 | `apps/web`         | What a browser is: entry, platform, socket, service worker   |
 
-- **Neither package may import `@FluxWeb/*`.** ESLint says so. Neither reaches
-  into a client. `packages/client` may not import `@FluxUI/*` either — it does
+- **Neither package may import `@ValenceWeb/*`.** ESLint says so. Neither reaches
+  into a client. `packages/client` may not import `@ValenceUI/*` either — it does
   not draw — while `packages/screens` is what draws.
 - **Anything either needs from a client is a port on `Platform`** — today a
   device store, what to call this client, which client this is, and opening a
@@ -102,7 +102,7 @@ that runs it
 
 - **Adding a FluxUI component?** Add its alias line to `tsconfig.paths.json`.
   Component aliases are listed explicitly, one per component — TS path mapping
-  cannot expand `@FluxUI/*` to `components/*/*.tsx`.
+  cannot expand `@ValenceUI/*` to `components/*/*.tsx`.
 - **Missing a FluxUI component?** Add it to FluxUI. Do not work around it locally
   with a raw element.
 - **A rule appears to conflict with a library's expectations?** Raise it rather

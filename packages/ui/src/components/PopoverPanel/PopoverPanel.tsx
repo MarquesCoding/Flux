@@ -1,8 +1,8 @@
 import * as RadixPopover from '@radix-ui/react-popover';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { Tooltip } from '@FluxUI/Tooltip';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { Tooltip } from '@ValenceUI/Tooltip';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**

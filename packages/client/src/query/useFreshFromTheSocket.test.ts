@@ -3,12 +3,12 @@ import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { createElement } from 'react';
 import { useFreshFromTheSocket } from './useFreshFromTheSocket';
-import type { RealtimeEvent, RealtimeTopic } from '@FluxContracts/schemas/Realtime';
+import type { RealtimeEvent, RealtimeTopic } from '@ValenceContracts/schemas/Realtime';
 import type { ReactNode } from 'react';
 
 const getRealtimeClient = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({ getRealtimeClient }));
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({ getRealtimeClient }));
 
 /**
  * A socket that says nothing until a test says it did, and remembers what it was asked to stop

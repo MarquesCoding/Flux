@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 import {
   readCurrentProfile,
   writeCurrentProfile,
   profileHeaders,
   STORAGE_KEY,
 } from './currentProfile';
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 let platform: Platform = aFakePlatform();
 

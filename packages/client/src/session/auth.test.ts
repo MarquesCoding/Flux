@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
-import { readCurrentProfile, writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
+import { readCurrentProfile, writeCurrentProfile } from '@ValenceClient/profiles/currentProfile';
 import {
   authenticateWithPasskey,
   deletePasskey,

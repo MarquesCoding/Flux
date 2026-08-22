@@ -1,4 +1,4 @@
-import type { MediaDetail, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
 
 /**
  * Cuts everything held about an item down to what a page needs to draw it. The library hands out

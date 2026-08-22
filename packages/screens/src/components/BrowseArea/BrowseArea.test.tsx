@@ -1,8 +1,8 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { BrowseArea } from './BrowseArea';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type Page = { items: MediaSummary[]; total: number };
 type Options = { kind?: string; order?: string; ids?: string[]; limit?: number };
@@ -10,7 +10,7 @@ type Options = { kind?: string; order?: string; ids?: string[]; limit?: number }
 const fetchLibraries = vi.fn<() => Promise<{ id: string }[]>>();
 const fetchLibraryItems = vi.fn<(libraryId: string, options?: Options) => Promise<Page>>();
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchLibraries: () => fetchLibraries(),
   fetchLibraryItems: (libraryId: string, options?: Options) =>
     fetchLibraryItems(libraryId, options),

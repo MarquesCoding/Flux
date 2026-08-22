@@ -2,7 +2,7 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { CaptionSettings } from './CaptionSettings';
-import { DEFAULT_CAPTION_STYLE } from '@FluxScreens/playback/captionStyle';
+import { DEFAULT_CAPTION_STYLE } from '@ValenceScreens/playback/captionStyle';
 import type { CaptionSettingsProps } from './CaptionSettings.types';
 
 const draw = (overrides: Partial<CaptionSettingsProps> = {}) => {

@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { SEGMENT_KINDS, SEGMENT_SOURCES } from '@FluxContracts/schemas/MediaSegment';
+import { SEGMENT_KINDS, SEGMENT_SOURCES } from '@ValenceContracts/schemas/MediaSegment';
 
 const SegmentError = z.object({ error: z.string() }).openapi('SegmentError');
 

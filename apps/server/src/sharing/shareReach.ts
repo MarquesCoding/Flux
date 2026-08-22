@@ -1,4 +1,4 @@
-import type { ShareKind } from '@FluxContracts/schemas/Share';
+import type { ShareKind } from '@ValenceContracts/schemas/Share';
 
 type ShareScope = {
   kind: ShareKind;

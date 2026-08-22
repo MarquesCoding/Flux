@@ -1,5 +1,5 @@
 import * as RadixTooltip from '@radix-ui/react-tooltip';
-import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
+import { tooltipScopeContext } from '@ValenceUI/tooltipScopeContext';
 import type { TooltipScopeProps } from './TooltipScope.types';
 
 const SKIP_DELAY_MILLISECONDS = 300;

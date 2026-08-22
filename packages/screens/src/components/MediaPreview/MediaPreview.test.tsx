@@ -1,8 +1,8 @@
 import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
-import { forgetSoundClaims } from '@FluxScreens/playback/soundOwner';
+import { readSoundPreference, saveSoundPreference } from '@ValenceClient/playback/soundPreference';
+import { forgetSoundClaims } from '@ValenceScreens/playback/soundOwner';
 import { MediaPreview } from './MediaPreview';
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';

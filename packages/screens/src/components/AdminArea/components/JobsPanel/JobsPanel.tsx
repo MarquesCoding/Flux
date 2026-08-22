@@ -1,14 +1,14 @@
 import { useMemo } from 'react';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { BackgroundJobs } from '@FluxScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
-import { Card } from '@FluxUI/Card';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { JobRunner } from '@FluxScreens/components/AdminArea/components/JobRunner/JobRunner';
-import { JobSchedulePage } from '@FluxScreens/components/AdminArea/components/JobSchedulePage/JobSchedulePage';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
+import { Card } from '@ValenceUI/Card';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { JobRunner } from '@ValenceScreens/components/AdminArea/components/JobRunner/JobRunner';
+import { JobSchedulePage } from '@ValenceScreens/components/AdminArea/components/JobSchedulePage/JobSchedulePage';
 import type { JobsPanelProps } from './JobsPanel.types';
 
 /**

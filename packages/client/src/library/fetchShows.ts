@@ -1,7 +1,7 @@
-import { readFromServerOrAbsent } from '@FluxClient/query/readFromServerOrAbsent';
-import { readFromServer } from '@FluxClient/query/readFromServer';
-import { ShowListSchema, ShowDetailSchema } from '@FluxContracts/schemas/Show';
-import type { ShowDetail, ShowSummary } from '@FluxContracts/schemas/Show';
+import { readFromServerOrAbsent } from '@ValenceClient/query/readFromServerOrAbsent';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
+import { ShowListSchema, ShowDetailSchema } from '@ValenceContracts/schemas/Show';
+import type { ShowDetail, ShowSummary } from '@ValenceContracts/schemas/Show';
 
 /**
  * Reads the programmes in a library, grouped by the server so that a page of sixty things is sixty

@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { SettingsPanel } from './SettingsPanel';
-import type { AdminOverview } from '@FluxClient/admin/fetchAdmin';
+import type { AdminOverview } from '@ValenceClient/admin/fetchAdmin';
 
 const saveCatalogueKey = vi.hoisted(() => vi.fn());
 const saveHardwareAccel = vi.hoisted(() => vi.fn(() => Promise.resolve(true)));
 
-vi.mock('@FluxClient/admin/fetchAdmin', () => ({ saveCatalogueKey, saveHardwareAccel }));
+vi.mock('@ValenceClient/admin/fetchAdmin', () => ({ saveCatalogueKey, saveHardwareAccel }));
 
 const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOverview => ({
   users: [{ id: 'usr_1', name: 'Dan', email: 'dan@flux.local', role: 'admin', createdAt: '' }],

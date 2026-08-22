@@ -1,8 +1,8 @@
 import { useEffect, useRef } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
-import { cn } from '@FluxUI/cn';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
-import { coverPage } from '@FluxUI/pageCover';
+import { cn } from '@ValenceUI/cn';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
+import { coverPage } from '@ValenceUI/pageCover';
 import type { DialogProps, DialogSize } from './Dialog.types';
 
 const OVERLAY_MOTION = [

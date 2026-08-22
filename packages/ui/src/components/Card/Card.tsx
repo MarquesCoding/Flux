@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { CardPadding, CardProps, CardRadius, CardTone } from './Card.types';
 
 const TONE_CLASSES: Record<CardTone, string> = {

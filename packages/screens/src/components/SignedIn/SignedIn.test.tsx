@@ -1,10 +1,10 @@
 import { screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderTheApp } from '@FluxScreens/testing/renderTheApp';
+import { renderTheApp } from '@ValenceScreens/testing/renderTheApp';
 
 const fetchMock = vi.fn();
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => undefined,
     stop: () => undefined,

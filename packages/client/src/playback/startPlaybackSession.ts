@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { QualityPreference } from './qualityPreference';
 
 const DeliverySchema = z.union([

@@ -1,4 +1,4 @@
-import { platformInUse } from '@FluxClient/platform/installPlatform';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
 
 const KEY = 'flux.server.address';
 

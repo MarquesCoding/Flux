@@ -10,9 +10,9 @@ import {
 } from 'better-auth/plugins';
 import { apiKey } from '@better-auth/api-key';
 import { passkey } from '@better-auth/passkey';
-import { trustedOriginsFor } from '@FluxServer/auth/trustedOriginsFor';
-import type { Env } from '@FluxServer/env/Env';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import { trustedOriginsFor } from '@ValenceServer/auth/trustedOriginsFor';
+import type { Env } from '@ValenceServer/env/Env';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 
 type AuthDatabase = DBAdapter | DBAdapterInstance;
 

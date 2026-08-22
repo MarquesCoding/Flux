@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AppShell } from './AppShell';
 
-vi.mock('@FluxUI/badAppleFilm', () => ({
+vi.mock('@ValenceUI/badAppleFilm', () => ({
   loadBadAppleFilm: async () =>
     Promise.resolve({
       seconds: 60,

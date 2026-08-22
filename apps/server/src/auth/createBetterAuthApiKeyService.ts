@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { PermissionSchema } from '@FluxContracts/schemas/Permission';
+import { PermissionSchema } from '@ValenceContracts/schemas/Permission';
 import type { ApiKeyService } from './ApiKeyService';
 import type { FluxAuth } from './Auth';
-import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const NAMESPACE = 'flux';
 

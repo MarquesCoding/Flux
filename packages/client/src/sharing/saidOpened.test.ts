@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { saidOpened } from './saidOpened';
-import type { Share } from '@FluxContracts/schemas/Share';
+import type { Share } from '@ValenceContracts/schemas/Share';
 
 const share = (overrides: Partial<Share> = {}): Share => ({
   id: 'share-1',

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type PushMessage = {
   data: { json: () => JsonValue } | null;

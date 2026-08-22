@@ -1,4 +1,4 @@
-import type { Book } from '@FluxContracts/schemas/Book';
+import type { Book } from '@ValenceContracts/schemas/Book';
 
 type BookRailProps = {
   libraryId: string;

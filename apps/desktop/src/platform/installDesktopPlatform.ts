@@ -1,8 +1,8 @@
-import { installPlatform } from '@FluxClient/platform/installPlatform';
-import { theDesktopsStore } from '@FluxDesktop/platform/theDesktopsStore';
-import { describeThisDesktop } from '@FluxDesktop/platform/describeThisDesktop';
-import { thisWindowsId } from '@FluxDesktop/platform/thisWindowsId';
-import { theDesktopsSocket } from '@FluxDesktop/platform/theDesktopsSocket';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { theDesktopsStore } from '@ValenceDesktop/platform/theDesktopsStore';
+import { describeThisDesktop } from '@ValenceDesktop/platform/describeThisDesktop';
+import { thisWindowsId } from '@ValenceDesktop/platform/thisWindowsId';
+import { theDesktopsSocket } from '@ValenceDesktop/platform/theDesktopsSocket';
 
 /**
  * Tells the application what it is running on, when what it is running on is this client.

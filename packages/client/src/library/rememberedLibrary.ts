@@ -1,4 +1,4 @@
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { Library, MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type Held = {
   libraries: Library[];

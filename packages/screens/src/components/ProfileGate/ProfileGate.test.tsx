@@ -1,11 +1,11 @@
 import { act, screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
-import { authenticateWithPasskey } from '@FluxClient/session/auth';
-import { isPasskeySupported } from '@FluxScreens/passkeys/isPasskeySupported';
-import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
+import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
   id: `00000000-0000-4000-8000-${at.toString().padStart(12, '0')}`,
@@ -23,16 +23,13 @@ const HOUSEHOLD = ['Marques', 'Sam', 'Mum'].map(profileOf);
 const many = (count: number): ViewerProfile[] =>
   Array.from({ length: count }, (_ignored, at) => profileOf(`Person ${(at + 1).toString()}`, at));
 
-vi.mock('@FluxClient/session/auth', () => ({
+vi.mock('@ValenceClient/session/auth', () => ({
   authenticateWithPasskey: vi.fn(),
 }));
 
-vi.mock('@FluxScreens/passkeys/isPasskeySupported', () => ({
+vi.mock('@ValenceScreens/passkeys/isPasskeySupported', () => ({
   isPasskeySupported: vi.fn(),
 }));
-
-
-
 
 const passkeyMock = vi.mocked(authenticateWithPasskey);
 const passkeySupportedMock = vi.mocked(isPasskeySupported);

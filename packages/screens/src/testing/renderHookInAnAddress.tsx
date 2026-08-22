@@ -1,5 +1,5 @@
 import { renderHook } from '@testing-library/react';
-import { AddressScope } from '@FluxScreens/testing/AddressScope';
+import { AddressScope } from '@ValenceScreens/testing/AddressScope';
 import type { RenderHookOptions, RenderHookResult } from '@testing-library/react';
 
 /**

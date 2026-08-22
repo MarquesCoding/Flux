@@ -32,7 +32,7 @@ Staying put is not free either; it is a decision to never have them.
 Stroke Rounded style, MIT licensed. Remix Icon, Tabler and Lucide are banned in
 ESLint together, so a second set cannot come back a file at a time.
 
-**Every icon is drawn by `@FluxUI/Icon`, never by the renderer.** Hugeicons
+**Every icon is drawn by `@ValenceUI/Icon`, never by the renderer.** Hugeicons
 ships icons as data and one component that draws them, so a call site names what
 it wants and `Icon` decides how it is drawn:
 

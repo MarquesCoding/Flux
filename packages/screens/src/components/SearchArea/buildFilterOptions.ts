@@ -1,4 +1,4 @@
-import type { LibraryFacets } from '@FluxContracts/schemas/Library';
+import type { LibraryFacets } from '@ValenceContracts/schemas/Library';
 import type { FilterOption } from './components/FilterChips/FilterChips.types';
 
 const RATING_FLOORS = [6, 7, 8, 9];

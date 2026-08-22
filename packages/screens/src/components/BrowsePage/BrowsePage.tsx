@@ -1,11 +1,11 @@
-import { BrowseArea } from '@FluxScreens/components/BrowseArea/BrowseArea';
-import { showSlug } from '@FluxCore/functions/showSlug';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
-import { useFavourites } from '@FluxClient/library/useFavourites';
-import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
-import { resumeFor } from '@FluxClient/playback/resumeFor';
-import type { BrowseKind } from '@FluxScreens/components/BrowseArea/BrowseArea.types';
+import { BrowseArea } from '@ValenceScreens/components/BrowseArea/BrowseArea';
+import { showSlug } from '@ValenceCore/functions/showSlug';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
+import { useFavourites } from '@ValenceClient/library/useFavourites';
+import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
+import { resumeFor } from '@ValenceClient/playback/resumeFor';
+import type { BrowseKind } from '@ValenceScreens/components/BrowseArea/BrowseArea.types';
 
 const BROWSABLE = ['shows', 'films', 'new', 'favourites'] as const;
 

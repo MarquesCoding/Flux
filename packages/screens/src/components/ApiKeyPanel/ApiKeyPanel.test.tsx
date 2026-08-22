@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ApiKeyPanel } from './ApiKeyPanel';
-import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
+import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
 
 const { fetchMock, createMock, enableMock, revokeMock } = vi.hoisted(() => ({
   fetchMock: vi.fn(),
@@ -11,7 +11,7 @@ const { fetchMock, createMock, enableMock, revokeMock } = vi.hoisted(() => ({
   revokeMock: vi.fn(),
 }));
 
-vi.mock('@FluxClient/account/fetchApiKeys', () => ({
+vi.mock('@ValenceClient/account/fetchApiKeys', () => ({
   fetchApiKeys: fetchMock,
   createApiKey: createMock,
   setApiKeyEnabled: enableMock,

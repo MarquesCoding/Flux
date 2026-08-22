@@ -1,4 +1,4 @@
-import type { PartyRole, WatchParty } from '@FluxContracts/schemas/WatchParty';
+import type { PartyRole, WatchParty } from '@ValenceContracts/schemas/WatchParty';
 
 type Askable = {
   id: string;

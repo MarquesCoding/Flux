@@ -8,10 +8,10 @@ const fetchRatings = vi.hoisted(() => vi.fn());
 const fetchHouseholdRating = vi.hoisted(() => vi.fn());
 const fetchHistory = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/playback/watchProgress', () => ({ fetchWatchProgress }));
-vi.mock('@FluxClient/library/fetchFavourites', () => ({ fetchFavourites }));
-vi.mock('@FluxClient/library/fetchRatings', () => ({ fetchRatings, fetchHouseholdRating }));
-vi.mock('@FluxClient/history/fetchHistory', () => ({ fetchHistory, A_PAGE: 2 }));
+vi.mock('@ValenceClient/playback/watchProgress', () => ({ fetchWatchProgress }));
+vi.mock('@ValenceClient/library/fetchFavourites', () => ({ fetchFavourites }));
+vi.mock('@ValenceClient/library/fetchRatings', () => ({ fetchRatings, fetchHouseholdRating }));
+vi.mock('@ValenceClient/history/fetchHistory', () => ({ fetchHistory, A_PAGE: 2 }));
 
 const aCache = (): QueryClient =>
   new QueryClient({ defaultOptions: { queries: { retry: false } } });

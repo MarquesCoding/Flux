@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import { useTable } from '@tanstack/react-table';
-import { Button } from '@FluxUI/Button';
-import { cn } from '@FluxUI/cn';
-import { HoverHighlight } from '@FluxUI/HoverHighlight';
-import { PageDots } from '@FluxUI/PageDots';
-import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
+import { Button } from '@ValenceUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { HoverHighlight } from '@ValenceUI/HoverHighlight';
+import { PageDots } from '@ValenceUI/PageDots';
+import { useSlidingHighlight } from '@ValenceUI/useSlidingHighlight';
 import { dataTableFeatures } from './dataTableFeatures';
 import type { RowData, SortingState } from '@tanstack/react-table';
 import type { DataTableProps } from './DataTable.types';

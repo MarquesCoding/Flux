@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq } from 'drizzle-orm';
-import { watchProgress } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { watchProgress } from '@ValenceServer/db/Schema';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
 import type { WatchProgressService } from './WatchProgressService';
 
 const LIMIT = 60;

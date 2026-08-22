@@ -1,4 +1,4 @@
-import type { SessionUser } from '@FluxContracts/schemas/Session';
+import type { SessionUser } from '@ValenceContracts/schemas/Session';
 
 type AccountAreaProps = {
   user: SessionUser;

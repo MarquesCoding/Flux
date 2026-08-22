@@ -1,6 +1,6 @@
-import { mapWithLimit } from '@FluxCore/functions/mapWithLimit';
-import { wait } from '@FluxCore/functions/wait';
-import type { Transcoder } from '@FluxServer/transcoder/TranscoderClient';
+import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
+import { wait } from '@ValenceCore/functions/wait';
+import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const ASK_AGAIN_MILLISECONDS = 5_000;
 

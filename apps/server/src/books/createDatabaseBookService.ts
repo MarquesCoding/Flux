@@ -2,25 +2,25 @@ import { randomUUID } from 'node:crypto';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { and, asc, eq, inArray } from 'drizzle-orm';
-import { book, bookChapter, library, readingProgress } from '@FluxServer/db/Schema';
+import { book, bookChapter, library, readingProgress } from '@ValenceServer/db/Schema';
 import sharp from 'sharp';
 import { z } from 'zod';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import {
   BookFormatSchema,
   BookLayoutSchema,
   ReadingDirectionSchema,
-} from '@FluxContracts/schemas/Book';
+} from '@ValenceContracts/schemas/Book';
 import { imageTypeFor } from './imageTypeFor';
 import { openBookFile } from './openBookFile';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type {
   Book,
   BookDetail,
   ReadingProgress,
   SaveReadingProgress,
-} from '@FluxContracts/schemas/Book';
+} from '@ValenceContracts/schemas/Book';
 import type { BookPageBytes } from './BookFile';
 import type { BookStore } from './scanBookLibrary';
 

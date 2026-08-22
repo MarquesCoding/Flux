@@ -1,5 +1,5 @@
 import { sendWebPush } from './sendWebPush';
-import type { NotificationEvent } from '@FluxContracts/schemas/Notification';
+import type { NotificationEvent } from '@ValenceContracts/schemas/Notification';
 import type { NotificationStore } from './NotificationStore';
 import type { VapidKeys, WebPushSender } from './sendWebPush';
 

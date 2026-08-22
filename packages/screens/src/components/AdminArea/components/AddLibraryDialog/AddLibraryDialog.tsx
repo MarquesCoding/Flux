@@ -1,14 +1,14 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { TextField } from '@FluxUI/TextField';
-import { LIBRARY_KINDS } from '@FluxContracts/schemas/Library';
-import { createLibrary } from '@FluxClient/library/fetchLibrary';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { TextField } from '@ValenceUI/TextField';
+import { LIBRARY_KINDS } from '@ValenceContracts/schemas/Library';
+import { createLibrary } from '@ValenceClient/library/fetchLibrary';
 import { validateAddLibraryForm } from './validateAddLibraryForm';
-import type { LibraryKind } from '@FluxContracts/schemas/Library';
+import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 import type { AddLibraryDialogProps, AddLibraryFormErrors } from './AddLibraryDialog.types';
 
 const KIND_LABELS: Record<LibraryKind, string> = {

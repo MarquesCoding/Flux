@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   ArrowUUpRightIcon,
   CaretLeftIcon,
@@ -11,25 +11,25 @@ import {
 } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { BackdropScrim } from '@FluxUI/BackdropScrim';
-import { Badge } from '@FluxUI/Badge';
-import { Skeleton } from '@FluxUI/Skeleton';
-import { MediaCard } from '@FluxUI/MediaCard';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { BackdropScrim } from '@ValenceUI/BackdropScrim';
+import { Badge } from '@ValenceUI/Badge';
+import { Skeleton } from '@ValenceUI/Skeleton';
+import { MediaCard } from '@ValenceUI/MediaCard';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { useHeldWhileLeaving } from '@FluxClient/shell/useHeldWhileLeaving';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { MediaPreview } from '@FluxScreens/components/MediaPreview/MediaPreview';
-import { MediaFacts } from '@FluxScreens/components/MediaFacts/MediaFacts';
-import { scrollToTopOf } from '@FluxScreens/navigation/scrollToTopOf';
-import { RatingPanel } from '@FluxScreens/components/RatingPanel/RatingPanel';
+import { useHeldWhileLeaving } from '@ValenceClient/shell/useHeldWhileLeaving';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { MediaPreview } from '@ValenceScreens/components/MediaPreview/MediaPreview';
+import { MediaFacts } from '@ValenceScreens/components/MediaFacts/MediaFacts';
+import { scrollToTopOf } from '@ValenceScreens/navigation/scrollToTopOf';
+import { RatingPanel } from '@ValenceScreens/components/RatingPanel/RatingPanel';
 import { CastGrid } from './components/CastGrid/CastGrid';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
 const CAST_PLACEHOLDERS = 5;

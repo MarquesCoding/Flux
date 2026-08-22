@@ -1,4 +1,4 @@
-import { ownOrigins } from '@FluxServer/env/ownOrigins';
+import { ownOrigins } from '@ValenceServer/env/ownOrigins';
 type TrustedOriginsOptions = {
   configured: readonly string[];
   port: number;

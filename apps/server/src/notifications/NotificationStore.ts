@@ -2,7 +2,7 @@ import type {
   Notification,
   NotificationEvent,
   NotificationPreference,
-} from '@FluxContracts/schemas/Notification';
+} from '@ValenceContracts/schemas/Notification';
 
 type NewNotification = {
   event: NotificationEvent;

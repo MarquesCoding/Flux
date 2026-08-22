@@ -32,9 +32,9 @@ directory permitted.
 what a browser is and nothing else: the entry point, the four platform ports,
 the realtime socket and the service worker. Eight source files and five tests.
 
-**ESLint refuses `@FluxWeb/*` inside `packages/screens`,** as it already does
+**ESLint refuses `@ValenceWeb/*` inside `packages/screens`,** as it already does
 inside `packages/client`. Anything a screen needs from a client is a port on
-`Platform`, or becomes one. `@FluxUI/*` stays allowed — unlike the application
+`Platform`, or becomes one. `@ValenceUI/*` stays allowed — unlike the application
 layer, screens are what draws.
 
 **The route tree moves with the screens.** It is composed entirely of them; the
@@ -74,7 +74,7 @@ it. Both it and `packages/screens` are listed now.
 
 **A build step before a typecheck.** `apps/web` references `packages/screens`,
 so the package has to be built before the host typechecks. `tsc --build` does it,
-but a clean checkout that runs `pnpm --filter @flux/web typecheck` first will see
+but a clean checkout that runs `pnpm --filter @valence/web typecheck` first will see
 a TS6305 rather than a helpful message.
 
 **A second long test setup.** `packages/screens` needs the same jsdom shims the

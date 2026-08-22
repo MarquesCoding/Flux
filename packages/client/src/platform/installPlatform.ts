@@ -1,4 +1,4 @@
-import type { Platform } from '@FluxClient/platform/Platform.types';
+import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 let installed: Platform | null = null;
 

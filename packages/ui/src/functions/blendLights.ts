@@ -1,4 +1,4 @@
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
+import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 
 /**
  * Reads an `rgb()` colour as its three channels, which is the only form it can be averaged in.

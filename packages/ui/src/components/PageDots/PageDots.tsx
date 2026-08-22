@@ -1,6 +1,6 @@
-import { Button } from '@FluxUI/Button';
-import { Tooltip } from '@FluxUI/Tooltip';
-import { cn } from '@FluxUI/cn';
+import { Button } from '@ValenceUI/Button';
+import { Tooltip } from '@ValenceUI/Tooltip';
+import { cn } from '@ValenceUI/cn';
 import type { PageDotsProps } from './PageDots.types';
 
 /**

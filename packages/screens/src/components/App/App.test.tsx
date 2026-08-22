@@ -1,9 +1,9 @@
 import { act, screen, waitFor, within } from '@testing-library/react';
-import { renderTheApp } from '@FluxScreens/testing/renderTheApp';
+import { renderTheApp } from '@ValenceScreens/testing/renderTheApp';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonValueSchema, type JsonValue } from '@FluxContracts/schemas/JsonValue';
-import type { RealtimeEvent } from '@FluxContracts/schemas/Realtime';
+import { JsonValueSchema, type JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import type { RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
 type FetchLike = (
   input: string,
@@ -17,7 +17,7 @@ const socket = vi.hoisted(() => ({
   sent: new Array<{ kind: string }>(),
 }));
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},

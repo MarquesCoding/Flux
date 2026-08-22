@@ -31,7 +31,7 @@ weights: thin, light, regular, bold, fill and duotone. Hugeicons, Remix Icon,
 Tabler and Lucide are banned together in ESLint, so a second set cannot come
 back a file at a time.
 
-**Every icon is drawn by `@FluxUI/Icon`, never by the renderer.** Phosphor ships
+**Every icon is drawn by `@ValenceUI/Icon`, never by the renderer.** Phosphor ships
 each icon as a component, so `Icon` names the icon it is given and decides how it
 is drawn:
 

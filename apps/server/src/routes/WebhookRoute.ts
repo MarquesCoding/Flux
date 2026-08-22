@@ -1,5 +1,5 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from '@ValenceContracts/schemas/Webhook';
 
 const WebhookError = z.object({ error: z.string() }).openapi('WebhookError');
 

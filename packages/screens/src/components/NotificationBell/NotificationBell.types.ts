@@ -1,4 +1,4 @@
-import type { Notification } from '@FluxContracts/schemas/Notification';
+import type { Notification } from '@ValenceContracts/schemas/Notification';
 
 type NotificationBellProps = {
   notifications: Notification[];

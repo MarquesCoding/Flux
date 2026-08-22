@@ -1,8 +1,8 @@
 import { contextBridge, ipcRenderer } from 'electron';
 import type { IpcRendererEvent } from 'electron';
-import { markTheDocument } from '@FluxDesktop/preload/markTheDocument';
+import { markTheDocument } from '@ValenceDesktop/preload/markTheDocument';
 import { z } from 'zod';
-import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@FluxDesktop/main/discoveryChannels';
+import { FOUND_A_FLUX, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import {
   CHANGE_SERVER,
   NOW_WATCHING,
@@ -10,7 +10,7 @@ import {
   GO_TO_THE_SERVER,
   READ_EVERYTHING,
   WRITE_ONE,
-} from '@FluxDesktop/main/preferenceChannels';
+} from '@ValenceDesktop/main/preferenceChannels';
 
 const HeldSchema = z.record(z.string(), z.string()).catch({});
 

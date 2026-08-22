@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { Logo } from '@FluxUI/Logo';
-import { Spinner } from '@FluxUI/Spinner';
-import { readServerAddress } from '@FluxClient/session/readServerAddress';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { Logo } from '@ValenceUI/Logo';
+import { Spinner } from '@ValenceUI/Spinner';
+import { readServerAddress } from '@ValenceClient/session/readServerAddress';
 import { reachServer } from './reachServer';
 import type { ConnectToServerProps } from './ConnectToServer.types';
 

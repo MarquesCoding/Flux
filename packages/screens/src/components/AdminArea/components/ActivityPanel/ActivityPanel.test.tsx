@@ -1,7 +1,7 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ActivityPanel } from './ActivityPanel';
-import type { ActiveSession } from '@FluxClient/admin/fetchAdmin';
+import type { ActiveSession } from '@ValenceClient/admin/fetchAdmin';
 
 const session = (overrides: Partial<ActiveSession> = {}): ActiveSession => ({
   clientId: 'cli_1',

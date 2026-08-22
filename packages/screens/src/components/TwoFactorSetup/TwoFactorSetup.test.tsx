@@ -7,7 +7,7 @@ const enableTwoFactor = vi.hoisted(() => vi.fn());
 const verifyTotp = vi.hoisted(() => vi.fn());
 const disableTwoFactor = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/session/auth', () => ({ enableTwoFactor, verifyTotp, disableTwoFactor }));
+vi.mock('@ValenceClient/session/auth', () => ({ enableTwoFactor, verifyTotp, disableTwoFactor }));
 
 const OTP_URI = 'otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Valence';
 

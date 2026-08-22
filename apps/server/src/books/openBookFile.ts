@@ -2,7 +2,7 @@ import { openComicRar } from './openComicRar';
 import { openEpub } from './openEpub';
 import { openComicZip } from './openComicZip';
 import { openPortableDocument } from './openPortableDocument';
-import type { BookFormat } from '@FluxContracts/schemas/Book';
+import type { BookFormat } from '@ValenceContracts/schemas/Book';
 import type { OpenedBook } from './BookFile';
 
 const FORMATS = new Map<string, BookFormat>([

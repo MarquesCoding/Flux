@@ -127,7 +127,7 @@ jobs:
       # Asserts every fixture is what the matrix claims, which is what makes the corpus worth
       # testing against. A corpus that lies is worse than none.
       - name: Check the corpus describes itself honestly
-        run: pnpm --filter @flux/tools exec vitest run fixtures/
+        run: pnpm --filter @valence/tools exec vitest run fixtures/
 
       - name: Test the media pipeline against it
         run: cargo test

@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CheckCircleIcon, WarningIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Badge } from '@FluxUI/Badge';
-import { HoverCard } from '@FluxUI/HoverCard';
-import { Button } from '@FluxUI/Button';
-import { SectionBar } from '@FluxUI/SectionBar';
-import { TabPanel } from '@FluxUI/TabPanel';
+import { Badge } from '@ValenceUI/Badge';
+import { HoverCard } from '@ValenceUI/HoverCard';
+import { Button } from '@ValenceUI/Button';
+import { SectionBar } from '@ValenceUI/SectionBar';
+import { TabPanel } from '@ValenceUI/TabPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
 import { JobsPanel } from './components/JobsPanel/JobsPanel';
 import { ActivityPanel } from './components/ActivityPanel/ActivityPanel';
@@ -24,10 +24,10 @@ import {
   redeliverWebhook,
   setWebhookEnabled,
   testWebhook,
-} from '@FluxClient/admin/fetchWebhooks';
+} from '@ValenceClient/admin/fetchWebhooks';
 import { AccountsPanel } from './components/AccountsPanel/AccountsPanel';
-import { Tabs } from '@FluxUI/Tabs';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
+import { Tabs } from '@ValenceUI/Tabs';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import {
   watchMonitor,
   watchActiveSessions,
@@ -37,11 +37,11 @@ import {
   resumeSession,
   addJobTrigger,
   removeJobTrigger,
-} from '@FluxClient/admin/fetchAdmin';
-import { rebuildArtefacts } from '@FluxClient/library/fetchLibrary';
+} from '@ValenceClient/admin/fetchAdmin';
+import { rebuildArtefacts } from '@ValenceClient/library/fetchLibrary';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { adminQueries } from '@FluxClient/query/adminQueries';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
+import { adminQueries } from '@ValenceClient/query/adminQueries';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
 import { collectConcerns } from './collectConcerns';
@@ -67,10 +67,10 @@ import {
   runDefinedJobAll,
   stopJobs,
 } from './scanCoordinator';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
-import type { JobSchedules, ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
-import type { CreatedWebhook } from '@FluxClient/admin/fetchWebhooks';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import type { Library, MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { JobSchedules, ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
+import type { CreatedWebhook } from '@ValenceClient/admin/fetchWebhooks';
 import type { AdminAreaProps } from './AdminArea.types';
 
 const HISTORY_LENGTH = 60;

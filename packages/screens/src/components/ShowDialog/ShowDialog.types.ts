@@ -1,5 +1,5 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { ShowSummary } from '@FluxContracts/schemas/Show';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { ShowSummary } from '@ValenceContracts/schemas/Show';
 
 type ShowDialogProps = {
   show: ShowSummary | null;

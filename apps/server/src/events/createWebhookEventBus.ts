@@ -1,6 +1,6 @@
 import { stampWebhookEnvelope } from './stampWebhookEnvelope';
 import type { EventBus } from './EventBus';
-import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
+import type { WebhookStore } from '@ValenceServer/webhooks/WebhookStore';
 
 type CreateWebhookEventBusOptions = {
   subscriptions: WebhookStore;

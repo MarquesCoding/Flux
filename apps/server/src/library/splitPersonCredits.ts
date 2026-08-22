@@ -1,6 +1,6 @@
-import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { PersonCredits } from '@FluxContracts/schemas/Person';
+import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { PersonCredits } from '@ValenceContracts/schemas/Person';
 
 /**
  * Sorts what somebody is in on this server into the three things a viewer means by it: the films,

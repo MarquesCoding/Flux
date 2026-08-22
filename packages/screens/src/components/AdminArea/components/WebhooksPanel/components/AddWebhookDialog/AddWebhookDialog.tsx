@@ -1,17 +1,17 @@
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Checkbox } from '@FluxUI/Checkbox';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { TextField } from '@FluxUI/TextField';
+import { Button } from '@ValenceUI/Button';
+import { Checkbox } from '@ValenceUI/Checkbox';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { TextField } from '@ValenceUI/TextField';
 import {
   WEBHOOK_EVENTS,
   WEBHOOK_EVENT_LABELS,
   WEBHOOK_PRESETS,
-} from '@FluxContracts/schemas/Webhook';
-import type { WebhookEvent, WebhookPreset } from '@FluxContracts/schemas/Webhook';
+} from '@ValenceContracts/schemas/Webhook';
+import type { WebhookEvent, WebhookPreset } from '@ValenceContracts/schemas/Webhook';
 import type { AddWebhookDialogProps } from './AddWebhookDialog.types';
 
 const PRESET_LABELS: Record<WebhookPreset, string> = {

@@ -1,6 +1,6 @@
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
-import { RequestFailed } from '@FluxClient/query/RequestFailed';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { RequestFailed } from '@ValenceClient/query/RequestFailed';
 
 /**
  * Reads something from Valence, and throws where it could not be read.

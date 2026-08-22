@@ -1,9 +1,9 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { LockIcon, LockOpenIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Checkbox } from '@FluxUI/Checkbox';
-import { TextField } from '@FluxUI/TextField';
+import { Button } from '@ValenceUI/Button';
+import { Checkbox } from '@ValenceUI/Checkbox';
+import { TextField } from '@ValenceUI/TextField';
 import { validateSetupForm, parseOrigins } from './validateSetupForm';
 import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 

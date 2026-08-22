@@ -1,18 +1,18 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { DotsThreeIcon, SignOutIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActionMenu } from '@FluxUI/ActionMenu';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
-import { DataTable } from '@FluxUI/DataTable';
-import { Spinner } from '@FluxUI/Spinner';
-import { endDevice, endOtherDevices, fetchDevices } from '@FluxClient/account/fetchDevices';
-import { saidWhen } from '@FluxClient/format/saidWhen';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Device } from '@FluxClient/account/fetchDevices';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { DataTable } from '@ValenceUI/DataTable';
+import { Spinner } from '@ValenceUI/Spinner';
+import { endDevice, endOtherDevices, fetchDevices } from '@ValenceClient/account/fetchDevices';
+import { saidWhen } from '@ValenceClient/format/saidWhen';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { Device } from '@ValenceClient/account/fetchDevices';
 
 /**
  * Everywhere this account is signed in — each device, when it was last used, and a way to end it.

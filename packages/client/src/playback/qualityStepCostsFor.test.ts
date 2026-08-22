@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { qualityStepCostsFor } from './qualityStepCostsFor';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 
 const profile: DeviceProfile = {
   schemaVersion: 1,

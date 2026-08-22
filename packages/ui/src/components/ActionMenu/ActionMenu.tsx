@@ -1,9 +1,9 @@
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { HoverHighlight } from '@FluxUI/HoverHighlight';
-import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { HoverHighlight } from '@ValenceUI/HoverHighlight';
+import { useSlidingHighlight } from '@ValenceUI/useSlidingHighlight';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { ActionMenuProps } from './ActionMenu.types';
 
 /**

@@ -1,4 +1,4 @@
-import type { JobHandler } from '@FluxServer/jobs/createJobQueue';
+import type { JobHandler } from '@ValenceServer/jobs/createJobQueue';
 import type { LogScope } from './createLogScope';
 
 /**

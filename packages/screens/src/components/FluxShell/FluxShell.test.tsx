@@ -1,7 +1,7 @@
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderTheApp } from '@FluxScreens/testing/renderTheApp';
+import { renderTheApp } from '@ValenceScreens/testing/renderTheApp';
 
 const fetchMock = vi.fn<(target: string, init?: RequestInit) => Promise<Response>>();
 
@@ -9,13 +9,13 @@ const turnPushOn = vi.fn((key: string) => Promise.resolve(key !== ''));
 
 const turnPushOff = vi.fn(() => Promise.resolve(undefined));
 
-vi.mock('@FluxScreens/notifications/subscribeToPush', () => ({
+vi.mock('@ValenceScreens/notifications/subscribeToPush', () => ({
   canReceivePush: () => true,
   subscribeToPush: (key: string) => turnPushOn(key),
   unsubscribeFromPush: () => turnPushOff(),
 }));
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => undefined,
     stop: () => undefined,

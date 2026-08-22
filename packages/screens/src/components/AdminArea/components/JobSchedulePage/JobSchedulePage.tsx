@@ -1,11 +1,11 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { PlusIcon, XIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { AddTriggerDialog } from '@FluxScreens/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
-import { describeTrigger } from '@FluxClient/admin/describeTrigger';
-import { describeTriggerInZone } from '@FluxClient/admin/describeTriggerInZone';
-import type { ScheduleTrigger } from '@FluxClient/admin/fetchAdmin';
+import { Button } from '@ValenceUI/Button';
+import { AddTriggerDialog } from '@ValenceScreens/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
+import { describeTrigger } from '@ValenceClient/admin/describeTrigger';
+import { describeTriggerInZone } from '@ValenceClient/admin/describeTriggerInZone';
+import type { ScheduleTrigger } from '@ValenceClient/admin/fetchAdmin';
 import type { JobSchedulePageProps } from './JobSchedulePage.types';
 
 /**

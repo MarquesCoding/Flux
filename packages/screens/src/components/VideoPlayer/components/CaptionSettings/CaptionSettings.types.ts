@@ -1,4 +1,4 @@
-import type { CaptionStyle } from '@FluxScreens/playback/captionStyle';
+import type { CaptionStyle } from '@ValenceScreens/playback/captionStyle';
 
 type CaptionSettingsProps = {
   style: CaptionStyle;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createEntitlements } from './createEntitlements';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const createReader = (permissions: Permission[]) => {
   let calls = 0;

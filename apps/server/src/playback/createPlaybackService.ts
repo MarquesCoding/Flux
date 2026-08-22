@@ -1,9 +1,9 @@
-import { negotiatePlayback } from '@FluxCore/functions/negotiatePlayback';
-import { resolveQualityStep } from '@FluxCore/functions/resolveQualityStep';
-import { describePlaybackMode } from '@FluxContracts/functions/describePlaybackMode';
-import { planToSessionSpec } from '@FluxCore/functions/planToSessionSpec';
-import { segmentContainerFor } from '@FluxCore/functions/segmentContainerFor';
-import { previewRequestFor } from '@FluxServer/library/previewRequestFor';
+import { negotiatePlayback } from '@ValenceCore/functions/negotiatePlayback';
+import { resolveQualityStep } from '@ValenceCore/functions/resolveQualityStep';
+import { describePlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
+import { planToSessionSpec } from '@ValenceCore/functions/planToSessionSpec';
+import { segmentContainerFor } from '@ValenceCore/functions/segmentContainerFor';
+import { previewRequestFor } from '@ValenceServer/library/previewRequestFor';
 import {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
@@ -11,11 +11,14 @@ import {
   TRICKPLAY_COLUMNS,
   TRICKPLAY_ROWS,
 } from './PlaybackService';
-import { VideoRangeSchema } from '@FluxContracts/schemas/MediaItem';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import { VideoRangeSchema } from '@ValenceContracts/schemas/MediaItem';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { PlaybackService } from './PlaybackService';
-import type { Transcoder, TranscoderCapabilities } from '@FluxServer/transcoder/TranscoderClient';
+import type {
+  Transcoder,
+  TranscoderCapabilities,
+} from '@ValenceServer/transcoder/TranscoderClient';
 
 const TRICKPLAY_INDEX_NAME = 'thumbnails.vtt';
 

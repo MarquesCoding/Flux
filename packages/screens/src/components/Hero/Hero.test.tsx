@@ -1,15 +1,15 @@
 import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { coverPage, forgetPageCovers } from '@FluxUI/pageCover';
+import { coverPage, forgetPageCovers } from '@ValenceUI/pageCover';
 import { Hero } from './Hero';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { MediaPreviewProps } from '@FluxScreens/components/MediaPreview/MediaPreview.types';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { MediaPreviewProps } from '@ValenceScreens/components/MediaPreview/MediaPreview.types';
 
 const { previewMock } = vi.hoisted(() => ({ previewMock: vi.fn() }));
 
-vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
+vi.mock('@ValenceScreens/components/MediaPreview/MediaPreview', () => ({
   MediaPreview: (props: MediaPreviewProps) => {
     previewMock(props);
 
@@ -19,7 +19,7 @@ vi.mock('@FluxScreens/components/MediaPreview/MediaPreview', () => ({
 
 const { detailMock } = vi.hoisted(() => ({ detailMock: vi.fn() }));
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({ fetchMediaDetail: detailMock }));
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({ fetchMediaDetail: detailMock }));
 
 const item = (id: string, title: string): MediaSummary => ({
   id,

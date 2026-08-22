@@ -1,4 +1,4 @@
-import type { Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
 
 /**
  * Works out how much memory Valence itself is holding, counting every part of it: the API server, the

@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, desc, eq, inArray } from 'drizzle-orm';
-import { resolvePermissions } from '@FluxCore/functions/resolvePermissions';
-import { ADMINISTRATOR } from '@FluxContracts/schemas/Permission';
-import type { Permission, PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
-import { role, rolePermission, userPermissionOverride, userRole } from '@FluxServer/db/Schema';
-import type { FluxDatabase } from '@FluxServer/db/Database';
+import { resolvePermissions } from '@ValenceCore/functions/resolvePermissions';
+import { ADMINISTRATOR } from '@ValenceContracts/schemas/Permission';
+import type { Permission, PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
+import { role, rolePermission, userPermissionOverride, userRole } from '@ValenceServer/db/Schema';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
 import { readPermission } from './readPermission';
 import type { PermissionService } from './PermissionService';
 

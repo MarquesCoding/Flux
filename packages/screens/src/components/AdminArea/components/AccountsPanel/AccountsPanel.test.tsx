@@ -1,9 +1,9 @@
 import { screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { AccountsPanel } from './AccountsPanel';
-import type { Account } from '@FluxClient/admin/fetchAccounts';
+import type { Account } from '@ValenceClient/admin/fetchAccounts';
 
 const accountMocks = vi.hoisted(() => ({
   fetchAccounts: vi.fn(),
@@ -13,7 +13,7 @@ const accountMocks = vi.hoisted(() => ({
   removeAccount: vi.fn(),
 }));
 
-vi.mock('@FluxClient/admin/fetchAccounts', () => accountMocks);
+vi.mock('@ValenceClient/admin/fetchAccounts', () => accountMocks);
 
 const mocks = vi.hoisted(() => ({
   fetchPermissionCatalogue: vi.fn(),
@@ -25,7 +25,7 @@ const mocks = vi.hoisted(() => ({
   clearOverride: vi.fn(),
 }));
 
-vi.mock('@FluxClient/admin/fetchRoles', () => mocks);
+vi.mock('@ValenceClient/admin/fetchRoles', () => mocks);
 
 const account = (overrides: Partial<Account> = {}): Account => ({
   id: 'usr_1',

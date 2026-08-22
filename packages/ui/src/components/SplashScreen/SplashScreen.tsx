@@ -1,5 +1,5 @@
 import { motion, useReducedMotion } from 'motion/react';
-import { Logo } from '@FluxUI/Logo';
+import { Logo } from '@ValenceUI/Logo';
 import type { SplashScreenProps } from './SplashScreen.types';
 
 const OURS = 'valence';

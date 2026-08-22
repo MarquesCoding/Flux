@@ -1,11 +1,11 @@
 import { useCallback, useMemo, useState } from 'react';
 import { useNavigate, useParams } from '@tanstack/react-router';
 import { useQuery } from '@tanstack/react-query';
-import { Spinner } from '@FluxUI/Spinner';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { bookQueries } from '@FluxClient/query/bookQueries';
-import { saveReadingProgress } from '@FluxClient/books/fetchBooks';
-import { PageReader } from '@FluxScreens/components/PageReader/PageReader';
+import { Spinner } from '@ValenceUI/Spinner';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { bookQueries } from '@ValenceClient/query/bookQueries';
+import { saveReadingProgress } from '@ValenceClient/books/fetchBooks';
+import { PageReader } from '@ValenceScreens/components/PageReader/PageReader';
 
 /**
  * Reading one book.

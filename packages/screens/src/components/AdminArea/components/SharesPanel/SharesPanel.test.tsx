@@ -1,14 +1,14 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import { SharesPanel } from './SharesPanel';
-import type { AdminShare } from '@FluxContracts/schemas/Share';
+import type { AdminShare } from '@ValenceContracts/schemas/Share';
 
 const fetchEverybodysShares = vi.fn<() => Promise<AdminShare[]>>();
 const revokeAnybodysShare = vi.fn<(shareId: string) => Promise<boolean>>();
 
-vi.mock('@FluxClient/sharing/fetchShares', () => ({
+vi.mock('@ValenceClient/sharing/fetchShares', () => ({
   fetchEverybodysShares: () => fetchEverybodysShares(),
   revokeAnybodysShare: (shareId: string) => revokeAnybodysShare(shareId),
 }));

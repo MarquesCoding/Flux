@@ -1,8 +1,8 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CircleNotchIcon } from '@phosphor-icons/react';
 import { motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { spinVariants, spinTransition, reducedSpinTransition } from '@FluxUI/animations/spin';
+import { cn } from '@ValenceUI/cn';
+import { spinVariants, spinTransition, reducedSpinTransition } from '@ValenceUI/animations/spin';
 import type { SpinnerProps, SpinnerSize } from './Spinner.types';
 
 const SIZE_PIXELS: Record<SpinnerSize, number> = {

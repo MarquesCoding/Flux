@@ -1,4 +1,4 @@
-import { WebhookPayloadSchema } from '@FluxContracts/schemas/Webhook';
+import { WebhookPayloadSchema } from '@ValenceContracts/schemas/Webhook';
 import { deliverWebhook } from './deliverWebhook';
 import type { WebhookFetcher } from './deliverWebhook';
 import type { WebhookStore } from './WebhookStore';

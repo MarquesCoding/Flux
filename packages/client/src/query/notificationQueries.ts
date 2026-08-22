@@ -2,7 +2,7 @@ import { queryOptions } from '@tanstack/react-query';
 import {
   fetchNotifications,
   fetchNotificationSettings,
-} from '@FluxClient/notifications/fetchNotifications';
+} from '@ValenceClient/notifications/fetchNotifications';
 
 const NOTIFICATIONS = ['notifications'] as const;
 

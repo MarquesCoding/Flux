@@ -1,6 +1,6 @@
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool } from 'pg';
-import { authSchema, fluxSchema } from '@FluxServer/db/Schema';
+import { authSchema, fluxSchema } from '@ValenceServer/db/Schema';
 
 const schema = { ...authSchema, ...fluxSchema };
 

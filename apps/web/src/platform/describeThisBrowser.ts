@@ -1,4 +1,4 @@
-import { detectClientLabel } from '@FluxClient/playback/detectClientLabel';
+import { detectClientLabel } from '@ValenceClient/playback/detectClientLabel';
 
 /**
  * What to call this client, asked of the browser.

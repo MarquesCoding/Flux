@@ -1,9 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import { PROFILE_COLOURS } from '@FluxContracts/schemas/ViewerProfile';
-import { STILL_WATCHING_DEFAULT } from '@FluxContracts/schemas/StillWatching';
+import { PROFILE_COLOURS } from '@ValenceContracts/schemas/ViewerProfile';
+import { STILL_WATCHING_DEFAULT } from '@ValenceContracts/schemas/StillWatching';
 import { drawAvatar, isAvatarStyle } from './drawAvatar';
 import type { ProfileService } from './ProfileService';
-import type { Avatar, ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
+import type { Avatar, ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 type Held = { profile: ViewerProfile; userId: string; email: string; photo: Uint8Array | null };
 

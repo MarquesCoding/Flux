@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
 import { describePlaybackMode } from './describePlaybackMode';
 const reason: Reason = { code: 'ClientSupportsSource', detail: 'Client declares support' };
 

@@ -1,4 +1,4 @@
-import type { PlaybackPlan } from '@FluxContracts/schemas/PlaybackPlan';
+import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 
 type PresencePlayback = {
   mediaId: string;

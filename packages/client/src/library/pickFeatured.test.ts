@@ -6,7 +6,7 @@ import {
   findSiblings,
   nextEpisode,
 } from './pickFeatured';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 let counter = 0;
 

@@ -1,15 +1,15 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { useEffect, useState } from 'react';
-import { Spinner } from '@FluxUI/Spinner';
-import { openShare } from '@FluxClient/sharing/fetchShares';
-import { Hero } from '@FluxScreens/components/Hero/Hero';
-import { EpisodeRow } from '@FluxScreens/components/ShowDialog/components/EpisodeRow/EpisodeRow';
-import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import { intoSeasons } from '@FluxClient/library/intoSeasons';
-import { nameSeason } from '@FluxClient/library/nameSeason';
-import { describeShareEnding } from '@FluxScreens/sharing/describeShareEnding';
-import type { OpenedShare } from '@FluxClient/sharing/fetchShares';
-import type { ShareEnding } from '@FluxContracts/schemas/Share';
+import { Spinner } from '@ValenceUI/Spinner';
+import { openShare } from '@ValenceClient/sharing/fetchShares';
+import { Hero } from '@ValenceScreens/components/Hero/Hero';
+import { EpisodeRow } from '@ValenceScreens/components/ShowDialog/components/EpisodeRow/EpisodeRow';
+import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import { intoSeasons } from '@ValenceClient/library/intoSeasons';
+import { nameSeason } from '@ValenceClient/library/nameSeason';
+import { describeShareEnding } from '@ValenceScreens/sharing/describeShareEnding';
+import type { OpenedShare } from '@ValenceClient/sharing/fetchShares';
+import type { ShareEnding } from '@ValenceContracts/schemas/Share';
 import type { ShareAreaProps } from './ShareArea.types';
 
 type Standing =

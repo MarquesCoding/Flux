@@ -6,7 +6,7 @@ import {
   removeAccount,
   inviteAccount,
 } from './fetchAccounts';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type Answer = { ok: boolean; status: number; json: () => Promise<JsonValue> };
 

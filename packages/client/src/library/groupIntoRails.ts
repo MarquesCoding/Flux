@@ -1,8 +1,8 @@
-import { addedAtMs } from '@FluxCore/functions/addedAtMs';
-import { inBroadcastOrder } from '@FluxCore/functions/inBroadcastOrder';
-import { isWorthResuming } from '@FluxContracts/schemas/WatchProgress';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
+import { addedAtMs } from '@ValenceCore/functions/addedAtMs';
+import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import { isWorthResuming } from '@ValenceContracts/schemas/WatchProgress';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
 
 type Rail = {
   id: string;

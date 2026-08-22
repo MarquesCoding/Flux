@@ -1,4 +1,4 @@
-import { accelerationOptions } from '@FluxScreens/components/AdminArea/accelerationOptions';
+import { accelerationOptions } from '@ValenceScreens/components/AdminArea/accelerationOptions';
 
 type Acceleration = {
   label: string;

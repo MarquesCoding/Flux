@@ -1,15 +1,15 @@
 import { screen, waitFor, within } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibraryBrowser } from './LibraryBrowser';
-import type { Library, MediaSummary } from '@FluxContracts/schemas/Library';
+import type { Library, MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const fetchLibrariesMock = vi.hoisted(() => vi.fn());
 const fetchItemsMock = vi.hoisted(() => vi.fn());
 const fetchDetailMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchLibraries: fetchLibrariesMock,
   fetchLibraryItems: fetchItemsMock,
   fetchMediaDetail: fetchDetailMock,

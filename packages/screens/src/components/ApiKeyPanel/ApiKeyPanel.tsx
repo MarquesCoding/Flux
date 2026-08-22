@@ -1,20 +1,20 @@
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { RequestFailed } from '@FluxClient/query/RequestFailed';
-import { Icon } from '@FluxUI/Icon';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { RequestFailed } from '@ValenceClient/query/RequestFailed';
+import { Icon } from '@ValenceUI/Icon';
 import { CopyIcon, TrashIcon, WarningIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { Switch } from '@FluxUI/Switch';
-import { Badge } from '@FluxUI/Badge';
-import { Spinner } from '@FluxUI/Spinner';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { Switch } from '@ValenceUI/Switch';
+import { Badge } from '@ValenceUI/Badge';
+import { Spinner } from '@ValenceUI/Spinner';
 import {
   fetchApiKeys,
   createApiKey,
   setApiKeyEnabled,
   revokeApiKey,
-} from '@FluxClient/account/fetchApiKeys';
-import type { ApiKey } from '@FluxContracts/schemas/ApiKey';
+} from '@ValenceClient/account/fetchApiKeys';
+import type { ApiKey } from '@ValenceContracts/schemas/ApiKey';
 import type { ApiKeyPanelProps } from './ApiKeyPanel.types';
 
 /**

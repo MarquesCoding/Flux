@@ -1,4 +1,4 @@
-import type { Concern } from '@FluxScreens/components/AdminArea/collectConcerns';
+import type { Concern } from '@ValenceScreens/components/AdminArea/collectConcerns';
 
 type ConcernsBannerProps = {
   concerns: Concern[];

@@ -1,4 +1,4 @@
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 type SegmentService = {
   list: (mediaId: string) => Promise<MediaSegment[]>;

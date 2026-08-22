@@ -6,8 +6,8 @@ import {
   NewShareSchema,
   ShareListSchema,
   ShareSchema,
-} from '@FluxContracts/schemas/Share';
-import { MediaSummarySchema } from '@FluxContracts/schemas/Library';
+} from '@ValenceContracts/schemas/Share';
+import { MediaSummarySchema } from '@ValenceContracts/schemas/Library';
 
 const Share = ShareSchema.openapi('Share');
 const ShareList = ShareListSchema.openapi('ShareList');

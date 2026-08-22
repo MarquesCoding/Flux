@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { collectConcerns } from './collectConcerns';
-import type { ActiveSession, AdminOverview, Job, Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type { Library } from '@FluxContracts/schemas/Library';
+import type { ActiveSession, AdminOverview, Job, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { Library } from '@ValenceContracts/schemas/Library';
 
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [],

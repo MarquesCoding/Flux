@@ -1,5 +1,5 @@
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import { DeviceProfileSchema } from '@ValenceContracts/schemas/DeviceProfile';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 
 type CodecProbe = (mimeType: string) => boolean;
 

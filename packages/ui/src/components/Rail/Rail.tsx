@@ -1,9 +1,9 @@
 import { motion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { groupVariants } from '@FluxUI/animations/reveal';
-import { usePagedScroller } from '@FluxUI/usePagedScroller';
-import { Button } from '@FluxUI/Button';
-import { PageDots } from '@FluxUI/PageDots';
+import { cn } from '@ValenceUI/cn';
+import { groupVariants } from '@ValenceUI/animations/reveal';
+import { usePagedScroller } from '@ValenceUI/usePagedScroller';
+import { Button } from '@ValenceUI/Button';
+import { PageDots } from '@ValenceUI/PageDots';
 import type { RailProps } from './Rail.types';
 
 /**

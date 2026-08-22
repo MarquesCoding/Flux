@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { fetchWatchProgress, reportWatchProgress, byMediaId } from './watchProgress';
-import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
-import type { WatchProgress } from '@FluxContracts/schemas/WatchProgress';
-import { forgetPlatform, installPlatform } from '@FluxClient/platform/installPlatform';
-import { aFakePlatform } from '@FluxClient/testing/aFakePlatform';
+import { writeCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
+import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 
 type Answer = { ok: boolean; json: () => Promise<JsonValue>; text?: () => Promise<string> };
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { describeShareEnding } from './describeShareEnding';
-import { SHARE_ENDINGS } from '@FluxContracts/schemas/Share';
+import { SHARE_ENDINGS } from '@ValenceContracts/schemas/Share';
 
 describe('describeShareEnding', () => {
   it('says something different for each of the three ways a link ends', () => {

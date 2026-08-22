@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import {
   DotsThreeIcon,
   PencilSimpleIcon,
@@ -7,28 +7,28 @@ import {
   WarningIcon,
 } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ActionMenu } from '@FluxUI/ActionMenu';
-import { Badge } from '@FluxUI/Badge';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { ConfirmDialog } from '@FluxUI/ConfirmDialog';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { DataTable } from '@FluxUI/DataTable';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { Checkbox } from '@FluxUI/Checkbox';
-import { TextField } from '@FluxUI/TextField';
-import { describePermission } from '@FluxClient/admin/describePermission';
-import { groupPermissions } from '@FluxClient/admin/groupPermissions';
-import { createRole, deleteRole, updateRole } from '@FluxClient/admin/fetchRoles';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { Badge } from '@ValenceUI/Badge';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { DataTable } from '@ValenceUI/DataTable';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { Checkbox } from '@ValenceUI/Checkbox';
+import { TextField } from '@ValenceUI/TextField';
+import { describePermission } from '@ValenceClient/admin/describePermission';
+import { groupPermissions } from '@ValenceClient/admin/groupPermissions';
+import { createRole, deleteRole, updateRole } from '@ValenceClient/admin/fetchRoles';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { CouldNotRead } from '@FluxUI/CouldNotRead';
-import { adminQueries } from '@FluxClient/query/adminQueries';
-import type { DataTableColumn } from '@FluxUI/DataTable.types';
-import type { Refusal } from '@FluxClient/admin/fetchRoles';
-import type { Permission, Role } from '@FluxContracts/schemas/Permission';
+import { CouldNotRead } from '@ValenceUI/CouldNotRead';
+import { adminQueries } from '@ValenceClient/query/adminQueries';
+import type { DataTableColumn } from '@ValenceUI/DataTable.types';
+import type { Refusal } from '@ValenceClient/admin/fetchRoles';
+import type { Permission, Role } from '@ValenceContracts/schemas/Permission';
 
 const NEW_ROLE_POSITION = 50;
 

@@ -1,4 +1,4 @@
-import type { ActiveSession } from '@FluxClient/admin/fetchAdmin';
+import type { ActiveSession } from '@ValenceClient/admin/fetchAdmin';
 
 type SessionGroup = { key: string; label: string; sessions: ActiveSession[] };
 

@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
-import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@FluxServer/db/Schema';
-import { AudioStreamSchema } from '@FluxContracts/schemas/MediaItem';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
+import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@ValenceServer/db/Schema';
+import { AudioStreamSchema } from '@ValenceContracts/schemas/MediaItem';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import { resolveSeriesKey } from './resolveSeriesKey';
 import type { MediaStore } from './scanLibrary';
 

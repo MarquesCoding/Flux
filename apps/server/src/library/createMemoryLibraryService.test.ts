@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryLibraryService } from './createMemoryLibraryService';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 

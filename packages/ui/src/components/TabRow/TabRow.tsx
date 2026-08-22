@@ -1,6 +1,6 @@
 import * as RadixTabs from '@radix-ui/react-tabs';
-import { cn } from '@FluxUI/cn';
-import { SlidingMark } from '@FluxUI/SlidingMark';
+import { cn } from '@ValenceUI/cn';
+import { SlidingMark } from '@ValenceUI/SlidingMark';
 import type { TabRowProps } from './TabRow.types';
 
 /**

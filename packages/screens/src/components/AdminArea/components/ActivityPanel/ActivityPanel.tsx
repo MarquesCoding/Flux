@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { SessionCard } from '@FluxScreens/components/AdminArea/components/SessionCard/SessionCard';
-import { SessionMessageDialog } from '@FluxScreens/components/AdminArea/components/SessionMessageDialog/SessionMessageDialog';
-import { groupSessionsByViewer } from '@FluxScreens/components/AdminArea/groupSessionsByViewer';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
+import { SessionCard } from '@ValenceScreens/components/AdminArea/components/SessionCard/SessionCard';
+import { SessionMessageDialog } from '@ValenceScreens/components/AdminArea/components/SessionMessageDialog/SessionMessageDialog';
+import { groupSessionsByViewer } from '@ValenceScreens/components/AdminArea/groupSessionsByViewer';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
 import type { ActivityPanelProps } from './ActivityPanel.types';
 
 /**

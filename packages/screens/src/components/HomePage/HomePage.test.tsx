@@ -1,13 +1,13 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAShell } from '@FluxScreens/testing/renderInAShell';
+import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { HomePage } from './HomePage';
-import type { LibraryBrowserProps } from '@FluxScreens/components/LibraryBrowser/LibraryBrowser.types';
+import type { LibraryBrowserProps } from '@ValenceScreens/components/LibraryBrowser/LibraryBrowser.types';
 
 const drawn = vi.hoisted((): { props: LibraryBrowserProps | null } => ({ props: null }));
 
-vi.mock('@FluxScreens/components/LibraryBrowser/LibraryBrowser', () => ({
+vi.mock('@ValenceScreens/components/LibraryBrowser/LibraryBrowser', () => ({
   LibraryBrowser: (props: LibraryBrowserProps) => {
     drawn.props = props;
 

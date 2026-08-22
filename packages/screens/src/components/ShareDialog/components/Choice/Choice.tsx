@@ -1,6 +1,6 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretDownIcon } from '@phosphor-icons/react';
-import { OptionMenu } from '@FluxUI/OptionMenu';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
 import type { ChoiceProps } from './Choice.types';
 
 /**

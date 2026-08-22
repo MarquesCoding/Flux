@@ -3,7 +3,7 @@ import type { Job } from 'pg-boss';
 import { scheduleSendOptions } from './scheduleSendOptions';
 import { readJobPayload } from './readJobPayload';
 import type { JobProgress, JobQueue, JobState } from './JobQueue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type JobHandler = (jobId: string, payload: { [key: string]: JsonValue }) => Promise<void>;
 

@@ -1,4 +1,4 @@
-import type { WebhookDelivery } from '@FluxContracts/schemas/Webhook';
+import type { WebhookDelivery } from '@ValenceContracts/schemas/Webhook';
 
 type DeliveryHistoryProps = {
   deliveries: WebhookDelivery[];

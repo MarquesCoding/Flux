@@ -1,6 +1,6 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { StarIcon } from '@phosphor-icons/react';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';
 

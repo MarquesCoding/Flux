@@ -1,20 +1,20 @@
 import { describe, expect, it } from 'vitest';
-import { createApp } from '@FluxServer/App';
-import { createMemoryAuth } from '@FluxServer/auth/createMemoryAuth';
-import { signedInApp } from '@FluxServer/auth/signUpForTest';
-import { createMemoryPermissionService } from '@FluxServer/auth/createMemoryPermissionService';
-import { createMemoryLibraryService } from '@FluxServer/library/createMemoryLibraryService';
-import { createMemoryWatchProgressService } from '@FluxServer/progress/createMemoryWatchProgressService';
-import { createMemoryFavouriteService } from '@FluxServer/favourites/createMemoryFavouriteService';
-import { createMemoryRatingService } from '@FluxServer/ratings/createMemoryRatingService';
-import { createMemorySegmentService } from '@FluxServer/segments/createMemorySegmentService';
-import { createMemorySubtitleService } from '@FluxServer/subtitles/createMemorySubtitleService';
-import { createPresenceService } from '@FluxServer/presence/PresenceService';
-import type { MediaDetail } from '@FluxContracts/schemas/Library';
+import { createApp } from '@ValenceServer/App';
+import { createMemoryAuth } from '@ValenceServer/auth/createMemoryAuth';
+import { signedInApp } from '@ValenceServer/auth/signUpForTest';
+import { createMemoryPermissionService } from '@ValenceServer/auth/createMemoryPermissionService';
+import { createMemoryLibraryService } from '@ValenceServer/library/createMemoryLibraryService';
+import { createMemoryWatchProgressService } from '@ValenceServer/progress/createMemoryWatchProgressService';
+import { createMemoryFavouriteService } from '@ValenceServer/favourites/createMemoryFavouriteService';
+import { createMemoryRatingService } from '@ValenceServer/ratings/createMemoryRatingService';
+import { createMemorySegmentService } from '@ValenceServer/segments/createMemorySegmentService';
+import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemorySubtitleService';
+import { createPresenceService } from '@ValenceServer/presence/PresenceService';
+import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 import { createMemoryPlaybackService } from './createMemoryPlaybackService';
 import { z } from 'zod';
-import { PlaybackPlanSchema } from '@FluxContracts/schemas/PlaybackPlan';
-import type { MediaItem } from '@FluxContracts/schemas/MediaItem';
+import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 
 const ExplainSchema = z.object({ mode: z.string(), plan: PlaybackPlanSchema });
 

@@ -1,4 +1,4 @@
-import { absoluteStreamUrl } from '@FluxScreens/playback/castPlayback';
+import { absoluteStreamUrl } from '@ValenceScreens/playback/castPlayback';
 
 type HandOverOptions = {
   element: HTMLVideoElement;

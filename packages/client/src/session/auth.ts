@@ -1,11 +1,11 @@
 import { z } from 'zod';
 import { createAuthClient } from 'better-auth/client';
-import { AUTH_BASE, askTheServer } from '@FluxClient/session/askTheServer';
+import { AUTH_BASE, askTheServer } from '@ValenceClient/session/askTheServer';
 import { adminClient, twoFactorClient } from 'better-auth/client/plugins';
 import { passkeyClient } from '@better-auth/passkey/client';
-import { writeCurrentProfile } from '@FluxClient/profiles/currentProfile';
-import type { SessionUser } from '@FluxContracts/schemas/Session';
-import type { Passkey } from '@FluxContracts/schemas/Passkey';
+import { writeCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import type { SessionUser } from '@ValenceContracts/schemas/Session';
+import type { Passkey } from '@ValenceContracts/schemas/Passkey';
 
 type RegisterOutcome =
   { kind: 'registered' } | { kind: 'cancelled' } | { kind: 'failed'; reason: string };

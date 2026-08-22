@@ -1,8 +1,8 @@
 import { useContext } from 'react';
 import * as RadixTooltip from '@radix-ui/react-tooltip';
-import { tooltipScopeContext } from '@FluxUI/tooltipScopeContext';
-import { cn } from '@FluxUI/cn';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { tooltipScopeContext } from '@ValenceUI/tooltipScopeContext';
+import { cn } from '@ValenceUI/cn';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { TooltipProps } from './Tooltip.types';
 
 const DELAY_MILLISECONDS = 450;

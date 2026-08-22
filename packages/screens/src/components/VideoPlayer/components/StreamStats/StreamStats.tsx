@@ -1,12 +1,12 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { XIcon } from '@phosphor-icons/react';
-import { Button } from '@FluxUI/Button';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
+import { Button } from '@ValenceUI/Button';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import {
   describeAxis as axis,
   describeVideoAxis as videoAxis,
   describeAudioAxis as audioAxis,
-} from '@FluxCore/functions/describePlaybackAxis';
+} from '@ValenceCore/functions/describePlaybackAxis';
 import type { StreamStatsProps } from './StreamStats.types';
 
 /**

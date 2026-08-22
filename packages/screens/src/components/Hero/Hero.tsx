@@ -1,17 +1,17 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretDownIcon, InfoIcon, PlayIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { revealVariants, revealTransition, staggerVariants } from '@FluxUI/animations/reveal';
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { cn } from '@FluxUI/cn';
+import { Button } from '@ValenceUI/Button';
+import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { cn } from '@ValenceUI/cn';
 import { useQuery } from '@tanstack/react-query';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { MediaPreview } from '@FluxScreens/components/MediaPreview/MediaPreview';
-import { MediaFacts } from '@FluxScreens/components/MediaFacts/MediaFacts';
-import { PageDots } from '@FluxUI/PageDots';
-import { useIsPageCovered } from '@FluxUI/useIsPageCovered';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { MediaPreview } from '@ValenceScreens/components/MediaPreview/MediaPreview';
+import { MediaFacts } from '@ValenceScreens/components/MediaFacts/MediaFacts';
+import { PageDots } from '@ValenceUI/PageDots';
+import { useIsPageCovered } from '@ValenceUI/useIsPageCovered';
 import type { HeroProps } from './Hero.types';
 
 const DRAWS_IN_BY_PIXELS = 640;

@@ -1,5 +1,5 @@
-import type { AdminOverview, Monitor } from '@FluxClient/admin/fetchAdmin';
-import { formatBytes } from '@FluxCore/functions/formatBytes';
+import type { AdminOverview, Monitor } from '@ValenceClient/admin/fetchAdmin';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 
 type CacheRow = {
   label: string;

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { readSearch } from '@FluxClient/navigation/readSearch';
+import { readSearch } from '@ValenceClient/navigation/readSearch';
 
 const SECTIONS = [
   'home',

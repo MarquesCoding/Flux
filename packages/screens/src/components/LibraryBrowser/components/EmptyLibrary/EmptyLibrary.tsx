@@ -1,4 +1,4 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 

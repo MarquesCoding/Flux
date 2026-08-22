@@ -1,5 +1,5 @@
 import { useId } from 'react';
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { TextFieldProps } from './TextField.types';
 
 /**

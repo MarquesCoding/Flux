@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { and, count, desc, eq, isNull } from 'drizzle-orm';
-import { mediaItem, series, share, shareVisit, user } from '@FluxServer/db/Schema';
-import { isShareLive } from '@FluxContracts/schemas/Share';
+import { mediaItem, series, share, shareVisit, user } from '@ValenceServer/db/Schema';
+import { isShareLive } from '@ValenceContracts/schemas/Share';
 import { hashShareToken, makeShareToken } from './shareToken';
-import type { FluxDatabase } from '@FluxServer/db/Database';
-import type { AdminShare, Share, ShareKind } from '@FluxContracts/schemas/Share';
+import type { FluxDatabase } from '@ValenceServer/db/Database';
+import type { AdminShare, Share, ShareKind } from '@ValenceContracts/schemas/Share';
 import type { ResolvedShare, ShareService } from './ShareService';
 
 const LIMIT = 500;

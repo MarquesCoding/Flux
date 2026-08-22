@@ -1,5 +1,5 @@
-import { formatDuration } from '@FluxCore/functions/formatDuration';
-import { thumbnailAt } from '@FluxScreens/playback/fetchTrickplay';
+import { formatDuration } from '@ValenceCore/functions/formatDuration';
+import { thumbnailAt } from '@ValenceScreens/playback/fetchTrickplay';
 import type { TrickplayPreviewProps } from './TrickplayPreview.types';
 
 /**

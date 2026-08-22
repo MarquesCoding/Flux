@@ -1,5 +1,5 @@
-import type { BadgeTone } from '@FluxUI/Badge.types';
-import type { Share } from '@FluxContracts/schemas/Share';
+import type { BadgeTone } from '@ValenceUI/Badge.types';
+import type { Share } from '@ValenceContracts/schemas/Share';
 
 type Standing = { label: string; tone: BadgeTone };
 

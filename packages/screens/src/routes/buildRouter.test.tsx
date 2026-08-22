@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { buildRouter } from './buildRouter';
-import { readSearch } from '@FluxClient/navigation/readSearch';
-import type { PlaceSearch } from '@FluxClient/navigation/readSearch';
+import { readSearch } from '@ValenceClient/navigation/readSearch';
+import type { PlaceSearch } from '@ValenceClient/navigation/readSearch';
 
 beforeEach(() => {
   window.history.replaceState(null, '', '/');

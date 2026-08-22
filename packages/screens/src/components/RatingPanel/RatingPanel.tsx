@@ -1,8 +1,8 @@
-import { StarRating } from '@FluxUI/StarRating';
-import { cn } from '@FluxUI/cn';
+import { StarRating } from '@ValenceUI/StarRating';
+import { cn } from '@ValenceUI/cn';
 import { useQuery } from '@tanstack/react-query';
-import { viewingQueries } from '@FluxClient/query/viewingQueries';
-import type { HouseholdRating } from '@FluxContracts/schemas/Rating';
+import { viewingQueries } from '@ValenceClient/query/viewingQueries';
+import type { HouseholdRating } from '@ValenceContracts/schemas/Rating';
 import type { RatingPanelProps } from './RatingPanel.types';
 
 const NOTHING: HouseholdRating = { average: null, count: 0 };

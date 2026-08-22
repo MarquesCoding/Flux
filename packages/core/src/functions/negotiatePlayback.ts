@@ -1,12 +1,12 @@
-import type { MediaItem, SubtitleFormat, VideoRange } from '@FluxContracts/schemas/MediaItem';
-import type { DeviceProfile } from '@FluxContracts/schemas/DeviceProfile';
+import type { MediaItem, SubtitleFormat, VideoRange } from '@ValenceContracts/schemas/MediaItem';
+import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type {
   AudioDecision,
   ContainerDecision,
   PlaybackPlan,
   SubtitleDecision,
   VideoDecision,
-} from '@FluxContracts/schemas/PlaybackPlan';
+} from '@ValenceContracts/schemas/PlaybackPlan';
 import type { QualityClamp } from './resolveQualityStep';
 import { selectAudioStream } from './describeTrack';
 import { encodeBitrateFor } from './encodeBitrateFor';

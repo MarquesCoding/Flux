@@ -1,4 +1,4 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { CastMember } from './components/CastGrid/CastGrid.types';
 
 type MediaDetailDialogProps = {

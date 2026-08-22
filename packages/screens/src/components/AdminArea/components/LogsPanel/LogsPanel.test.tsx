@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { LogsPanel } from './LogsPanel';
-import type { LogQuery, LogRecord } from '@FluxContracts/schemas/Log';
+import type { LogQuery, LogRecord } from '@ValenceContracts/schemas/Log';
 
 const aRecord = (over?: Partial<LogRecord>): LogRecord => ({
   id: 'one',
@@ -247,7 +247,7 @@ describe('LogsPanel', () => {
   });
 });
 
-vi.mock('@FluxClient/realtime/getRealtimeClient', () => ({
+vi.mock('@ValenceClient/realtime/getRealtimeClient', () => ({
   getRealtimeClient: () => ({
     start: () => {},
     stop: () => {},

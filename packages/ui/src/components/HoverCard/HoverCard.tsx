@@ -1,7 +1,7 @@
 import * as RadixHoverCard from '@radix-ui/react-hover-card';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { HoverCardProps } from './HoverCard.types';
 
 /**

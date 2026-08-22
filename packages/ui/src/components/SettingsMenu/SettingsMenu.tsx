@@ -1,16 +1,16 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretLeftIcon, CaretRightIcon, CheckIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
-import { Button } from '@FluxUI/Button';
-import { HoverHighlight } from '@FluxUI/HoverHighlight';
-import { Switch } from '@FluxUI/Switch';
-import { useSlidingHighlight } from '@FluxUI/useSlidingHighlight';
-import { cn } from '@FluxUI/cn';
-import { POPUP_MOTION } from '@FluxUI/animations/motion';
-import { Tooltip } from '@FluxUI/Tooltip';
-import { usePortalContainer } from '@FluxUI/usePortalContainer';
+import { Button } from '@ValenceUI/Button';
+import { HoverHighlight } from '@ValenceUI/HoverHighlight';
+import { Switch } from '@ValenceUI/Switch';
+import { useSlidingHighlight } from '@ValenceUI/useSlidingHighlight';
+import { cn } from '@ValenceUI/cn';
+import { POPUP_MOTION } from '@ValenceUI/animations/motion';
+import { Tooltip } from '@ValenceUI/Tooltip';
+import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type {
   SettingsChoiceRow,
   SettingsMenuProps,

@@ -1,19 +1,26 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ArrowsClockwiseIcon, ImageSquareIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { TextField } from '@FluxUI/TextField';
-import { FilePicker } from '@FluxUI/FilePicker';
+import { Button } from '@ValenceUI/Button';
+import { TextField } from '@ValenceUI/TextField';
+import { FilePicker } from '@ValenceUI/FilePicker';
 import {
   PROFILE_COLOURS,
   AVATAR_STYLES,
   profileInitial,
-} from '@FluxContracts/schemas/ViewerProfile';
-import { createProfile, saveProfile, uploadProfilePhoto } from '@FluxClient/profiles/fetchProfiles';
-import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
-import type { Avatar, AvatarStyle, ProfileColour } from '@FluxContracts/schemas/ViewerProfile';
+} from '@ValenceContracts/schemas/ViewerProfile';
+import {
+  createProfile,
+  saveProfile,
+  uploadProfilePhoto,
+} from '@ValenceClient/profiles/fetchProfiles';
+import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
+import type { Avatar, AvatarStyle, ProfileColour } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileEditorProps } from './ProfileEditor.types';
-import { STILL_WATCHING_DEFAULT, STILL_WATCHING_OFF } from '@FluxContracts/schemas/StillWatching';
+import {
+  STILL_WATCHING_DEFAULT,
+  STILL_WATCHING_OFF,
+} from '@ValenceContracts/schemas/StillWatching';
 
 const PHOTO_TYPES = 'image/jpeg,image/png,image/webp,image/avif,image/gif,video/webm,video/mp4';
 

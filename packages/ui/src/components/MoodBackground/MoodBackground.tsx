@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { useReducedMotion } from 'motion/react';
-import { DotField } from '@FluxUI/DotField';
-import { blendLights } from '@FluxUI/blendLights';
-import { cn } from '@FluxUI/cn';
-import type { DotFieldProps } from '@FluxUI/DotField.types';
+import { DotField } from '@ValenceUI/DotField';
+import { blendLights } from '@ValenceUI/blendLights';
+import { cn } from '@ValenceUI/cn';
+import type { DotFieldProps } from '@ValenceUI/DotField.types';
 import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types';
 
 const BLOOMS = [

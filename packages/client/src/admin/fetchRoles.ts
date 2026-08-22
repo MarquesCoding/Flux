@@ -1,9 +1,9 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { readRefusal } from './readRefusal';
 import type { Refusal } from './readRefusal';
 import { z } from 'zod';
-import { PermissionSchema } from '@FluxContracts/schemas/Permission';
-import type { Permission, PermissionGrant, Role } from '@FluxContracts/schemas/Permission';
+import { PermissionSchema } from '@ValenceContracts/schemas/Permission';
+import type { Permission, PermissionGrant, Role } from '@ValenceContracts/schemas/Permission';
 
 const RoleSchema = z.object({
   id: z.string(),

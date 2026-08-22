@@ -1,4 +1,4 @@
-import type { Book, BookChapter } from '@FluxContracts/schemas/Book';
+import type { Book, BookChapter } from '@ValenceContracts/schemas/Book';
 
 type PageReaderProps = {
   book: Book;

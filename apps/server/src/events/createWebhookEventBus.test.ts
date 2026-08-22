@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { WebhookPayloadSchema } from '@FluxContracts/schemas/Webhook';
-import { createMemoryWebhookStore } from '@FluxServer/webhooks/createMemoryWebhookStore';
+import { WebhookPayloadSchema } from '@ValenceContracts/schemas/Webhook';
+import { createMemoryWebhookStore } from '@ValenceServer/webhooks/createMemoryWebhookStore';
 import { createWebhookEventBus } from './createWebhookEventBus';
-import type { WebhookEvent } from '@FluxContracts/schemas/Webhook';
-import type { WebhookStore } from '@FluxServer/webhooks/WebhookStore';
+import type { WebhookEvent } from '@ValenceContracts/schemas/Webhook';
+import type { WebhookStore } from '@ValenceServer/webhooks/WebhookStore';
 import type { Mock } from 'vitest';
 
 type Enqueue = (subscriptionId: string, payload: string) => Promise<void>;

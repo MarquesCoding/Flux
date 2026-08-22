@@ -1,5 +1,5 @@
 import { cva } from 'class-variance-authority';
-import { PRESS_MOTION } from '@FluxUI/animations/motion';
+import { PRESS_MOTION } from '@ValenceUI/animations/motion';
 
 const buttonStyles = cva(
   [

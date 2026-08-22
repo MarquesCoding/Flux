@@ -1,11 +1,11 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { PlayIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
-import { cn } from '@FluxUI/cn';
-import { hasFinePointer } from '@FluxUI/hasFinePointer';
-import { Badge } from '@FluxUI/Badge';
-import { revealTransition } from '@FluxUI/animations/reveal';
+import { cn } from '@ValenceUI/cn';
+import { hasFinePointer } from '@ValenceUI/hasFinePointer';
+import { Badge } from '@ValenceUI/Badge';
+import { revealTransition } from '@ValenceUI/animations/reveal';
 import type { MediaCardProps, MediaCardShape } from './MediaCard.types';
 
 const SHAPE_CLASSES: Record<MediaCardShape, string> = {

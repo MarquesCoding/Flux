@@ -1,6 +1,6 @@
 import { DEFAULT_JOB_TRIGGERS } from './jobDefinitions';
 import type { JobScheduleService } from './JobScheduleService';
-import type { SettingsStore } from '@FluxServer/settings/ServerSettings';
+import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 
 type SeedDefaultJobTriggersOptions = {
   schedules: JobScheduleService;

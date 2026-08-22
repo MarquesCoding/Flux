@@ -1,16 +1,16 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VideoPlayer } from './VideoPlayer';
-import { fakeMediaElement } from '@FluxScreens/testing/fakeMediaElement';
-import { emitPresenceEvent } from '@FluxClient/presence/presenceEvents';
-import type { PlaybackPlan, Reason } from '@FluxContracts/schemas/PlaybackPlan';
-import type * as SegmentsModule from '@FluxClient/playback/fetchSegments';
-import type * as SubtitlesModule from '@FluxClient/playback/fetchSubtitles';
-import type * as TrickplayModule from '@FluxScreens/playback/fetchTrickplay';
-import type * as CastSenderModule from '@FluxScreens/playback/castSender';
-import type * as CastPlaybackModule from '@FluxScreens/playback/castPlayback';
+import { fakeMediaElement } from '@ValenceScreens/testing/fakeMediaElement';
+import { emitPresenceEvent } from '@ValenceClient/presence/presenceEvents';
+import type { PlaybackPlan, Reason } from '@ValenceContracts/schemas/PlaybackPlan';
+import type * as SegmentsModule from '@ValenceClient/playback/fetchSegments';
+import type * as SubtitlesModule from '@ValenceClient/playback/fetchSubtitles';
+import type * as TrickplayModule from '@ValenceScreens/playback/fetchTrickplay';
+import type * as CastSenderModule from '@ValenceScreens/playback/castSender';
+import type * as CastPlaybackModule from '@ValenceScreens/playback/castPlayback';
 
 const startMock = vi.hoisted(() => vi.fn());
 const stopMock = vi.hoisted(() => vi.fn());
@@ -31,10 +31,10 @@ const isReachableOriginMock = vi.hoisted(() => vi.fn());
 const castStreamMock = vi.hoisted(() => vi.fn());
 const absoluteStreamUrlMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/playback/startPlaybackSession', async () => {
+vi.mock('@ValenceClient/playback/startPlaybackSession', async () => {
   const actual = await vi.importActual<{
     describeWhy: (plan: PlaybackPlan) => string[];
-  }>('@FluxClient/playback/startPlaybackSession');
+  }>('@ValenceClient/playback/startPlaybackSession');
 
   return {
     startPlaybackSession: startMock,
@@ -46,12 +46,14 @@ vi.mock('@FluxClient/playback/startPlaybackSession', async () => {
   };
 });
 
-vi.mock('@FluxScreens/playback/attachShaka', () => ({
+vi.mock('@ValenceScreens/playback/attachShaka', () => ({
   attachShaka: attachMock,
 }));
 
-vi.mock('@FluxScreens/playback/castSender', async () => {
-  const actual = await vi.importActual<typeof CastSenderModule>('@FluxScreens/playback/castSender');
+vi.mock('@ValenceScreens/playback/castSender', async () => {
+  const actual = await vi.importActual<typeof CastSenderModule>(
+    '@ValenceScreens/playback/castSender',
+  );
 
   return {
     ...actual,
@@ -61,9 +63,9 @@ vi.mock('@FluxScreens/playback/castSender', async () => {
   };
 });
 
-vi.mock('@FluxScreens/playback/castPlayback', async () => {
+vi.mock('@ValenceScreens/playback/castPlayback', async () => {
   const actual = await vi.importActual<typeof CastPlaybackModule>(
-    '@FluxScreens/playback/castPlayback',
+    '@ValenceScreens/playback/castPlayback',
   );
 
   return {
@@ -74,35 +76,37 @@ vi.mock('@FluxScreens/playback/castPlayback', async () => {
   };
 });
 
-vi.mock('@FluxScreens/playback/detectDeviceProfile', () => ({
+vi.mock('@ValenceScreens/playback/detectDeviceProfile', () => ({
   detectFromBrowser: () => ({ name: 'Browser' }),
 }));
 
-vi.mock('@FluxScreens/playback/captureFrame', () => ({
+vi.mock('@ValenceScreens/playback/captureFrame', () => ({
   captureFrame: captureMock,
 }));
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
-vi.mock('@FluxClient/playback/fetchSegments', async () => {
-  const actual = await vi.importActual<typeof SegmentsModule>('@FluxClient/playback/fetchSegments');
+vi.mock('@ValenceClient/playback/fetchSegments', async () => {
+  const actual = await vi.importActual<typeof SegmentsModule>(
+    '@ValenceClient/playback/fetchSegments',
+  );
 
   return { ...actual, fetchSegments: segmentsMock };
 });
 
-vi.mock('@FluxClient/playback/fetchSubtitles', async () => {
+vi.mock('@ValenceClient/playback/fetchSubtitles', async () => {
   const actual = await vi.importActual<typeof SubtitlesModule>(
-    '@FluxClient/playback/fetchSubtitles',
+    '@ValenceClient/playback/fetchSubtitles',
   );
 
   return { ...actual, fetchSubtitleTracks: subtitlesMock };
 });
 
-vi.mock('@FluxScreens/playback/fetchTrickplay', async () => {
+vi.mock('@ValenceScreens/playback/fetchTrickplay', async () => {
   const actual = await vi.importActual<typeof TrickplayModule>(
-    '@FluxScreens/playback/fetchTrickplay',
+    '@ValenceScreens/playback/fetchTrickplay',
   );
 
   return {

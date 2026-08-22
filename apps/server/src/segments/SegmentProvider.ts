@@ -1,5 +1,5 @@
-import type { MediaSegment, SegmentKind } from '@FluxContracts/schemas/MediaSegment';
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
+import type { MediaSegment, SegmentKind } from '@ValenceContracts/schemas/MediaSegment';
+import type { MediaProbe } from '@ValenceServer/transcoder/TranscoderClient';
 
 type SegmentCandidate = {
   mediaId: string;

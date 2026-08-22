@@ -1,7 +1,7 @@
 import { Agent, fetch as undiciFetch } from 'undici';
 import { z } from 'zod';
-import { JsonValueSchema } from '@FluxContracts/schemas/JsonValue';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type HttpResponse = {
   ok: boolean;

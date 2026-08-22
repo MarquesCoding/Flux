@@ -1,10 +1,12 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { readWholeLibrary } from './readWholeLibrary';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const fetchLibraryItemsMock = vi.hoisted(() => vi.fn());
 
-vi.mock('@FluxClient/library/fetchLibrary', () => ({ fetchLibraryItems: fetchLibraryItemsMock }));
+vi.mock('@ValenceClient/library/fetchLibrary', () => ({
+  fetchLibraryItems: fetchLibraryItemsMock,
+}));
 
 const anItem = (id: number): MediaSummary => ({
   id: `item-${id.toString()}`,

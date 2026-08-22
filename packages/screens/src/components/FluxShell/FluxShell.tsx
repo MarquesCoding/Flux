@@ -1,40 +1,40 @@
 import { useEffect, useState } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { AnimatePresence, motion } from 'motion/react';
-import { groupVariants } from '@FluxUI/animations/reveal';
+import { groupVariants } from '@ValenceUI/animations/reveal';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { AppShell } from '@FluxScreens/components/AppShell/AppShell';
-import { ShowDialog } from '@FluxScreens/components/ShowDialog/ShowDialog';
-import { MediaDetailDialog } from '@FluxScreens/components/MediaDetailDialog/MediaDetailDialog';
-import { PersonDialog } from '@FluxScreens/components/PersonDialog/PersonDialog';
-import { ShareDialog } from '@FluxScreens/components/ShareDialog/ShareDialog';
-import type { ShareSubject } from '@FluxScreens/components/ShareDialog/ShareDialog.types';
-import { StillWatchingDialog } from '@FluxScreens/components/StillWatchingDialog/StillWatchingDialog';
-import { NotificationBell } from '@FluxScreens/components/NotificationBell/NotificationBell';
-import { ProfileFace } from '@FluxScreens/components/ProfileFace/ProfileFace';
+import { AppShell } from '@ValenceScreens/components/AppShell/AppShell';
+import { ShowDialog } from '@ValenceScreens/components/ShowDialog/ShowDialog';
+import { MediaDetailDialog } from '@ValenceScreens/components/MediaDetailDialog/MediaDetailDialog';
+import { PersonDialog } from '@ValenceScreens/components/PersonDialog/PersonDialog';
+import { ShareDialog } from '@ValenceScreens/components/ShareDialog/ShareDialog';
+import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareDialog.types';
+import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
+import { NotificationBell } from '@ValenceScreens/components/NotificationBell/NotificationBell';
+import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
 import {
   clearNotifications,
   markNotificationsRead,
-} from '@FluxClient/notifications/fetchNotifications';
+} from '@ValenceClient/notifications/fetchNotifications';
 import {
   canReceivePush,
   subscribeToPush,
   unsubscribeFromPush,
-} from '@FluxScreens/notifications/subscribeToPush';
-import { notificationQueries } from '@FluxClient/query/notificationQueries';
-import { libraryQueries } from '@FluxClient/query/libraryQueries';
-import { useFavourites } from '@FluxClient/library/useFavourites';
-import { useRatings } from '@FluxClient/library/useRatings';
-import { pickAnything } from '@FluxClient/library/pickAnything';
-import { findSiblings } from '@FluxClient/library/pickFeatured';
-import { showSlug } from '@FluxCore/functions/showSlug';
-import { watchedFraction } from '@FluxContracts/schemas/WatchProgress';
-import { STILL_WATCHING_ANSWER_SECONDS } from '@FluxContracts/schemas/StillWatching';
-import { resumeFor } from '@FluxClient/playback/resumeFor';
-import { usePlace } from '@FluxScreens/navigation/usePlace';
-import { useShell } from '@FluxClient/shell/useShell';
-import type { ShowSummary } from '@FluxContracts/schemas/Show';
-import type { Inbox } from '@FluxClient/notifications/fetchNotifications';
+} from '@ValenceScreens/notifications/subscribeToPush';
+import { notificationQueries } from '@ValenceClient/query/notificationQueries';
+import { libraryQueries } from '@ValenceClient/query/libraryQueries';
+import { useFavourites } from '@ValenceClient/library/useFavourites';
+import { useRatings } from '@ValenceClient/library/useRatings';
+import { pickAnything } from '@ValenceClient/library/pickAnything';
+import { findSiblings } from '@ValenceClient/library/pickFeatured';
+import { showSlug } from '@ValenceCore/functions/showSlug';
+import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
+import { STILL_WATCHING_ANSWER_SECONDS } from '@ValenceContracts/schemas/StillWatching';
+import { resumeFor } from '@ValenceClient/playback/resumeFor';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
+import type { ShowSummary } from '@ValenceContracts/schemas/Show';
+import type { Inbox } from '@ValenceClient/notifications/fetchNotifications';
 
 const NOTHING_WAITING = { notifications: [], unread: 0 };
 

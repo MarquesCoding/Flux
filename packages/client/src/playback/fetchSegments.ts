@@ -1,7 +1,7 @@
-import { readFromServer } from '@FluxClient/query/readFromServer';
+import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
-import { MediaSegmentSchema } from '@FluxContracts/schemas/MediaSegment';
-import type { MediaSegment } from '@FluxContracts/schemas/MediaSegment';
+import { MediaSegmentSchema } from '@ValenceContracts/schemas/MediaSegment';
+import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 
 const SegmentListSchema = z.object({ segments: z.array(MediaSegmentSchema) });
 

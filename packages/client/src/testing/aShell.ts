@@ -1,4 +1,4 @@
-import type { Shell } from '@FluxClient/shell/shell.types';
+import type { Shell } from '@ValenceClient/shell/shell.types';
 
 const NOBODY = {
   id: '00000000-0000-4000-8000-000000000001',

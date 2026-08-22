@@ -1,10 +1,10 @@
 import { infiniteQueryOptions, queryOptions } from '@tanstack/react-query';
-import { fetchWatchProgress } from '@FluxClient/playback/watchProgress';
-import { fetchFavourites } from '@FluxClient/library/fetchFavourites';
-import { fetchRatings, fetchHouseholdRating } from '@FluxClient/library/fetchRatings';
-import type { RatingSubject } from '@FluxClient/library/fetchRatings';
-import { fetchHistory, A_PAGE } from '@FluxClient/history/fetchHistory';
-import type { Viewing } from '@FluxContracts/schemas/Viewing';
+import { fetchWatchProgress } from '@ValenceClient/playback/watchProgress';
+import { fetchFavourites } from '@ValenceClient/library/fetchFavourites';
+import { fetchRatings, fetchHouseholdRating } from '@ValenceClient/library/fetchRatings';
+import type { RatingSubject } from '@ValenceClient/library/fetchRatings';
+import { fetchHistory, A_PAGE } from '@ValenceClient/history/fetchHistory';
+import type { Viewing } from '@ValenceContracts/schemas/Viewing';
 
 const VIEWING = ['viewing'] as const;
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
-import { QUALITY_STEP_IDS } from '@FluxContracts/schemas/QualityStep';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
+import { QUALITY_STEP_IDS } from '@ValenceContracts/schemas/QualityStep';
 
 const QualityPreferenceSchema = z.enum(['original', ...QUALITY_STEP_IDS]);
 

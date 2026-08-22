@@ -1,8 +1,8 @@
 import { z } from 'zod';
-import { platformInUse } from '@FluxClient/platform/installPlatform';
-import { getRealtimeClient } from '@FluxClient/realtime/getRealtimeClient';
-import { readCurrentProfile } from '@FluxClient/profiles/currentProfile';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+import { platformInUse } from '@ValenceClient/platform/installPlatform';
+import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
+import { readCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 import { emitPresenceEvent } from './presenceEvents';
 
 const PresenceEventSchema = z.discriminatedUnion('kind', [

@@ -2,8 +2,8 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SetupWizard } from './SetupWizard';
-import { SetupRequestSchema } from '@FluxContracts/schemas/Setup';
-import type { SetupRequest, SetupStatus } from '@FluxContracts/schemas/Setup';
+import { SetupRequestSchema } from '@ValenceContracts/schemas/Setup';
+import type { SetupRequest, SetupStatus } from '@ValenceContracts/schemas/Setup';
 
 const status: SetupStatus = {
   isComplete: false,

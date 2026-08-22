@@ -1,10 +1,10 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { BellIcon } from '@phosphor-icons/react';
-import { Badge } from '@FluxUI/Badge';
-import { Button } from '@FluxUI/Button';
-import { PopoverPanel } from '@FluxUI/PopoverPanel';
-import { Switch } from '@FluxUI/Switch';
-import { describeSince } from '@FluxScreens/components/AdminArea/describeSince';
+import { Badge } from '@ValenceUI/Badge';
+import { Button } from '@ValenceUI/Button';
+import { PopoverPanel } from '@ValenceUI/PopoverPanel';
+import { Switch } from '@ValenceUI/Switch';
+import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import type { NotificationBellProps } from './NotificationBell.types';
 
 const COUNTED_UP_TO = 9;

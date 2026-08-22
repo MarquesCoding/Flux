@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
-import type { SequencedCommand } from '@FluxContracts/schemas/WatchParty';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
+import type { SequencedCommand } from '@ValenceContracts/schemas/WatchParty';
 
 type PartyPlayback = {
   id: string;

@@ -1,9 +1,9 @@
 import { useEffect } from 'react';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import {
   artworkFetchedForTheSystem,
   artworkTheSystemAccepts,
-} from '@FluxScreens/playback/artworkTheSystemAccepts';
+} from '@ValenceScreens/playback/artworkTheSystemAccepts';
 
 const A_SKIP = 10;
 

@@ -5,10 +5,10 @@ import {
   FRAME,
   HANDSHAKE,
   readDiscordFrames,
-} from '@FluxDesktop/main/aDiscordFrame';
-import { aDiscordActivity } from '@FluxDesktop/main/aDiscordActivity';
-import { whereDiscordListens } from '@FluxDesktop/main/whereDiscordListens';
-import type { WhatIsPlaying } from '@FluxDesktop/main/aDiscordActivity';
+} from '@ValenceDesktop/main/aDiscordFrame';
+import { aDiscordActivity } from '@ValenceDesktop/main/aDiscordActivity';
+import { whereDiscordListens } from '@ValenceDesktop/main/whereDiscordListens';
+import type { WhatIsPlaying } from '@ValenceDesktop/main/aDiscordActivity';
 
 const CLIENT_ID = '1539800715281563738';
 

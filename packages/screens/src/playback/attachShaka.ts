@@ -1,7 +1,7 @@
 import { z } from 'zod';
-import { deliveredBitrateKbps } from '@FluxClient/playback/deliveredBitrateKbps';
-import { teachShakaOurScheme } from '@FluxScreens/playback/teachShakaOurScheme';
-import type { ShakaNetworking } from '@FluxScreens/playback/teachShakaOurScheme';
+import { deliveredBitrateKbps } from '@ValenceClient/playback/deliveredBitrateKbps';
+import { teachShakaOurScheme } from '@ValenceScreens/playback/teachShakaOurScheme';
+import type { ShakaNetworking } from '@ValenceScreens/playback/teachShakaOurScheme';
 import type shaka from 'shaka-player/dist/shaka-player.compiled';
 
 type ShakaVariant = {

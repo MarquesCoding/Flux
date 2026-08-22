@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { groupIntoRails, inBroadcastOrder } from './groupIntoRails';
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 const NOW = Date.parse('2026-08-10T00:00:00.000Z');
 

@@ -1,4 +1,4 @@
-import type { MediaSummary } from '@FluxContracts/schemas/Library';
+import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 type MatchPickerProps = {
   media: MediaSummary | null;

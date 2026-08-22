@@ -1,7 +1,7 @@
-import { forgottenAfterMs, sameEventKey } from '@FluxContracts/schemas/Log';
-import { redactSecrets } from '@FluxCore/functions/redactSecrets';
-import type { LogContext, LogLevel, LogRecord, LogSource } from '@FluxContracts/schemas/Log';
-import type { Schedule } from '@FluxServer/realtime/createCoalescer';
+import { forgottenAfterMs, sameEventKey } from '@ValenceContracts/schemas/Log';
+import { redactSecrets } from '@ValenceCore/functions/redactSecrets';
+import type { LogContext, LogLevel, LogRecord, LogSource } from '@ValenceContracts/schemas/Log';
+import type { Schedule } from '@ValenceServer/realtime/createCoalescer';
 import type { LogAside, LogStore, Logger, StoredLog } from './Logger';
 
 type LoggerOptions = {

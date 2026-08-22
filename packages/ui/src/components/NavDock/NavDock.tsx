@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { AnimatedIcon } from '@FluxUI/AnimatedIcon';
-import { Button } from '@FluxUI/Button';
-import { SlidingMark } from '@FluxUI/SlidingMark';
-import { cn } from '@FluxUI/cn';
+import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
+import { Button } from '@ValenceUI/Button';
+import { SlidingMark } from '@ValenceUI/SlidingMark';
+import { cn } from '@ValenceUI/cn';
 import { useOpenAction } from './useOpenAction';
 import type { NavDockProps } from './NavDock.types';
 

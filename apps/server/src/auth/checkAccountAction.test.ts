@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { checkAccountAction } from './checkAccountAction';
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const holding = (...permissions: Permission[]) => new Set<Permission>(permissions);
 

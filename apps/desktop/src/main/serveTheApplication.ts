@@ -1,7 +1,7 @@
 import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { app, net, protocol } from 'electron';
-import { theServerAddress } from '@FluxDesktop/main/theServerAddress';
+import { theServerAddress } from '@ValenceDesktop/main/theServerAddress';
 
 const SCHEME = 'flux';
 

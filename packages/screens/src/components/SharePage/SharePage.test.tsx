@@ -1,13 +1,13 @@
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { renderInAnAddress } from '@FluxScreens/testing/renderInAnAddress';
-import { shareEndingFor } from '@FluxClient/sharing/shareEndingFor';
+import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
+import { shareEndingFor } from '@ValenceClient/sharing/shareEndingFor';
 import { SharePage } from './SharePage';
-import type { ShareAreaProps } from '@FluxScreens/components/ShareArea/ShareArea.types';
-import type { VideoPlayerProps } from '@FluxScreens/components/VideoPlayer/VideoPlayer.types';
+import type { ShareAreaProps } from '@ValenceScreens/components/ShareArea/ShareArea.types';
+import type { VideoPlayerProps } from '@ValenceScreens/components/VideoPlayer/VideoPlayer.types';
 
-vi.mock('@FluxClient/sharing/shareEndingFor', () => ({
+vi.mock('@ValenceClient/sharing/shareEndingFor', () => ({
   shareEndingFor: vi.fn(),
 }));
 
@@ -33,7 +33,7 @@ const ARRIVAL = {
   seriesId: null,
 };
 
-vi.mock('@FluxScreens/components/ShareArea/ShareArea', () => ({
+vi.mock('@ValenceScreens/components/ShareArea/ShareArea', () => ({
   ShareArea: (props: ShareAreaProps) => {
     drawn.share = props;
 
@@ -50,7 +50,7 @@ vi.mock('@FluxScreens/components/ShareArea/ShareArea', () => ({
   },
 }));
 
-vi.mock('@FluxScreens/components/VideoPlayer/VideoPlayer', () => ({
+vi.mock('@ValenceScreens/components/VideoPlayer/VideoPlayer', () => ({
   VideoPlayer: (props: VideoPlayerProps) => {
     drawn.player = props;
 

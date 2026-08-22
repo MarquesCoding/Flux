@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const SCAN_LIBRARY_JOB = 'library.scan';
 

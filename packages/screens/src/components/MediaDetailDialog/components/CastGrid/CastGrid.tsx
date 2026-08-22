@@ -1,10 +1,10 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { UserIcon } from '@phosphor-icons/react';
-import { PageDots } from '@FluxUI/PageDots';
-import { Button } from '@FluxUI/Button';
-import { cn } from '@FluxUI/cn';
-import { canOpenPerson } from '@FluxContracts/schemas/Person';
-import { usePagedScroller } from '@FluxUI/usePagedScroller';
+import { PageDots } from '@ValenceUI/PageDots';
+import { Button } from '@ValenceUI/Button';
+import { cn } from '@ValenceUI/cn';
+import { canOpenPerson } from '@ValenceContracts/schemas/Person';
+import { usePagedScroller } from '@ValenceUI/usePagedScroller';
 import type { CastGridProps } from './CastGrid.types';
 
 /**

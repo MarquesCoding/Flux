@@ -1,5 +1,5 @@
-import type { MediaProbe } from '@FluxServer/transcoder/TranscoderClient';
-import type { Person } from '@FluxContracts/schemas/Person';
+import type { MediaProbe } from '@ValenceServer/transcoder/TranscoderClient';
+import type { Person } from '@ValenceContracts/schemas/Person';
 
 type MediaFacts = {
   path: string;

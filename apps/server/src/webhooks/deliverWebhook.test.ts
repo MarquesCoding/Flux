@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
-import { WEBHOOK_PAYLOAD_VERSION } from '@FluxContracts/schemas/Webhook';
+import { WEBHOOK_PAYLOAD_VERSION } from '@ValenceContracts/schemas/Webhook';
 import { deliverWebhook } from './deliverWebhook';
 import { signWebhookPayload, WEBHOOK_SIGNATURE_HEADER } from './signWebhookPayload';
-import type { WebhookPayload } from '@FluxContracts/schemas/Webhook';
+import type { WebhookPayload } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookFetcher, WebhookTarget } from './deliverWebhook';
 import type { Mock } from 'vitest';
 

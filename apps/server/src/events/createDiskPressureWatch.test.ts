@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createDiskPressureWatch } from './createDiskPressureWatch';
-import type { DiskUse } from '@FluxServer/maintenance/DiskUse';
+import type { DiskUse } from '@ValenceServer/maintenance/DiskUse';
 import type { Mock } from 'vitest';
 
 type Told = (disk: DiskUse) => void;

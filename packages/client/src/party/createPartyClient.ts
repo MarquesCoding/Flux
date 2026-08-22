@@ -2,17 +2,17 @@ import {
   WatchPartySchema,
   SequencedCommandSchema,
   PartyNoticeSchema,
-} from '@FluxContracts/schemas/WatchParty';
-import { estimateClockOffset, measurementJitter } from '@FluxCore/functions/estimateClockOffset';
+} from '@ValenceContracts/schemas/WatchParty';
+import { estimateClockOffset, measurementJitter } from '@ValenceCore/functions/estimateClockOffset';
 import { z } from 'zod';
-import type { Reading } from '@FluxCore/functions/estimateClockOffset';
+import type { Reading } from '@ValenceCore/functions/estimateClockOffset';
 import type {
   PartyCommand,
   PartyNotice,
   SequencedCommand,
   WatchParty,
-} from '@FluxContracts/schemas/WatchParty';
-import type { RealtimeClient } from '@FluxClient/realtime/createRealtimeClient';
+} from '@ValenceContracts/schemas/WatchParty';
+import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
 
 const PartyEventSchema = z.object({
   party: WatchPartySchema,

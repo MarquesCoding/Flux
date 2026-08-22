@@ -1,5 +1,5 @@
-import { averageStars } from '@FluxContracts/schemas/Rating';
-import type { Rating } from '@FluxContracts/schemas/Rating';
+import { averageStars } from '@ValenceContracts/schemas/Rating';
+import type { Rating } from '@ValenceContracts/schemas/Rating';
 import type { RatingService, RatingSubject } from './RatingService';
 
 type MemoryState = Record<string, Rating[]>;

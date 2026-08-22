@@ -1,4 +1,4 @@
-import type { DeviceStore } from '@FluxClient/platform/Platform.types';
+import type { DeviceStore } from '@ValenceClient/platform/Platform.types';
 
 /**
  * Where this client keeps what belongs to the machine rather than to the account — which server it

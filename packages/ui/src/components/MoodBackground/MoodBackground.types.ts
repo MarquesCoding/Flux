@@ -1,4 +1,4 @@
-import type { DotFieldFrame } from '@FluxUI/DotField.types';
+import type { DotFieldFrame } from '@ValenceUI/DotField.types';
 
 type MoodLight = {
   color: string;

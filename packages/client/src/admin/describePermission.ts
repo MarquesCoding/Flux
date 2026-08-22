@@ -1,4 +1,4 @@
-import type { Permission } from '@FluxContracts/schemas/Permission';
+import type { Permission } from '@ValenceContracts/schemas/Permission';
 
 const LABELS: Record<Permission, string> = {
   administrator: 'Everything, including anything added later',

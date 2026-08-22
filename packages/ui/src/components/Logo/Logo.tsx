@@ -1,4 +1,4 @@
-import { cn } from '@FluxUI/cn';
+import { cn } from '@ValenceUI/cn';
 import type { LogoProps } from './Logo.types';
 
 const MARK = '/valence-logo.svg';

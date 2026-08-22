@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import type { MediaGridSize } from '@FluxScreens/components/MediaGrid/MediaGrid.types';
+import type { MediaGridSize } from '@ValenceScreens/components/MediaGrid/MediaGrid.types';
 
 const GridSizePreferenceSchema = z.enum(['small', 'medium', 'large']);
 

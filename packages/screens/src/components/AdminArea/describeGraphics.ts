@@ -1,5 +1,5 @@
-import type { Monitor } from '@FluxClient/admin/fetchAdmin';
-import type { Stat } from '@FluxScreens/components/AdminArea/components/StatStrip/StatStrip.types';
+import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
+import type { Stat } from '@ValenceScreens/components/AdminArea/components/StatStrip/StatStrip.types';
 
 /**
  * Decides what the graphics tile says, and is careful about what it refuses to say. Cards report

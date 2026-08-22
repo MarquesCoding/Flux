@@ -1,4 +1,4 @@
-import type { MoodLight } from '@FluxUI/MoodBackground.types';
+import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 
 const READ_AT = 24;
 

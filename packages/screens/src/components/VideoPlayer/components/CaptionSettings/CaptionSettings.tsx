@@ -1,7 +1,7 @@
-import { Button } from '@FluxUI/Button';
-import { Slider } from '@FluxUI/Slider';
+import { Button } from '@ValenceUI/Button';
+import { Slider } from '@ValenceUI/Slider';
 import { CaptionChoice } from './components/CaptionChoice/CaptionChoice';
-import { toCueDeclarations } from '@FluxScreens/playback/captionStyle';
+import { toCueDeclarations } from '@ValenceScreens/playback/captionStyle';
 import type { CaptionSettingsProps } from './CaptionSettings.types';
 
 const FONTS = [

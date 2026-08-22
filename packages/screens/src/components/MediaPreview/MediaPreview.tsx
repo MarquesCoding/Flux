@@ -1,21 +1,21 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { SpeakerHighIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { VideoSurface } from '@FluxUI/VideoSurface';
-import { frameUrl } from '@FluxClient/playback/frameUrl';
-import { readLights } from '@FluxScreens/library/readLights';
+import { Button } from '@ValenceUI/Button';
+import { VideoSurface } from '@ValenceUI/VideoSurface';
+import { frameUrl } from '@ValenceClient/playback/frameUrl';
+import { readLights } from '@ValenceScreens/library/readLights';
 import {
   fetchSubtitleTracks,
   subtitleTrackUrl,
   previewTrack,
-} from '@FluxClient/playback/fetchSubtitles';
-import { liftCues } from '@FluxScreens/playback/liftCues';
-import { readPreviewState } from '@FluxClient/playback/readPreviewState';
-import { readSoundPreference, saveSoundPreference } from '@FluxClient/playback/soundPreference';
-import { fadeAudioOut } from '@FluxScreens/playback/fadeAudioOut';
-import { rampVolume } from '@FluxScreens/playback/rampVolume';
-import { claimSound } from '@FluxScreens/playback/soundOwner';
+} from '@ValenceClient/playback/fetchSubtitles';
+import { liftCues } from '@ValenceScreens/playback/liftCues';
+import { readPreviewState } from '@ValenceClient/playback/readPreviewState';
+import { readSoundPreference, saveSoundPreference } from '@ValenceClient/playback/soundPreference';
+import { fadeAudioOut } from '@ValenceScreens/playback/fadeAudioOut';
+import { rampVolume } from '@ValenceScreens/playback/rampVolume';
+import { claimSound } from '@ValenceScreens/playback/soundOwner';
 import type { MediaPreviewProps, PreviewAbsence } from './MediaPreview.types';
 
 const SETTLE_MILLISECONDS = 2600;

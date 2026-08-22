@@ -1,13 +1,13 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { CaretUpDownIcon } from '@phosphor-icons/react';
 import { useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Card } from '@FluxUI/Card';
-import { CardHeader } from '@FluxUI/CardHeader';
-import { OptionMenu } from '@FluxUI/OptionMenu';
-import { TextField } from '@FluxUI/TextField';
-import { saveCatalogueKey, saveHardwareAccel } from '@FluxClient/admin/fetchAdmin';
-import { accelerationOptions } from '@FluxScreens/components/AdminArea/accelerationOptions';
+import { Button } from '@ValenceUI/Button';
+import { Card } from '@ValenceUI/Card';
+import { CardHeader } from '@ValenceUI/CardHeader';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
+import { TextField } from '@ValenceUI/TextField';
+import { saveCatalogueKey, saveHardwareAccel } from '@ValenceClient/admin/fetchAdmin';
+import { accelerationOptions } from '@ValenceScreens/components/AdminArea/accelerationOptions';
 import type { SettingsPanelProps } from './SettingsPanel.types';
 
 /**

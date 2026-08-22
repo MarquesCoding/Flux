@@ -53,7 +53,7 @@ binaries. Same principle, same enforcement.
 in an import specifier.
 
 ```ts
-import Button from '@FluxUI/Button'; // correct
+import Button from '@ValenceUI/Button'; // correct
 import Button from '../../ui/Button/Button'; // banned
 ```
 
@@ -62,16 +62,16 @@ component importing its own co-located types is not crossing a boundary.
 
 ### Alias map
 
-| Alias              | Resolves to                                    |
-| ------------------ | ---------------------------------------------- |
-| `@FluxUI/<Name>`   | `packages/ui/src/components/<Name>/<Name>.tsx` |
-| `@FluxContracts/*` | `packages/contracts/src/*`                     |
-| `@FluxCore/*`      | `packages/core/src/*`                          |
-| `@FluxSDK/*`       | `packages/plugin-sdk/src/*`                    |
+| Alias                 | Resolves to                                    |
+| --------------------- | ---------------------------------------------- |
+| `@ValenceUI/<Name>`   | `packages/ui/src/components/<Name>/<Name>.tsx` |
+| `@ValenceContracts/*` | `packages/contracts/src/*`                     |
+| `@ValenceCore/*`      | `packages/core/src/*`                          |
+| `@ValenceSDK/*`       | `packages/plugin-sdk/src/*`                    |
 
-### How `@FluxUI/Button` resolves without index files
+### How `@ValenceUI/Button` resolves without index files
 
-TypeScript path mapping substitutes a wildcard once, so `@FluxUI/*` cannot expand
+TypeScript path mapping substitutes a wildcard once, so `@ValenceUI/*` cannot expand
 to `components/*/*.tsx` — the captured segment would need to appear twice. Since
 rule 4 also forbids barrel files, there is no `index.ts` to fall back on.
 
@@ -80,8 +80,8 @@ Component aliases are therefore **listed explicitly, one line per component**, i
 
 ```json
 {
-  "@FluxUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
-  "@FluxUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"]
+  "@ValenceUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
+  "@ValenceUI/Checkbox": ["./packages/ui/src/components/Checkbox/Checkbox.tsx"]
 }
 ```
 
@@ -95,8 +95,8 @@ source of truth rather than a duplicated alias list per bundler config.
 
 ### Published package names
 
-`@FluxUI` is an internal alias only. npm scopes must be lowercase, so any package
-published to a registry uses a lowercase name (`@flux/ui`, `@flux/plugin-sdk`).
+`@ValenceUI` is an internal alias only. npm scopes must be lowercase, so any package
+published to a registry uses a lowercase name (`@valence/ui`, `@valence/plugin-sdk`).
 The alias and the published name are deliberately different things; do not try to
 make them match.
 
@@ -132,7 +132,7 @@ export { Button }
 Consumption — **import what is used, and nothing else**:
 
 ```tsx
-import { Button } from '@FluxUI/Button';
+import { Button } from '@ValenceUI/Button';
 
 const MediaCard = (props: MediaCardProps) => {
   return <Button variant="primary">Play</Button>;
@@ -420,13 +420,13 @@ only when a new primitive gets an owner.
 ## 10. Icons
 
 **All icons come from `@hugeicons/core-free-icons`, and are drawn by
-`@FluxUI/Icon`.** Remix Icon, Tabler and Lucide are all banned in ESLint, so a
+`@ValenceUI/Icon`.** Remix Icon, Tabler and Lucide are all banned in ESLint, so a
 second set cannot come back a file at a time. The renderer, `HugeiconsIcon`, is
 banned too: a call site names the icon it wants and `Icon` decides how it is
 drawn, which is what keeps the set swappable in one file.
 
 ```tsx
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { Home01Icon } from '@hugeicons/core-free-icons';
 
 <Icon of={Home01Icon} size={18} />;

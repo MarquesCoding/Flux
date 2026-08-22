@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { findGaps } from './findGaps';
-import type { ShowDetail } from '@FluxContracts/schemas/Show';
+import type { ShowDetail } from '@ValenceContracts/schemas/Show';
 
 const episode = (seasonNumber: number | null, episodeNumber: number | null) => ({
   id: `${(seasonNumber ?? 0).toString()}-${(episodeNumber ?? 0).toString()}`,

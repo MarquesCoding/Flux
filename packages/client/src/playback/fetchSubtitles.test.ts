@@ -8,7 +8,7 @@ import {
   SUBTITLES_OFF,
 } from './fetchSubtitles';
 import type { SubtitleTrack } from './fetchSubtitles';
-import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
   id: 'en',
@@ -158,4 +158,3 @@ describe('previewTrack', () => {
     expect(previewTrack([track({ id: 'unknown', language: null })], 'en')?.id).toBe('unknown');
   });
 });
-

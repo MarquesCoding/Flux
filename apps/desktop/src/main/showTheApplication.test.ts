@@ -6,7 +6,7 @@ vi.mock('electron', () => ({
   protocol: { registerSchemesAsPrivileged: vi.fn(), handle: vi.fn() },
 }));
 
-vi.mock('@FluxDesktop/main/theServerAddress', () => ({ theServerAddress: () => '' }));
+vi.mock('@ValenceDesktop/main/theServerAddress', () => ({ theServerAddress: () => '' }));
 
 const { showTheApplication } = await import('./showTheApplication');
 

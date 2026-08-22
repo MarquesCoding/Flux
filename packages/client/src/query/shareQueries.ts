@@ -1,5 +1,5 @@
 import { queryOptions } from '@tanstack/react-query';
-import { fetchShares } from '@FluxClient/sharing/fetchShares';
+import { fetchShares } from '@ValenceClient/sharing/fetchShares';
 
 const SHARES = ['shares'] as const;
 

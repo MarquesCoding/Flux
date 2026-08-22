@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { DeviceProfileSchema } from '@FluxContracts/schemas/DeviceProfile';
+import { DeviceProfileSchema } from '@ValenceContracts/schemas/DeviceProfile';
 import { detectDeviceProfile, detectFromBrowser } from './detectDeviceProfile';
 
 const supporting =

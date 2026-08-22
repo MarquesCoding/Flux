@@ -1,8 +1,8 @@
 import { describe, expect, it, vi } from 'vitest';
 import { sweepArtefactCache } from './sweepArtefactCache';
 import type { LiveItem } from './sweepArtefactCache';
-import type { AudioStream } from '@FluxContracts/schemas/MediaItem';
-import type { PreviewSweepSubject, SweepReport } from '@FluxServer/transcoder/TranscoderClient';
+import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { PreviewSweepSubject, SweepReport } from '@ValenceServer/transcoder/TranscoderClient';
 
 const GEOMETRY = { intervalSeconds: 10, tileWidth: 320, columns: 10, rows: 10 };
 

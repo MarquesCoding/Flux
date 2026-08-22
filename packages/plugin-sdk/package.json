@@ -1,5 +1,5 @@
 {
-  "name": "@flux/plugin-sdk",
+  "name": "@valence/plugin-sdk",
   "version": "0.0.0",
   "private": true,
   "type": "module",
@@ -9,7 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@flux/contracts": "workspace:*",
+    "@valence/contracts": "workspace:*",
     "zod": "^4.4.3"
   },
   "devDependencies": {

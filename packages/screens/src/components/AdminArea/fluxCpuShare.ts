@@ -1,4 +1,4 @@
-import type { Monitor } from '@FluxClient/admin/fetchAdmin';
+import type { Monitor } from '@ValenceClient/admin/fetchAdmin';
 
 /**
  * Works out how much of the whole machine Valence itself is using, counting the server and every child

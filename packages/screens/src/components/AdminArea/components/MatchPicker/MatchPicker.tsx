@@ -1,17 +1,17 @@
-import { Icon } from '@FluxUI/Icon';
+import { Icon } from '@ValenceUI/Icon';
 import { ArrowUUpLeftIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useEffect, useState } from 'react';
-import { Button } from '@FluxUI/Button';
-import { Dialog } from '@FluxUI/Dialog';
-import { DialogContent } from '@FluxUI/DialogContent';
-import { DialogFooter } from '@FluxUI/DialogFooter';
-import { DialogTitle } from '@FluxUI/DialogTitle';
-import { Spinner } from '@FluxUI/Spinner';
-import { notify } from '@FluxUI/notify';
-import { TextField } from '@FluxUI/TextField';
-import { searchCatalogue } from '@FluxClient/admin/fetchAdmin';
-import { correctMatch, forgetCorrection } from '@FluxClient/library/fetchLibrary';
-import type { CatalogueMatch } from '@FluxClient/admin/fetchAdmin';
+import { Button } from '@ValenceUI/Button';
+import { Dialog } from '@ValenceUI/Dialog';
+import { DialogContent } from '@ValenceUI/DialogContent';
+import { DialogFooter } from '@ValenceUI/DialogFooter';
+import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { Spinner } from '@ValenceUI/Spinner';
+import { notify } from '@ValenceUI/notify';
+import { TextField } from '@ValenceUI/TextField';
+import { searchCatalogue } from '@ValenceClient/admin/fetchAdmin';
+import { correctMatch, forgetCorrection } from '@ValenceClient/library/fetchLibrary';
+import type { CatalogueMatch } from '@ValenceClient/admin/fetchAdmin';
 import type { MatchPickerProps } from './MatchPicker.types';
 
 /**

@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
-import { isShareLive } from '@FluxContracts/schemas/Share';
+import { isShareLive } from '@ValenceContracts/schemas/Share';
 import { hashShareToken, makeShareToken } from './shareToken';
-import type { ShareKind } from '@FluxContracts/schemas/Share';
+import type { ShareKind } from '@ValenceContracts/schemas/Share';
 import type { ResolvedShare, ShareService } from './ShareService';
 
 type MemoryShare = {

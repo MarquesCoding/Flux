@@ -2,7 +2,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavDock } from './NavDock';
-import { ActionMenu } from '@FluxUI/ActionMenu';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));

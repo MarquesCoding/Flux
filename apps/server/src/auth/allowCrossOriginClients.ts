@@ -1,5 +1,5 @@
 import { createMiddleware } from 'hono/factory';
-import { originIsAllowed } from '@FluxServer/auth/originIsAllowed';
+import { originIsAllowed } from '@ValenceServer/auth/originIsAllowed';
 
 const ALLOWED_HEADERS = ['authorization', 'content-type', 'accept', 'range'];
 
