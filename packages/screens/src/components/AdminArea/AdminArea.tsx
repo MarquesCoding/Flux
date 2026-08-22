@@ -570,7 +570,7 @@ const AdminArea = ({
                 detail:
                   memory === null
                     ? '—'
-                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · ${describeFluxMemory(fluxMemory)}`,
+                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Flux ${describeFluxMemory(fluxMemory)}`,
               },
               {
                 label: 'Graphics',

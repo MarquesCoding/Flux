@@ -91,6 +91,7 @@ const MonitorSchema = z.object({
     serviceMemoryBytes: z.number(),
     children: z.array(ProcessUseSchema),
     deploymentMemory: DeploymentMemorySchema.nullable().default(null),
+    apiMemoryBytes: z.number().nullable().default(null),
     loadAverage: z.number(),
     disks: z.array(DiskUseSchema).default([]),
     graphics: GraphicsUseSchema.nullable().default(null),

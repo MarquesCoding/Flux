@@ -12,6 +12,7 @@ const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['reso
   serviceMemoryBytes: 0,
   children: [],
   deploymentMemory: null,
+  apiMemoryBytes: null,
   loadAverage: 0,
   disks: [],
   graphics: null,
@@ -33,27 +34,32 @@ describe('fluxMemoryUse', () => {
           children: [conversion(200 * 1024 ** 2), conversion(140 * 1024 ** 2)],
         }),
       ),
-    ).toEqual({ usedBytes: 356 * 1024 ** 2, scope: 'mediaService' });
+    ).toBe(356 * 1024 ** 2);
   });
 
-  it('says it is only speaking for the media service where that is all it can see', () => {
-    expect(fluxMemoryUse(resources({ serviceMemoryBytes: 1 }))?.scope).toBe('mediaService');
+  it('counts the API server, which is the half that allocates most', () => {
+    expect(
+      fluxMemoryUse(
+        resources({ serviceMemoryBytes: 16 * 1024 ** 2, apiMemoryBytes: 300 * 1024 ** 2 }),
+      ),
+    ).toBe(316 * 1024 ** 2);
   });
 
-  it('prefers what the whole deployment is using, which includes the API server', () => {
+  it('takes the deployment whole rather than adding its parts up twice', () => {
     expect(
       fluxMemoryUse(
         resources({
           serviceMemoryBytes: 16 * 1024 ** 2,
+          apiMemoryBytes: 300 * 1024 ** 2,
           children: [conversion(200 * 1024 ** 2)],
           deploymentMemory: { usedBytes: 900 * 1024 ** 2, limitBytes: null },
         }),
       ),
-    ).toEqual({ usedBytes: 900 * 1024 ** 2, scope: 'deployment' });
+    ).toBe(900 * 1024 ** 2);
   });
 
-  it('reports an idle service as idle rather than as unmeasured', () => {
-    expect(fluxMemoryUse(resources())).toEqual({ usedBytes: 0, scope: 'mediaService' });
+  it('reports an idle Flux as idle rather than as unmeasured', () => {
+    expect(fluxMemoryUse(resources())).toBe(0);
   });
 
   it('refuses a reading it cannot make sense of', () => {
@@ -68,6 +74,6 @@ describe('fluxMemoryUse', () => {
           deploymentMemory: { usedBytes: Number.NaN, limitBytes: null },
         }),
       ),
-    ).toEqual({ usedBytes: 5, scope: 'mediaService' });
+    ).toBe(5);
   });
 });

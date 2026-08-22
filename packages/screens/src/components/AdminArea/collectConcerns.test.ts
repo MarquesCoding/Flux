@@ -34,6 +34,7 @@ const healthyMonitor = (
     serviceMemoryBytes: 0,
     children: [],
     deploymentMemory: null,
+    apiMemoryBytes: null,
     loadAverage: 0,
     disks: [],
     graphics: null,

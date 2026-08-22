@@ -26,6 +26,7 @@ const monitor = (jobs: Job[]): Monitor => ({
     serviceMemoryBytes: 1,
     children: [],
     deploymentMemory: null,
+    apiMemoryBytes: null,
     loadAverage: 0,
     disks: [],
     graphics: null,

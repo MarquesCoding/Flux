@@ -1,22 +1,13 @@
 import { formatBytes } from '@FluxCore/functions/formatBytes';
-import type { FluxMemoryUse } from './fluxMemoryUse';
 
 /**
- * Says how much memory Flux is holding, naming what the figure actually covers so that a reading of
- * one process out of two is not read as the whole of Flux. Where the deployment can be seen it is
- * Flux; where only the media service and its conversions can be, it says so.
+ * Says how much memory Flux is holding, in words that stay honest at the edges: a reading that was
+ * never taken says so rather than reading as nothing being used.
  *
- * @param use - What Flux is using, or null where it could not be worked out.
+ * @param bytes - What Flux is holding, or null where it could not be worked out.
  * @returns The phrase to show.
  */
-const describeFluxMemory = (use: FluxMemoryUse | null): string => {
-  if (use === null) {
-    return 'Flux not measured';
-  }
-
-  const subject = use.scope === 'deployment' ? 'Flux' : 'media service';
-
-  return `${subject} ${formatBytes(use.usedBytes)}`;
-};
+const describeFluxMemory = (bytes: number | null): string =>
+  bytes === null ? 'not measured' : formatBytes(bytes);
 
 export { describeFluxMemory };

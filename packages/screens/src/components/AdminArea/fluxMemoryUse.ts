@@ -1,22 +1,16 @@
 import type { Monitor } from '@FluxClient/admin/fetchAdmin';
 
-type MemoryScope = 'deployment' | 'mediaService';
-
-type FluxMemoryUse = {
-  usedBytes: number;
-  scope: MemoryScope;
-};
-
 /**
- * Works out how much memory Flux itself is holding, and how much of Flux that figure covers. Where
- * the deployment can be read it is everything Flux runs, API server included; where it cannot — a
- * development machine with no cgroup — it is the media service and every conversion it started,
- * which is the most that can honestly be claimed there.
+ * Works out how much memory Flux itself is holding, counting every part of it: the API server, the
+ * media service and every conversion it has running. Where the deployment can be read as a whole
+ * that figure already covers all of them; where it cannot, they are added up one process at a time.
+ * This is what separates "the box is full" from "Flux is full", which are different problems with
+ * different answers.
  *
  * @param resources - The latest readings, or null before any have arrived.
- * @returns The bytes and what they cover, or null where nothing can be worked out.
+ * @returns The bytes Flux is holding, or null where it cannot be worked out.
  */
-const fluxMemoryUse = (resources: Monitor['resources'] | null): FluxMemoryUse | null => {
+const fluxMemoryUse = (resources: Monitor['resources'] | null): number | null => {
   if (resources === null) {
     return null;
   }
@@ -24,16 +18,15 @@ const fluxMemoryUse = (resources: Monitor['resources'] | null): FluxMemoryUse | 
   const deployment = resources.deploymentMemory;
 
   if (deployment !== null && Number.isFinite(deployment.usedBytes)) {
-    return { usedBytes: Math.max(0, deployment.usedBytes), scope: 'deployment' };
+    return Math.max(0, deployment.usedBytes);
   }
 
   const bytes = resources.children.reduce(
     (total, child) => total + child.memoryBytes,
-    resources.serviceMemoryBytes,
+    resources.serviceMemoryBytes + (resources.apiMemoryBytes ?? 0),
   );
 
-  return Number.isFinite(bytes) ? { usedBytes: Math.max(0, bytes), scope: 'mediaService' } : null;
+  return Number.isFinite(bytes) ? Math.max(0, bytes) : null;
 };
 
 export { fluxMemoryUse };
-export type { FluxMemoryUse, MemoryScope };

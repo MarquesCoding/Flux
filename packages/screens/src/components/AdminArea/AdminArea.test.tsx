@@ -52,6 +52,7 @@ const MONITOR: Monitor = {
     serviceMemoryBytes: 200 * 1024 ** 2,
     children: [{ pid: 4242, cpuPercent: 190, memoryBytes: 300 * 1024 ** 2 }],
     deploymentMemory: null,
+    apiMemoryBytes: null,
     loadAverage: 1.5,
     disks: [
       { mountPoint: '/', totalBytes: 500 * 1024 ** 3, availableBytes: 100 * 1024 ** 3 },
