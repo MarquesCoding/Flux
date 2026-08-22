@@ -152,7 +152,7 @@ const atLeastStereo = (claimed: number): number =>
  * it.
  *
  * Bitrate was guessed anyway, at twenty megabits, and then reported back as “the client limit” in
- * the reason a film had been re-encoded — a figure Flux invented and attributed to a browser that
+ * the reason a film had been re-encoded — a figure Valence invented and attributed to a browser that
  * never said it. A viewer who wants less than the file pins a quality step, which is a ceiling
  * somebody actually chose.
  *

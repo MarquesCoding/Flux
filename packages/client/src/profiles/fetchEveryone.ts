@@ -26,7 +26,7 @@ const fetchEveryone = async (): Promise<ViewerProfile[]> => {
  * picking a face is the whole point of a wall of faces, and typing an email is not picking a face.
  *
  * Making it a better-auth plugin instead would move the same lookup and the same call behind the
- * library's surface, and put a Flux idea — a household with profiles — into a library that has no
+ * library's surface, and put a Valence idea — a household with profiles — into a library that has no
  * opinion about them. So it stays here, as the exception, named.
  *
  * @param profileId - Who picked.
@@ -45,7 +45,7 @@ const signInAsProfile = async (
   }).catch(() => null);
 
   if (response === null) {
-    return { kind: 'refused', reason: 'Flux could not be reached.' };
+    return { kind: 'refused', reason: 'Valence could not be reached.' };
   }
 
   if (!response.ok) {

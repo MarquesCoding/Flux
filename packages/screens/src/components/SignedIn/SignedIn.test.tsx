@@ -98,7 +98,7 @@ describe('SignedIn', () => {
     renderTheApp();
 
     expect(
-      await screen.findByRole('heading', { name: 'Flux is not reachable' }),
+      await screen.findByRole('heading', { name: 'Valence is not reachable' }),
     ).toBeInTheDocument();
   });
 

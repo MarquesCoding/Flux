@@ -195,7 +195,7 @@ describe('PasskeySetup when available', () => {
 describe('PasskeySetup when unavailable', () => {
   it('explains why instead of offering a button that cannot work', async () => {
     describeUnavailabilityMock.mockReturnValue(
-      'Passkeys need a secure connection. Reach Flux over HTTPS, or on localhost, to add one.',
+      'Passkeys need a secure connection. Reach Valence over HTTPS, or on localhost, to add one.',
     );
     render(<PasskeySetup />);
 

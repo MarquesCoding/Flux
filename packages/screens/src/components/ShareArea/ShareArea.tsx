@@ -39,7 +39,7 @@ type Standing =
  *   immediately instead of watching a spinner while the server repeats what is already known.
  * @param name - What this server calls itself.
  */
-const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Flux' }: ShareAreaProps) => {
+const ShareArea = ({ token, onPlay, resumeFor, ended, name = 'Valence' }: ShareAreaProps) => {
   const [standing, setStanding] = useState<Standing>({ kind: 'reading' });
 
   useEffect(() => {

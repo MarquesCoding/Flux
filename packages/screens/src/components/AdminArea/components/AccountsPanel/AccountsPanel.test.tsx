@@ -243,7 +243,7 @@ describe('AccountsPanel', () => {
       });
     });
 
-    it('says the password has to be handed over, since Flux cannot send it', async () => {
+    it('says the password has to be handed over, since Valence cannot send it', async () => {
       const user = userEvent.setup();
       renderInAnAddress(<AccountsPanel />);
 

@@ -6,7 +6,7 @@ import { WindowBar } from './WindowBar';
 const bar = (given: Partial<Parameters<typeof WindowBar>[0]> = {}) =>
   render(
     <WindowBar
-      name="Flux"
+      name="Valence"
       canGoBack={true}
       canGoForward={true}
       onBack={vi.fn()}
@@ -19,7 +19,7 @@ describe('WindowBar', () => {
   it('says what the application is called, and leaves what is playing to the screen', () => {
     bar();
 
-    expect(screen.getByText('Flux')).toBeInTheDocument();
+    expect(screen.getByText('Valence')).toBeInTheDocument();
     expect(screen.queryByText(/Watching/)).not.toBeInTheDocument();
   });
 

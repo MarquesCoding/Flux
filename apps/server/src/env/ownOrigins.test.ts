@@ -23,7 +23,7 @@ describe('ownAddresses', () => {
 });
 
 describe('portsIn', () => {
-  it('takes the ports somebody is already reading Flux at', () => {
+  it('takes the ports somebody is already reading Valence at', () => {
     expect(portsIn(['http://localhost:5173', 'http://localhost:8420'], 8420)).toEqual([5173, 8420]);
   });
 

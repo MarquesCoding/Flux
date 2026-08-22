@@ -70,7 +70,7 @@ describe('createApp', () => {
     const body = await response.json();
 
     expect(response.status).toBe(200);
-    expect(body).toMatchObject({ openapi: '3.1.0', info: { title: 'Flux API' } });
+    expect(body).toMatchObject({ openapi: '3.1.0', info: { title: 'Valence API' } });
   });
 
   it('documents the playback endpoints in the specification', async () => {

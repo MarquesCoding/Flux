@@ -4,7 +4,7 @@ import type { Connect } from '@FluxClient/realtime/createRealtimeClient';
 const PATH = '/api/realtime';
 
 /**
- * Opens the live connection to whichever Flux this client watches.
+ * Opens the live connection to whichever Valence this client watches.
  *
  * Unlike everything else this client asks of a server, this one cannot go through the process that
  * owns the window: a custom scheme handles requests, and a socket is not a request. So it is opened

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 
 const stylesheet = readFileSync('src/styles/flux.css', 'utf8');
 
-describe('the Flux stylesheet', () => {
+describe('the Valence stylesheet', () => {
   it('tells Tailwind where FluxUI lives', () => {
     expect(stylesheet).toMatch(/@source\s+'\.\.\/?'/);
   });

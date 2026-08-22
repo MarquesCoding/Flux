@@ -81,7 +81,7 @@ describe('openEpub', () => {
     expect(document).not.toContain('script');
   });
 
-  it('points a picture at Flux, resolved from where the part sits and not the book', async () => {
+  it('points a picture at Valence, resolved from where the part sits and not the book', async () => {
     const document = await (await openEpub(path, address))?.readDocument('OEBPS/text/two.xhtml');
 
     expect(document).toContain('/served/OEBPS/images/whale.png');

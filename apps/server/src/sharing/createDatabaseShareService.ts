@@ -12,7 +12,7 @@ const LIMIT = 500;
 const GONE = 'Something no longer here';
 
 /**
- * Reads a stored kind back as one Flux recognises, so a row written by a later version does not
+ * Reads a stored kind back as one Valence recognises, so a row written by a later version does not
  * arrive as a share of some kind this code has never heard of.
  *
  * @param stored - The kind as the column holds it.

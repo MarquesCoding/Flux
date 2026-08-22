@@ -21,7 +21,7 @@ const describePasskeyUnavailability = (): string | null => {
   }
 
   if (!window.isSecureContext) {
-    return 'Passkeys need a secure connection. Reach Flux over HTTPS, or on localhost, to add one.';
+    return 'Passkeys need a secure connection. Reach Valence over HTTPS, or on localhost, to add one.';
   }
 
   if (typeof window.PublicKeyCredential !== 'function') {

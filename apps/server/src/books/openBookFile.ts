@@ -22,7 +22,7 @@ const FORMATS = new Map<string, BookFormat>([
  * that lies about itself fails when somebody opens it, which is the right place for it to fail.
  *
  * @param path - The file.
- * @returns What it claims to be, or nothing where it claims to be nothing Flux reads.
+ * @returns What it claims to be, or nothing where it claims to be nothing Valence reads.
  */
 const bookFormatOf = (path: string): BookFormat | null => {
   const at = path.lastIndexOf('.');

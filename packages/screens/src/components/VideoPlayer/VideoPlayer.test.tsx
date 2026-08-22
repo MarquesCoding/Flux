@@ -1590,7 +1590,7 @@ describe('playing on another device', () => {
     expect(requestSession).toHaveBeenCalled();
   });
 
-  it('says where to open Flux from when it is being read on localhost', async () => {
+  it('says where to open Valence from when it is being read on localhost', async () => {
     withACastFramework();
     isReachableOriginMock.mockReturnValue(false);
 

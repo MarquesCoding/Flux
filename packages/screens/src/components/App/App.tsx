@@ -16,7 +16,7 @@ import type { AppProps } from './App.types';
  *
  * @param initialTitle - What the platform is called, which an operator may have changed.
  */
-const App = ({ initialTitle = 'Flux' }: AppProps) => {
+const App = ({ initialTitle = 'Valence' }: AppProps) => {
   const cache = useQueryClient();
 
   useFreshFromTheSocket();
@@ -36,7 +36,7 @@ const App = ({ initialTitle = 'Flux' }: AppProps) => {
   if (server.isError || status === null) {
     return (
       <main className="mx-auto flex max-w-lg flex-col gap-2 p-8">
-        <h1 className="text-2xl font-semibold text-text">Flux is not reachable</h1>
+        <h1 className="text-2xl font-semibold text-text">Valence is not reachable</h1>
         <p className="text-text-muted">
           The server did not respond. Check that it is running and reload the page.
         </p>

@@ -1,7 +1,7 @@
 import type { LogRecord } from '@FluxContracts/schemas/Log';
 
 const WARNING = [
-  '# Flux log export',
+  '# Valence log export',
   '# These lines quote file paths, which disclose the layout of the library and the',
   '# titles on the disk. Read what you are about to send before sending it.',
   '',

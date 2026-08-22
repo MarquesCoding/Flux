@@ -140,7 +140,7 @@ describe('acting on an account', () => {
     });
   }
 
-  it('sends the password with an invitation, since Flux cannot post a link', async () => {
+  it('sends the password with an invitation, since Valence cannot post a link', async () => {
     answering({});
 
     await inviteAccount({ name: 'Dan', email: 'dan@flux.local', password: 'a-long-password' });

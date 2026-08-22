@@ -42,7 +42,7 @@ declare function addEventListener(
 ): void;
 
 const PushContentSchema = z.object({
-  title: z.string().default('Flux'),
+  title: z.string().default('Valence'),
   body: z.string().default('Something new to watch'),
   link: z.string().nullish(),
 });

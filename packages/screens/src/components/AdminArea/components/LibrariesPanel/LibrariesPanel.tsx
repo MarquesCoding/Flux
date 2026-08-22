@@ -30,7 +30,7 @@ import type { Library } from '@FluxContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 
 /**
- * The folders Flux reads and what it is doing to them: adding one, scanning one or all of them,
+ * The folders Valence reads and what it is doing to them: adding one, scanning one or all of them,
  * rebuilding from nothing, regenerating previews, and each library's own settings. Progress is shown
  * against the library it belongs to rather than in one list, since which library is being worked on
  * is usually the thing worth knowing.

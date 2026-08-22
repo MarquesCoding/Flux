@@ -16,7 +16,7 @@ type WebhookRequestBody = {
 const sentenceFor = (payload: WebhookPayload): string => {
   switch (payload.event) {
     case 'webhook.test': {
-      return 'Flux can reach this subscription. Nothing has gone wrong; somebody pressed test.';
+      return 'Valence can reach this subscription. Nothing has gone wrong; somebody pressed test.';
     }
 
     case 'job.completed': {

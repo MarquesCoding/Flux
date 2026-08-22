@@ -116,7 +116,7 @@ describe('the webhook routes', () => {
     expect(body).not.toContain('secret');
   });
 
-  it('refuses an address Flux will not send to, rather than failing later', async () => {
+  it('refuses an address Valence will not send to, rather than failing later', async () => {
     const { request } = await asKeeper();
 
     const response = await request('/api/webhooks', 'POST', {

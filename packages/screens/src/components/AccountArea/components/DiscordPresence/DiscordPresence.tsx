@@ -68,7 +68,7 @@ const DiscordPresence = ({ onChanged }: DiscordPresenceProps) => {
       <div className="flex flex-col gap-3 p-4">
         <p className="max-w-prose text-sm leading-relaxed text-text-muted">
           The title, and the series and episode where there is one, appear in your Discord status
-          while something is playing — visible to anybody who can see your profile. It needs Flux
+          while something is playing — visible to anybody who can see your profile. It needs Valence
           open on the same machine as Discord, and it shows nothing at all when nothing is playing.
         </p>
 

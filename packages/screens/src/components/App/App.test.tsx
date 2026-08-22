@@ -269,21 +269,21 @@ describe('App routing', () => {
     fetchMock.mockReturnValue(new Promise(() => undefined));
     renderTheApp();
 
-    expect(await screen.findByRole('status', { name: 'Loading Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('status', { name: 'Loading Valence' })).toBeInTheDocument();
   });
 
   it('shows the setup wizard when setup is incomplete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Set up Valence' })).toBeInTheDocument();
   });
 
   it('does not ask for a session before setup is complete', async () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Set up Flux' });
+    await screen.findByRole('heading', { name: 'Set up Valence' });
 
     expect(fetchMock).not.toHaveBeenCalledWith('/api/auth/get-session', expect.anything());
   });
@@ -336,7 +336,7 @@ describe('App routing', () => {
     renderTheApp();
 
     expect(
-      await screen.findByRole('heading', { name: 'Flux is not reachable' }),
+      await screen.findByRole('heading', { name: 'Valence is not reachable' }),
     ).toBeInTheDocument();
   });
 
@@ -348,7 +348,7 @@ describe('App routing', () => {
     );
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Flux is not reachable' });
+    await screen.findByRole('heading', { name: 'Valence is not reachable' });
 
     expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument();
   });
@@ -496,11 +496,11 @@ describe('App routing', () => {
     serverState({ setup: { ...setupComplete, isComplete: false }, session: null });
     renderTheApp();
 
-    await screen.findByRole('heading', { name: 'Set up Flux' });
+    await screen.findByRole('heading', { name: 'Set up Valence' });
 
     serverState({ setup: setupComplete, session: { user }, ...aLibraryWithArrival });
 
-    expect(await screen.findByRole('heading', { name: 'Set up Flux' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Set up Valence' })).toBeInTheDocument();
   });
 
   it('closes an item that was opened for a look', async () => {

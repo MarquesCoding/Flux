@@ -1,3 +1,4 @@
+import { join } from 'node:path';
 import { app, BrowserWindow, ipcMain } from 'electron';
 import { answerAboutPreferences } from '@FluxDesktop/main/answerAboutPreferences';
 import {
@@ -20,7 +21,25 @@ import { showTheApplication } from '@FluxDesktop/main/showTheApplication';
 import { claimTheScheme, serveTheApplication } from '@FluxDesktop/main/serveTheApplication';
 import { carryTheSessionToTheSocket } from '@FluxDesktop/main/carryTheSessionToTheSocket';
 
-app.setName('Flux');
+const WHERE_IT_HAS_ALWAYS_BEEN = 'Flux';
+
+app.setName('Valence');
+
+/**
+ * Keeps this client's own files where they already are, under the name it used to have.
+ *
+ * The application's name decides where Electron puts its user data, and its user data is where the
+ * session cookie lives. Renaming it therefore signs everybody out and forgets which server they had
+ * chosen — quietly, at the moment they open a version that is only supposed to look different.
+ *
+ * So the name changes and the path does not. Moving it is a decision of its own, wants a migration
+ * that carries the old directory across, and is not this.
+ */
+const keepThisClientsFilesWhereTheyAre = (): void => {
+  app.setPath('userData', join(app.getPath('appData'), WHERE_IT_HAS_ALWAYS_BEEN));
+};
+
+keepThisClientsFilesWhereTheyAre();
 
 claimTheScheme();
 
@@ -31,7 +50,7 @@ let stopLooking: (() => void) | null = null;
 let whatWasFound: string[] = [];
 
 /**
- * Finds this machine's Flux, and offers it rather than deciding with it.
+ * Finds this machine's Valence, and offers it rather than deciding with it.
  *
  * Nobody should have to type the address of a server running on the machine they are sitting at. But
  * finding one is not the same as it being theirs — somebody may run two, or be setting one up while

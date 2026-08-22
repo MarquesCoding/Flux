@@ -133,7 +133,7 @@ describe('signInAsProfile', () => {
 
     await expect(signInAsProfile('abc', 'a password')).resolves.toEqual({
       kind: 'refused',
-      reason: 'Flux could not be reached.',
+      reason: 'Valence could not be reached.',
     });
   });
 

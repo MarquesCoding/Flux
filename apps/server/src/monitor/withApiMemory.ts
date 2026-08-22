@@ -1,7 +1,7 @@
 import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 
 /**
- * Adds what this process is holding to a monitor reading, so that what Flux costs counts both halves
+ * Adds what this process is holding to a monitor reading, so that what Valence costs counts both halves
  * of it rather than the media service alone. The media service cannot see this one — the container
  * starts them as siblings and nothing spawns the other — but this one is the process handing the
  * reading on, and it knows its own resident set exactly.

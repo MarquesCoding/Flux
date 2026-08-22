@@ -36,9 +36,9 @@ const SettingsPanel = ({
 
         <div className="flex flex-col gap-4 p-4">
           <p className="text-sm text-text-muted">
-            Flux picks whichever backend the machine proves it can use. Choose one here to insist,
-            which also uses an encoder that failed that check — for when the check is wrong and the
-            card plainly works. Software encoding stays available either way.
+            Valence picks whichever backend the machine proves it can use. Choose one here to
+            insist, which also uses an encoder that failed that check — for when the check is wrong
+            and the card plainly works. Software encoding stays available either way.
           </p>
 
           <OptionMenu

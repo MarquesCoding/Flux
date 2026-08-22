@@ -55,7 +55,7 @@ const ReadPage = lazyRouteComponent(
 const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
 
 /**
- * Builds the router: every address Flux serves, what it carries, and what is drawn there.
+ * Builds the router: every address Valence serves, what it carries, and what is drawn there.
  *
  * Three layers, because three things have different lifetimes. The root decides whether this server
  * has been set up at all. Inside it, everything but a share link is behind the way in, and that
@@ -70,7 +70,7 @@ const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
  * @param title - What this instance is called.
  * @returns The router, ready to hand to a provider.
  */
-const buildRouter = (title = 'Flux') => {
+const buildRouter = (title = 'Valence') => {
   const root = createRootRoute({ component: () => <App initialTitle={title} /> });
 
   const carries = { validateSearch: readSearch };

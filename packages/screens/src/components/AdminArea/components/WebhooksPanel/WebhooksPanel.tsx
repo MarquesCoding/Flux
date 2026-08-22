@@ -111,7 +111,8 @@ const WebhooksPanel = ({
 
               <span className="text-xs text-text-muted">
                 This is the only time it is shown. Give it to the receiver so it can check that a
-                delivery really came from Flux. If it is lost, delete this webhook and make another.
+                delivery really came from Valence. If it is lost, delete this webhook and make
+                another.
               </span>
             </div>
 
@@ -144,8 +145,8 @@ const WebhooksPanel = ({
 
         {webhooks.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-text-muted">
-            Nothing is being told about anything. Add a webhook to have Flux post to Discord, ntfy
-            or anywhere else when a job fails.
+            Nothing is being told about anything. Add a webhook to have Valence post to Discord,
+            ntfy or anywhere else when a job fails.
           </p>
         ) : (
           <ul className="flex flex-col divide-y divide-[var(--surface-line)]">

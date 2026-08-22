@@ -33,7 +33,7 @@ const PG_BOSS_STATES: Record<string, JobState> = {
 };
 
 /**
- * Starts the job queue and registers a worker for every kind of background work Flux does — scans,
+ * Starts the job queue and registers a worker for every kind of background work Valence does — scans,
  * previews, thumbnails, artwork, webhook deliveries. Work outlives the request that asked for it and
  * survives a restart, which is the whole reason a queue exists rather than a promise.
  *

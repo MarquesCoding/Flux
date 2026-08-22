@@ -89,7 +89,7 @@ const collectConcerns = ({
     concerns.push({
       id: 'ffmpeg-version',
       tone: 'attention',
-      title: 'The media service is running an FFmpeg older than Flux supports',
+      title: 'The media service is running an FFmpeg older than Valence supports',
       detail:
         version === null
           ? 'Everything still plays, but the filters that keep frames on the graphics card may be missing, so transcodes cost several times more than they need to.'
@@ -137,7 +137,7 @@ const collectConcerns = ({
       id: 'memory',
       tone: 'attention',
       title: memory.isLimited
-        ? 'Flux is nearly at the memory it is allowed'
+        ? 'Valence is nearly at the memory it is allowed'
         : 'Memory is nearly full',
       detail: 'Converting several things at once may fail or be killed.',
       panel: 'activity',
@@ -176,8 +176,8 @@ const collectConcerns = ({
         share === null
           ? 'Playback that needs converting may stutter while it lasts.'
           : share >= FLUX_BLAME
-            ? `Flux is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
-            : `Flux is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
+            ? `Valence is using ${share.toFixed(0)}% of the machine, so this is its own work. Playback that needs converting may stutter while it lasts.`
+            : `Valence is using ${share.toFixed(0)}% of the machine, so most of this is something else on the box.`,
       panel: 'activity',
     });
   }

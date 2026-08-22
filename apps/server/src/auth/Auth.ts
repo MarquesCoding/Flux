@@ -26,11 +26,11 @@ type CreateAuthOptions = {
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
 };
 
-const FLUX_APP_NAME = 'Flux';
+const FLUX_APP_NAME = 'Valence';
 
 /**
  * Builds the authentication layer: accounts, sessions, cookies, password resets and API keys, wired
- * to Flux's own database and settings. Everything about who somebody is comes from here rather than
+ * to Valence's own database and settings. Everything about who somebody is comes from here rather than
  * being reimplemented per route.
  *
  * @param options - The environment, the database, the settings store, whether cookies are secure,

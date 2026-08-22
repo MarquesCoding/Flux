@@ -14,7 +14,7 @@ afterEach(() => {
 });
 
 describe('askTheServer', () => {
-  it('asks the page its own origin, which is where every Flux client is served from', async () => {
+  it('asks the page its own origin, which is where every Valence client is served from', async () => {
     await askTheServer('/api/auth/get-session');
 
     expect(fetchMock.mock.calls[0]?.[0]).toBe('/api/auth/get-session');

@@ -27,7 +27,7 @@ const AT_ONCE_OPTIONS = [
 
 /**
  * The language picker's options, with the browser's own language pinned to the top when it is one
- * Flux recognises.
+ * Valence recognises.
  */
 const buildLanguageOptions = (): LanguageOption[] => {
   const primarySubtag =

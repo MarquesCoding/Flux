@@ -7,7 +7,7 @@ const LONGEST_UNPARSED = 24;
 /**
  * Names the FFmpeg the media service is running, and says whose build it is.
  *
- * Flux's own build stamps `-Flux` into the version through `--extra-version`, so the two can be told
+ * Valence's own build stamps `-Flux` into the version through `--extra-version`, so the two can be told
  * apart without asking the transcoder anything further. Worth telling apart: a machine that fell
  * back to whatever was on PATH keeps working and loses the filters that hold frames on the device,
  * which is invisible from a dashboard that calls every build the same thing.

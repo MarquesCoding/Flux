@@ -19,7 +19,7 @@ const KIND_LABELS: Record<LibraryKind, string> = {
 };
 
 /**
- * Adds a library: what to call it, and the folder on the machine running Flux that holds it. Does not
+ * Adds a library: what to call it, and the folder on the machine running Valence that holds it. Does not
  * scan it — adding is quick and scanning is not, so the two are separate gestures.
  *
  * @param isOpen - Whether the dialog is showing.
@@ -108,7 +108,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
           value={path}
           onValueChange={setPath}
           placeholder="/media/movies"
-          description="A folder on the machine running Flux, not your browser."
+          description="A folder on the machine running Valence, not your browser."
           {...(errors.path === undefined ? {} : { error: errors.path })}
         />
 

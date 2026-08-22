@@ -174,7 +174,7 @@ const OverviewPanel = ({
               <dt className="shrink-0 text-text-muted">Graphics</dt>
               <dd className="min-w-0 truncate text-text">
                 {resources?.graphics === null || resources?.graphics === undefined
-                  ? 'None Flux can read'
+                  ? 'None Valence can read'
                   : resources.graphics.encoderPercent === null
                     ? `${resources.graphics.name} · encoder not readable`
                     : resources.graphics.name}
@@ -306,7 +306,7 @@ const OverviewPanel = ({
         </Region>
 
         <Region
-          title="Storage Flux is using"
+          title="Storage Valence is using"
           className="lg:col-span-4"
           action="Refresh"
           actionIcon={<Icon of={ArrowsClockwiseIcon} size={14} />}

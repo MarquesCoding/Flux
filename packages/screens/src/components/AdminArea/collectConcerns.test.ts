@@ -220,7 +220,7 @@ describe('collectConcerns', () => {
         },
       });
 
-    it('reports an FFmpeg older than Flux supports', () => {
+    it('reports an FFmpeg older than Valence supports', () => {
       const concerns = collectConcerns({ ...healthy, overview: onOldFfmpeg('5.1.9') });
 
       expect(concerns.map((concern) => concern.id)).toContain('ffmpeg-version');
@@ -410,7 +410,7 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns.map((concern) => concern.title)).toContain(
-        'Flux is nearly at the memory it is allowed',
+        'Valence is nearly at the memory it is allowed',
       );
     });
 
@@ -567,7 +567,7 @@ describe('collectConcerns', () => {
       expect(concerns).toEqual([]);
     });
 
-    it('says so when the load is Flux doing its own work', () => {
+    it('says so when the load is Valence doing its own work', () => {
       const monitor = healthyMonitor();
       monitor.resources.children = [{ pid: 1, cpuPercent: 380, memoryBytes: 0 }];
 
@@ -578,11 +578,11 @@ describe('collectConcerns', () => {
       });
 
       expect(concerns.find((concern) => concern.id === 'cpu')?.detail).toContain(
-        'Flux is using 95% of the machine, so this is its own work',
+        'Valence is using 95% of the machine, so this is its own work',
       );
     });
 
-    it('points elsewhere when the machine is busy and Flux is not', () => {
+    it('points elsewhere when the machine is busy and Valence is not', () => {
       const monitor = healthyMonitor();
       monitor.resources.serviceCpuPercent = 20;
 

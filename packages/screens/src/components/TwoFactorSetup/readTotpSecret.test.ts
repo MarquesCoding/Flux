@@ -4,12 +4,12 @@ import { readTotpSecret, formatTotpSecret } from './readTotpSecret';
 describe('readTotpSecret', () => {
   it('extracts the secret from an otpauth uri', () => {
     expect(
-      readTotpSecret('otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Flux'),
+      readTotpSecret('otpauth://totp/Flux:admin@flux.test?secret=JBSWY3DPEHPK3PXP&issuer=Valence'),
     ).toBe('JBSWY3DPEHPK3PXP');
   });
 
   it('returns nothing when the uri has no secret', () => {
-    expect(readTotpSecret('otpauth://totp/Flux:admin@flux.test?issuer=Flux')).toBe('');
+    expect(readTotpSecret('otpauth://totp/Flux:admin@flux.test?issuer=Valence')).toBe('');
   });
 
   it('returns nothing for a value that is not a uri', () => {

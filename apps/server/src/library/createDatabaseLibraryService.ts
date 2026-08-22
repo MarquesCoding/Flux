@@ -401,7 +401,7 @@ const createDatabaseLibraryService = ({
    * their mount was missing.
    *
    * @param row - The library row as stored.
-   * @returns The counts from the last scan, or null where none has run since Flux began recording.
+   * @returns The counts from the last scan, or null where none has run since Valence began recording.
    */
   const readLastScan = (row: {
     lastScanAdded: number | null;

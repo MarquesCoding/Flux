@@ -10,7 +10,7 @@ import type { PermissionService } from './PermissionService';
 
 /**
  * Reads permission rows into grants, dropping any naming a permission or an effect this version of
- * Flux does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
+ * Valence does not recognise. Rows outlive the code that wrote them, and an unreadable grant is safer
  * discarded than guessed at.
  *
  * @param rows - The rows as stored.

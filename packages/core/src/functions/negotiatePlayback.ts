@@ -82,7 +82,7 @@ const rangeFor = (media: MediaItem, profile: DeviceProfile): VideoRange | null =
  * is and it is within any ceiling asked for, or transcode it down to what it can.
  *
  * Bitrate takes the tighter of whatever ceilings exist, because that one is about what a network
- * can carry rather than a matter of taste — but a browser cannot state it and Flux stopped
+ * can carry rather than a matter of taste — but a browser cannot state it and Valence stopped
  * inventing it on the browser's behalf, so in practice the only ceiling is a rung somebody pinned.
  * Resolution is not a ceiling at all, for the same reason and more plainly: only a rung somebody
  * pinned can force the picture smaller. `profile.maxWidth` is the display's own size, which is a sensible

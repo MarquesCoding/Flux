@@ -5,7 +5,7 @@ import type { ToasterProps } from './Toaster.types';
  * Where everything the application has to say arrives. Mounted once, near the root; a second one
  * would show every message twice.
  *
- * Sonner is wrapped rather than reached for directly so that a toast is a Flux component like any
+ * Sonner is wrapped rather than reached for directly so that a toast is a Valence component like any
  * other: callers say what happened and this decides how it looks, which is what stops sixty screens
  * each inventing their own banner. It carries the product's own surface, border and radius rather
  * than the library's defaults.

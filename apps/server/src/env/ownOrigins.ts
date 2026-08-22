@@ -10,12 +10,12 @@ const ownAddresses = (): string[] =>
     .map((entry) => entry.address);
 
 /**
- * Collects the ports Flux is already known to be read at, from the origins an operator configured,
+ * Collects the ports Valence is already known to be read at, from the origins an operator configured,
  * so that guessing an address for this machine guesses the right port. An origin that will not
  * parse is skipped rather than failing the lot.
  *
  * @param origins - The origins an operator configured.
- * @param fallback - The port to include regardless, being the one Flux is listening on.
+ * @param fallback - The port to include regardless, being the one Valence is listening on.
  * @returns Every port worth trying, without duplicates.
  */
 const portsIn = (origins: string[], fallback: number): number[] => {
@@ -38,7 +38,7 @@ const portsIn = (origins: string[], fallback: number): number[] => {
  * without an operator having to write each one down. Configured origins are always included.
  *
  * @param configured - The origins an operator wrote down.
- * @param fallbackPort - The port Flux is listening on.
+ * @param fallbackPort - The port Valence is listening on.
  * @returns Every origin to trust.
  */
 const ownOrigins = (configured: string[], fallbackPort: number): string[] => {

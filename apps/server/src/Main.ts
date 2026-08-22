@@ -221,7 +221,7 @@ const countUsers = async (): Promise<number> => {
 };
 
 /**
- * How much disk the media itself takes, across every library. Reported beside what Flux has added to
+ * How much disk the media itself takes, across every library. Reported beside what Valence has added to
  * it, since the useful question on the dashboard is which of the two is growing.
  */
 const readLibraryBytes = async (): Promise<number> => {
@@ -497,7 +497,7 @@ const diskWatch = createDiskPressureWatch({
 });
 
 /**
- * Everywhere Flux writes: the library folders and the image cache. This is what the disk warnings are
+ * Everywhere Valence writes: the library folders and the image cache. This is what the disk warnings are
  * measured against, since a filesystem filling up only matters where something is filling it.
  */
 const pathsFluxWritesTo = async (): Promise<string[]> => [
@@ -569,7 +569,7 @@ const jobs = await createJobQueue({
         const parsed = ScanLibraryJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a scan job carried data Flux could not read.');
+          log.error('jobs', 'job queue: a scan job carried data Valence could not read.');
 
           return;
         }
@@ -611,7 +611,7 @@ const jobs = await createJobQueue({
         const parsed = ReadAgainJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a re-read job carried data Flux could not read.');
+          log.error('jobs', 'job queue: a re-read job carried data Valence could not read.');
 
           return;
         }
@@ -628,7 +628,7 @@ const jobs = await createJobQueue({
         if (!parsed.success) {
           log.error(
             'jobs',
-            'job queue: a preview regeneration job carried data Flux could not read.',
+            'job queue: a preview regeneration job carried data Valence could not read.',
           );
 
           return;
@@ -646,7 +646,7 @@ const jobs = await createJobQueue({
         const parsed = RegenerateTrickplayJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a trickplay job carried data Flux could not read.');
+          log.error('jobs', 'job queue: a trickplay job carried data Valence could not read.');
 
           return;
         }
@@ -659,7 +659,7 @@ const jobs = await createJobQueue({
         const parsed = FetchLogosJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a logo job carried data Flux could not read.');
+          log.error('jobs', 'job queue: a logo job carried data Valence could not read.');
 
           return;
         }
@@ -672,7 +672,10 @@ const jobs = await createJobQueue({
         const parsed = DetectSegmentsJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a segment detection job carried data Flux could not read.');
+          log.error(
+            'jobs',
+            'job queue: a segment detection job carried data Valence could not read.',
+          );
 
           return;
         }
@@ -898,7 +901,7 @@ const jobs = await createJobQueue({
         const parsed = DeliverWebhookJobSchema.safeParse(payload);
 
         if (!parsed.success) {
-          log.error('jobs', 'job queue: a delivery job carried data Flux could not read.');
+          log.error('jobs', 'job queue: a delivery job carried data Valence could not read.');
 
           return;
         }
@@ -1516,7 +1519,7 @@ app.get(
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {
   const origin = `http://localhost:${info.port.toString()}`;
 
-  log.info('server', `Flux listening on ${origin}`);
+  log.info('server', `Valence listening on ${origin}`);
 
   if (persisted.setupCompletedAt === null) {
     log.info('server', `First-run setup at ${origin}`);

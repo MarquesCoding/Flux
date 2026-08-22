@@ -17,7 +17,7 @@ const NOBODY = {
  * @returns A whole shell.
  */
 const aShell = (instead: Partial<Shell> = {}): Shell => ({
-  title: 'Flux',
+  title: 'Valence',
   user: NOBODY,
   watcher: null,
   household: [],

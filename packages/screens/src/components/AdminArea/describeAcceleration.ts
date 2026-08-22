@@ -35,7 +35,7 @@ const describeAcceleration = (forced: string, probed: string[]): Acceleration =>
       tone: isUnverified ? 'danger' : 'quiet',
       detail: isUnverified
         ? `This machine never proved it can do ${name}, so every transcode will fall back to software. Choose Automatic to use what it can, or leave this if you know the check is wrong.`
-        : `${name} was chosen rather than left to Flux, and the machine proved it can do it. Transcodes use it instead of the processor.`,
+        : `${name} was chosen rather than left to Valence, and the machine proved it can do it. Transcodes use it instead of the processor.`,
     };
   }
 
@@ -44,14 +44,14 @@ const describeAcceleration = (forced: string, probed: string[]): Acceleration =>
       label: 'Software only',
       tone: 'quiet',
       detail:
-        'This machine proved no hardware encoder Flux can use, so transcodes are done by the processor. Nothing was chosen — there was nothing to choose.',
+        'This machine proved no hardware encoder Valence can use, so transcodes are done by the processor. Nothing was chosen — there was nothing to choose.',
     };
   }
 
   return {
     label: `${probed.join(', ')} · automatic`,
     tone: 'quiet',
-    detail: `Flux uses whichever backend the machine proved it can do, which here is ${probed.join(' and ')}. Choose one in Settings to insist on it instead.`,
+    detail: `Valence uses whichever backend the machine proved it can do, which here is ${probed.join(' and ')}. Choose one in Settings to insist on it instead.`,
   };
 };
 

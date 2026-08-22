@@ -78,14 +78,14 @@ describe('AddWebhookDialog', () => {
     draw({
       onCreate: vi
         .fn()
-        .mockResolvedValue({ message: 'Flux will not send deliveries to that address.' }),
+        .mockResolvedValue({ message: 'Valence will not send deliveries to that address.' }),
     });
 
     await fillIn(user);
     await user.click(screen.getByRole('button', { name: 'Add webhook' }));
 
     expect(
-      await screen.findByText('Flux will not send deliveries to that address.'),
+      await screen.findByText('Valence will not send deliveries to that address.'),
     ).toBeInTheDocument();
   });
 

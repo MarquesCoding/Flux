@@ -8,7 +8,7 @@ type SeedDefaultJobTriggersOptions = {
 };
 
 /**
- * Gives a job kind its default schedule the first time Flux ever sees it, and never again — an
+ * Gives a job kind its default schedule the first time Valence ever sees it, and never again — an
  * operator who turns a nightly scan off should not find it back the next time the server restarts.
  *
  * @param options - The store to write to, and the settings recording which kinds have been seeded.

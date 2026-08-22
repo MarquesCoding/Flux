@@ -692,7 +692,7 @@ describe('library routes', () => {
     expect(body).toHaveProperty(['paths', '/api/media/{id}', 'get']);
   });
 
-  it('serves artwork from Flux rather than sending the browser to a catalogue', async () => {
+  it('serves artwork from Valence rather than sending the browser to a catalogue', async () => {
     const { auth, settings, store } = createMemoryAuth();
     const app = signedInApp(
       createApp({

@@ -200,7 +200,7 @@ describe('readPermissions', () => {
     ]);
   });
 
-  it('drops a permission Flux no longer has rather than carrying a ghost of it', () => {
+  it('drops a permission Valence no longer has rather than carrying a ghost of it', () => {
     expect(readPermissions({ [NAMESPACE]: ['jobs.run', 'library.timeTravel'] })).toEqual([
       'jobs.run',
     ]);

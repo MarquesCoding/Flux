@@ -6,7 +6,7 @@ const A_PAGE = 30;
 
 /**
  * Reads what this profile has watched, most recent first, in pages — a household that has been using
- * Flux for a year has more history than any one request should carry.
+ * Valence for a year has more history than any one request should carry.
  *
  * @param offset - How many viewings to read.
  * @returns The viewings, or none where the request failed.
@@ -26,9 +26,7 @@ const fetchHistory = async (offset = 0): Promise<Viewing[]> => {
  * @param viewingId - The viewing to forget.
  */
 const forgetViewing = async (viewingId: string): Promise<boolean> => {
-  const response = await fetch(`/api/history/${viewingId}`, { method: 'DELETE' }).catch(
-    () => null,
-  );
+  const response = await fetch(`/api/history/${viewingId}`, { method: 'DELETE' }).catch(() => null);
 
   return response !== null && response.ok;
 };

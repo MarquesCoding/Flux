@@ -28,6 +28,8 @@ import { authenticateWithPasskey } from '@FluxClient/session/auth';
 import type { ViewerProfile } from '@FluxContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
+const OURS = 'valence';
+
 const PER_PAGE = 10;
 
 const TITLE_MILLISECONDS = 1100;
@@ -68,14 +70,14 @@ const Portrait = ({ profile, isLarge = false }: { profile: ViewerProfile; isLarg
 Portrait.displayName = 'Portrait';
 
 /**
- * The way in to Flux: who is watching, and then the password if the household asks for one. Kept
+ * The way in to Valence: who is watching, and then the password if the household asks for one. Kept
  * apart from the sign-in form proper because choosing a profile is a household gesture rather than
  * an authentication one, and most of the time it is the only step anybody takes.
  *
  * @param onSignedIn - Called once somebody is through.
  * @param name - What this server calls itself, shown above the faces.
  */
-const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
+const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
   const asking = useQuery(sessionQueries.everyone());
   const everyone = asking.data ?? null;
   const [chosen, setChosen] = useState<ViewerProfile | null>(null);
@@ -92,7 +94,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
   const [isReturning, setIsReturning] = useState(false);
   const [needsCode, setNeedsCode] = useState(false);
 
-  const isFlux = name.toLowerCase() === 'flux';
+  const isOurs = name.toLowerCase() === OURS;
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
   const prefersReducedMotion = useReducedMotion();
 
@@ -243,7 +245,7 @@ const ProfileGate = ({ onSignedIn, name = 'Flux' }: ProfileGateProps) => {
         }}
         className={cn('flex items-center gap-1', isTitleOver ? '' : 'absolute')}
       >
-        {isFlux ? (
+        {isOurs ? (
           <Logo
             size={isTitleOver ? 44 : 128}
             isDotted={!isTitleOver}

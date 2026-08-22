@@ -257,7 +257,7 @@ const SignedIn = ({ title }: SignedInProps) => {
   if (session.isError) {
     return (
       <main className="mx-auto flex max-w-lg flex-col gap-2 p-8">
-        <h1 className="text-2xl font-semibold text-text">Flux is not reachable</h1>
+        <h1 className="text-2xl font-semibold text-text">Valence is not reachable</h1>
         <p className="text-text-muted">
           The server did not respond. Check that it is running and reload the page.
         </p>

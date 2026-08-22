@@ -14,9 +14,9 @@ type AllowCrossOriginClientsOptions = {
 /**
  * Lets a client with a window of its own read what the server answers.
  *
- * A browser Flux served is same-origin and never involves any of this. A desktop client serves its
+ * A browser Valence served is same-origin and never involves any of this. A desktop client serves its
  * own pages, so every request it makes is cross-origin and a browser engine will hide the answer
- * unless the server says who may read it — which is why the client came up saying Flux was not
+ * unless the server says who may read it — which is why the client came up saying Valence was not
  * reachable while the server was answering every request perfectly well.
  *
  * The credential header matters as much as the origin. better-auth asks with credentials, and an

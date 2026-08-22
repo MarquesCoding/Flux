@@ -561,7 +561,7 @@ const AdminArea = ({
                 detail:
                   resources === null
                     ? '—'
-                    : `${resources.cpuCount.toString()} cores · Flux ${describeCpuShare(cpuShare)}`,
+                    : `${resources.cpuCount.toString()} cores · Valence ${describeCpuShare(cpuShare)}`,
               },
               {
                 label: 'Memory',
@@ -570,7 +570,7 @@ const AdminArea = ({
                 detail:
                   memory === null
                     ? '—'
-                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Flux ${describeFluxMemory(fluxMemory)}`,
+                    : `of ${formatBytes(memory.totalBytes)}${memory.isLimited ? ' allowed' : ''} · Valence ${describeFluxMemory(fluxMemory)}`,
               },
               {
                 label: 'Graphics',

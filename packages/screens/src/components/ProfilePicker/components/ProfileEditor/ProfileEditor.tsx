@@ -241,8 +241,8 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         </legend>
 
         <p className="text-xs leading-relaxed text-text-muted">
-          After this many episodes carry on by themselves, Flux asks before playing another — so a
-          night asleep in front of the telly does not mark half a series as watched.
+          After this many episodes carry on by themselves, Valence asks before playing another — so
+          a night asleep in front of the telly does not mark half a series as watched.
         </p>
 
         <ul className="flex flex-wrap gap-2">

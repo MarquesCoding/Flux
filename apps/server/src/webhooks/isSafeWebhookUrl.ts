@@ -54,8 +54,8 @@ const isLinkLocalIpv6 = (hostname: string): boolean => {
 };
 
 /**
- * Whether Flux is willing to send a delivery to this address. Anything that is not HTTP or HTTPS is
- * refused, as is anything addressing the machine Flux is on or the network it sits in — a webhook is
+ * Whether Valence is willing to send a delivery to this address. Anything that is not HTTP or HTTPS is
+ * refused, as is anything addressing the machine Valence is on or the network it sits in — a webhook is
  * an address a user supplies, and without this it would be a way to make the server fetch things on
  * its own network on their behalf.
  *

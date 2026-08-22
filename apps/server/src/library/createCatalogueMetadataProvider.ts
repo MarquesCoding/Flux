@@ -377,7 +377,7 @@ const createCatalogueMetadataProvider = ({
         : fromFilename.title;
 
       /**
-       * Turns a catalogue entry into the metadata Flux stores, taking only the fields it has a use for
+       * Turns a catalogue entry into the metadata Valence stores, taking only the fields it has a use for
        * and building full addresses for the artwork.
        *
        * @param detail - The catalogue's own record.

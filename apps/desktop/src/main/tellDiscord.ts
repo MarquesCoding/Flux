@@ -35,7 +35,7 @@ type Presence = {
  * @param temporary - Where this machine keeps this user's temporary files, which is where Discord
  *   listens on a Mac. Passed in rather than read from the environment, which does not always carry
  *   it.
- * @param version - Which Flux this is, for the picture to say when somebody rests on it.
+ * @param version - Which Valence this is, for the picture to say when somebody rests on it.
  * @returns How to say what is playing, and how to stop.
  */
 const tellDiscord = (temporary: string, version: string): Presence => {

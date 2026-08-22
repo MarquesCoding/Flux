@@ -38,7 +38,7 @@ const widthFor = (across: number): number => {
 };
 
 /**
- * Reads a book that was paginated before it ever reached Flux — a comic, a manga, a scanned volume.
+ * Reads a book that was paginated before it ever reached Valence — a comic, a manga, a scanned volume.
  *
  * The chrome is not there unless it is wanted. A page of a book is the whole point of the screen, so
  * the controls hide themselves and come back on a tap or a moved pointer, the way the player already

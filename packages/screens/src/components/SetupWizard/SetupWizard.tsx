@@ -8,7 +8,7 @@ import { validateSetupForm, parseOrigins } from './validateSetupForm';
 import type { SetupFormErrors, SetupWizardProps } from './SetupWizard.types';
 
 /**
- * Walks whoever opened Flux first through making it theirs: the administrator account, what the
+ * Walks whoever opened Valence first through making it theirs: the administrator account, what the
  * server is called, and which origins may reach it. Shown in place of everything else until it is
  * done, because a server with no account on it has nothing else worth showing.
  *
@@ -68,7 +68,7 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
   return (
     <main className="mx-auto flex max-w-lg flex-col gap-6 p-8">
       <header className="flex flex-col gap-2">
-        <h1 className="text-2xl font-semibold text-text">Set up Flux</h1>
+        <h1 className="text-2xl font-semibold text-text">Set up Valence</h1>
         <p className="text-text-muted">
           Create the administrator account and confirm how this server is reached.
         </p>
@@ -112,7 +112,7 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
           label="Trusted origins"
           value={trustedOrigins}
           onValueChange={setTrustedOrigins}
-          description={`Detected ${status.detectedOrigin}. Add every address you use to reach Flux, separated by commas.`}
+          description={`Detected ${status.detectedOrigin}. Add every address you use to reach Valence, separated by commas.`}
           {...(errors.trustedOrigins === undefined ? {} : { error: errors.trustedOrigins })}
         />
 
@@ -130,7 +130,7 @@ const SetupWizard = ({ status, onComplete }: SetupWizardProps) => {
           )}
           {cookieSecure
             ? 'Secure cookies will be used. Login will not work over plain HTTP.'
-            : 'Cookies will not be marked secure, so Flux works over plain HTTP on your network.'}
+            : 'Cookies will not be marked secure, so Valence works over plain HTTP on your network.'}
         </p>
       </section>
 

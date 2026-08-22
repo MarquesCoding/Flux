@@ -6,11 +6,11 @@ const FLUX = 'ffmpeg version 8.1.2-Flux Copyright (c) 2000-2026 the FFmpeg devel
 const HOMEBREW = 'ffmpeg version 8.1.2 Copyright (c) 2000-2026 the FFmpeg developers';
 
 describe('describeFfmpeg', () => {
-  it('names Flux own build, without repeating the stamp the name already carries', () => {
+  it('names Valence own build, without repeating the stamp the name already carries', () => {
     expect(describeFfmpeg(FLUX)).toBe('flux-ffmpeg 8.1.2');
   });
 
-  it('does not claim a stock build is Flux own', () => {
+  it('does not claim a stock build is Valence own', () => {
     expect(describeFfmpeg(HOMEBREW)).toBe('ffmpeg 8.1.2');
   });
 

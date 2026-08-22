@@ -30,9 +30,9 @@ const layersOf = (container: HTMLElement): HTMLElement[] =>
 
 describe('Logo', () => {
   it('says what it is where it stands for the whole name', () => {
-    render(<Logo label="Flux" />);
+    render(<Logo label="Valence" />);
 
-    expect(screen.getByRole('img', { name: 'Flux' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Valence' })).toBeInTheDocument();
   });
 
   it('is hidden from anything reading the page where a name sits beside it', () => {

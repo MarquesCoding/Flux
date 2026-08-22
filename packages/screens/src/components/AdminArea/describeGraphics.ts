@@ -11,7 +11,7 @@ import type { Stat } from '@FluxScreens/components/AdminArea/components/StatStri
  */
 const describeGraphics = (graphics: Monitor['resources']['graphics']): Omit<Stat, 'label'> => {
   if (graphics === null) {
-    return { value: '—', detail: 'No card Flux can read' };
+    return { value: '—', detail: 'No card Valence can read' };
   }
 
   if (graphics.encoderPercent !== null) {

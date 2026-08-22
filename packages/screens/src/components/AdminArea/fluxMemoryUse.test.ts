@@ -58,7 +58,7 @@ describe('fluxMemoryUse', () => {
     ).toBe(900 * 1024 ** 2);
   });
 
-  it('reports an idle Flux as idle rather than as unmeasured', () => {
+  it('reports an idle Valence as idle rather than as unmeasured', () => {
     expect(fluxMemoryUse(resources())).toBe(0);
   });
 

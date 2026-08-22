@@ -423,10 +423,10 @@ describe('AdminArea', () => {
     expect(await screen.findByText('42%')).toBeInTheDocument();
   });
 
-  it('says how much of the busy processor is Flux itself', async () => {
+  it('says how much of the busy processor is Valence itself', async () => {
     renderInAnAddress(<AdminArea />);
 
-    expect(await screen.findByText('10 cores · Flux 19%')).toBeInTheDocument();
+    expect(await screen.findByText('10 cores · Valence 19%')).toBeInTheDocument();
   });
 
   it('says the graphics figure is the whole card when the encoder cannot be read', async () => {
@@ -442,7 +442,7 @@ describe('AdminArea', () => {
     expect(await screen.findByText('Apple M5 Pro · encoder not readable')).toBeInTheDocument();
   });
 
-  it('reports room left on the disk the library is on, not on the one Flux boots from', async () => {
+  it('reports room left on the disk the library is on, not on the one Valence boots from', async () => {
     renderInAnAddress(<AdminArea />);
 
     expect(await screen.findByText('2.0 TB free')).toBeInTheDocument();

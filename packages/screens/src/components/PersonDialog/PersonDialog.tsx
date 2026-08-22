@@ -42,7 +42,7 @@ const describeBirth = (bornOn: string | null): string | null => {
 };
 
 /**
- * Everything Flux knows about somebody in its cast, and everything of theirs this server can play.
+ * Everything Valence knows about somebody in its cast, and everything of theirs this server can play.
  * Opened from a name in a cast list, which is the moment the question arises — somebody recognises a
  * face and wants to know what else of theirs is here.
  *

@@ -10,7 +10,7 @@ describe('describeFluxMemory', () => {
     expect(describeFluxMemory(1024 ** 3)).toBe('1.0 GB');
   });
 
-  it('reports an idle Flux as idle', () => {
+  it('reports an idle Valence as idle', () => {
     expect(describeFluxMemory(0)).toBe('0 B');
   });
 });

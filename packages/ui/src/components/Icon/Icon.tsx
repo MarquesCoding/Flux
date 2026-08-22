@@ -6,7 +6,7 @@ const RESTING = 'bold';
 const IN_FORCE = 'fill';
 
 /**
- * Every glyph in Flux, drawn from one set through one component.
+ * Every glyph in Valence, drawn from one set through one component.
  *
  * A caller names the icon it wants and this decides how it is drawn. That indirection is the point,
  * and it has already earned itself once: the set behind this changed and the six hundred places that

@@ -23,7 +23,7 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
  *
  * A family opens on a press rather than on a pointer resting over it. Opening on hover reads well
  * until it meets a click: the pointer opens the menu, the click that follows toggles it, and the
- * menu shuts on the very press meant to open it. Every other menu in Flux opens on a press, and one
+ * menu shuts on the very press meant to open it. Every other menu in Valence opens on a press, and one
  * that behaves like the rest is worth more than one that anticipates.
  *
  * @param groups - The sections, in groups.

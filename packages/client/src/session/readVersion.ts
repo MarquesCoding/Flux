@@ -18,7 +18,7 @@ const describeVersion = (reported: string): string =>
   UNRELEASED.has(reported.trim()) ? LOCAL : reported;
 
 /**
- * Which version of Flux this is, as the server reports it — worth having in the interface so that a
+ * Which version of Valence this is, as the server reports it — worth having in the interface so that a
  * problem can be reported against a version rather than against "the latest".
  */
 const readVersion = async (): Promise<string> => {

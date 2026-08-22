@@ -87,7 +87,7 @@ const useNowPlaying = ({
     const describe = (artwork: { src: string; sizes: string }[]): void => {
       session.metadata = new MediaMetadata({
         title,
-        artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Flux',
+        artist: typeof seriesTitle === 'string' && seriesTitle !== '' ? seriesTitle : 'Valence',
         album: episode,
         artwork,
       });

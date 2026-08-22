@@ -308,7 +308,7 @@ const narrow = <TBody>(response: {
 });
 
 /**
- * The ordinary network fetch, narrowed to what Flux uses.
+ * The ordinary network fetch, narrowed to what Valence uses.
  */
 const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init));
 

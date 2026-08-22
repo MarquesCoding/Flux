@@ -127,7 +127,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     kind: CHECK_DISK_SPACE_JOB,
     label: 'Check disk space',
     description:
-      'Asks how much room is left on the filesystems Flux writes to, so a disk about to fill is something an operator hears about rather than something a scan discovers.',
+      'Asks how much room is left on the filesystems Valence writes to, so a disk about to fill is something an operator hears about rather than something a scan discovers.',
     needsLibrary: false,
     destructive: false,
   },

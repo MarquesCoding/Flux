@@ -15,7 +15,7 @@ import type { WebhookEvent, WebhookPreset } from '@FluxContracts/schemas/Webhook
 import type { AddWebhookDialogProps } from './AddWebhookDialog.types';
 
 const PRESET_LABELS: Record<WebhookPreset, string> = {
-  generic: 'Flux’s own envelope, as JSON — build against this one',
+  generic: 'Valence’s own envelope, as JSON — build against this one',
   discord: 'A message in a Discord channel',
   ntfy: 'A notification through ntfy',
 };
@@ -78,7 +78,7 @@ const AddWebhookDialog = ({ isOpen, onClose, onCreate }: AddWebhookDialogProps) 
     <Dialog label="Add a webhook" isOpen={isOpen} onClose={close}>
       <DialogTitle
         title="Add a webhook"
-        detail="Flux will post to this address when something you have chosen happens."
+        detail="Valence will post to this address when something you have chosen happens."
       />
 
       <DialogContent>

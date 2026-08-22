@@ -40,7 +40,7 @@ describe('ProfileFace', () => {
     expect(container.firstElementChild?.getAttribute('style')).toContain('rgb(58, 142, 232)');
   });
 
-  it('draws a picture through Flux when there is one', () => {
+  it('draws a picture through Valence when there is one', () => {
     const { container } = render(
       <ProfileFace
         profile={{ ...PROFILE, avatar: { kind: 'drawn', style: 'bottts', seed: 'a' } }}

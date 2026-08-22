@@ -25,10 +25,10 @@ if (container === null) {
 
 const answers = buildQueryClient();
 
-const router = buildRouter('Flux');
+const router = buildRouter('Valence');
 
 /**
- * Flux, drawn by this client rather than fetched from a server as pages.
+ * Valence, drawn by this client rather than fetched from a server as pages.
  *
  * The application is a package and this is a host for it — the same one the browser is, with
  * different answers to the four things a host is asked: where preferences live, what to call this
@@ -43,7 +43,7 @@ const router = buildRouter('Flux');
  * window has to be given one. It sits in the page rather than over it, so every screen below it
  * begins where it ends without having been told a bar exists.
  *
- * The one screen this client owns is the first one: which Flux is yours. It has to be ours, because
+ * The one screen this client owns is the first one: which Valence is yours. It has to be ours, because
  * until it is answered there is no server to ask anything of. What it offers on that screen is found
  * by the process that owns the window — a page served from a scheme of its own cannot go knocking on
  * `localhost` to see what answers, and would be refused for being somebody else's origin.
@@ -76,7 +76,7 @@ const Desktop = () => {
   return (
     <>
       <WindowBar
-        name="Flux"
+        name="Valence"
         canGoBack={canGoBack}
         canGoForward={ahead > 0}
         onBack={() => {

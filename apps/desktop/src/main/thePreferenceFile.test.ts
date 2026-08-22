@@ -58,7 +58,7 @@ describe('theServerAddress', () => {
 });
 
 describe('thePreferenceFile', () => {
-  it('reads a dot in a key as part of the key, since every preference Flux has contains one', () => {
+  it('reads a dot in a key as part of the key, since every preference Valence has contains one', () => {
     thePreferenceFile();
 
     expect(asked[0]).toMatchObject({ accessPropertiesByDotNotation: false });

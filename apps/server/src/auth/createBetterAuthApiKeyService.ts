@@ -47,8 +47,8 @@ const asIsoString = (value: Date | string | null | undefined): string =>
   value instanceof Date ? value.toISOString() : (value ?? '');
 
 /**
- * Reads the Flux permissions stored against an API key, through a schema rather than trusting the
- * column, since what is stored there was written by an earlier version of Flux.
+ * Reads the Valence permissions stored against an API key, through a schema rather than trusting the
+ * column, since what is stored there was written by an earlier version of Valence.
  *
  * @param raw - The permissions column as stored.
  * @returns The permissions the key was restricted to, or null where it was not restricted.
@@ -68,7 +68,7 @@ const readPermissions = (raw: Record<string, string[]> | null | undefined): Perm
 };
 
 /**
- * API keys, kept where the authentication layer already keeps them rather than in a table of Flux's
+ * API keys, kept where the authentication layer already keeps them rather than in a table of Valence's
  * own — issuing, listing and revoking, with each key's permissions narrowed to whatever its account
  * still holds.
  *

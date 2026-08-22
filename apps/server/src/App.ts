@@ -409,7 +409,7 @@ type CreateAppOptions = {
 };
 
 /**
- * Builds the Flux HTTP application.
+ * Builds the Valence HTTP application.
  */
 const createApp = ({
   auth,
@@ -1154,7 +1154,7 @@ const createApp = ({
     const asked = context.req.valid('json');
 
     if (!isSafeWebhookUrl(asked.url)) {
-      return context.json({ error: 'Flux will not send deliveries to that address.' }, 400);
+      return context.json({ error: 'Valence will not send deliveries to that address.' }, 400);
     }
 
     const made = await webhooks.create(asked);
@@ -3049,7 +3049,7 @@ const createApp = ({
   app.doc('/api/openapi.json', {
     openapi: '3.1.0',
     info: {
-      title: 'Flux API',
+      title: 'Valence API',
       version: SERVER_VERSION,
       description: 'Self-hosted streaming platform API.',
     },
@@ -3057,7 +3057,7 @@ const createApp = ({
 
   app.get(
     '/api/reference',
-    apiReference({ spec: { url: '/api/openapi.json' }, pageTitle: 'Flux API' }),
+    apiReference({ spec: { url: '/api/openapi.json' }, pageTitle: 'Valence API' }),
   );
 
   return app;

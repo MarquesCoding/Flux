@@ -66,12 +66,12 @@ const ALLOWED = [
  * are removed rather than trusted, by a sanitiser that is maintained for the purpose — hand-written
  * sanitising is how this goes wrong.
  *
- * **The book's own stylesheets are dropped**, not sanitised. Flux decides how a book is set — size,
+ * **The book's own stylesheets are dropped**, not sanitised. Valence decides how a book is set — size,
  * leading, margins, and whether the page is light, sepia or dark — and a stylesheet that fought that
  * would win in places and lose in others. It also removes a whole class of things to get wrong:
  * there is no CSS to escape from if there is no CSS.
  *
- * Pictures are kept, and their addresses are rewritten to point back at Flux, because a book's
+ * Pictures are kept, and their addresses are rewritten to point back at Valence, because a book's
  * pictures live inside the book and no browser can reach in there.
  *
  * @param html - The chapter as the book wrote it.

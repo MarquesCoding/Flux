@@ -9,7 +9,7 @@ type Notice = {
 };
 
 /**
- * Turns a notice into the arguments Sonner wants, so that the shape callers use is Flux's rather
+ * Turns a notice into the arguments Sonner wants, so that the shape callers use is Valence's rather
  * than the library's — `onPress` reads like every other control here, where `onClick` would be the
  * one place a handler was named after the mouse.
  *

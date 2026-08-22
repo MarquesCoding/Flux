@@ -40,7 +40,7 @@ const fetchReadingProgress = async (bookId: string): Promise<ReadingProgress[]> 
  * Remembers where somebody is up to.
  *
  * Sent without waiting on it and without minding whether it lands. Somebody turning a page is
- * telling Flux something, not asking it: a page that stopped to be sure the place had been written
+ * telling Valence something, not asking it: a page that stopped to be sure the place had been written
  * would be a page that stutters, and a place that failed to save costs a reader one turn next time.
  *
  * @param bookId - The book.

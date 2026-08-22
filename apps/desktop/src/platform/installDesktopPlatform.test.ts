@@ -36,12 +36,6 @@ describe('installDesktopPlatform', () => {
     expect(() => platformInUse()).not.toThrow();
   });
 
-
-
-
-
-
-
   it('writes the address down where the process that owns the window will read it', () => {
     installDesktopPlatform();
 
@@ -50,11 +44,10 @@ describe('installDesktopPlatform', () => {
     expect(onDisk.get('flux.server.address')).toBe('https://flux.example.com');
   });
 
-
   it('names the machine rather than the engine, so a sessions list reads like a household', () => {
     installDesktopPlatform();
 
-    expect(platformInUse().describeThisClient()).toContain('Flux');
+    expect(platformInUse().describeThisClient()).toContain('Valence');
   });
 
   it('opens no socket, since this page is gone before anything live would matter', () => {

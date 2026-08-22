@@ -67,7 +67,7 @@ afterEach(() => {
 });
 
 describe('useBrowsingPresence', () => {
-  it('says somebody has Flux open, so a status stands between the things they watch', async () => {
+  it('says somebody has Valence open, so a status stands between the things they watch', async () => {
     draw();
 
     await waitFor(() => {

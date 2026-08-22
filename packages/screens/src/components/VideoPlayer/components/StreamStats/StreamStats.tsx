@@ -49,7 +49,7 @@ type GroupProps = {
  *
  * The panel reads top to bottom as the stream's own journey — what it is, what arrived, what was
  * decided, what came out, how it is faring — and the headings are what make that order legible
- * rather than a list of everything Flux happens to know.
+ * rather than a list of everything Valence happens to know.
  *
  * @param name - What this group of facts is about.
  * @param children - The facts.
@@ -78,7 +78,7 @@ const size = (width: number | null, height: number | null): string =>
     : `${width.toString()}x${height.toString()}`;
 
 /**
- * Everything Flux knows about what is on screen and how it got there: what the file is, what the
+ * Everything Valence knows about what is on screen and how it got there: what the file is, what the
  * session did to it, how the machine is coping, and how far ahead the buffer runs. For anybody
  * working out why a stream looks or behaves as it does, which is a different question from anything
  * the ordinary controls answer.

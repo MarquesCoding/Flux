@@ -33,7 +33,7 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
 
 /**
  * The one place a dialog is written. Holds the panel, the overlay, the focus trap and the escape
- * handling, so a caller supplies only what is inside. Every dialog in Flux is this or composes it; a
+ * handling, so a caller supplies only what is inside. Every dialog in Valence is this or composes it; a
  * raw dialog element elsewhere is lint-banned.
  *
  * The overlay sits at the same height as the panel rather than below it, so that what decides the

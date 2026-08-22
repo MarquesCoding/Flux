@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { isMediaFile, readTitleFromPath } from './readTitleFromPath';
 
 describe('isMediaFile', () => {
-  it('accepts the containers Flux plays', () => {
+  it('accepts the containers Valence plays', () => {
     expect(isMediaFile('film.mkv')).toBe(true);
     expect(isMediaFile('film.mp4')).toBe(true);
     expect(isMediaFile('recording.ts')).toBe(true);

@@ -35,7 +35,7 @@ describe('CacheBreakdown', () => {
       />,
     );
 
-    expect(screen.getByText(/3.5 GB of Flux's own files/)).toBeInTheDocument();
+    expect(screen.getByText(/3.5 GB of Valence's own files/)).toBeInTheDocument();
   });
 
   it('says when it counted, so a stale figure does not read as a live one', () => {

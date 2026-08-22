@@ -14,12 +14,12 @@ type DeliveredBitrateKbpsOptions = {
  * What the stream is actually costing, in kilobits a second.
  *
  * Taken from the manifest where the manifest says, and measured over a window where it does not.
- * Flux hands the player a media playlist rather than a master one — there is a single rendition, so
+ * Valence hands the player a media playlist rather than a master one — there is a single rendition, so
  * nothing to choose between and no `EXT-X-STREAM-INF` to carry a `BANDWIDTH` — which leaves the
  * engine declaring nought.
  *
  * Measured against **media fetched**, not time played, and that distinction is the whole of it. The
- * bytes an engine has downloaded correspond to the media it has downloaded, and Flux transcodes
+ * bytes an engine has downloaded correspond to the media it has downloaded, and Valence transcodes
  * ahead of the viewer, so a great deal more is fetched than has been watched. Divided by time
  * played the figure opens absurdly high — forty megabits for a stream encoded at seven hundred
  * kilobits — and sinks for the rest of the film as the denominator catches up, never settling

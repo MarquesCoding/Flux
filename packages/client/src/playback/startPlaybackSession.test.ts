@@ -160,7 +160,7 @@ describe('startPlaybackSession', () => {
 
     expect(outcome).toMatchObject({
       kind: 'failed',
-      reason: 'The server sent a response Flux could not read.',
+      reason: 'The server sent a response Valence could not read.',
     });
   });
 });
@@ -299,4 +299,3 @@ describe('describeWhy', () => {
     expect(reasons).toEqual(['Subtitles: pgs is image based']);
   });
 });
-

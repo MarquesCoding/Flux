@@ -16,7 +16,7 @@ const StoredEventsSchema = z.array(WebhookEventSchema);
 
 /**
  * Webhook subscriptions and their delivery history, held in Postgres — who asked about what, and
- * what happened when Flux tried to tell them.
+ * what happened when Valence tried to tell them.
  *
  * @param db - The database to read and write.
  * @returns The webhook store.

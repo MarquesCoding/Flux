@@ -1,14 +1,14 @@
 import type { Monitor } from '@FluxClient/admin/fetchAdmin';
 
 /**
- * Works out how much memory Flux itself is holding, counting every part of it: the API server, the
+ * Works out how much memory Valence itself is holding, counting every part of it: the API server, the
  * media service and every conversion it has running. Where the deployment can be read as a whole
  * that figure already covers all of them; where it cannot, they are added up one process at a time.
- * This is what separates "the box is full" from "Flux is full", which are different problems with
+ * This is what separates "the box is full" from "Valence is full", which are different problems with
  * different answers.
  *
  * @param resources - The latest readings, or null before any have arrived.
- * @returns The bytes Flux is holding, or null where it cannot be worked out.
+ * @returns The bytes Valence is holding, or null where it cannot be worked out.
  */
 const fluxMemoryUse = (resources: Monitor['resources'] | null): number | null => {
   if (resources === null) {

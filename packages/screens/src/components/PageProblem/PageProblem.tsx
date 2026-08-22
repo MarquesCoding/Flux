@@ -14,7 +14,7 @@ const PageProblem = () => (
     <h1 className="text-2xl font-semibold text-text">This page stopped working</h1>
 
     <p className="text-text-muted">
-      Something on this page went wrong. The rest of Flux is still running, so try it again or go
+      Something on this page went wrong. The rest of Valence is still running, so try it again or go
       somewhere else.
     </p>
 

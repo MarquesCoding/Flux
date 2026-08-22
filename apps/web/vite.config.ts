@@ -7,7 +7,7 @@ import type { Plugin } from 'vite';
 
 /**
  * Reads a development certificate where one has been put beside the config, so the dev server can be
- * served over HTTPS — several of the browser features Flux uses, passkeys and casting among them,
+ * served over HTTPS — several of the browser features Valence uses, passkeys and casting among them,
  * refuse to work over plain HTTP.
  *
  * @param name - The certificate file to read.

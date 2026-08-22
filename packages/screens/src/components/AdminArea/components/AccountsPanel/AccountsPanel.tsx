@@ -280,7 +280,7 @@ const AccountsPanel = () => {
           />
 
           <p className="text-center font-body text-xs text-text-muted">
-            Flux cannot send email, so tell them this password yourself.
+            Valence cannot send email, so tell them this password yourself.
           </p>
         </DialogContent>
 
@@ -550,7 +550,7 @@ const AccountsPanel = () => {
 
                 {(held?.effective ?? []).includes('administrator') ? (
                   <p className="text-sm text-text-muted">
-                    Everything, including anything added to Flux later.
+                    Everything, including anything added to Valence later.
                   </p>
                 ) : (held?.effective ?? []).length === 0 ? (
                   <p className="text-sm text-text-muted">Nothing at all.</p>

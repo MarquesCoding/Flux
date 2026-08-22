@@ -230,7 +230,7 @@ describe('two-factor', () => {
     expect(asked()).toBe('/api/auth/two-factor/enable');
   });
 
-  it('hands back nothing where the server enrolled a code by mail, which Flux does not offer', async () => {
+  it('hands back nothing where the server enrolled a code by mail, which Valence does not offer', async () => {
     fetchMock.mockResolvedValue(said({ method: 'otp' }));
 
     await expect(enableTwoFactor('a-long-enough-password')).resolves.toBeNull();
@@ -274,5 +274,3 @@ describe('two-factor', () => {
     await expect(disableTwoFactor('wrong')).resolves.toBe(false);
   });
 });
-
-

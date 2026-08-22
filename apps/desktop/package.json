@@ -1,7 +1,7 @@
 {
   "name": "@flux/desktop",
   "version": "0.0.0",
-  "productName": "Flux",
+  "productName": "Valence",
   "private": true,
   "type": "module",
   "scripts": {
@@ -45,7 +45,7 @@
   "main": "dist-main/main/Main.js",
   "build": {
     "appId": "app.flux.desktop",
-    "productName": "Flux",
+    "productName": "Valence",
     "directories": {
       "buildResources": "build",
       "output": "release"

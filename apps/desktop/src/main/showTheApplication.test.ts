@@ -15,7 +15,7 @@ const aWindow = () => ({
 });
 
 describe('showTheApplication', () => {
-  it('opens this client, which draws Flux rather than fetching it as pages', async () => {
+  it('opens this client, which draws Valence rather than fetching it as pages', async () => {
     const window = aWindow();
 
     await showTheApplication(window);

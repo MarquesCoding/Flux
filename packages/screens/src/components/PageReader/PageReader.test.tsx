@@ -73,7 +73,7 @@ beforeEach(() => {
         held.delete(key);
       },
     },
-    describeThisClient: () => 'Flux',
+    describeThisClient: () => 'Valence',
     thisClientId: () => 'a-client',
     openSocket: () => ({ send: () => {}, close: () => {} }),
   });

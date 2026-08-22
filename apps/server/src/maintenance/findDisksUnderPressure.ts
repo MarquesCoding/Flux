@@ -25,7 +25,7 @@ const isUnderPressure = (disk: DiskUse): boolean => {
  * Which mount a path is stored on, taking the deepest where several nest — a path under both `/` and
  * `/mnt/media` is on the latter, and the room left on the former says nothing about it.
  *
- * @param path Somewhere Flux writes.
+ * @param path Somewhere Valence writes.
  * @param disks Every filesystem the machine reported.
  */
 const findMountFor = (path: string, disks: DiskUse[]): DiskUse | null =>
@@ -38,11 +38,11 @@ const findMountFor = (path: string, disks: DiskUse[]): DiskUse | null =>
     .sort((one, other) => other.mountPoint.length - one.mountPoint.length)[0] ?? null;
 
 /**
- * The filesystems Flux writes to that are running out of room, each named once however many paths sit
- * on it. Only the ones written to: a full disk holding nothing of Flux's is somebody else's problem
+ * The filesystems Valence writes to that are running out of room, each named once however many paths sit
+ * on it. Only the ones written to: a full disk holding nothing of Valence's is somebody else's problem
  * and warning about it teaches an operator to ignore the warnings.
  *
- * @param paths Everywhere Flux writes: the libraries, and its caches.
+ * @param paths Everywhere Valence writes: the libraries, and its caches.
  * @param disks Every filesystem the machine reported.
  */
 const findDisksUnderPressure = (paths: string[], disks: DiskUse[]): DiskUse[] => {

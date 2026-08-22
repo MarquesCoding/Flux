@@ -3,7 +3,7 @@ import type { JsonValue } from '@FluxContracts/schemas/JsonValue';
 import { RequestFailed } from '@FluxClient/query/RequestFailed';
 
 /**
- * Reads something from Flux, and throws where it could not be read.
+ * Reads something from Valence, and throws where it could not be read.
  *
  * Every failure leaves by the same door: a refusal throws `RequestFailed` carrying the status, a
  * server that cannot be reached throws whatever `fetch` threw, and a body that does not match its

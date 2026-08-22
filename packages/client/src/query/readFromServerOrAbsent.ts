@@ -5,7 +5,7 @@ import { RequestFailed } from '@FluxClient/query/RequestFailed';
 const ABSENT = 404;
 
 /**
- * Reads one particular thing from Flux, where the thing not being there is an answer rather than a
+ * Reads one particular thing from Valence, where the thing not being there is an answer rather than a
  * failure.
  *
  * Only a 404 is treated that way, and only for an address naming one thing: asking for a film by an

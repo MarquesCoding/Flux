@@ -1842,7 +1842,7 @@ const VideoPlayer = ({
 
               if (!isReachableOrigin(window.location.origin)) {
                 notify.failed(
-                  'Open Flux at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
+                  'Open Valence at its address on the network rather than as localhost, so a device has somewhere to fetch from.',
                   { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
 
@@ -1867,7 +1867,7 @@ const VideoPlayer = ({
                 notify.failed(
                   window.location.protocol === 'https:'
                     ? 'This browser offered no device. Safari casts to AirPlay receivers; Chrome needs the extension that backs casting.'
-                    : 'This browser only casts over a secure connection. Serve Flux over HTTPS, or use Safari, which will cast from here as it is.',
+                    : 'This browser only casts over a secure connection. Serve Valence over HTTPS, or use Safari, which will cast from here as it is.',
                   { where: PLAYER_TOASTS, id: CAST_NOTICE },
                 );
               });

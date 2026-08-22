@@ -76,7 +76,7 @@ const loadCastSender = (
  * knows whether to appear at all.
  *
  * @param context - The cast context.
- * @returns The state, as Flux describes it.
+ * @returns The state, as Valence describes it.
  */
 const castStateOf = (context: CastContext | null): CastConnectionState =>
   context === null ? 'NO_DEVICES_AVAILABLE' : context.getCastState();

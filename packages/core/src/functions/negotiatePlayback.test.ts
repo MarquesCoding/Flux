@@ -729,7 +729,7 @@ describe('negotiatePlayback', () => {
       expect(plan.audio.reason.code).toBe('AudioCodecNotSupported');
     });
 
-    it('remuxes a container Flux could not name', () => {
+    it('remuxes a container Valence could not name', () => {
       const plan = negotiatePlayback({ ...media, container: 'unknown' }, profile);
 
       expect(plan.container.kind).not.toBe('directPlay');

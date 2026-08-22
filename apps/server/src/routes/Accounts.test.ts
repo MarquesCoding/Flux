@@ -164,7 +164,7 @@ describe('account administration', () => {
       }
     });
 
-    it('are closed even to an administrator, since Flux serves them itself', async () => {
+    it('are closed even to an administrator, since Valence serves them itself', async () => {
       const context = await signedInWith(['administrator']);
 
       expect((await context.request('/api/auth/admin/list-users', 'POST')).status).toBe(404);

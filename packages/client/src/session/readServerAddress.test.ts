@@ -32,7 +32,7 @@ describe('readServerAddress', () => {
     });
   });
 
-  it('keeps a path, for a Flux served under one', () => {
+  it('keeps a path, for a Valence served under one', () => {
     expect(readServerAddress('https://example.com/flux/')).toEqual({
       address: 'https://example.com/flux',
     });

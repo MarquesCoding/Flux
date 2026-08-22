@@ -178,7 +178,7 @@ describe('LibrariesPanel', () => {
   });
 
   describe('what the last scan changed', () => {
-    it('says nothing for a library scanned before Flux kept count', () => {
+    it('says nothing for a library scanned before Valence kept count', () => {
       render(<LibrariesPanel {...props} libraries={[library()]} />);
 
       expect(screen.queryByText(/Nothing changed/)).not.toBeInTheDocument();
