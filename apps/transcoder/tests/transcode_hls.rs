@@ -155,6 +155,7 @@ fn app(registry: SessionRegistry) -> axum::Router {
     create_router(AppState {
         registry,
         ffprobe: ffprobe(),
+        downloads: valence_transcoder::download::DownloadRegistry::new(),
         trickplay: valence_transcoder::trickplay::TrickplayRegistry::default(),
         previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),

@@ -12,6 +12,7 @@ use serde::{Deserialize, Serialize};
 
 use crate::cache_sweep;
 use crate::capability::{detect_capabilities, Capabilities};
+use crate::download::{self, DownloadFile, DownloadRegistry, DownloadRequest};
 use crate::fingerprint::{fingerprint, FingerprintRequest};
 use crate::frame::{take_frame, FrameRequest};
 use crate::monitor::{record, LogLevel, Monitor, Report};
@@ -23,6 +24,7 @@ use crate::probe::probe_media;
 use crate::queue::WorkQueue;
 use crate::session::{await_run, segment_number, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
+use crate::transcode_plan::{DeviceFilters, SegmentStart, TranscodePlan};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
     directory_for, is_complete, pending_index, tile_height_for, SheetSource, TrickplayRegistry,
@@ -75,6 +77,12 @@ pub struct AppState {
     pub media_roots: Vec<PathBuf>,
     /// Keeps one set of thumbnails from being rendered twice at once.
     pub trickplay: TrickplayRegistry,
+    /// Keeps one download from being prepared twice at once, and remembers how
+    /// far through each is.
+    ///
+    /// A download runs for minutes and is asked about every few seconds, so
+    /// without this the asking would be what started the work, over and over.
+    pub downloads: DownloadRegistry,
     /// Keeps one clip from being rendered twice at once.
     ///
     /// Previews share an output path derived from the request, so concurrent
@@ -837,6 +845,86 @@ async fn forget_preview(
 }
 
 /// Removes one set of sheets, so the next request draws them again.
+/// Prepares a whole file for keeping, or says how far along one is.
+///
+/// Answers immediately either way. Preparing a feature film takes minutes, and
+/// a request that waited for it would hold a socket open long past anything
+/// sensible — so the first ask starts the work and every ask, including that
+/// one, gets back how far through it is.
+async fn start_download(
+    State(state): State<AppState>,
+    Json(request): Json<DownloadRequest>,
+) -> Response {
+    let path = PathBuf::from(&request.spec.input_path);
+
+    if !state.is_readable(&path) {
+        return error(
+            StatusCode::FORBIDDEN,
+            "That file is outside the media roots.",
+        );
+    }
+
+    let config = state.registry.config();
+    let id = request.id();
+
+    if download::is_complete(&config.cache_root, &id).await {
+        return (
+            StatusCode::OK,
+            Json(DownloadFile {
+                file: format!("/downloads/{id}/{}", download::DOWNLOAD_NAME),
+                is_ready: true,
+                progress: 100,
+                size_bytes: download::size_of(&config.cache_root, &id).await,
+                id,
+            }),
+        )
+            .into_response();
+    }
+
+    if let Some(progress) = state.downloads.progress(&id).await {
+        return (StatusCode::ACCEPTED, Json(download::pending(id, progress))).into_response();
+    }
+
+    if !state.downloads.claim(&id).await {
+        return (StatusCode::ACCEPTED, Json(download::pending(id, 0))).into_response();
+    }
+
+    prepare_in_the_background(&state, &request, &path, id.clone());
+
+    (StatusCode::ACCEPTED, Json(download::pending(id, 0))).into_response()
+}
+
+/// Serves a prepared download.
+async fn download_file(
+    State(state): State<AppState>,
+    AxumPath((id, name)): AxumPath<(String, String)>,
+    headers: HeaderMap,
+) -> Response {
+    serve_file(
+        &download::directory_for(&state.registry.config().cache_root, &id),
+        &name,
+        requested_range(&headers),
+    )
+    .await
+}
+
+/// Throws away a prepared download, so its disk can be used for something else.
+async fn forget_download(
+    State(state): State<AppState>,
+    Json(request): Json<ForgetDownload>,
+) -> Response {
+    let root = state.registry.config().cache_root.join("downloads");
+    let forgotten = cache_sweep::forget(&root, &request.id).await;
+
+    (StatusCode::OK, Json(ForgetReport { forgotten })).into_response()
+}
+
+/// Which prepared download to throw away.
+#[derive(Debug, Deserialize)]
+struct ForgetDownload {
+    id: String,
+}
+
 async fn forget_trickplay(
     State(state): State<AppState>,
     Json(request): Json<TrickplayRequest>,
@@ -924,6 +1012,56 @@ async fn start_subtitle(
 /// The claim is already taken by the caller, and is given up here whatever
 /// becomes of the work — including where the queue drops it before it runs,
 /// which would otherwise leave that film unable to be asked for again.
+/// Starts preparing a download and returns without waiting for it.
+///
+/// The claim is taken before this is called and released here whatever happens.
+/// A preparation that fails while still holding its claim is a film nobody can
+/// ask for again until the service restarts.
+fn prepare_in_the_background(state: &AppState, request: &DownloadRequest, path: &Path, id: String) {
+    let config = state.registry.config();
+    let downloads = state.downloads.clone();
+    let queue = state.queue.clone();
+    let ffmpeg = config.ffmpeg.clone();
+    let cache_root = config.cache_root.clone();
+    let device = config.device.clone();
+    let asked = request.clone();
+    let subject = name_of(path);
+
+    tokio::spawn(async move {
+        let plan = TranscodePlan {
+            spec: asked.spec.clone(),
+            output_directory: download::directory_for(&cache_root, &id)
+                .to_string_lossy()
+                .into_owned(),
+            device,
+            device_filters: DeviceFilters::default(),
+            start_at: SegmentStart::default(),
+            cut_seconds: 0.0,
+        };
+
+        let noting = downloads.clone();
+        let noted = id.clone();
+
+        let _ = queue
+            .run(
+                "downloads",
+                &subject,
+                None,
+                download::generate(&ffmpeg, &cache_root, &plan, &asked, move |progress| {
+                    let noting = noting.clone();
+                    let noted = noted.clone();
+
+                    tokio::spawn(async move {
+                        noting.note(&noted, progress).await;
+                    });
+                }),
+            )
+            .await;
+
+        downloads.release(&id).await;
+    });
+}
+
 fn draw_in_the_background(
     state: &AppState,
     request: &TrickplayRequest,
@@ -1182,6 +1320,9 @@ pub fn create_router(state: AppState) -> Router {
         .route("/previews/forget", post(forget_preview))
         .route("/previews/{id}/{name}", get(preview_file))
         .route("/subtitles", post(start_subtitle))
+        .route("/downloads", post(start_download))
+        .route("/downloads/forget", post(forget_download))
+        .route("/downloads/{id}/{name}", get(download_file))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/sweep", post(sweep_trickplay))
         .route("/trickplay/forget", post(forget_trickplay))
