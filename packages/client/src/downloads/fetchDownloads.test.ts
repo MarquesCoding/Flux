@@ -40,6 +40,7 @@ const A_DOWNLOAD = {
   audioLanguages: ['eng'],
   state: 'preparing',
   progress: 0.25,
+  bytesPerSecond: null,
   sizeBytes: null,
   failure: null,
   askedAt: '2026-01-01T00:00:00.000Z',
@@ -83,7 +84,7 @@ afterEach(() => {
 describe('fetchDownloadOffer', () => {
   it('sends the device profile, since part of the answer is about the device', async () => {
     fetchMock.mockResolvedValue(
-      answering({ mediaId: A_DOWNLOAD.mediaId, title: 'Arrival', options: [] }),
+      answering({ mediaId: A_DOWNLOAD.mediaId, title: 'Arrival', episodes: 1, options: [] }),
     );
 
     await fetchDownloadOffer(A_DOWNLOAD.mediaId, PROFILE);
@@ -98,6 +99,7 @@ describe('fetchDownloadOffer', () => {
       answering({
         mediaId: A_DOWNLOAD.mediaId,
         title: 'Arrival',
+        episodes: 1,
         options: [
           {
             quality: 'original',
