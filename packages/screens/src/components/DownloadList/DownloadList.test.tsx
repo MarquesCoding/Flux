@@ -78,7 +78,7 @@ describe('DownloadList', () => {
     drawWith([READY]);
 
     expect(await screen.findByText('Arrival')).toBeInTheDocument();
-    expect(screen.getByText(/Ready to fetch/)).toBeInTheDocument();
+    expect(screen.getByText(/Ready to keep on this device/)).toBeInTheDocument();
   });
 
   it('says how far along something still being prepared is', async () => {
@@ -93,12 +93,12 @@ describe('DownloadList', () => {
     expect(await screen.findByText(/could not be reached/)).toBeInTheDocument();
   });
 
-  it('offers to fetch only what is ready', async () => {
+  it('offers to keep only what is ready', async () => {
     drawWith([PREPARING]);
 
     await screen.findByText(/40% done/);
 
-    expect(screen.queryByRole('button', { name: /Fetch/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Keep on this device' })).not.toBeInTheDocument();
   });
 
   it('offers to stop keeping one on the server, saying which', async () => {

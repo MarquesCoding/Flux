@@ -4,7 +4,9 @@ import { installDesktopPlatform } from './installDesktopPlatform';
 
 const onDisk = new Map<string, string>();
 
-const aBridge = () => ({
+const kept: never[] = [];
+
+const aBridge = (isReachable = true) => ({
   preferences: {
     held: Object.freeze(Object.fromEntries(onDisk)),
     write: (key: string, value: string) => {
@@ -13,6 +15,17 @@ const aBridge = () => ({
     forget: (key: string) => {
       onDisk.delete(key);
     },
+  },
+  held: {
+    all: () => Promise.resolve(kept),
+    keep: () => Promise.resolve(),
+    drop: () => Promise.resolve(),
+    pause: () => Promise.resolve(),
+    whenChanged: () => () => {},
+  },
+  reach: {
+    now: isReachable,
+    whenChanged: () => () => {},
   },
 });
 
@@ -69,5 +82,31 @@ describe('installDesktopPlatform', () => {
     installDesktopPlatform();
 
     expect(platformInUse().thisClientId()).toBe(platformInUse().thisClientId());
+  });
+
+  it('can be trusted with a file somebody means to keep, unlike a browser', () => {
+    installDesktopPlatform();
+
+    expect(platformInUse().canKeepFiles()).toBe(true);
+  });
+
+  it('asks the process that owns the disk what is on it', async () => {
+    installDesktopPlatform();
+
+    await expect(platformInUse().held.all()).resolves.toEqual([]);
+  });
+
+  it('points the player at this client rather than at a server', () => {
+    installDesktopPlatform();
+
+    expect(platformInUse().held.sourceFor('a-download')).toBe('/held/a-download');
+  });
+
+  it('takes what the process that does the asking says about reach', () => {
+    vi.stubGlobal('valence', aBridge(false));
+
+    installDesktopPlatform();
+
+    expect(platformInUse().reachability.isReachable()).toBe(false);
   });
 });

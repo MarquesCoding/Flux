@@ -10,7 +10,12 @@ import { SettingRow } from '@ValenceUI/SettingRow';
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { forgetDownload, setDownloadPaused } from '@ValenceClient/downloads/fetchDownloads';
 import { downloadQueries } from '@ValenceClient/query/downloadQueries';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
+import { useHeldFiles } from '@ValenceClient/downloads/useHeldFiles';
+import { describeKeeping } from '@ValenceCore/functions/describeKeeping';
+import { KeepingControls } from '@ValenceScreens/components/DownloadList/components/KeepingControls/KeepingControls';
 import type { Download } from '@ValenceContracts/schemas/Download';
+import type { HeldFile } from '@ValenceContracts/schemas/HeldFile';
 
 /**
  * Says where a prepared file has got to, in the words somebody would use about it.
@@ -40,9 +45,23 @@ const describeState = (download: Download): string => {
   }
 
   return download.sizeBytes === null
-    ? 'Ready to fetch.'
-    : `Ready to fetch — ${formatBytes(download.sizeBytes)}.`;
+    ? 'Ready to keep on this device.'
+    : `Ready to keep on this device — ${formatBytes(download.sizeBytes)}.`;
 };
+
+/**
+ * What to say beneath a title, given that two different things may be happening to it.
+ *
+ * Once a copy is on its way to this machine, that is the wait somebody is actually watching, so it
+ * is what the row describes. The server having finished its half an hour ago is no longer the
+ * interesting fact — and showing both would be two progress bars for one film.
+ *
+ * @param download - What the server prepared.
+ * @param held - The copy on this machine, where there is one.
+ * @returns The line beneath the title.
+ */
+const describeRow = (download: Download, held: HeldFile | null): string =>
+  held === null ? describeState(download) : describeKeeping(held);
 
 /**
  * Gathers downloads under the programme they belong to, in the order they were asked for.
@@ -83,8 +102,11 @@ const groupBySeries = (downloads: Download[]): { title: string | null; items: Do
 const DownloadList = () => {
   const cache = useQueryClient();
   const asked = useQuery(downloadQueries.all());
+  const held = useHeldFiles();
 
   const downloads = asked.data ?? [];
+  const onThisDevice = new Map(held.map((file) => [file.downloadId, file]));
+  const isKeepable = canKeepFiles();
 
   if (asked.isError) {
     return (
@@ -129,7 +151,7 @@ const DownloadList = () => {
               <SettingRow
                 key={download.id}
                 title={download.title}
-                description={describeState(download)}
+                description={describeRow(download, onThisDevice.get(download.id) ?? null)}
               >
                 <Badge size="sm" tone={download.state === 'failed' ? 'danger' : 'quiet'}>
                   {download.quality}
@@ -143,18 +165,11 @@ const DownloadList = () => {
                   />
                 )}
 
-                {download.state !== 'ready' ? null : (
-                  <Button
-                    variant="soft"
-                    size="sm"
-                    isPill
-                    onClick={() => {
-                      window.location.assign(`/api/downloads/${download.id}/file`);
-                    }}
-                  >
-                    <Icon of={DownloadSimpleIcon} size={15} />
-                    Fetch
-                  </Button>
+                {download.state !== 'ready' || !isKeepable ? null : (
+                  <KeepingControls
+                    download={download}
+                    held={onThisDevice.get(download.id) ?? null}
+                  />
                 )}
 
                 {download.state === 'ready' || download.state === 'failed' ? null : (
