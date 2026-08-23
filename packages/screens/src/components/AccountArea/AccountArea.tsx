@@ -3,6 +3,7 @@ import { ApiKeyPanel } from '@ValenceScreens/components/ApiKeyPanel/ApiKeyPanel'
 import { HistoryPanel } from '@ValenceScreens/components/HistoryPanel/HistoryPanel';
 import { useTravelDirection } from '@ValenceUI/useTravelDirection';
 import { ACCOUNT_PANELS } from '@ValenceScreens/components/AccountArea/accountPanels';
+import { DownloadList } from '@ValenceScreens/components/AccountArea/components/DownloadList/DownloadList';
 import { SettingList } from '@ValenceUI/SettingList';
 import { TabPanel } from '@ValenceUI/TabPanel';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
@@ -49,6 +50,10 @@ const AccountArea = ({ user, panel, profile, draft, onDraft, onChanged }: Accoun
 
       <TabPanel value="links" travel={travel}>
         <SharePanel />
+      </TabPanel>
+
+      <TabPanel value="downloads" travel={travel}>
+        <DownloadList />
       </TabPanel>
 
       <TabPanel value="history" className="flex flex-col gap-6" travel={travel}>

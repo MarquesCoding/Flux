@@ -3,6 +3,7 @@ const ACCOUNT_PANELS = [
   { id: 'security', label: 'Security' },
   { id: 'devices', label: 'Devices' },
   { id: 'links', label: 'Links' },
+  { id: 'downloads', label: 'Downloads' },
   { id: 'history', label: 'History' },
 ] as const;
 

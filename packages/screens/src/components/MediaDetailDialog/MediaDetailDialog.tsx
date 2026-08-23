@@ -4,6 +4,7 @@ import {
   CaretLeftIcon,
   HeartIcon,
   InfoIcon,
+  DownloadSimpleIcon,
   PlayIcon,
   ShareNetworkIcon,
   UsersThreeIcon,
@@ -15,6 +16,7 @@ import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { ActionBar } from '@ValenceUI/ActionBar';
+import { DownloadDialog } from '@ValenceScreens/components/DownloadDialog/DownloadDialog';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
 import { ScrolledTitle } from '@ValenceScreens/components/ScrolledTitle/ScrolledTitle';
@@ -102,6 +104,7 @@ const MediaDetailDialog = ({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
+  const [isDownloading, setIsDownloading] = useState(false);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -439,6 +442,14 @@ const MediaDetailDialog = ({
                     },
                   },
                 ]),
+            {
+              id: 'download',
+              label: 'Download',
+              icon: <Icon of={DownloadSimpleIcon} size={18} />,
+              onChoose: () => {
+                setIsDownloading(true);
+              },
+            },
             ...(onStartParty === undefined
               ? []
               : [
@@ -454,6 +465,13 @@ const MediaDetailDialog = ({
           ]}
         />
       </DialogFooter>
+
+      <DownloadDialog
+        media={isDownloading ? shown : null}
+        onClose={() => {
+          setIsDownloading(false);
+        }}
+      />
     </Dialog>
   );
 };
