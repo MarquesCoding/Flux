@@ -32,6 +32,7 @@ pub const DOWNLOAD_NAME: &str = "download.mp4";
 
 /// What a download is asked for.
 #[derive(Debug, Clone, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct DownloadRequest {
     /// How the file should be produced, decided the same way a session's is.
     ///
@@ -356,7 +357,65 @@ impl DownloadRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::{pending, progress_from, DownloadRegistry, DOWNLOAD_NAME};
+    use super::{pending, progress_from, DownloadRegistry, DownloadRequest, DOWNLOAD_NAME};
+
+    /// The exact shape the server sends, which is where the names have to agree.
+    const AS_THE_SERVER_SENDS_IT: &str = r#"{
+        "spec": {
+            "inputPath": "/media/film.mkv",
+            "startSeconds": 0,
+            "segmentSeconds": 4,
+            "hardwareAccel": "none",
+            "video": { "kind": "copy" },
+            "audio": { "kind": "copy" }
+        },
+        "durationSeconds": 7200.0,
+        "audioStreamIndexes": [1, 2],
+        "subtitleStreamIndexes": [3],
+        "generation": 7
+    }"#;
+
+    #[test]
+    fn reads_a_request_written_the_way_the_server_writes_it() {
+        let asked: DownloadRequest =
+            serde_json::from_str(AS_THE_SERVER_SENDS_IT).expect("the server's own shape parses");
+
+        assert!((asked.duration_seconds - 7200.0).abs() < f64::EPSILON);
+        assert_eq!(asked.audio_stream_indexes, vec![1, 2]);
+        assert_eq!(asked.subtitle_stream_indexes, vec![3]);
+        assert_eq!(asked.generation, 7);
+        assert_eq!(asked.spec.input_path, "/media/film.mkv");
+    }
+
+    #[test]
+    fn asks_for_a_different_file_when_the_tracks_differ() {
+        let one: DownloadRequest = serde_json::from_str(AS_THE_SERVER_SENDS_IT).expect("parses");
+
+        let mut other = one.clone();
+
+        other.audio_stream_indexes = vec![1];
+
+        assert_ne!(one.id(), other.id());
+    }
+
+    #[test]
+    fn asks_for_the_same_file_when_nothing_that_changes_the_bytes_differs() {
+        let one: DownloadRequest = serde_json::from_str(AS_THE_SERVER_SENDS_IT).expect("parses");
+        let two: DownloadRequest = serde_json::from_str(AS_THE_SERVER_SENDS_IT).expect("parses");
+
+        assert_eq!(one.id(), two.id());
+    }
+
+    #[test]
+    fn prepares_afresh_when_the_library_says_the_file_changed() {
+        let one: DownloadRequest = serde_json::from_str(AS_THE_SERVER_SENDS_IT).expect("parses");
+
+        let mut other = one.clone();
+
+        other.generation = 8;
+
+        assert_ne!(one.id(), other.id());
+    }
 
     #[test]
     fn reads_how_far_through_ffmpeg_says_it_is() {
