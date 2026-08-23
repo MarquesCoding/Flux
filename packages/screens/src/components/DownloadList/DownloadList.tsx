@@ -34,7 +34,9 @@ const describeState = (download: Download): string => {
   }
 
   if (download.state === 'preparing') {
-    return `Preparing — ${done} done.`;
+    return download.bytesPerSecond === null
+      ? `Preparing — ${done} done.`
+      : `Preparing — ${done} done, ${formatBytes(download.bytesPerSecond)}/s.`;
   }
 
   return download.sizeBytes === null

@@ -27,6 +27,7 @@ const MEDIA: MediaSummary = {
 const OFFER = {
   mediaId: MEDIA.id,
   title: 'Arrival',
+  episodes: 1,
   options: [
     {
       quality: 'original',
@@ -163,10 +164,21 @@ describe('DownloadDialog', () => {
     });
   });
 
-  it('counts a whole programme rather than one episode of it', async () => {
+  it('shows what the server added up across the programme, not one episode of it', async () => {
+    fetchMock.mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: () =>
+        Promise.resolve({
+          ...OFFER,
+          episodes: 10,
+          options: [{ ...OFFER.options[1], bytes: 40_000_000_000 }],
+        }),
+    });
+
     renderInAnAddress(
       <DownloadDialog
-        media={MEDIA}
+        media={null}
         series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
         onClose={vi.fn()}
       />,
@@ -178,7 +190,7 @@ describe('DownloadDialog', () => {
   it('says how many episodes it is about to queue', async () => {
     renderInAnAddress(
       <DownloadDialog
-        media={MEDIA}
+        media={null}
         series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
         onClose={vi.fn()}
       />,
@@ -193,7 +205,7 @@ describe('DownloadDialog', () => {
 
     renderInAnAddress(
       <DownloadDialog
-        media={MEDIA}
+        media={null}
         series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
         onClose={vi.fn()}
       />,

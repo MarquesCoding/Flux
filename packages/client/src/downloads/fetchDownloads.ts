@@ -22,6 +22,7 @@ const DownloadOptionSchema = z.object({
 const DownloadOfferSchema = z.object({
   mediaId: z.string(),
   title: z.string(),
+  episodes: z.number().int().positive(),
   options: z.array(DownloadOptionSchema),
 });
 
@@ -48,6 +49,37 @@ const fetchDownloadOffer = async (
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ deviceProfile }),
   }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return null;
+  }
+
+  return DownloadOfferSchema.parse(await response.json());
+};
+
+/**
+ * What a whole programme would cost, added up across the episodes it holds.
+ *
+ * Added up rather than one episode multiplied, because episodes are not the same length and the
+ * one that differs most is usually the finale. The server knows every episode, so it is the thing
+ * that should be doing the arithmetic.
+ *
+ * @param seriesId - The programme.
+ * @param deviceProfile - What this device says it can play.
+ * @returns What is on offer, or nothing where the server would not say.
+ */
+const fetchSeriesDownloadOffer = async (
+  seriesId: string,
+  deviceProfile: DeviceProfile,
+): Promise<DownloadOffer | null> => {
+  const response = await askTheServer(
+    `/api/series/${encodeURIComponent(seriesId)}/downloads/offer`,
+    {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ deviceProfile }),
+    },
+  ).catch(() => null);
 
   if (response === null || !response.ok) {
     return null;
@@ -201,6 +233,7 @@ export {
   setDownloadPaused,
   fetchDownloadOffer,
   fetchDownloads,
+  fetchSeriesDownloadOffer,
   fetchHoldings,
   forgetDownload,
   setHolding,

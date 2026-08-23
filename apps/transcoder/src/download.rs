@@ -18,6 +18,7 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
+use std::time::{Duration, Instant};
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
@@ -94,6 +95,12 @@ pub struct DownloadFile {
     pub is_ready: bool,
     /// How far through, from nought to one.
     pub progress: u8,
+    /// How fast it is being written, in bytes each second.
+    ///
+    /// What the file is growing at rather than how fast the film is being read.
+    /// "Twelve times real time" means nothing to somebody watching a bar; "8
+    /// MB/s" is the same figure people already read off every other transfer.
+    pub bytes_per_second: Option<u64>,
     /// Where to fetch it once it is ready.
     pub file: String,
     /// How large it turned out, once there is a file to measure.
@@ -140,12 +147,13 @@ pub async fn size_of(cache_root: &Path, id: &str) -> Option<u64> {
 
 /// What to say about a download nobody has finished preparing yet.
 #[must_use]
-pub fn pending(id: String, progress: u8) -> DownloadFile {
+pub fn pending(id: String, progress: u8, bytes_per_second: Option<u64>) -> DownloadFile {
     DownloadFile {
         file: format!("/downloads/{id}/{DOWNLOAD_NAME}"),
         id,
         is_ready: false,
         progress,
+        bytes_per_second,
         size_bytes: None,
     }
 }
@@ -291,6 +299,39 @@ pub fn join_arguments(directory: &Path) -> Vec<String> {
     ]
 }
 
+/// How fast the file is growing, in bytes each second.
+///
+/// Nothing is claimed in the first moments: a rate measured over a fraction of a
+/// second is mostly noise, and a figure that reads 400 MB/s and then settles at
+/// eight is worse than no figure at all.
+#[must_use]
+pub fn rate(written: u64, elapsed: Duration) -> Option<u64> {
+    let seconds = elapsed.as_secs_f64();
+
+    if seconds < 1.0 || written == 0 {
+        return None;
+    }
+
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        clippy::cast_precision_loss,
+        reason = "a byte rate, floored, and never negative"
+    )]
+    {
+        Some((written as f64 / seconds) as u64)
+    }
+}
+
+/// How large ffmpeg says it has written so far.
+///
+/// `total_size` counts only the part being written, so what came before is added
+/// back by the caller — otherwise the figure falls to nothing on every resume.
+#[must_use]
+pub fn written_from(line: &str) -> Option<u64> {
+    line.strip_prefix("total_size=")?.trim().parse().ok()
+}
+
 /// How far through ffmpeg says it is, as a percentage.
 ///
 /// `-progress` writes `out_time_us` on its own line every second. Anything else
@@ -330,7 +371,7 @@ pub async fn generate(
     plan: &TranscodePlan,
     request: &DownloadRequest,
     stop: Arc<AtomicBool>,
-    told: impl Fn(u8),
+    told: impl Fn(u8, Option<u64>),
 ) -> Result<DownloadFile, DownloadError> {
     let id = request.id();
     let directory = directory_for(cache_root, &id);
@@ -356,6 +397,9 @@ pub async fn generate(
     if let Some(pipe) = child.stdout.take() {
         let mut lines = BufReader::new(pipe).lines();
 
+        let started = Instant::now();
+        let mut written = 0_u64;
+
         while let Ok(Some(line)) = lines.next_line().await {
             if stop.load(Ordering::Relaxed) {
                 let _ = child.start_kill();
@@ -363,8 +407,15 @@ pub async fn generate(
                 break;
             }
 
+            if let Some(so_far) = written_from(&line) {
+                written = so_far;
+            }
+
             if let Some(done) = progress_from(&line, request.duration_seconds - behind) {
-                told(carried(already, request.duration_seconds, done));
+                told(
+                    carried(already, request.duration_seconds, done),
+                    rate(written, started.elapsed()),
+                );
             }
         }
     }
@@ -483,6 +534,7 @@ async fn ready(cache_root: &Path, id: &str) -> DownloadFile {
         file: format!("/downloads/{id}/{DOWNLOAD_NAME}"),
         is_ready: true,
         progress: 100,
+        bytes_per_second: None,
         size_bytes: size_of(cache_root, id).await,
         id: id.to_owned(),
     }
@@ -505,6 +557,7 @@ pub async fn forget(cache_root: &Path, id: &str) -> std::io::Result<()> {
 #[derive(Clone, Default)]
 struct InFlight {
     progress: u8,
+    bytes_per_second: Option<u64>,
     stop: Arc<AtomicBool>,
 }
 
@@ -563,22 +616,23 @@ impl DownloadRegistry {
         true
     }
 
-    /// Records how far through a claimed download is.
-    pub async fn note(&self, id: &str, progress: u8) {
+    /// Records how far through a claimed download is, and how fast it is going.
+    pub async fn note(&self, id: &str, progress: u8, bytes_per_second: Option<u64>) {
         let mut in_flight = self.in_flight.lock().await;
 
         if let Some(held) = in_flight.get_mut(id) {
             held.progress = progress;
+            held.bytes_per_second = bytes_per_second;
         }
     }
 
-    /// How far through a download is, where one is under way.
-    pub async fn progress(&self, id: &str) -> Option<u8> {
+    /// How far through a download is and how fast, where one is under way.
+    pub async fn progress(&self, id: &str) -> Option<(u8, Option<u64>)> {
         self.in_flight
             .lock()
             .await
             .get(id)
-            .map(|held| held.progress)
+            .map(|held| (held.progress, held.bytes_per_second))
     }
 
     /// Lets go of a download, whether it finished or failed.
@@ -590,10 +644,11 @@ impl DownloadRegistry {
 #[cfg(test)]
 mod tests {
     use super::{
-        carried, pending, progress_from, seconds_done, DownloadRegistry, DownloadRequest,
-        DOWNLOAD_NAME,
+        carried, pending, progress_from, rate, seconds_done, written_from, DownloadRegistry,
+        DownloadRequest, DOWNLOAD_NAME,
     };
     use std::sync::atomic::Ordering;
+    use std::time::Duration;
 
     /// The exact shape the server sends, which is where the names have to agree.
     const AS_THE_SERVER_SENDS_IT: &str = r#"{
@@ -651,6 +706,27 @@ mod tests {
         other.generation = 8;
 
         assert_ne!(one.id(), other.id());
+    }
+
+    #[test]
+    fn measures_how_fast_the_file_is_growing() {
+        assert_eq!(rate(16_000_000, Duration::from_secs(2)), Some(8_000_000));
+    }
+
+    #[test]
+    fn claims_no_rate_from_the_first_moments_of_a_run() {
+        assert_eq!(rate(16_000_000, Duration::from_millis(200)), None);
+    }
+
+    #[test]
+    fn claims_no_rate_before_anything_has_been_written() {
+        assert_eq!(rate(0, Duration::from_secs(5)), None);
+    }
+
+    #[test]
+    fn reads_how_much_ffmpeg_says_it_has_written() {
+        assert_eq!(written_from("total_size=1048576"), Some(1_048_576));
+        assert_eq!(written_from("frame=100"), None);
     }
 
     #[test]
@@ -735,11 +811,12 @@ mod tests {
 
     #[test]
     fn names_the_file_a_pending_download_will_become() {
-        let waiting = pending("abc".to_owned(), 12);
+        let waiting = pending("abc".to_owned(), 12, Some(8_000_000));
 
         assert_eq!(waiting.file, format!("/downloads/abc/{DOWNLOAD_NAME}"));
         assert!(!waiting.is_ready);
         assert_eq!(waiting.progress, 12);
+        assert_eq!(waiting.bytes_per_second, Some(8_000_000));
     }
 
     #[tokio::test]
@@ -759,16 +836,16 @@ mod tests {
         let registry = DownloadRegistry::new();
 
         registry.claim("abc").await;
-        registry.note("abc", 42).await;
+        registry.note("abc", 42, Some(8_000_000)).await;
 
-        assert_eq!(registry.progress("abc").await, Some(42));
+        assert_eq!(registry.progress("abc").await, Some((42, Some(8_000_000))));
     }
 
     #[tokio::test]
     async fn knows_nothing_about_a_download_nobody_claimed() {
         let registry = DownloadRegistry::new();
 
-        registry.note("abc", 42).await;
+        registry.note("abc", 42, None).await;
 
         assert_eq!(registry.progress("abc").await, None);
     }

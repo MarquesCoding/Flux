@@ -19,6 +19,7 @@ const DownloadOfferSchema = z
   .object({
     mediaId: z.string().uuid(),
     title: z.string(),
+    episodes: z.number().int().positive(),
     options: z.array(DownloadOptionSchema),
   })
   .openapi('DownloadOffer');
@@ -93,6 +94,33 @@ const askForDownloadRoute = createRoute({
     },
     404: {
       description: 'No such media item',
+      content: { 'application/json': { schema: DownloadError } },
+    },
+  },
+});
+
+const offerSeriesRoute = createRoute({
+  method: 'post',
+  path: '/api/series/{seriesId}/downloads/offer',
+  tags: ['Downloads'],
+  summary: 'What a whole programme would cost, added up across its episodes',
+  request: {
+    params: z.object({ seriesId: z.string() }),
+    body: {
+      content: { 'application/json': { schema: z.object({ deviceProfile: DeviceProfileSchema }) } },
+    },
+  },
+  responses: {
+    200: {
+      description: 'What is on offer',
+      content: { 'application/json': { schema: DownloadOfferSchema } },
+    },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: DownloadError } },
+    },
+    404: {
+      description: 'No such programme',
       content: { 'application/json': { schema: DownloadError } },
     },
   },
@@ -266,6 +294,7 @@ const releaseDownloadRoute = createRoute({
 export {
   askForDownloadRoute,
   askForSeriesRoute,
+  offerSeriesRoute,
   pauseDownloadRoute,
   resumeDownloadRoute,
   forgetDownloadRoute,

@@ -130,6 +130,7 @@ const DownloadFileSchema = z.object({
   id: z.string(),
   isReady: z.boolean(),
   progress: z.number().int().min(0).max(100),
+  bytesPerSecond: z.number().int().nonnegative().nullable().optional(),
   file: z.string(),
   sizeBytes: z.number().int().nonnegative().nullable().optional(),
 });

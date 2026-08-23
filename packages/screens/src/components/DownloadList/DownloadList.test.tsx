@@ -2,6 +2,7 @@ import { screen, waitFor } from '@testing-library/react';
 import { z } from 'zod';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import { DownloadList } from './DownloadList';
 
@@ -15,6 +16,7 @@ const READY = {
   audioLanguages: [],
   state: 'ready',
   progress: 1,
+  bytesPerSecond: null,
   sizeBytes: 4_000_000_000,
   failure: null,
   askedAt: '2026-01-01T00:00:00.000Z',
@@ -199,6 +201,20 @@ describe('DownloadList', () => {
     await screen.findByText('Arrival');
 
     expect(screen.queryByText(/of 1 ready/)).not.toBeInTheDocument();
+  });
+
+  it('says how fast it is going, in the unit people read every other transfer in', async () => {
+    drawWith([{ ...PREPARING, bytesPerSecond: 8_000_000 }]);
+
+    expect(await screen.findByText(new RegExp(`${formatBytes(8_000_000)}/s`))).toBeInTheDocument();
+  });
+
+  it('says nothing about speed before there is a rate worth quoting', async () => {
+    drawWith([PREPARING]);
+
+    await screen.findByText(/40% done/);
+
+    expect(screen.queryByText(/MB\/s/)).not.toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

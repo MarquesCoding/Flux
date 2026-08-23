@@ -23,6 +23,12 @@ const createMemoryDownloadService = (
 
     offer: (mediaId) => Promise.resolve(state.offers[mediaId] ?? null),
 
+    offerSeries: (seriesId) => {
+      const first = (state.episodes[seriesId] ?? [])[0];
+
+      return Promise.resolve(first === undefined ? null : (state.offers[first] ?? null));
+    },
+
     ask: (profileId, mediaId, quality, audioLanguages) => {
       const asked = state.downloads[profileId] ?? [];
       const already = asked.find((one) => one.mediaId === mediaId && one.quality === quality);
@@ -41,6 +47,7 @@ const createMemoryDownloadService = (
         audioLanguages,
         state: 'preparing',
         progress: 0,
+        bytesPerSecond: null,
         sizeBytes: null,
         failure: null,
         askedAt: new Date(0).toISOString(),

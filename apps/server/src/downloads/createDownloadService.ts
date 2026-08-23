@@ -63,6 +63,7 @@ const asDownload = (
   audioLanguages: row.audioLanguages,
   state: DownloadStateSchema.safeParse(row.state).data ?? 'preparing',
   progress: row.progress / 100,
+  bytesPerSecond: row.bytesPerSecond,
   sizeBytes: row.sizeBytes,
   failure: row.failure,
   askedAt: row.askedAt.toISOString(),
@@ -195,7 +196,45 @@ const createDownloadService = ({
         };
       });
 
-      return { mediaId, title: item.title, options: [original, ...rungs] };
+      return { mediaId, title: item.title, episodes: 1, options: [original, ...rungs] };
+    },
+
+    offerSeries: async (seriesId, deviceProfile): Promise<DownloadOffer | null> => {
+      const episodes = await media.episodesOf(seriesId);
+      const first = episodes[0];
+
+      if (first === undefined) {
+        return null;
+      }
+
+      const each = await Promise.all(
+        episodes.map(async (episode) => service.offer(episode.id, deviceProfile)),
+      );
+
+      const found = each.filter((one) => one !== null);
+      const sample = found[0];
+
+      if (sample === undefined) {
+        return null;
+      }
+
+      const series = await media.seriesOf(first.id);
+
+      return {
+        mediaId: first.id,
+        title: series?.title ?? sample.title,
+        episodes: found.length,
+        options: sample.options.map((option) => {
+          const bytes = found.reduce<number | null>((running, one) => {
+            const its =
+              one.options.find((other) => other.quality === option.quality)?.bytes ?? null;
+
+            return running === null || its === null ? null : running + its;
+          }, 0);
+
+          return { ...option, bytes };
+        }),
+      };
     },
 
     ask: async (profileId, mediaId, quality, audioLanguages) => {
@@ -205,7 +244,11 @@ const createDownloadService = ({
         return null;
       }
 
-      const file = await transcoder.requestDownload(asked.request);
+      const file = await transcoder
+        .requestDownload(asked.request)
+        .catch((problem: Error) => problem.message);
+
+      const refused = typeof file === 'string';
 
       const existing = await db
         .select()
@@ -224,13 +267,19 @@ const createDownloadService = ({
       if (held !== undefined) {
         const [updated] = await db
           .update(preparedDownload)
-          .set({
-            renditionId: file.id,
-            state: file.isReady ? 'ready' : 'preparing',
-            progress: file.progress,
-            sizeBytes: file.sizeBytes ?? null,
-            readyAt: file.isReady ? new Date() : null,
-          })
+          .set(
+            refused
+              ? { state: 'failed', failure: `The media service would not start it: ${file}` }
+              : {
+                  renditionId: file.id,
+                  state: file.isReady ? 'ready' : 'preparing',
+                  progress: file.progress,
+                  bytesPerSecond: file.bytesPerSecond ?? null,
+                  sizeBytes: file.sizeBytes ?? null,
+                  failure: null,
+                  readyAt: file.isReady ? new Date() : null,
+                },
+          )
           .where(eq(preparedDownload.id, held.id))
           .returning();
 
@@ -247,11 +296,12 @@ const createDownloadService = ({
           mediaItemId: mediaId,
           quality,
           audioLanguages,
-          renditionId: file.id,
-          state: file.isReady ? 'ready' : 'preparing',
-          progress: file.progress,
-          sizeBytes: file.sizeBytes ?? null,
-          ...(file.isReady ? { readyAt: new Date() } : {}),
+          renditionId: refused ? '' : file.id,
+          state: refused ? 'failed' : file.isReady ? 'ready' : 'preparing',
+          progress: refused ? 0 : file.progress,
+          sizeBytes: refused ? null : (file.sizeBytes ?? null),
+          ...(refused ? { failure: `The media service would not start it: ${file}` } : {}),
+          ...(!refused && file.isReady ? { readyAt: new Date() } : {}),
         })
         .returning();
 
@@ -366,6 +416,7 @@ const createDownloadService = ({
           .set({
             state: file.isReady ? 'ready' : 'preparing',
             progress: file.progress,
+            bytesPerSecond: file.bytesPerSecond ?? null,
             sizeBytes: file.sizeBytes ?? null,
             ...(file.isReady ? { readyAt: new Date() } : {}),
           })

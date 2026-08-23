@@ -24,6 +24,7 @@ import type { PresenceService } from '@ValenceServer/presence/PresenceService';
 import {
   askForDownloadRoute,
   askForSeriesRoute,
+  offerSeriesRoute,
   pauseDownloadRoute,
   resumeDownloadRoute,
   forgetDownloadRoute,
@@ -2611,6 +2612,23 @@ const createApp = ({
       return asked === null
         ? context.json({ error: 'No such media item.' }, 404)
         : context.json(asked, 200);
+    });
+
+    app.openapi(offerSeriesRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const offer = await downloads.offerSeries(
+        context.req.valid('param').seriesId,
+        context.req.valid('json').deviceProfile,
+      );
+
+      return offer === null
+        ? context.json({ error: 'No such programme.' }, 404)
+        : context.json(offer, 200);
     });
 
     app.openapi(askForSeriesRoute, async (context) => {

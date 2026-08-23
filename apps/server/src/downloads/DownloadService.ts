@@ -13,11 +13,13 @@ type DownloadOption = {
 type DownloadOffer = {
   mediaId: string;
   title: string;
+  episodes: number;
   options: DownloadOption[];
 };
 
 type DownloadService = {
   offer: (mediaId: string, deviceProfile: DeviceProfile) => Promise<DownloadOffer | null>;
+  offerSeries: (seriesId: string, deviceProfile: DeviceProfile) => Promise<DownloadOffer | null>;
   ask: (
     profileId: string,
     mediaId: string,

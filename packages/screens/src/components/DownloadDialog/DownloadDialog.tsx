@@ -18,6 +18,7 @@ import {
   askForDownload,
   askForSeries,
   fetchDownloadOffer,
+  fetchSeriesDownloadOffer,
 } from '@ValenceClient/downloads/fetchDownloads';
 import { downloadQueries } from '@ValenceClient/query/downloadQueries';
 import { detectFromBrowser } from '@ValenceScreens/playback/detectDeviceProfile';
@@ -74,26 +75,27 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
     };
   }, [media]);
 
+  const isOpen = media !== null || series !== null;
+
   const asked = useQuery({
-    queryKey: ['downloads', 'offer', media?.id ?? ''],
-    queryFn: () => fetchDownloadOffer(media?.id ?? '', detectFromBrowser()),
-    enabled: media !== null,
+    queryKey: ['downloads', 'offer', series?.id ?? media?.id ?? ''],
+    queryFn: () =>
+      series === null
+        ? fetchDownloadOffer(media?.id ?? '', detectFromBrowser())
+        : fetchSeriesDownloadOffer(series.id, detectFromBrowser()),
+    enabled: isOpen,
   });
 
   const offer = asked.data ?? null;
-  const many = series?.episodes ?? 1;
-
-  const options = (offer?.options ?? []).map((option) => ({
-    ...option,
-    bytes: option.bytes === null ? null : option.bytes * many,
-  }));
+  const episodes = offer?.episodes ?? series?.episodes ?? 1;
+  const options = offer?.options ?? [];
   const picked = options.find((one) => one.quality === chosen) ?? options[0] ?? null;
   const verdict = judgeFreeSpace({ bytes: picked?.bytes ?? null, freeBytes });
 
   return (
     <Dialog
       label={`Download ${series?.title ?? media?.title ?? ''}`}
-      isOpen={media !== null}
+      isOpen={isOpen}
       onClose={onClose}
     >
       <DialogTitle
@@ -101,7 +103,7 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
         detail={
           series === null
             ? (media?.title ?? '')
-            : `${series.title} — ${series.episodes.toString()} episodes`
+            : `${series.title} — ${episodes.toString()} episodes`
         }
       />
 
@@ -190,7 +192,7 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
           isLoading={isAsking}
           disabled={picked === null || verdict === 'willNotFit'}
           onClick={() => {
-            if (media === null || picked === null) {
+            if (picked === null || (media === null && series === null)) {
               return;
             }
 
@@ -198,7 +200,9 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
 
             void (
               series === null
-                ? askForDownload(media.id, picked.quality).then((started) => started !== null)
+                ? askForDownload(media?.id ?? '', picked.quality).then(
+                    (started) => started !== null,
+                  )
                 : askForSeries(series.id, picked.quality).then((queued) => queued.length > 0)
             )
               .then(async (started) => {
@@ -217,7 +221,7 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
           }}
         >
           <Icon of={DownloadSimpleIcon} size={18} />
-          {series === null ? 'Prepare it' : `Queue ${series.episodes.toString()} episodes`}
+          {series === null ? 'Prepare it' : `Queue ${episodes.toString()} episodes`}
         </Button>
       </DialogFooter>
     </Dialog>

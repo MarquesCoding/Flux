@@ -17,6 +17,7 @@ const DownloadSchema = z.object({
   audioLanguages: z.array(z.string()),
   state: DownloadStateSchema,
   progress: z.number().min(0).max(1),
+  bytesPerSecond: z.number().int().nonnegative().nullable(),
   sizeBytes: z.number().int().nonnegative().nullable(),
   failure: z.string().nullable(),
   askedAt: z.string().datetime(),

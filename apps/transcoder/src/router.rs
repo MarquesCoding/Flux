@@ -874,6 +874,7 @@ async fn start_download(
                 file: format!("/downloads/{id}/{}", download::DOWNLOAD_NAME),
                 is_ready: true,
                 progress: 100,
+                bytes_per_second: None,
                 size_bytes: download::size_of(&config.cache_root, &id).await,
                 id,
             }),
@@ -881,17 +882,21 @@ async fn start_download(
             .into_response();
     }
 
-    if let Some(progress) = state.downloads.progress(&id).await {
-        return (StatusCode::ACCEPTED, Json(download::pending(id, progress))).into_response();
+    if let Some((progress, rate)) = state.downloads.progress(&id).await {
+        return (
+            StatusCode::ACCEPTED,
+            Json(download::pending(id, progress, rate)),
+        )
+            .into_response();
     }
 
     if !state.downloads.claim(&id).await {
-        return (StatusCode::ACCEPTED, Json(download::pending(id, 0))).into_response();
+        return (StatusCode::ACCEPTED, Json(download::pending(id, 0, None))).into_response();
     }
 
     prepare_in_the_background(&state, &request, &path, id.clone());
 
-    (StatusCode::ACCEPTED, Json(download::pending(id, 0))).into_response()
+    (StatusCode::ACCEPTED, Json(download::pending(id, 0, None))).into_response()
 }
 
 /// Serves a prepared download.
@@ -1068,14 +1073,21 @@ fn prepare_in_the_background(state: &AppState, request: &DownloadRequest, path: 
                 "downloads",
                 &subject,
                 None,
-                download::generate(&ffmpeg, &cache_root, &plan, &asked, stop, move |progress| {
-                    let noting = noting.clone();
-                    let noted = noted.clone();
+                download::generate(
+                    &ffmpeg,
+                    &cache_root,
+                    &plan,
+                    &asked,
+                    stop,
+                    move |progress, rate| {
+                        let noting = noting.clone();
+                        let noted = noted.clone();
 
-                    tokio::spawn(async move {
-                        noting.note(&noted, progress).await;
-                    });
-                }),
+                        tokio::spawn(async move {
+                            noting.note(&noted, progress, rate).await;
+                        });
+                    },
+                ),
             )
             .await;
 
