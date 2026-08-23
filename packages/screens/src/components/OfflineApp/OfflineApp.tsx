@@ -7,7 +7,7 @@ import { Logo } from '@ValenceUI/Logo';
 import { useHeldFiles } from '@ValenceClient/downloads/useHeldFiles';
 import { useOfflineMode } from '@ValenceClient/offline/useOfflineMode';
 import { dropAFile, pauseAFile } from '@ValenceClient/downloads/keepingFiles';
-import { rememberWatchedOffline } from '@ValenceClient/offline/watchedOffline';
+import { rememberWatchedOffline, watchedOffline } from '@ValenceClient/offline/watchedOffline';
 import { OfflinePlayer } from '@ValenceScreens/components/OfflinePlayer/OfflinePlayer';
 import { OfflineShelf } from '@ValenceScreens/components/OfflineShelf/OfflineShelf';
 import type { OfflineAppProps } from './OfflineApp.types';
@@ -25,6 +25,11 @@ import type { OfflineAppProps } from './OfflineApp.types';
  * from somebody who asked to be offline. Somebody who went offline on purpose an hour before a
  * flight has not changed their mind by walking past a working connection.
  *
+ * Where somebody got to is remembered here and picked up from here, because there is nowhere else to
+ * remember it. Watching half of something, closing the lid and opening it again is the ordinary way
+ * a film gets watched on a journey, and the server that would usually keep the bookmark is the one
+ * thing that is missing.
+ *
  * @param title - What this instance is called.
  */
 const OfflineApp = ({ title }: OfflineAppProps) => {
@@ -36,9 +41,12 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
   const playing = held.find((file) => file.downloadId === watching) ?? null;
 
   if (playing !== null) {
+    const gotTo = watchedOffline().find((entry) => entry.mediaId === playing.mediaId);
+
     return (
       <OfflinePlayer
         file={playing}
+        {...(gotTo === undefined ? {} : { startAtSeconds: gotTo.positionSeconds })}
         onLeave={() => {
           setWatching(null);
         }}

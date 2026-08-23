@@ -14,6 +14,7 @@ import { byMediaId } from '@ValenceClient/playback/watchProgress';
 import { summariseDetail } from '@ValenceClient/library/summariseDetail';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useBrowsingPresence } from '@ValenceScreens/playback/useBrowsingPresence';
+import { useTellTheServerWhatIsHeld } from '@ValenceClient/downloads/useTellTheServerWhatIsHeld';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 import type { WatchProgress } from '@ValenceContracts/schemas/WatchProgress';
@@ -45,6 +46,7 @@ const SignedIn = ({ title }: SignedInProps) => {
   const watchParty = useWatchParty();
 
   useBrowsingPresence();
+  useTellTheServerWhatIsHeld();
 
   const watched = useQuery(viewingQueries.progress());
 
