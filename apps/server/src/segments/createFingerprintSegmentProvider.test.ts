@@ -74,6 +74,7 @@ const transcoderThat = (
   forgetPreview: () => Promise.reject(new Error('not used')),
   requestDownload: () => Promise.reject(new Error('not used')),
   readDownloadFile: () => Promise.reject(new Error('not used')),
+  stopDownload: () => Promise.reject(new Error('not used')),
   forgetDownload: () => Promise.reject(new Error('not used')),
   forgetTrickplay: () => Promise.reject(new Error('not used')),
   sweepTrickplay: () => Promise.reject(new Error('not used')),

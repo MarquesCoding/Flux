@@ -86,6 +86,55 @@ const askForDownload = async (
 };
 
 /**
+ * Asks for every episode of a programme to be prepared.
+ *
+ * Nobody downloads one episode of a series. What comes back is the queue, in the order it will be
+ * worked through — the server prepares them a few at a time rather than all at once, so asking for
+ * a whole season does not starve everybody else off the machine.
+ *
+ * @param seriesId - The programme.
+ * @param quality - Which rung, or the original.
+ * @param audioLanguages - Which sound to carry.
+ * @returns What was queued.
+ */
+const askForSeries = async (
+  seriesId: string,
+  quality: DownloadQuality,
+  audioLanguages: string[] = [],
+): Promise<Download[]> => {
+  const response = await askTheServer(`/api/series/${encodeURIComponent(seriesId)}/downloads`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ quality, audioLanguages }),
+  }).catch(() => null);
+
+  if (response === null || !response.ok) {
+    return [];
+  }
+
+  return DownloadListSchema.parse(await response.json()).downloads;
+};
+
+/**
+ * Stops preparing something for now, or carries on from where it stopped.
+ *
+ * Pausing keeps what has been done. The work is the server's rather than this device's, so it
+ * survives the application being closed and picks up where it left off rather than starting the
+ * film again.
+ *
+ * @param id - The prepared download.
+ * @param isPaused - Whether it should be stopped.
+ * @returns Whether the server did it.
+ */
+const setDownloadPaused = async (id: string, isPaused: boolean): Promise<boolean> => {
+  const response = await askTheServer(`/api/downloads/${id}/${isPaused ? 'pause' : 'resume'}`, {
+    method: 'POST',
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
  * Everything this viewer has asked for, with each one's progress brought up to date.
  */
 const fetchDownloads = async (): Promise<Download[]> =>
@@ -148,6 +197,8 @@ export type { DownloadOffer, DownloadOption };
 
 export {
   askForDownload,
+  askForSeries,
+  setDownloadPaused,
   fetchDownloadOffer,
   fetchDownloads,
   fetchHoldings,

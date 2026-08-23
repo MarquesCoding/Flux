@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import { and, desc, eq } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 import { compareToOriginal } from '@ValenceCore/functions/compareToOriginal';
 import { describeQualityMeaning } from '@ValenceCore/functions/describeQualityMeaning';
 import { estimateDownloadBytes } from '@ValenceCore/functions/estimateDownloadBytes';
@@ -49,9 +49,15 @@ type CreateDownloadServiceOptions = {
  * @param title - What the item is called.
  * @returns The download.
  */
-const asDownload = (row: typeof preparedDownload.$inferSelect, title: string): Download => ({
+const asDownload = (
+  row: typeof preparedDownload.$inferSelect,
+  title: string,
+  series: { id: string; title: string } | null,
+): Download => ({
   id: row.id,
   mediaId: row.mediaItemId,
+  seriesId: series?.id ?? null,
+  seriesTitle: series?.title ?? null,
   title,
   quality: qualityOf(row.quality),
   audioLanguages: row.audioLanguages,
@@ -148,7 +154,7 @@ const createDownloadService = ({
     };
   };
 
-  return {
+  const service: DownloadService = {
     offer: async (mediaId, deviceProfile): Promise<DownloadOffer | null> => {
       const found = await media.findForPlayback(mediaId);
 
@@ -228,7 +234,9 @@ const createDownloadService = ({
           .where(eq(preparedDownload.id, held.id))
           .returning();
 
-        return updated === undefined ? null : asDownload(updated, asked.title);
+        return updated === undefined
+          ? null
+          : asDownload(updated, asked.title, await media.seriesOf(mediaId));
       }
 
       const [made] = await db
@@ -247,7 +255,63 @@ const createDownloadService = ({
         })
         .returning();
 
-      return made === undefined ? null : asDownload(made, asked.title);
+      return made === undefined
+        ? null
+        : asDownload(made, asked.title, await media.seriesOf(mediaId));
+    },
+
+    askForSeries: async (profileId, seriesId, quality, audioLanguages) => {
+      const episodes = await media.episodesOf(seriesId);
+      const asked: Download[] = [];
+
+      for (const episode of episodes) {
+        const one = await service.ask(profileId, episode.id, quality, audioLanguages);
+
+        if (one !== null) {
+          asked.push(one);
+        }
+      }
+
+      return asked;
+    },
+
+    pause: async (profileId, id) => {
+      const rows = await db
+        .select()
+        .from(preparedDownload)
+        .where(and(eq(preparedDownload.profileId, profileId), eq(preparedDownload.id, id)))
+        .limit(1);
+
+      const row = rows[0];
+
+      if (row === undefined || row.state === 'ready') {
+        return;
+      }
+
+      await transcoder.stopDownload(row.renditionId).catch(() => false);
+
+      await db.update(preparedDownload).set({ state: 'paused' }).where(eq(preparedDownload.id, id));
+    },
+
+    resume: async (profileId, id) => {
+      const rows = await db
+        .select()
+        .from(preparedDownload)
+        .where(and(eq(preparedDownload.profileId, profileId), eq(preparedDownload.id, id)))
+        .limit(1);
+
+      const row = rows[0];
+
+      if (row === undefined || row.state !== 'paused') {
+        return;
+      }
+
+      await db
+        .update(preparedDownload)
+        .set({ state: 'queued', failure: null })
+        .where(eq(preparedDownload.id, id));
+
+      await service.ask(profileId, row.mediaItemId, qualityOf(row.quality), row.audioLanguages);
     },
 
     list: async (profileId) => {
@@ -259,7 +323,11 @@ const createDownloadService = ({
 
       return Promise.all(
         rows.map(async (row) =>
-          asDownload(row, (await media.titleOf(row.mediaItemId)) ?? 'Something'),
+          asDownload(
+            row,
+            (await media.titleOf(row.mediaItemId)) ?? 'Something',
+            await media.seriesOf(row.mediaItemId),
+          ),
         ),
       );
     },
@@ -269,7 +337,10 @@ const createDownloadService = ({
         .select()
         .from(preparedDownload)
         .where(
-          and(eq(preparedDownload.profileId, profileId), eq(preparedDownload.state, 'preparing')),
+          and(
+            eq(preparedDownload.profileId, profileId),
+            inArray(preparedDownload.state, ['queued', 'preparing']),
+          ),
         );
 
       for (const row of rows) {
@@ -309,7 +380,11 @@ const createDownloadService = ({
 
       return Promise.all(
         after.map(async (row: typeof preparedDownload.$inferSelect) =>
-          asDownload(row, (await media.titleOf(row.mediaItemId)) ?? 'Something'),
+          asDownload(
+            row,
+            (await media.titleOf(row.mediaItemId)) ?? 'Something',
+            await media.seriesOf(row.mediaItemId),
+          ),
         ),
       );
     },
@@ -373,6 +448,8 @@ const createDownloadService = ({
       }));
     },
   };
+
+  return service;
 };
 
 export type { CreateDownloadServiceOptions };

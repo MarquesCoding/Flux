@@ -14,7 +14,11 @@ import { Spinner } from '@ValenceUI/Spinner';
 import { notify } from '@ValenceUI/notify';
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { judgeFreeSpace } from '@ValenceCore/functions/judgeFreeSpace';
-import { askForDownload, fetchDownloadOffer } from '@ValenceClient/downloads/fetchDownloads';
+import {
+  askForDownload,
+  askForSeries,
+  fetchDownloadOffer,
+} from '@ValenceClient/downloads/fetchDownloads';
 import { downloadQueries } from '@ValenceClient/query/downloadQueries';
 import { detectFromBrowser } from '@ValenceScreens/playback/detectDeviceProfile';
 import { readFreeSpace } from '@ValenceScreens/downloads/readFreeSpace';
@@ -38,10 +42,15 @@ import type { DownloadDialogProps } from './DownloadDialog.types';
  * original to keep or to watch elsewhere, and that is theirs to decide knowingly rather than to be
  * quietly decided for them.
  *
+ * Where a whole programme is being asked for, the figures are what the season costs rather than
+ * what one episode does. Nobody downloads one episode of a series, and "roughly 6 GB for thirteen"
+ * is the number that decides it — "460 MB" is not, however accurate it is about the first one.
+ *
  * @param media - What is being downloaded, or nothing while the dialog is shut.
+ * @param series - The programme being downloaded whole, where it is one.
  * @param onClose - Told it was dismissed.
  */
-const DownloadDialog = ({ media, onClose }: DownloadDialogProps) => {
+const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) => {
   const cache = useQueryClient();
   const [chosen, setChosen] = useState<DownloadQuality | null>(null);
   const [freeBytes, setFreeBytes] = useState<number | null>(null);
@@ -72,13 +81,29 @@ const DownloadDialog = ({ media, onClose }: DownloadDialogProps) => {
   });
 
   const offer = asked.data ?? null;
-  const options = offer?.options ?? [];
+  const many = series?.episodes ?? 1;
+
+  const options = (offer?.options ?? []).map((option) => ({
+    ...option,
+    bytes: option.bytes === null ? null : option.bytes * many,
+  }));
   const picked = options.find((one) => one.quality === chosen) ?? options[0] ?? null;
   const verdict = judgeFreeSpace({ bytes: picked?.bytes ?? null, freeBytes });
 
   return (
-    <Dialog label={`Download ${media?.title ?? ''}`} isOpen={media !== null} onClose={onClose}>
-      <DialogTitle title="Download" detail={media?.title ?? ''} />
+    <Dialog
+      label={`Download ${series?.title ?? media?.title ?? ''}`}
+      isOpen={media !== null}
+      onClose={onClose}
+    >
+      <DialogTitle
+        title="Download"
+        detail={
+          series === null
+            ? (media?.title ?? '')
+            : `${series.title} — ${series.episodes.toString()} episodes`
+        }
+      />
 
       <DialogContent className="px-0">
         {asked.isPending ? (
@@ -104,7 +129,11 @@ const DownloadDialog = ({ media, onClose }: DownloadDialogProps) => {
               >
                 <span className="flex flex-col items-end gap-1">
                   <span className="text-sm font-medium tabular-nums text-text">
-                    {option.bytes === null ? 'Size unknown' : formatBytes(option.bytes)}
+                    {option.bytes === null
+                      ? 'Size unknown'
+                      : series === null
+                        ? formatBytes(option.bytes)
+                        : `about ${formatBytes(option.bytes)}`}
                   </span>
 
                   {option.wouldTranscode ? (
@@ -167,9 +196,13 @@ const DownloadDialog = ({ media, onClose }: DownloadDialogProps) => {
 
             setIsAsking(true);
 
-            void askForDownload(media.id, picked.quality)
+            void (
+              series === null
+                ? askForDownload(media.id, picked.quality).then((started) => started !== null)
+                : askForSeries(series.id, picked.quality).then((queued) => queued.length > 0)
+            )
               .then(async (started) => {
-                if (started === null) {
+                if (!started) {
                   notify.failed('That could not be started.');
 
                   return;
@@ -184,7 +217,7 @@ const DownloadDialog = ({ media, onClose }: DownloadDialogProps) => {
           }}
         >
           <Icon of={DownloadSimpleIcon} size={18} />
-          Prepare it
+          {series === null ? 'Prepare it' : `Queue ${series.episodes.toString()} episodes`}
         </Button>
       </DialogFooter>
     </Dialog>

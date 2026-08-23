@@ -24,6 +24,14 @@ type DownloadService = {
     quality: DownloadQuality,
     audioLanguages: string[],
   ) => Promise<Download | null>;
+  askForSeries: (
+    profileId: string,
+    seriesId: string,
+    quality: DownloadQuality,
+    audioLanguages: string[],
+  ) => Promise<Download[]>;
+  pause: (profileId: string, id: string) => Promise<void>;
+  resume: (profileId: string, id: string) => Promise<void>;
   list: (profileId: string) => Promise<Download[]>;
   refresh: (profileId: string) => Promise<Download[]>;
   forget: (profileId: string, id: string) => Promise<void>;

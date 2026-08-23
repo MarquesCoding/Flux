@@ -16,6 +16,8 @@ import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 const BASE = 'http://localhost:8420';
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
 const LIBRARY_ID = '2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f';
+const SERIES_ID = 'a-programme';
+const OTHER_MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bd0';
 
 const FILM: MediaDetail = {
   id: MEDIA_ID,
@@ -202,6 +204,70 @@ describe('downloads over HTTP', () => {
 
     expect(response.status).toBe(204);
     expect(Object.values(downloads.state.downloads).flat()).toEqual([]);
+  });
+
+  it('queues every episode of a programme on one ask', async () => {
+    const { app, downloads } = build();
+    const cookie = await signedIn(app);
+
+    downloads.state.episodes[SERIES_ID] = [MEDIA_ID, OTHER_MEDIA_ID];
+
+    const queued = DownloadListSchema.parse(
+      await (
+        await app.request(`${BASE}/api/series/${SERIES_ID}/downloads`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', cookie, origin: BASE },
+          body: JSON.stringify({ quality: '1080p' }),
+        })
+      ).json(),
+    );
+
+    expect(queued.downloads).toHaveLength(2);
+  });
+
+  it('pauses one on request, so it stops without losing what it has done', async () => {
+    const { app, downloads } = build();
+    const cookie = await signedIn(app);
+
+    const started = DownloadSchema.parse(await (await ask(app, cookie)).json());
+
+    const response = await app.request(`${BASE}/api/downloads/${started.id}/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(Object.values(downloads.state.downloads).flat()[0]?.state).toBe('paused');
+  });
+
+  it('carries on from where it stopped when resumed', async () => {
+    const { app, downloads } = build();
+    const cookie = await signedIn(app);
+
+    const started = DownloadSchema.parse(await (await ask(app, cookie)).json());
+
+    await app.request(`${BASE}/api/downloads/${started.id}/pause`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    await app.request(`${BASE}/api/downloads/${started.id}/resume`, {
+      method: 'POST',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(Object.values(downloads.state.downloads).flat()[0]?.state).toBe('queued');
+  });
+
+  it('will not pause or resume for nobody', async () => {
+    const { app } = build();
+
+    const paused = await app.request(
+      `${BASE}/api/downloads/00000000-0000-4000-8000-00000000000a/pause`,
+      { method: 'POST', headers: { origin: BASE } },
+    );
+
+    expect(paused.status).toBe(401);
   });
 
   it('records what a device says it is holding, and what it has let go', async () => {

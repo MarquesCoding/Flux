@@ -124,6 +124,8 @@ const SubtitleTrackSchema = z.object({ content: z.string() });
 
 const ForgetReportSchema = z.object({ forgotten: z.boolean() });
 
+const StopReportSchema = z.object({ stopped: z.boolean() });
+
 const DownloadFileSchema = z.object({
   id: z.string(),
   isReady: z.boolean(),
@@ -268,6 +270,7 @@ type Transcoder = {
     range: string | null,
   ) => Promise<TranscoderStreamedFile | null>;
   forgetDownload: (id: string) => Promise<boolean>;
+  stopDownload: (id: string) => Promise<boolean>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
   sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
   sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
@@ -537,6 +540,9 @@ const createTranscoderClient = ({
     forgetDownload: async (id) =>
       ForgetReportSchema.parse(await (await postJson('/downloads/forget', { id })).json())
         .forgotten,
+
+    stopDownload: async (id) =>
+      StopReportSchema.parse(await (await postJson('/downloads/stop', { id })).json()).stopped,
 
     requestTrickplay: async (request) =>
       TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),

@@ -163,6 +163,51 @@ describe('DownloadDialog', () => {
     });
   });
 
+  it('counts a whole programme rather than one episode of it', async () => {
+    renderInAnAddress(
+      <DownloadDialog
+        media={MEDIA}
+        series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(`about ${formatBytes(40_000_000_000)}`)).toBeInTheDocument();
+  });
+
+  it('says how many episodes it is about to queue', async () => {
+    renderInAnAddress(
+      <DownloadDialog
+        media={MEDIA}
+        series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(/The Bear — 10 episodes/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Queue 10 episodes/ })).toBeInTheDocument();
+  });
+
+  it('asks for the programme rather than the episode it was shown', async () => {
+    const actor = userEvent.setup();
+
+    renderInAnAddress(
+      <DownloadDialog
+        media={MEDIA}
+        series={{ id: 'a-show', title: 'The Bear', episodes: 10 }}
+        onClose={vi.fn()}
+      />,
+    );
+
+    await actor.click(await screen.findByRole('button', { name: /Queue 10 episodes/ }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).endsWith('/api/series/a-show/downloads')),
+      ).toBe(true);
+    });
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(DownloadDialog.displayName).toBe('DownloadDialog');
   });

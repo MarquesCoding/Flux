@@ -98,6 +98,66 @@ const askForDownloadRoute = createRoute({
   },
 });
 
+const askForSeriesRoute = createRoute({
+  method: 'post',
+  path: '/api/series/{seriesId}/downloads',
+  tags: ['Downloads'],
+  summary: 'Ask for every episode of a programme to be prepared',
+  request: {
+    params: z.object({ seriesId: z.string() }),
+    body: {
+      content: {
+        'application/json': {
+          schema: z.object({
+            quality: DownloadQualitySchema,
+            audioLanguages: z.array(z.string()).optional(),
+          }),
+        },
+      },
+    },
+  },
+  responses: {
+    200: {
+      description: 'What was queued',
+      content: { 'application/json': { schema: DownloadListSchema } },
+    },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: DownloadError } },
+    },
+  },
+});
+
+const pauseDownloadRoute = createRoute({
+  method: 'post',
+  path: '/api/downloads/{id}/pause',
+  tags: ['Downloads'],
+  summary: 'Stop preparing this for now, keeping what is done',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    204: { description: 'Paused' },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: DownloadError } },
+    },
+  },
+});
+
+const resumeDownloadRoute = createRoute({
+  method: 'post',
+  path: '/api/downloads/{id}/resume',
+  tags: ['Downloads'],
+  summary: 'Carry on preparing this from where it stopped',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    204: { description: 'Resumed' },
+    401: {
+      description: 'Nobody is signed in',
+      content: { 'application/json': { schema: DownloadError } },
+    },
+  },
+});
+
 const listDownloadsRoute = createRoute({
   method: 'get',
   path: '/api/downloads',
@@ -205,6 +265,9 @@ const releaseDownloadRoute = createRoute({
 
 export {
   askForDownloadRoute,
+  askForSeriesRoute,
+  pauseDownloadRoute,
+  resumeDownloadRoute,
   forgetDownloadRoute,
   holdDownloadRoute,
   listDownloadsRoute,

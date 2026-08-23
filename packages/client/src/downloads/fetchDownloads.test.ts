@@ -2,6 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 import {
   askForDownload,
+  askForSeries,
+  setDownloadPaused,
   fetchDownloadOffer,
   fetchDownloads,
   fetchHoldings,
@@ -31,6 +33,8 @@ const PROFILE: DeviceProfile = {
 const A_DOWNLOAD = {
   id: '00000000-0000-4000-8000-000000000001',
   mediaId: '00000000-0000-4000-8000-000000000002',
+  seriesId: null,
+  seriesTitle: null,
   title: 'Arrival',
   quality: '1080p',
   audioLanguages: ['eng'],
@@ -148,6 +152,47 @@ describe('askForDownload', () => {
     fetchMock.mockResolvedValue(answering({}, false));
 
     expect(await askForDownload(A_DOWNLOAD.mediaId, '1080p')).toBeNull();
+  });
+});
+
+describe('askForSeries', () => {
+  it('asks for the programme and reads back the queue', async () => {
+    fetchMock.mockResolvedValue(answering({ downloads: [A_DOWNLOAD, A_DOWNLOAD] }));
+
+    const queued = await askForSeries('a-show', '1080p');
+
+    expect(queued).toHaveLength(2);
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/api/series/a-show/downloads');
+  });
+
+  it('answers with nothing rather than throwing where the server refused', async () => {
+    fetchMock.mockResolvedValue(answering({}, false));
+
+    expect(await askForSeries('a-show', '1080p')).toEqual([]);
+  });
+});
+
+describe('setDownloadPaused', () => {
+  it('asks to pause', async () => {
+    fetchMock.mockResolvedValue(answering({}, true));
+
+    await setDownloadPaused(A_DOWNLOAD.id, true);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/pause');
+  });
+
+  it('asks to carry on', async () => {
+    fetchMock.mockResolvedValue(answering({}, true));
+
+    await setDownloadPaused(A_DOWNLOAD.id, false);
+
+    expect(String(fetchMock.mock.calls[0]?.[0])).toContain('/resume');
+  });
+
+  it('says so rather than throwing where it could not be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    expect(await setDownloadPaused(A_DOWNLOAD.id, true)).toBe(false);
   });
 });
 

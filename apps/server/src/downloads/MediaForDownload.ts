@@ -9,6 +9,8 @@ type MediaForDownload = {
     generation: number;
   } | null>;
   titleOf: (mediaId: string) => Promise<string | null>;
+  episodesOf: (seriesId: string) => Promise<{ id: string; title: string }[]>;
+  seriesOf: (mediaId: string) => Promise<{ id: string; title: string } | null>;
   keepingProfile: () => DeviceProfile;
 };
 

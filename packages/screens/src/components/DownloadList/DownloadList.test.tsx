@@ -8,6 +8,8 @@ import { DownloadList } from './DownloadList';
 const READY = {
   id: '00000000-0000-4000-8000-000000000001',
   mediaId: '00000000-0000-4000-8000-000000000002',
+  seriesId: null,
+  seriesTitle: null,
   title: 'Arrival',
   quality: '1080p',
   audioLanguages: [],
@@ -122,6 +124,81 @@ describe('DownloadList', () => {
         ),
       ).toBe(true);
     });
+  });
+
+  it('says a queued one is waiting rather than leaving it looking stuck', async () => {
+    drawWith([{ ...READY, state: 'queued', progress: 0, sizeBytes: null, readyAt: null }]);
+
+    expect(await screen.findByText(/Waiting its turn/)).toBeInTheDocument();
+  });
+
+  it('says a paused one keeps what it has done, which is the worry somebody has', async () => {
+    drawWith([{ ...READY, state: 'paused', progress: 0.4, sizeBytes: null, readyAt: null }]);
+
+    expect(await screen.findByText(/Paused at 40%. What is done is kept/)).toBeInTheDocument();
+  });
+
+  it('offers to stop one that is being prepared', async () => {
+    drawWith([PREPARING]);
+
+    expect(
+      await screen.findByRole('button', { name: /Stop preparing Arrival for now/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers to carry on with one that is paused', async () => {
+    drawWith([{ ...READY, state: 'paused', progress: 0.4, sizeBytes: null, readyAt: null }]);
+
+    expect(
+      await screen.findByRole('button', { name: /Carry on preparing Arrival/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('offers neither on one that is already done', async () => {
+    drawWith([READY]);
+
+    await screen.findByText('Arrival');
+
+    expect(screen.queryByRole('button', { name: /Stop preparing/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Carry on preparing/ })).not.toBeInTheDocument();
+  });
+
+  it('asks the server to pause when told to', async () => {
+    const actor = userEvent.setup();
+
+    drawWith([PREPARING]);
+
+    await actor.click(await screen.findByRole('button', { name: /Stop preparing Arrival/ }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.some(([url]) => String(url).endsWith(`/${PREPARING.id}/pause`)),
+      ).toBe(true);
+    });
+  });
+
+  it('gathers a queued programme under its own name, with how much of it is ready', async () => {
+    drawWith([
+      { ...READY, seriesId: 'a-show', seriesTitle: 'The Bear' },
+      {
+        ...READY,
+        id: '00000000-0000-4000-8000-000000000005',
+        seriesId: 'a-show',
+        seriesTitle: 'The Bear',
+        state: 'queued',
+      },
+    ]);
+
+    expect(await screen.findByText('The Bear')).toBeInTheDocument();
+    expect(screen.getByText(/1 of 2 ready/)).toBeInTheDocument();
+  });
+
+  it('leaves a film to stand on its own, since it belongs to no programme', async () => {
+    drawWith([READY]);
+
+    await screen.findByText('Arrival');
+
+    expect(screen.queryByText(/of 1 ready/)).not.toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

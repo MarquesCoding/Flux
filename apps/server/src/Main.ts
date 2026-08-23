@@ -1131,6 +1131,15 @@ const downloadService = createDownloadService({
         : { item, path: row.path, sizeBytes: row.sizeBytes, generation: row.generation };
     },
     titleOf: async (mediaId) => (await libraryService.getMedia(mediaId))?.title ?? null,
+    episodesOf: async (seriesId) =>
+      (await libraryService.itemsForShare({ kind: 'series', mediaId: null, seriesId })).map(
+        (item) => ({ id: item.id, title: item.title }),
+      ),
+    seriesOf: async (mediaId) => {
+      const seriesId = await libraryService.seriesOf(mediaId);
+
+      return seriesId === null ? null : await libraryService.getSeries(seriesId);
+    },
     keepingProfile,
   },
   transcoder,

@@ -23,6 +23,9 @@ import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import type { PresenceService } from '@ValenceServer/presence/PresenceService';
 import {
   askForDownloadRoute,
+  askForSeriesRoute,
+  pauseDownloadRoute,
+  resumeDownloadRoute,
   forgetDownloadRoute,
   holdDownloadRoute,
   listDownloadsRoute,
@@ -2608,6 +2611,49 @@ const createApp = ({
       return asked === null
         ? context.json({ error: 'No such media item.' }, 404)
         : context.json(asked, 200);
+    });
+
+    app.openapi(askForSeriesRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const { quality, audioLanguages } = context.req.valid('json');
+
+      const queued = await downloads.askForSeries(
+        profileId,
+        context.req.valid('param').seriesId,
+        quality,
+        audioLanguages ?? [],
+      );
+
+      return context.json({ downloads: queued }, 200);
+    });
+
+    app.openapi(pauseDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      await downloads.pause(profileId, context.req.valid('param').id);
+
+      return context.body(null, 204);
+    });
+
+    app.openapi(resumeDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      await downloads.resume(profileId, context.req.valid('param').id);
+
+      return context.body(null, 204);
     });
 
     app.openapi(listDownloadsRoute, async (context) => {

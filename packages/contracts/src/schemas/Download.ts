@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { QualityStepIdSchema } from '@ValenceContracts/schemas/QualityStep';
 
-const DOWNLOAD_STATES = ['preparing', 'ready', 'failed'] as const;
+const DOWNLOAD_STATES = ['queued', 'preparing', 'paused', 'ready', 'failed'] as const;
 
 const DownloadStateSchema = z.enum(DOWNLOAD_STATES);
 
@@ -10,6 +10,8 @@ const DownloadQualitySchema = z.union([z.literal('original'), QualityStepIdSchem
 const DownloadSchema = z.object({
   id: z.string().uuid(),
   mediaId: z.string().uuid(),
+  seriesId: z.string().nullable(),
+  seriesTitle: z.string().nullable(),
   title: z.string(),
   quality: DownloadQualitySchema,
   audioLanguages: z.array(z.string()),
