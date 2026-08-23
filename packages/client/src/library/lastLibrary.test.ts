@@ -17,6 +17,7 @@ const aPlatform = (): Platform => ({
   },
   describeThisClient: () => 'a test',
   thisClientId: () => 'a-client',
+  canKeepFiles: () => true,
   openSocket: vi.fn(),
 });
 

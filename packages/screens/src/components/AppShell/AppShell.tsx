@@ -2,6 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import {
   BellIcon,
   BookOpenIcon,
+  DownloadSimpleIcon,
   DiceFiveIcon,
   FilmSlateIcon,
   FireIcon,
@@ -22,6 +23,7 @@ import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { useDotFilm } from '@ValenceUI/useDotFilm';
 import { useKonamiCode } from '@ValenceUI/useKonamiCode';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
 import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
@@ -45,6 +47,7 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   new: <Icon of={FireIcon} size={18} />,
   favourites: <Icon of={HeartIcon} size={18} />,
   read: <Icon of={BookOpenIcon} size={18} />,
+  downloads: <Icon of={DownloadSimpleIcon} size={18} />,
   search: <Icon of={MagnifyingGlassIcon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
   admin: <Icon of={GearSixIcon} size={18} />,
@@ -57,6 +60,7 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   new: <Icon of={FireIcon} size={18} isActive />,
   favourites: <Icon of={HeartIcon} size={18} isActive />,
   read: <Icon of={BookOpenIcon} size={18} isActive />,
+  downloads: <Icon of={DownloadSimpleIcon} size={18} isActive />,
   search: <Icon of={MagnifyingGlassIcon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
   admin: <Icon of={GearSixIcon} size={18} isActive />,
@@ -69,6 +73,7 @@ const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
   new: 'fill',
   favourites: 'fill',
   read: 'settle',
+  downloads: 'settle',
   search: 'settle',
   account: 'settle',
   admin: 'spin',
@@ -81,6 +86,7 @@ const SECTION_LABELS: Record<ShellSection, string> = {
   new: 'New & Popular',
   favourites: 'Favourites',
   read: 'Read',
+  downloads: 'Downloads',
   search: 'Search',
   account: 'Account',
   admin: 'Admin',
@@ -187,6 +193,21 @@ const AppShell = ({
   }));
 
   const actions: NavDockAction[] = [
+    ...(canKeepFiles()
+      ? [
+          {
+            id: 'downloads',
+            label: SECTION_LABELS.downloads,
+            icon: SECTION_ICONS.downloads,
+            activeIcon: ACTIVE_SECTION_ICONS.downloads,
+            gesture: SECTION_GESTURES.downloads,
+            isCurrent: section === 'downloads',
+            onSelect: () => {
+              onSectionChange('downloads');
+            },
+          },
+        ]
+      : []),
     {
       id: 'search',
       label: 'Search',

@@ -16,6 +16,7 @@ import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { ActionBar } from '@ValenceUI/ActionBar';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { DownloadDialog } from '@ValenceScreens/components/DownloadDialog/DownloadDialog';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
@@ -442,14 +443,18 @@ const MediaDetailDialog = ({
                     },
                   },
                 ]),
-            {
-              id: 'download',
-              label: 'Download',
-              icon: <Icon of={DownloadSimpleIcon} size={18} />,
-              onChoose: () => {
-                setIsDownloading(true);
-              },
-            },
+            ...(canKeepFiles()
+              ? [
+                  {
+                    id: 'download',
+                    label: 'Download',
+                    icon: <Icon of={DownloadSimpleIcon} size={18} />,
+                    onChoose: () => {
+                      setIsDownloading(true);
+                    },
+                  },
+                ]
+              : []),
             ...(onStartParty === undefined
               ? []
               : [

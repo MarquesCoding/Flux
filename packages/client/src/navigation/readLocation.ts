@@ -12,6 +12,7 @@ const SECTIONS = [
   'new',
   'favourites',
   'read',
+  'downloads',
   'search',
   'account',
   'admin',

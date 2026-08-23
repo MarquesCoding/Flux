@@ -13,6 +13,7 @@ const installBrowserPlatform = (): void => {
     store: theBrowsersStore(),
     describeThisClient: describeThisBrowser,
     thisClientId: thisTabsId,
+    canKeepFiles: () => false,
     openSocket: openRealtimeSocket,
   });
 };

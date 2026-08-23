@@ -23,6 +23,7 @@ const aFakePlatform = (overrides: Partial<Platform> = {}): Platform => {
     describeThisClient: () => 'A test',
     openSocket: () => ({ send: () => {}, close: () => {} }),
     thisClientId: () => 'client-1',
+    canKeepFiles: () => true,
     ...overrides,
   };
 };

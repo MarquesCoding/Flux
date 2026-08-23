@@ -10,6 +10,7 @@ type Platform = {
   store: DeviceStore;
   describeThisClient: () => string;
   thisClientId: () => string;
+  canKeepFiles: () => boolean;
   openSocket: Connect;
 };
 

@@ -74,6 +74,7 @@ beforeEach(() => {
       },
     },
     describeThisClient: () => 'Valence',
+    canKeepFiles: () => true,
     thisClientId: () => 'a-client',
     openSocket: () => ({ send: () => {}, close: () => {} }),
   });
