@@ -24,6 +24,8 @@ const draw = (overrides: Partial<AppShellProps> = {}) => {
     onOpenAccount: vi.fn(),
     isAdminOpen: false,
     onOpenAdmin: vi.fn(),
+    isDownloadsOpen: false,
+    onOpenDownloads: vi.fn(),
     children: <p>The library</p>,
     ...overrides,
   };
@@ -268,6 +270,8 @@ describe('AppShell', () => {
         onOpenAccount={vi.fn()}
         isAdminOpen={false}
         onOpenAdmin={vi.fn()}
+        isDownloadsOpen={false}
+        onOpenDownloads={vi.fn()}
       >
         <p>The library</p>
       </AppShell>,

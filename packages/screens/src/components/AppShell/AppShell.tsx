@@ -47,7 +47,6 @@ const SECTION_ICONS: Record<ShellSection, ReactNode> = {
   new: <Icon of={FireIcon} size={18} />,
   favourites: <Icon of={HeartIcon} size={18} />,
   read: <Icon of={BookOpenIcon} size={18} />,
-  downloads: <Icon of={DownloadSimpleIcon} size={18} />,
   search: <Icon of={MagnifyingGlassIcon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
   admin: <Icon of={GearSixIcon} size={18} />,
@@ -60,7 +59,6 @@ const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
   new: <Icon of={FireIcon} size={18} isActive />,
   favourites: <Icon of={HeartIcon} size={18} isActive />,
   read: <Icon of={BookOpenIcon} size={18} isActive />,
-  downloads: <Icon of={DownloadSimpleIcon} size={18} isActive />,
   search: <Icon of={MagnifyingGlassIcon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
   admin: <Icon of={GearSixIcon} size={18} isActive />,
@@ -73,7 +71,6 @@ const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
   new: 'fill',
   favourites: 'fill',
   read: 'settle',
-  downloads: 'settle',
   search: 'settle',
   account: 'settle',
   admin: 'spin',
@@ -86,7 +83,6 @@ const SECTION_LABELS: Record<ShellSection, string> = {
   new: 'New & Popular',
   favourites: 'Favourites',
   read: 'Read',
-  downloads: 'Downloads',
   search: 'Search',
   account: 'Account',
   admin: 'Admin',
@@ -102,6 +98,8 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param children - The page itself.
  * @param moodLights - The colours to light the page with.
  * @param isAdministrator - Whether to offer the admin section at all.
+ * @param isDownloadsOpen - Whether the downloads dialog is raised.
+ * @param onOpenDownloads - Told to raise the downloads dialog.
  * @param isAdminOpen - Whether the server dialog is raised, which lights the dock's cog.
  * @param onOpenAdmin - Told to raise the server dialog.
  * @param isAccountOpen - Whether the account dialog is raised, which lights the dock's face.
@@ -122,6 +120,8 @@ const AppShell = ({
   onOpenAccount,
   isAdminOpen,
   onOpenAdmin,
+  isDownloadsOpen,
+  onOpenDownloads,
   avatar,
   onSurprise,
   surpriseKinds = [],
@@ -197,14 +197,12 @@ const AppShell = ({
       ? [
           {
             id: 'downloads',
-            label: SECTION_LABELS.downloads,
-            icon: SECTION_ICONS.downloads,
-            activeIcon: ACTIVE_SECTION_ICONS.downloads,
-            gesture: SECTION_GESTURES.downloads,
-            isCurrent: section === 'downloads',
-            onSelect: () => {
-              onSectionChange('downloads');
-            },
+            label: 'Downloads',
+            icon: <Icon of={DownloadSimpleIcon} size={20} />,
+            activeIcon: <Icon of={DownloadSimpleIcon} size={20} isActive />,
+            gesture: 'settle' as const,
+            isCurrent: isDownloadsOpen,
+            onSelect: onOpenDownloads,
           },
         ]
       : []),

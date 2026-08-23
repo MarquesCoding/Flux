@@ -5,16 +5,7 @@ import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 const BROWSE_SECTIONS = ['home', 'shows', 'films', 'new', 'favourites', 'read'] as const;
 
 type ShellSection =
-  | 'home'
-  | 'shows'
-  | 'films'
-  | 'new'
-  | 'favourites'
-  | 'read'
-  | 'downloads'
-  | 'search'
-  | 'account'
-  | 'admin';
+  'home' | 'shows' | 'films' | 'new' | 'favourites' | 'read' | 'search' | 'account' | 'admin';
 
 type AppShellProps = {
   section: ShellSection;
@@ -27,6 +18,8 @@ type AppShellProps = {
   onOpenAccount: () => void;
   isAdminOpen: boolean;
   onOpenAdmin: () => void;
+  isDownloadsOpen: boolean;
+  onOpenDownloads: () => void;
   onSurprise?: (only?: LibraryKind) => void;
   surpriseKinds?: LibraryKind[];
   notifications?: ReactNode;
