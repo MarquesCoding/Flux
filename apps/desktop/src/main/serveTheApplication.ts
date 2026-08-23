@@ -2,6 +2,8 @@ import { join } from 'node:path';
 import { readFile } from 'node:fs/promises';
 import { app, net, protocol } from 'electron';
 import { theServerAddress } from '@ValenceDesktop/main/theServerAddress';
+import { aHeldFile } from '@ValenceDesktop/main/aHeldFile';
+import type { ServerReach } from '@ValenceDesktop/main/theServerReach';
 
 const SCHEME = 'valence';
 
@@ -147,8 +149,16 @@ const aPage = (page: Buffer): Response =>
  * that go on to Valence are made out here in the main process, where none of those rules exist at all
  * and where one session holds the cookie for every one of them.
  *
- * A path that belongs to Valence is proxied. Everything else is this client's own bundle, and a path
- * that names nothing gets the document, because the router in the page owns the address.
+ * A path that belongs to Valence is proxied. A path that names a file this machine is holding is
+ * answered from the disk without the server being involved at all, which is what makes a download
+ * something that can be watched rather than something that was fetched. Everything else is this
+ * client's own bundle, and a path that names nothing gets the document, because the router in the
+ * page owns the address.
+ *
+ * Whether the server answered is noted on the way past. This is the only place that sees every
+ * request Valence makes, so it is the only place that can tell a server which has gone away from a
+ * server which said no — and telling those apart is the difference between offering somebody their
+ * downloads and drawing them an error.
  *
  * An address on any other host is fetched as itself over https. A page written for a browser names
  * things without a scheme — `//www.gstatic.com/…` is how the cast sender is asked for — and under a
@@ -159,12 +169,16 @@ const aPage = (page: Buffer): Response =>
  * request declared as one; the bodies here are a device profile and a place in a film, so reading
  * them first costs nothing and works.
  */
-const serveTheApplication = (): void => {
+const serveTheApplication = (reach: ServerReach, heldFolder: string): void => {
   const roots = join(app.getAppPath(), 'dist');
 
   protocol.handle(SCHEME, async (request) => {
     const asked = new URL(request.url);
     const server = theServerAddress();
+
+    if (asked.pathname.startsWith('/held/')) {
+      return await aHeldFile(heldFolder, asked.pathname, request.headers.get('range'));
+    }
 
     if (asked.host !== HOST) {
       const onward = `https://${asked.host}${asked.pathname}${asked.search}`;
@@ -189,13 +203,19 @@ const serveTheApplication = (): void => {
       const sent = request.body === null ? null : await request.arrayBuffer();
 
       try {
-        return await net.fetch(onward.toString(), {
+        const answer = await net.fetch(onward.toString(), {
           method: request.method,
           headers: worthCarrying(request.headers),
           ...(sent === null || sent.byteLength === 0 ? {} : { body: sent }),
           credentials: 'include',
         });
+
+        reach.noteReached();
+
+        return answer;
       } catch {
+        reach.noteMissed();
+
         return said(503, `Valence could not be reached at ${server}.`);
       }
     }
