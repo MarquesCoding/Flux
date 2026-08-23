@@ -13,6 +13,7 @@ import type { LibraryService } from '@ValenceServer/library/LibraryService';
 import type { SubtitleService } from '@ValenceServer/subtitles/SubtitleService';
 import type { SegmentService } from '@ValenceServer/segments/SegmentService';
 import type { WatchProgressService } from '@ValenceServer/progress/WatchProgressService';
+import type { DownloadService } from '@ValenceServer/downloads/DownloadService';
 import type { FavouriteService } from '@ValenceServer/favourites/FavouriteService';
 import type { RatingService } from '@ValenceServer/ratings/RatingService';
 import type { ShareService } from '@ValenceServer/sharing/ShareService';
@@ -20,6 +21,15 @@ import type { ShareSessions } from '@ValenceServer/sharing/createShareSessions';
 import type { PlaybackService, PreviewRead } from '@ValenceServer/playback/PlaybackService';
 import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import type { PresenceService } from '@ValenceServer/presence/PresenceService';
+import {
+  askForDownloadRoute,
+  forgetDownloadRoute,
+  holdDownloadRoute,
+  listDownloadsRoute,
+  listHoldingsRoute,
+  offerDownloadRoute,
+  releaseDownloadRoute,
+} from './routes/DownloadRoute';
 import { healthRoute } from './routes/HealthRoute';
 import {
   listLibrariesRoute,
@@ -366,6 +376,7 @@ type CreateAppOptions = {
   subtitles: SubtitleService;
   segments: SegmentService;
   progress: WatchProgressService;
+  downloads?: DownloadService;
   favourites: FavouriteService;
   ratings: RatingService;
   shares?: ShareService;
@@ -425,6 +436,7 @@ const createApp = ({
   subtitles,
   segments,
   progress,
+  downloads,
   favourites,
   ratings,
   shares,
@@ -2558,6 +2570,112 @@ const createApp = ({
 
     return context.json(splitPersonCredits(held), 200);
   });
+
+  if (downloads !== undefined) {
+    app.openapi(offerDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const offer = await downloads.offer(
+        context.req.valid('param').mediaId,
+        context.req.valid('json').deviceProfile,
+      );
+
+      return offer === null
+        ? context.json({ error: 'No such media item.' }, 404)
+        : context.json(offer, 200);
+    });
+
+    app.openapi(askForDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const { quality, audioLanguages } = context.req.valid('json');
+
+      const asked = await downloads.ask(
+        profileId,
+        context.req.valid('param').mediaId,
+        quality,
+        audioLanguages ?? [],
+      );
+
+      return asked === null
+        ? context.json({ error: 'No such media item.' }, 404)
+        : context.json(asked, 200);
+    });
+
+    app.openapi(listDownloadsRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      return context.json({ downloads: await downloads.refresh(profileId) }, 200);
+    });
+
+    app.openapi(forgetDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      await downloads.forget(profileId, context.req.valid('param').id);
+
+      return context.body(null, 204);
+    });
+
+    app.openapi(listHoldingsRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      return context.json({ holdings: await downloads.held(profileId) }, 200);
+    });
+
+    app.openapi(holdDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const clientId = context.req.header('x-valence-client') ?? profileId;
+
+      await downloads.hold(
+        profileId,
+        clientId,
+        context.req.valid('param').mediaId,
+        context.req.valid('json').quality,
+      );
+
+      return context.body(null, 204);
+    });
+
+    app.openapi(releaseDownloadRoute, async (context) => {
+      const profileId = await readProfileId(context.req.raw.headers);
+
+      if (profileId === null) {
+        return context.json({ error: 'Nobody is signed in.' }, 401);
+      }
+
+      const { mediaId, quality } = context.req.valid('param');
+      const clientId = context.req.header('x-valence-client') ?? profileId;
+
+      await downloads.release(clientId, mediaId, quality);
+
+      return context.body(null, 204);
+    });
+  }
 
   app.openapi(listFavouritesRoute, async (context) => {
     const profileId = await readProfileId(context.req.raw.headers);

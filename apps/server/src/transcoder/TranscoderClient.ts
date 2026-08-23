@@ -124,6 +124,14 @@ const SubtitleTrackSchema = z.object({ content: z.string() });
 
 const ForgetReportSchema = z.object({ forgotten: z.boolean() });
 
+const DownloadFileSchema = z.object({
+  id: z.string(),
+  isReady: z.boolean(),
+  progress: z.number().int().min(0).max(100),
+  file: z.string(),
+  sizeBytes: z.number().int().nonnegative().nullable().optional(),
+});
+
 const SweepReportSchema = z.object({
   removed: z.number().int().nonnegative(),
   freedBytes: z.number().int().nonnegative(),
@@ -194,6 +202,16 @@ type TrickplayRequest = {
 type SessionResponse = z.infer<typeof SessionResponseSchema>;
 type TranscoderCapabilities = z.infer<typeof CapabilitiesSchema>;
 
+type DownloadRequest = {
+  spec: SessionSpec;
+  durationSeconds: number;
+  audioStreamIndexes: number[];
+  subtitleStreamIndexes: number[];
+  generation: number;
+};
+
+type DownloadFile = z.infer<typeof DownloadFileSchema>;
+
 type SessionSpec = {
   inputPath: string;
   startSeconds: number;
@@ -243,6 +261,13 @@ type Transcoder = {
     name: string,
     range: string | null,
   ) => Promise<TranscoderStreamedFile | null>;
+  requestDownload: (request: DownloadRequest) => Promise<DownloadFile>;
+  readDownloadFile: (
+    id: string,
+    name: string,
+    range: string | null,
+  ) => Promise<TranscoderStreamedFile | null>;
+  forgetDownload: (id: string) => Promise<boolean>;
   requestTrickplay: (request: TrickplayRequest) => Promise<TrickplayIndex>;
   sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
   sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
@@ -499,6 +524,20 @@ const createTranscoderClient = ({
     readSubtitle: async (request) =>
       SubtitleTrackSchema.parse(await (await postJson('/subtitles', request)).json()).content,
 
+    requestDownload: async (request) =>
+      DownloadFileSchema.parse(await (await postJson('/downloads', request)).json()),
+
+    readDownloadFile: async (id, name, range) =>
+      openStream(
+        `${origin}/downloads/${encodeURIComponent(id)}/${encodeURIComponent(name)}`,
+        range,
+        'video/mp4',
+      ),
+
+    forgetDownload: async (id) =>
+      ForgetReportSchema.parse(await (await postJson('/downloads/forget', { id })).json())
+        .forgotten,
+
     requestTrickplay: async (request) =>
       TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
 
@@ -542,6 +581,8 @@ export type {
   HttpResponse,
   MediaProbe,
   SessionResponse,
+  DownloadFile,
+  DownloadRequest,
   SessionSpec,
   Transcoder,
   TranscoderCapabilities,
