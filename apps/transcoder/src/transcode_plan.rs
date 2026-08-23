@@ -1476,6 +1476,18 @@ impl TranscodePlan {
     /// those are the parts a download decides for itself.
     #[must_use]
     pub fn to_download_args(&self) -> Vec<String> {
+        self.to_download_args_from(0)
+    }
+
+    /// The same, resuming from part of the way in.
+    ///
+    /// A download stopped part way through keeps what it finished, so what it
+    /// asks for next starts where those left off. `-ss` before the input seeks
+    /// rather than decodes-and-discards, which is what makes resuming an hour
+    /// into a film cost nothing.
+    ///
+    #[must_use]
+    pub fn to_download_args_from(&self, from_seconds: u32) -> Vec<String> {
         let mut args: Vec<String> = vec![
             "-hide_banner".into(),
             "-nostdin".into(),
@@ -1499,6 +1511,11 @@ impl TranscodePlan {
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.output_format.into());
             }
+        }
+
+        if from_seconds > 0 {
+            args.push("-ss".into());
+            args.push(from_seconds.to_string());
         }
 
         args.push("-i".into());

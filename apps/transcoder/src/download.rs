@@ -16,6 +16,7 @@
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
@@ -108,6 +109,8 @@ pub enum DownloadError {
     Spawn(std::io::Error),
     #[error("ffmpeg wrote no file: {0}")]
     NoOutput(String),
+    #[error("the download was stopped")]
+    Stopped,
 }
 
 /// Where a prepared download lives.
@@ -147,16 +150,70 @@ pub fn pending(id: String, progress: u8) -> DownloadFile {
     }
 }
 
-/// The name ffmpeg writes to while it is still working.
+/// Where the parts of a download are gathered before they are joined.
+const PARTS_DIRECTORY: &str = "parts";
+
+/// How long each part runs.
+///
+/// A download is produced in parts rather than in one pass so that stopping it
+/// keeps whatever is finished. Ten minutes is the trade: shorter parts lose less
+/// when somebody pauses, and every part is another file to open, join and delete.
+const PART_SECONDS: u32 = 600;
+
+/// The list ffmpeg is given to join the parts with.
+const JOIN_LIST: &str = "parts.txt";
+
+/// The name the joined file is written under before it is finished with.
 const WORKING_NAME: &str = "download.working.mp4";
 
-/// The arguments that turn a session's plan into one progressive file.
+/// The parts already finished, in order.
+///
+/// The last part ffmpeg was writing when it stopped is not finished, and is left
+/// out — a part is only counted once the next one exists, because ffmpeg has no
+/// way of saying "this one is complete" other than moving on to another.
+pub async fn parts_done(directory: &Path) -> Vec<PathBuf> {
+    let Ok(mut entries) = tokio::fs::read_dir(directory.join(PARTS_DIRECTORY)).await else {
+        return Vec::new();
+    };
+
+    let mut found: Vec<PathBuf> = Vec::new();
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        let path = entry.path();
+
+        if path.extension().is_some_and(|kind| kind == "mp4") {
+            found.push(path);
+        }
+    }
+
+    found.sort();
+    found.pop();
+
+    found
+}
+
+/// How far into the film the finished parts reach.
+#[must_use]
+pub fn seconds_done(parts: usize) -> u32 {
+    u32::try_from(parts)
+        .unwrap_or(0)
+        .saturating_mul(PART_SECONDS)
+}
+
+/// The arguments that produce the parts of a download.
 ///
 /// Everything about the picture and the sound is the plan's own — the same
 /// encoder, the same filters, the same copy-or-encode decision — so a download
-/// looks exactly like what a viewer would have streamed. Only the tail differs:
-/// one MP4 rather than a folder of segments, with the index moved to the front
-/// so a player can start it before it has the whole file.
+/// looks exactly like what a viewer would have streamed.
+///
+/// What differs is that it is written in parts. One pass would be simpler and
+/// would throw away an hour of work the moment anybody paused it: an MP4 is not
+/// playable until its index is written at the end, so a half finished one is not
+/// half a download, it is nothing. Parts are each a whole file, so stopping
+/// costs at most the one being written and resuming starts at the next.
+///
+/// `done` is how many parts are already there, which is both where to resume
+/// from and what to number the next part.
 ///
 /// Progress is asked for on standard output rather than scraped from the log,
 /// because the log format is not a contract and `-progress` is.
@@ -165,8 +222,9 @@ pub fn download_arguments(
     plan: &TranscodePlan,
     request: &DownloadRequest,
     directory: &Path,
+    done: usize,
 ) -> Vec<String> {
-    let mut args = plan.to_download_args();
+    let mut args = plan.to_download_args_from(seconds_done(done));
 
     args.push("-progress".into());
     args.push("pipe:1".into());
@@ -181,14 +239,56 @@ pub fn download_arguments(
         args.push("mov_text".into());
     }
 
-    args.push("-movflags".into());
-    args.push("+faststart".into());
     args.push("-f".into());
+    args.push("segment".into());
+    args.push("-segment_time".into());
+    args.push(PART_SECONDS.to_string());
+    args.push("-segment_format".into());
     args.push("mp4".into());
+    args.push("-segment_format_options".into());
+    args.push("movflags=+faststart".into());
+    args.push("-reset_timestamps".into());
+    args.push("1".into());
+    args.push("-segment_start_number".into());
+    args.push(done.to_string());
     args.push("-y".into());
-    args.push(directory.join(WORKING_NAME).to_string_lossy().into_owned());
+    args.push(
+        directory
+            .join(PARTS_DIRECTORY)
+            .join("part%05d.mp4")
+            .to_string_lossy()
+            .into_owned(),
+    );
 
     args
+}
+
+/// The arguments that join the finished parts into the file somebody keeps.
+///
+/// Copied rather than encoded — the parts are already what was asked for, and
+/// re-encoding them would spend the whole transcode again to change nothing. The
+/// index is moved to the front so a player can start the file before it has all
+/// of it.
+#[must_use]
+pub fn join_arguments(directory: &Path) -> Vec<String> {
+    vec![
+        "-hide_banner".into(),
+        "-nostdin".into(),
+        "-loglevel".into(),
+        "error".into(),
+        "-f".into(),
+        "concat".into(),
+        "-safe".into(),
+        "0".into(),
+        "-i".into(),
+        directory.join(JOIN_LIST).to_string_lossy().into_owned(),
+        "-c".into(),
+        "copy".into(),
+        "-movflags".into(),
+        "+faststart".into(),
+        "-y".into(),
+        directory.join(WORKING_NAME).to_string_lossy().into_owned(),
+    ]
 }
 
 /// How far through ffmpeg says it is, as a percentage.
@@ -216,36 +316,38 @@ pub fn progress_from(line: &str, duration_seconds: f64) -> Option<u8> {
 
 /// Prepares the file, reporting how far through it is as it goes.
 ///
+/// Picks up from whatever parts are already there, so a download stopped an hour
+/// in resumes an hour in rather than starting again. Stops when the caller says
+/// so, leaving the finished parts where they are.
+///
 /// # Errors
 ///
-/// Returns [`DownloadError`] when the directory cannot be made, ffmpeg cannot
-/// be started, or it finishes having written nothing.
+/// Returns [`DownloadError`] when the directory cannot be made, ffmpeg cannot be
+/// started, or it finishes having written nothing.
 pub async fn generate(
     ffmpeg: &str,
     cache_root: &Path,
     plan: &TranscodePlan,
     request: &DownloadRequest,
+    stop: Arc<AtomicBool>,
     told: impl Fn(u8),
 ) -> Result<DownloadFile, DownloadError> {
     let id = request.id();
     let directory = directory_for(cache_root, &id);
 
     if is_complete(cache_root, &id).await {
-        return Ok(DownloadFile {
-            file: format!("/downloads/{id}/{DOWNLOAD_NAME}"),
-            is_ready: true,
-            progress: 100,
-            size_bytes: size_of(cache_root, &id).await,
-            id,
-        });
+        return Ok(ready(cache_root, &id).await);
     }
 
-    tokio::fs::create_dir_all(&directory)
+    tokio::fs::create_dir_all(directory.join(PARTS_DIRECTORY))
         .await
         .map_err(DownloadError::Directory)?;
 
+    let already = parts_done(&directory).await.len();
+    let behind = f64::from(seconds_done(already));
+
     let mut child = Command::new(ffmpeg)
-        .args(download_arguments(plan, request, &directory))
+        .args(download_arguments(plan, request, &directory, already))
         .stdout(std::process::Stdio::piped())
         .stderr(std::process::Stdio::piped())
         .spawn()
@@ -255,8 +357,14 @@ pub async fn generate(
         let mut lines = BufReader::new(pipe).lines();
 
         while let Ok(Some(line)) = lines.next_line().await {
-            if let Some(done) = progress_from(&line, request.duration_seconds) {
-                told(done);
+            if stop.load(Ordering::Relaxed) {
+                let _ = child.start_kill();
+
+                break;
+            }
+
+            if let Some(done) = progress_from(&line, request.duration_seconds - behind) {
+                told(carried(already, request.duration_seconds, done));
             }
         }
     }
@@ -266,17 +374,96 @@ pub async fn generate(
         .await
         .map_err(DownloadError::Spawn)?;
 
+    if stop.load(Ordering::Relaxed) {
+        return Err(DownloadError::Stopped);
+    }
+
+    if !finished.status.success() {
+        return Err(DownloadError::NoOutput(
+            String::from_utf8_lossy(&finished.stderr).trim().to_owned(),
+        ));
+    }
+
+    join(ffmpeg, &directory).await?;
+
+    Ok(ready(cache_root, &id).await)
+}
+
+/// How far through the whole film this run's own progress puts it.
+///
+/// ffmpeg reports how far through the part it is working on, which starts again
+/// at nought on every resume. Somebody watching a download that is an hour in
+/// should not see it fall back to nothing because it stopped and started.
+#[must_use]
+pub fn carried(done_parts: usize, duration_seconds: f64, this_run: u8) -> u8 {
+    if duration_seconds <= 0.0 {
+        return this_run;
+    }
+
+    let behind = f64::from(seconds_done(done_parts));
+    let ahead = (duration_seconds - behind).max(0.0);
+    let whole = (behind + (ahead * f64::from(this_run) / 100.0)) / duration_seconds;
+
+    #[allow(
+        clippy::cast_possible_truncation,
+        clippy::cast_sign_loss,
+        reason = "clamped to 0..=1 on the line above, so this is 0..=100"
+    )]
+    {
+        (whole.clamp(0.0, 1.0) * 100.0).round() as u8
+    }
+}
+
+/// Joins the finished parts into the file somebody keeps.
+async fn join(ffmpeg: &str, directory: &Path) -> Result<(), DownloadError> {
+    let mut parts = parts_done(directory).await;
+
+    if let Ok(mut entries) = tokio::fs::read_dir(directory.join(PARTS_DIRECTORY)).await {
+        let mut all: Vec<PathBuf> = Vec::new();
+
+        while let Ok(Some(entry)) = entries.next_entry().await {
+            let path = entry.path();
+
+            if path.extension().is_some_and(|kind| kind == "mp4") {
+                all.push(path);
+            }
+        }
+
+        all.sort();
+        parts = all;
+    }
+
+    if parts.is_empty() {
+        return Err(DownloadError::NoOutput("no parts were written".to_owned()));
+    }
+
+    let list = parts
+        .iter()
+        .map(|path| format!("file '{}'", path.to_string_lossy()))
+        .collect::<Vec<_>>()
+        .join("\n");
+
+    tokio::fs::write(directory.join(JOIN_LIST), list)
+        .await
+        .map_err(DownloadError::Directory)?;
+
+    let joined = Command::new(ffmpeg)
+        .args(join_arguments(directory))
+        .output()
+        .await
+        .map_err(DownloadError::Spawn)?;
+
     let working = directory.join(WORKING_NAME);
 
     let wrote = tokio::fs::metadata(&working)
         .await
         .is_ok_and(|found| found.len() > 0);
 
-    if !finished.status.success() || !wrote {
+    if !joined.status.success() || !wrote {
         let _ = tokio::fs::remove_file(&working).await;
 
         return Err(DownloadError::NoOutput(
-            String::from_utf8_lossy(&finished.stderr).trim().to_owned(),
+            String::from_utf8_lossy(&joined.stderr).trim().to_owned(),
         ));
     }
 
@@ -284,13 +471,21 @@ pub async fn generate(
         .await
         .map_err(DownloadError::Directory)?;
 
-    Ok(DownloadFile {
+    let _ = tokio::fs::remove_dir_all(directory.join(PARTS_DIRECTORY)).await;
+    let _ = tokio::fs::remove_file(directory.join(JOIN_LIST)).await;
+
+    Ok(())
+}
+
+/// What to say about a download that is finished.
+async fn ready(cache_root: &Path, id: &str) -> DownloadFile {
+    DownloadFile {
         file: format!("/downloads/{id}/{DOWNLOAD_NAME}"),
         is_ready: true,
         progress: 100,
-        size_bytes: size_of(cache_root, &id).await,
-        id,
-    })
+        size_bytes: size_of(cache_root, id).await,
+        id: id.to_owned(),
+    }
 }
 
 /// Forgets a prepared download, so its disk can be used for something else.
@@ -306,10 +501,18 @@ pub async fn forget(cache_root: &Path, id: &str) -> std::io::Result<()> {
     }
 }
 
-/// Keeps one preparation per download, however many people ask for it.
+/// What is known about a preparation while it is running.
+#[derive(Clone, Default)]
+struct InFlight {
+    progress: u8,
+    stop: Arc<AtomicBool>,
+}
+
+/// Keeps one preparation per download, however many people ask for it, and holds
+/// the switch that stops each one.
 #[derive(Clone, Default)]
 pub struct DownloadRegistry {
-    in_flight: Arc<Mutex<HashMap<String, u8>>>,
+    in_flight: Arc<Mutex<HashMap<String, InFlight>>>,
 }
 
 impl DownloadRegistry {
@@ -330,7 +533,32 @@ impl DownloadRegistry {
             return false;
         }
 
-        in_flight.insert(id.to_owned(), 0);
+        in_flight.insert(id.to_owned(), InFlight::default());
+
+        true
+    }
+
+    /// The switch that stops this preparation, for whoever is running it.
+    pub async fn stopper(&self, id: &str) -> Arc<AtomicBool> {
+        self.in_flight
+            .lock()
+            .await
+            .get(id)
+            .map_or_else(Arc::default, |held| Arc::clone(&held.stop))
+    }
+
+    /// Asks a running preparation to stop where it is.
+    ///
+    /// What it has finished stays on disk, so asking for it again picks up from
+    /// there rather than starting the film over.
+    pub async fn stop(&self, id: &str) -> bool {
+        let in_flight = self.in_flight.lock().await;
+
+        let Some(held) = in_flight.get(id) else {
+            return false;
+        };
+
+        held.stop.store(true, Ordering::Relaxed);
 
         true
     }
@@ -340,13 +568,17 @@ impl DownloadRegistry {
         let mut in_flight = self.in_flight.lock().await;
 
         if let Some(held) = in_flight.get_mut(id) {
-            *held = progress;
+            held.progress = progress;
         }
     }
 
     /// How far through a download is, where one is under way.
     pub async fn progress(&self, id: &str) -> Option<u8> {
-        self.in_flight.lock().await.get(id).copied()
+        self.in_flight
+            .lock()
+            .await
+            .get(id)
+            .map(|held| held.progress)
     }
 
     /// Lets go of a download, whether it finished or failed.
@@ -357,7 +589,11 @@ impl DownloadRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::{pending, progress_from, DownloadRegistry, DownloadRequest, DOWNLOAD_NAME};
+    use super::{
+        carried, pending, progress_from, seconds_done, DownloadRegistry, DownloadRequest,
+        DOWNLOAD_NAME,
+    };
+    use std::sync::atomic::Ordering;
 
     /// The exact shape the server sends, which is where the names have to agree.
     const AS_THE_SERVER_SENDS_IT: &str = r#"{
@@ -415,6 +651,65 @@ mod tests {
         other.generation = 8;
 
         assert_ne!(one.id(), other.id());
+    }
+
+    #[test]
+    fn counts_nothing_done_before_anything_is() {
+        assert_eq!(seconds_done(0), 0);
+    }
+
+    #[test]
+    fn counts_what_the_finished_parts_reach() {
+        assert_eq!(seconds_done(6), 3600);
+    }
+
+    #[test]
+    fn carries_what_was_already_done_into_this_run_s_own_progress() {
+        assert_eq!(carried(6, 7200.0, 0), 50);
+        assert_eq!(carried(6, 7200.0, 50), 75);
+        assert_eq!(carried(6, 7200.0, 100), 100);
+    }
+
+    #[test]
+    fn reports_a_first_run_as_its_own_progress() {
+        assert_eq!(carried(0, 7200.0, 40), 40);
+    }
+
+    #[test]
+    fn claims_nothing_odd_about_a_film_of_no_length() {
+        assert_eq!(carried(3, 0.0, 40), 40);
+    }
+
+    #[tokio::test]
+    async fn hands_the_same_switch_to_whoever_runs_a_claimed_download() {
+        let registry = DownloadRegistry::new();
+
+        registry.claim("abc").await;
+
+        let stopper = registry.stopper("abc").await;
+
+        assert!(!stopper.load(Ordering::Relaxed));
+        assert!(registry.stop("abc").await);
+        assert!(stopper.load(Ordering::Relaxed));
+    }
+
+    #[tokio::test]
+    async fn says_there_was_nothing_to_stop_rather_than_pretending_there_was() {
+        let registry = DownloadRegistry::new();
+
+        assert!(!registry.stop("abc").await);
+    }
+
+    #[tokio::test]
+    async fn leaves_a_new_claim_unstopped_after_an_earlier_one_was_stopped() {
+        let registry = DownloadRegistry::new();
+
+        registry.claim("abc").await;
+        registry.stop("abc").await;
+        registry.release("abc").await;
+        registry.claim("abc").await;
+
+        assert!(!registry.stopper("abc").await.load(Ordering::Relaxed));
     }
 
     #[test]

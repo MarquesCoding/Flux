@@ -908,6 +908,26 @@ async fn download_file(
     .await
 }
 
+/// Stops a preparation where it is, keeping what it has finished.
+///
+/// The parts already written stay on disk, so asking for the same download again
+/// picks up from there. Answering that nothing was stopped is not a failure — it
+/// means the work had already finished or had never started.
+async fn stop_download(
+    State(state): State<AppState>,
+    Json(request): Json<ForgetDownload>,
+) -> Response {
+    let stopped = state.downloads.stop(&request.id).await;
+
+    (StatusCode::OK, Json(StopReport { stopped })).into_response()
+}
+
+/// Whether there was anything to stop.
+#[derive(Debug, Serialize)]
+struct StopReport {
+    stopped: bool,
+}
+
 /// Throws away a prepared download, so its disk can be used for something else.
 async fn forget_download(
     State(state): State<AppState>,
@@ -1041,13 +1061,14 @@ fn prepare_in_the_background(state: &AppState, request: &DownloadRequest, path: 
 
         let noting = downloads.clone();
         let noted = id.clone();
+        let stop = downloads.stopper(&id).await;
 
         let _ = queue
             .run(
                 "downloads",
                 &subject,
                 None,
-                download::generate(&ffmpeg, &cache_root, &plan, &asked, move |progress| {
+                download::generate(&ffmpeg, &cache_root, &plan, &asked, stop, move |progress| {
                     let noting = noting.clone();
                     let noted = noted.clone();
 
@@ -1322,6 +1343,7 @@ pub fn create_router(state: AppState) -> Router {
         .route("/subtitles", post(start_subtitle))
         .route("/downloads", post(start_download))
         .route("/downloads/forget", post(forget_download))
+        .route("/downloads/stop", post(stop_download))
         .route("/downloads/{id}/{name}", get(download_file))
         .route("/trickplay", post(start_trickplay))
         .route("/trickplay/sweep", post(sweep_trickplay))
