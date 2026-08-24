@@ -16,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
 import { readLastLibrary, rememberLastLibrary } from '@ValenceClient/library/lastLibrary';
+import { bookQueries } from '@ValenceClient/query/bookQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { pickFeatured } from '@ValenceClient/library/pickFeatured';
@@ -84,6 +85,13 @@ const LibraryBrowser = ({
 
   const selected = libraries.find((entry) => entry.id === selectedId) ?? null;
   const shelf = selected !== null && selected.kind === 'books' ? selected : null;
+
+  const onTheShelf = useQuery({
+    ...bookQueries.inLibrary(shelf?.id ?? ''),
+    enabled: shelf !== null,
+  });
+
+  const hasNothingOnTheShelf = shelf !== null && (onTheShelf.data ?? []).length === 0;
 
   const page = useQuery(
     libraryQueries.items(selectedId, { search: appliedSearch, limit: PAGE_SIZE }),
@@ -236,7 +244,7 @@ const LibraryBrowser = ({
             animate="shown"
             exit="gone"
           >
-            {shelf !== null ? (
+            {shelf !== null && !hasNothingOnTheShelf ? (
               <BookRail
                 libraryId={shelf.id}
                 title={shelf.name}
@@ -244,12 +252,15 @@ const LibraryBrowser = ({
                   void go({ to: '/read/$bookId', params: { bookId: book.id } });
                 }}
               />
-            ) : items.length === 0 ? (
+            ) : hasNothingOnTheShelf || items.length === 0 ? (
               <EmptyLibrary
                 search={appliedSearch}
-                libraryName={libraries.find((entry) => entry.id === loadedFor)?.name ?? null}
+                libraryName={
+                  shelf?.name ?? libraries.find((entry) => entry.id === loadedFor)?.name ?? null
+                }
                 hasContentElsewhere={heroItems.length > 0}
                 canManage={onAddLibrary !== undefined}
+                {...(onAddLibrary === undefined ? {} : { onManage: onAddLibrary })}
               />
             ) : (
               <div className="flex flex-col gap-10">
