@@ -62,7 +62,11 @@ type LibraryService = ShowService & {
     seriesId: string | null;
   }) => Promise<MediaSummary[]>;
   readPerson: (personId: number) => Promise<Person | null>;
-  scan: (libraryId: string, force?: boolean) => Promise<{ jobId: string; state: string } | null>;
+  scan: (
+    libraryId: string,
+    force?: boolean,
+    run?: { id: string; of: number },
+  ) => Promise<{ jobId: string; state: string } | null>;
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   correctMatch: (
     mediaId: string,

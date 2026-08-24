@@ -40,3 +40,30 @@ describe('Checkbox', () => {
     expect(Checkbox.displayName).toBe('Checkbox');
   });
 });
+
+describe('Checkbox, with a qualification beneath it', () => {
+  it('shows a description without putting it in the label', () => {
+    render(
+      <Checkbox label="A sign-in was refused" description="Rate limiting refuses some first." />,
+    );
+
+    expect(screen.getByRole('checkbox', { name: 'A sign-in was refused' })).toBeInTheDocument();
+    expect(screen.getByText('Rate limiting refuses some first.')).toBeInTheDocument();
+  });
+
+  it('points the checkbox at its description, so it is read out with it', () => {
+    render(
+      <Checkbox label="A sign-in was refused" description="Rate limiting refuses some first." />,
+    );
+
+    expect(screen.getByRole('checkbox')).toHaveAccessibleDescription(
+      'Rate limiting refuses some first.',
+    );
+  });
+
+  it('describes nothing where nothing was said', () => {
+    render(<Checkbox label="Plain" />);
+
+    expect(screen.getByRole('checkbox')).not.toHaveAccessibleDescription();
+  });
+});

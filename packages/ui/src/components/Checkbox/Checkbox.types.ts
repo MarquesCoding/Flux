@@ -1,5 +1,6 @@
 type CheckboxProps = {
   label: string;
+  description?: string;
   checked?: boolean;
   defaultChecked?: boolean;
   disabled?: boolean;

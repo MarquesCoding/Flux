@@ -3,6 +3,7 @@ import { z } from 'zod';
 import { and, eq, inArray, isNull } from 'drizzle-orm';
 import { mediaItem, mediaItemJob, mediaOverride, library, series } from '@ValenceServer/db/Schema';
 import { AudioStreamSchema } from '@ValenceContracts/schemas/MediaItem';
+import { describeQuality } from './describeQuality';
 import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import { resolveSeriesKey } from './resolveSeriesKey';
@@ -57,7 +58,7 @@ const createMediaStore = (
     const video = row.probe.video;
 
     if (video === null) {
-      return;
+      return null;
     }
 
     const seriesTitle = row.metadata.seriesTitle ?? row.episode.seriesTitle;
@@ -143,22 +144,44 @@ const createMediaStore = (
       })
       .returning({ id: mediaItem.id });
 
-    if (saved !== undefined) {
-      await db.delete(mediaItemJob).where(eq(mediaItemJob.mediaItemId, saved.id));
+    if (saved === undefined) {
+      return null;
     }
+
+    await db.delete(mediaItemJob).where(eq(mediaItemJob.mediaItemId, saved.id));
+
+    return saved.id;
   },
 
   removeByPaths: async (libraryId, paths) => {
     if (paths.length === 0) {
-      return 0;
+      return [];
     }
 
     const removed = await db
       .delete(mediaItem)
       .where(and(eq(mediaItem.libraryId, libraryId), inArray(mediaItem.path, paths)))
-      .returning({ id: mediaItem.id });
+      .returning({
+        itemId: mediaItem.id,
+        title: mediaItem.title,
+        seriesTitle: mediaItem.seriesTitle,
+        seasonNumber: mediaItem.seasonNumber,
+        episodeNumber: mediaItem.episodeNumber,
+        year: mediaItem.year,
+        posterUrl: mediaItem.posterUrl,
+        overview: mediaItem.overview,
+        durationSeconds: mediaItem.durationSeconds,
+        rating: mediaItem.rating,
+        width: mediaItem.width,
+        height: mediaItem.height,
+        videoRange: mediaItem.videoRange,
+      });
 
-    return removed.length;
+    return removed.map(({ width, height, videoRange, ...one }) => ({
+      ...one,
+      genres: [],
+      quality: describeQuality(width, height, videoRange),
+    }));
   },
 
   markScanned: async (libraryId) => {

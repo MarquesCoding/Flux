@@ -1,11 +1,20 @@
 import { createRoute, z } from '@hono/zod-openapi';
-import { WEBHOOK_EVENTS, WEBHOOK_PRESETS } from '@ValenceContracts/schemas/Webhook';
+import {
+  WEBHOOK_EVENTS,
+  WEBHOOK_PRESETS,
+  WEBHOOK_SUBSCRIBABLE_EVENTS,
+  WebhookFiltersSchema,
+} from '@ValenceContracts/schemas/Webhook';
 
 const WebhookError = z.object({ error: z.string() }).openapi('WebhookError');
 
 const WebhookEvent = z.enum(WEBHOOK_EVENTS);
 
+const SubscribableEvent = z.enum(WEBHOOK_SUBSCRIBABLE_EVENTS);
+
 const WebhookPreset = z.enum(WEBHOOK_PRESETS);
+
+const WebhookFilters = WebhookFiltersSchema.openapi('WebhookFilters');
 
 const Webhook = z
   .object({
@@ -14,6 +23,7 @@ const Webhook = z
     url: z.string().url(),
     preset: WebhookPreset,
     events: z.array(WebhookEvent),
+    filters: WebhookFilters,
     enabled: z.boolean(),
     createdAt: z.string().datetime(),
     lastAttemptAt: z.string().datetime().nullable(),
@@ -29,11 +39,21 @@ const CreateWebhookRequest = z
     name: z.string().min(1).max(100),
     url: z.string().url(),
     preset: WebhookPreset.default('generic'),
-    events: z.array(WebhookEvent).min(1),
+    events: z.array(SubscribableEvent).min(1),
+    filters: WebhookFiltersSchema.prefault({}),
   })
   .openapi('CreateWebhookRequest');
 
-const UpdateWebhookRequest = z.object({ enabled: z.boolean() }).openapi('UpdateWebhookRequest');
+const UpdateWebhookRequest = z
+  .object({
+    name: z.string().min(1).max(100).optional(),
+    url: z.string().url().optional(),
+    preset: WebhookPreset.optional(),
+    events: z.array(SubscribableEvent).min(1).optional(),
+    filters: WebhookFiltersSchema.optional(),
+    enabled: z.boolean().optional(),
+  })
+  .openapi('UpdateWebhookRequest');
 
 const listWebhooksRoute = createRoute({
   method: 'get',
@@ -86,7 +106,7 @@ const updateWebhookRoute = createRoute({
   method: 'patch',
   path: '/api/webhooks/{id}',
   tags: ['Webhooks'],
-  summary: 'Enable or disable a webhook subscription',
+  summary: 'Change a webhook subscription',
   request: {
     params: z.object({ id: z.string().uuid() }),
     body: { content: { 'application/json': { schema: UpdateWebhookRequest } } },
@@ -99,6 +119,10 @@ const updateWebhookRoute = createRoute({
     },
     403: {
       description: 'Not allowed to manage webhooks',
+      content: { 'application/json': { schema: WebhookError } },
+    },
+    400: {
+      description: 'Valence will not send deliveries to that address',
       content: { 'application/json': { schema: WebhookError } },
     },
     404: {

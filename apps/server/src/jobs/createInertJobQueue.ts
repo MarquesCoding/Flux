@@ -8,6 +8,7 @@ import type { JobQueue } from './JobQueue';
  * @returns A queue that accepts everything and does none of it.
  */
 const createInertJobQueue = (overrides: Partial<JobQueue> = {}): JobQueue => ({
+  startWorking: () => Promise.resolve(),
   enqueue: () => Promise.resolve(null),
   readState: () => Promise.resolve('unknown'),
   readProgress: () => null,

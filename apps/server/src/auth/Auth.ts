@@ -1,5 +1,8 @@
 import { betterAuth } from 'better-auth';
+import { createAuthMiddleware, APIError } from 'better-auth/api';
+import { z } from 'zod';
 import type { DBAdapter, DBAdapterInstance } from 'better-auth';
+import type { SignInAttempt } from '@ValenceServer/auth/describeSignInAttempt';
 import {
   admin,
   deviceAuthorization,
@@ -24,7 +27,14 @@ type CreateAuthOptions = {
   onUserCreated?: (userId: string) => Promise<void>;
   onSignedIn?: (userId: string, at: Date) => Promise<void>;
   onPasswordResetRequested?: (email: string, url: string) => Promise<void>;
+  onSignInSettled?: (attempt: SignInAttempt) => void;
 };
+
+const IdentifierSchema = z
+  .object({ email: z.string().optional(), username: z.string().optional() })
+  .partial();
+
+const RefusalSchema = z.instanceof(APIError);
 
 const VALENCE_APP_NAME = 'Valence';
 
@@ -45,6 +55,7 @@ const createAuth = ({
   onUserCreated,
   onSignedIn,
   onPasswordResetRequested,
+  onSignInSettled,
 }: CreateAuthOptions) => {
   return betterAuth({
     appName: VALENCE_APP_NAME,
@@ -90,6 +101,30 @@ const createAuth = ({
           },
         },
       },
+    },
+    hooks: {
+      after: createAuthMiddleware(async (context) => {
+        if (onSignInSettled === undefined) {
+          return;
+        }
+
+        const refusal = RefusalSchema.safeParse(context.context.returned);
+        const identifier = IdentifierSchema.safeParse(context.body);
+        const session = context.context.newSession;
+
+        onSignInSettled({
+          path: context.path,
+          statusCode: refusal.success ? refusal.data.statusCode : null,
+          account: session === null ? null : { id: session.user.id, name: session.user.name },
+          identifier: identifier.success
+            ? (identifier.data.email ?? identifier.data.username ?? null)
+            : null,
+          userAgent: context.headers?.get('user-agent') ?? null,
+          address: context.headers?.get('x-forwarded-for') ?? null,
+        });
+
+        await Promise.resolve();
+      }),
     },
     rateLimit: {
       enabled: env.AUTH_RATE_LIMIT_ENABLED,

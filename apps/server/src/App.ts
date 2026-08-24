@@ -246,6 +246,7 @@ import type { PermissionService } from '@ValenceServer/auth/PermissionService';
 import type { ApiKeyService } from '@ValenceServer/auth/ApiKeyService';
 import type { WebhookStore } from '@ValenceServer/webhooks/WebhookStore';
 import type { RealtimePublisher } from '@ValenceServer/realtime/RealtimePublisher';
+import type { EventBus } from '@ValenceServer/events/EventBus';
 import type { LogStore } from '@ValenceServer/logging/Logger';
 import {
   listHistoryRoute,
@@ -416,6 +417,7 @@ type CreateAppOptions = {
   searchCatalogue?: (query: string, kind: 'tv' | 'movie') => Promise<CatalogueMatch[]>;
   realtime?: RealtimePublisher;
   logs?: LogStore;
+  events?: EventBus;
   sayALinkWasWithdrawn?: (told: {
     accountId: string;
     title: string;
@@ -478,9 +480,34 @@ const createApp = ({
   editAccount,
   realtime,
   logs,
+  events,
   sayALinkWasWithdrawn,
 }: CreateAppOptions) => {
   const app = new OpenAPIHono();
+
+  /**
+   * Says that somebody was given or lost a role, once the change has actually stuck.
+   *
+   * @param userId - Whose roles changed.
+   * @param role - The role that moved.
+   * @param change - Whether they gained it or lost it.
+   */
+  const sayRoleChanged = async (
+    userId: string,
+    role: string,
+    change: 'given' | 'taken',
+  ): Promise<void> => {
+    if (events === undefined) {
+      return;
+    }
+
+    const named = ((await listUsers?.()) ?? []).find((one) => one.id === userId);
+
+    void events.publish({
+      event: 'account.roleChanged',
+      data: { accountId: userId, name: named?.name ?? 'Somebody', role, change },
+    });
+  };
 
   app.use('*', async (context, next) => {
     await next();
@@ -582,7 +609,7 @@ const createApp = ({
     });
 
     return context.json(
-      { isComplete: true, restartRequired: previous.cookieSecure !== cookieSecure },
+      { isComplete: true as const, restartRequired: previous.cookieSecure !== cookieSecure },
       200,
     );
   });
@@ -696,9 +723,14 @@ const createApp = ({
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
+    const asked = context.req.valid('query');
+
     const queued = await library.scan(
       context.req.valid('param').id,
-      context.req.valid('query').force === 'true',
+      asked.force === 'true',
+      asked.runId === undefined || asked.runOf === undefined
+        ? undefined
+        : { id: asked.runId, of: asked.runOf },
     );
 
     if (queued === null) {
@@ -1187,7 +1219,13 @@ const createApp = ({
       return context.json({ error: refusal.error }, refusal.status);
     }
 
-    const changed = await webhooks.update(context.req.valid('param').id, context.req.valid('json'));
+    const asked = context.req.valid('json');
+
+    if (asked.url !== undefined && !isSafeWebhookUrl(asked.url)) {
+      return context.json({ error: 'Valence will not send deliveries to that address.' }, 400);
+    }
+
+    const changed = await webhooks.update(context.req.valid('param').id, asked);
 
     return changed === null
       ? context.json({ error: 'No such subscription.' }, 404)
@@ -2053,6 +2091,7 @@ const createApp = ({
     }
 
     await permissions.assignRole(userId, roleId);
+    await sayRoleChanged(userId, role.name, 'given');
 
     return context.body(null, 204);
   });
@@ -2094,6 +2133,8 @@ const createApp = ({
         400,
       );
     }
+
+    await sayRoleChanged(userId, role?.name ?? 'a role', 'taken');
 
     return context.body(null, 204);
   });

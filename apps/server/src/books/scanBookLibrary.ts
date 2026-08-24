@@ -42,9 +42,15 @@ type BookFileSystem = {
   listFiles: (root: string) => Promise<ScannedFile[]>;
 };
 
+type ArrivedBook = {
+  bookId: string;
+  title: string;
+  year: number | null;
+};
+
 type BookStore = {
   listStored: (libraryId: string) => Promise<StoredChapter[]>;
-  upsertBook: (row: BookRow) => Promise<void>;
+  upsertBook: (row: BookRow) => Promise<string | null>;
   upsertChapter: (libraryId: string, row: ChapterRow) => Promise<void>;
   removeByPaths: (libraryId: string, paths: string[]) => Promise<number>;
   markScanned: (libraryId: string) => Promise<void>;
@@ -58,6 +64,7 @@ type ScanBookLibraryOptions = {
   force?: boolean;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
+  onAdded?: (book: ArrivedBook) => void;
   isCancelled?: () => boolean;
 };
 
@@ -103,6 +110,7 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
     force = false,
     onProblem,
     onProgress,
+    onAdded,
     isCancelled,
   } = options;
 
@@ -119,6 +127,8 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
       already.modifiedAtMs !== file.modifiedAtMs
     );
   });
+
+  const shelved = new Set([...stored.keys()].map((path) => bookPathFor(root, path)));
 
   const layouts = new Map<string, BookLayout>();
   const written = new Set<string>();
@@ -160,7 +170,7 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
     if (!written.has(bookPath)) {
       const named = readBookTitleFromPath(basename(bookPath));
 
-      await store.upsertBook({
+      const bookId = await store.upsertBook({
         libraryId,
         path: bookPath,
         title: named.title,
@@ -170,6 +180,10 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
       });
 
       written.add(bookPath);
+
+      if (bookId !== null && !shelved.has(bookPath)) {
+        onAdded?.({ bookId, title: named.title, year: named.year });
+      }
     }
 
     const name = basename(file.path);
@@ -203,6 +217,7 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
 };
 
 export type {
+  ArrivedBook,
   BookFileSystem,
   BookRow,
   BookStore,

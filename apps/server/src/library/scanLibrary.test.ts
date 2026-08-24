@@ -1,10 +1,25 @@
 import { describe, expect, it, vi } from 'vitest';
 import { scanLibrary, selectChanged } from './scanLibrary';
-import type { MediaRow, ScanPhase, ScannedFile, StoredItem } from './scanLibrary';
+import type { MediaRow, ScanPhase, ScannedFile, ScannedItem, StoredItem } from './scanLibrary';
 import type { MetadataProvider } from './MetadataProvider';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const LIBRARY_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+const departed = (path: string): ScannedItem => ({
+  itemId: `gone-${path}`,
+  title: path,
+  seriesTitle: null,
+  seasonNumber: null,
+  episodeNumber: null,
+  year: null,
+  posterUrl: null,
+  overview: null,
+  durationSeconds: null,
+  genres: [],
+  rating: null,
+  quality: null,
+});
 
 const probe = (): MediaProbe => ({
   container: 'mkv',
@@ -150,12 +165,12 @@ const harness = (options: {
         upsert: (row) => {
           rows.push(row);
 
-          return Promise.resolve();
+          return Promise.resolve(`item-${rows.length.toString()}`);
         },
         removeByPaths: (_, paths) => {
           removedPaths.push(...paths);
 
-          return Promise.resolve(paths.length);
+          return Promise.resolve(paths.map((path) => departed(path)));
         },
         listOverrides: () => Promise.resolve(options.overrides ?? []),
         markScanned,
@@ -449,8 +464,8 @@ describe('scanLibrary', () => {
       files: { listFiles: () => Promise.resolve([file('/broken.mkv')]) },
       store: {
         listStored: () => Promise.resolve([]),
-        upsert: () => Promise.resolve(),
-        removeByPaths: () => Promise.resolve(0),
+        upsert: () => Promise.resolve('item-1'),
+        removeByPaths: () => Promise.resolve([]),
         markScanned: () => Promise.resolve(),
       },
       transcoder: {

@@ -253,7 +253,14 @@ describe('administration over HTTP', () => {
     const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
     const send = vi.fn();
 
-    context.presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    context.presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
 
     const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
       method: 'POST',
@@ -269,7 +276,14 @@ describe('administration over HTTP', () => {
     const context = build();
     const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
 
-    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    context.presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     context.presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -314,7 +328,14 @@ describe('administration over HTTP', () => {
     const context = build();
     const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
 
-    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    context.presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
 
     const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
       method: 'POST',
@@ -329,7 +350,14 @@ describe('administration over HTTP', () => {
     const context = build();
     const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
 
-    context.presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    context.presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
 
     const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1/message`, {
       method: 'POST',
@@ -812,7 +840,14 @@ const REASON: Reason = { code: 'ClientSupportsSource', detail: 'Client declares 
 
 describe('watching and steering what is being watched', () => {
   const watching = (presence: ReturnType<typeof build>['presence'], clientId = 'tab-1') => {
-    presence.connect(clientId, null, null, 'Chrome on macOS', () => {});
+    presence.connect({
+      clientId,
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: () => {},
+    });
     presence.startPlayback(clientId, {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -875,7 +910,14 @@ describe('watching and steering what is being watched', () => {
     const { app, store, permissions, presence } = build();
     const cookie = await signedInAsAdmin(app, store, permissions);
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: () => {},
+    });
 
     const response = await app.request(`${BASE}/api/admin/sessions/tab-1/pause`, {
       method: 'POST',

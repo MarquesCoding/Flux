@@ -32,7 +32,14 @@ describe('createPresenceService', () => {
   it('lists a tab as soon as it connects, watching nothing', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', 'profile-1', 'Dan', 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: 'profile-1',
+      profileName: 'Dan',
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
 
     expect(presence.list()).toEqual([
       expect.objectContaining({ clientId: 'tab-1', profileName: 'Dan', playback: null }),
@@ -42,7 +49,14 @@ describe('createPresenceService', () => {
   it('forgets a tab once it disconnects', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.disconnect('tab-1');
 
     expect(presence.list()).toEqual([]);
@@ -51,7 +65,14 @@ describe('createPresenceService', () => {
   it('shows what a tab starts watching', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
 
     expect(presence.list()).toMatchObject([
@@ -62,7 +83,14 @@ describe('createPresenceService', () => {
   it('clears playback once a tab stops watching', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
     presence.stopPlayback('tab-1');
 
@@ -72,7 +100,14 @@ describe('createPresenceService', () => {
   it('records whether a tab is actually playing', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
     presence.heartbeatPlayback('tab-1', false);
 
@@ -82,7 +117,14 @@ describe('createPresenceService', () => {
   it('has no health to report until a heartbeat carries one', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
 
     expect(presence.list()).toMatchObject([{ playback: { health: null } }]);
@@ -91,7 +133,14 @@ describe('createPresenceService', () => {
   it('records what the player reports about buffer and picture size', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
     presence.heartbeatPlayback('tab-1', true, {
       positionSeconds: 600,
@@ -120,7 +169,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const send = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
     presence.startPlayback('tab-1', PLAYBACK);
 
     expect(presence.message('tab-1', 'Restarting in five minutes')).toBe(true);
@@ -134,7 +190,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const watcher = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', PLAYBACK);
     presence.watch(watcher);
     presence.message('tab-1', 'Tea is ready');
@@ -146,7 +209,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const send = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
 
     expect(presence.message('tab-1', 'Tea is ready')).toBe(true);
   });
@@ -161,7 +231,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const send = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
     presence.startPlayback('tab-1', PLAYBACK);
 
     expect(presence.pause('tab-1', 'This stream was paused by an admin.')).toBe(true);
@@ -177,7 +254,14 @@ describe('createPresenceService', () => {
   it('refuses to pause a tab that is not watching anything', () => {
     const presence = createPresenceService();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
 
     expect(presence.pause('tab-1', 'paused')).toBe(false);
   });
@@ -192,7 +276,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const send = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
     presence.startPlayback('tab-1', PLAYBACK);
     presence.pause('tab-1', 'paused');
 
@@ -207,7 +298,14 @@ describe('createPresenceService', () => {
     const presence = createPresenceService();
     const send = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome on Mac', send);
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: send,
+    });
     presence.startPlayback('tab-1', PLAYBACK);
 
     expect(presence.stop('tab-1', 'This stream was stopped by an admin.')).toBe(true);
@@ -254,7 +352,14 @@ describe('the things presence is asked about tabs it does not have', () => {
     const presence = createPresenceService();
     const said = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome',
+      send: vi.fn(),
+    });
     presence.watch(said);
     presence.heartbeatPlayback('tab-1', true);
 
@@ -265,7 +370,14 @@ describe('the things presence is asked about tabs it does not have', () => {
     const presence = createPresenceService();
     const said = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -286,7 +398,14 @@ describe('the things presence is asked about tabs it does not have', () => {
     const presence = createPresenceService();
     const said = vi.fn();
 
-    presence.connect('tab-1', null, null, 'Chrome', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -307,5 +426,168 @@ describe('the things presence is asked about tabs it does not have', () => {
     });
 
     expect(said).toHaveBeenCalled();
+  });
+});
+
+describe('createPresenceService, telling somebody about viewings', () => {
+  const watching = () => {
+    const started = vi.fn();
+    const stopped = vi.fn();
+    const presence = createPresenceService({
+      onPlaybackStarted: started,
+      onPlaybackStopped: stopped,
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: 'account-1',
+      profileId: 'profile-1',
+      profileName: 'Dan',
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+
+    return { presence, started, stopped };
+  };
+
+  it('says who started watching, and on what', () => {
+    const { presence, started } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    expect(started).toHaveBeenCalledWith(
+      expect.objectContaining({
+        accountId: 'account-1',
+        profileId: 'profile-1',
+        profileName: 'Dan',
+        deviceLabel: 'Chrome on Mac',
+        mediaId: 'media-1',
+        mode: 'DirectPlay',
+      }),
+    );
+  });
+
+  it('says so when the client stops watching', () => {
+    const { presence, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.stopPlayback('tab-1');
+
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
+
+  it('says so when an administrator stops it, which is not the client saying so', () => {
+    const { presence, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.stop('tab-1', 'That is enough of that');
+
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
+
+  it('says so when the socket simply closes, which nothing else would report', () => {
+    const { presence, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.disconnect('tab-1');
+
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
+
+  it('reports how far through it had got, which is cleared the moment it stops', () => {
+    const { presence, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.heartbeatPlayback('tab-1', true, {
+      positionSeconds: 610,
+      durationSeconds: 7200,
+      bufferedAheadSeconds: 30,
+      presentedWidth: 1920,
+      presentedHeight: 1080,
+    });
+    presence.stopPlayback('tab-1');
+
+    expect(stopped).toHaveBeenCalledWith(
+      expect.objectContaining({ positionSeconds: 610, durationSeconds: 7200 }),
+    );
+  });
+
+  it('says nothing about a tab that disconnects without having watched anything', () => {
+    const { presence, stopped } = watching();
+
+    presence.disconnect('tab-1');
+
+    expect(stopped).not.toHaveBeenCalled();
+  });
+
+  it('does not report a second stop for a viewing already ended', () => {
+    const { presence, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.stopPlayback('tab-1');
+    presence.disconnect('tab-1');
+
+    expect(stopped).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe('createPresenceService, a client that asks twice', () => {
+  const watching = () => {
+    const started = vi.fn();
+    const stopped = vi.fn();
+    const presence = createPresenceService({
+      onPlaybackStarted: started,
+      onPlaybackStopped: stopped,
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: 'account-1',
+      profileId: 'profile-1',
+      profileName: 'Dan',
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+
+    return { presence, started, stopped };
+  };
+
+  it('reports one viewing when a player asks for the same thing twice', () => {
+    const { presence, started } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    expect(started).toHaveBeenCalledTimes(1);
+  });
+
+  it('keeps the moment it actually began rather than restarting the clock', () => {
+    const { presence } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    const began = presence.list()[0]?.playback?.startedAt;
+
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    expect(presence.list()[0]?.playback?.startedAt).toBe(began);
+  });
+
+  it('ends the old viewing before beginning a new one, so neither is left hanging', () => {
+    const { presence, started, stopped } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+    presence.startPlayback('tab-1', { ...PLAYBACK, mediaId: 'media-2' });
+
+    expect(stopped).toHaveBeenCalledTimes(1);
+    expect(started).toHaveBeenCalledTimes(2);
+  });
+
+  it('says how it is being played, in the words the sessions page uses', () => {
+    const { presence, started } = watching();
+
+    presence.startPlayback('tab-1', PLAYBACK);
+
+    expect(started).toHaveBeenCalledWith(expect.objectContaining({ mode: 'DirectPlay' }));
   });
 });

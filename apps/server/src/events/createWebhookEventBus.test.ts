@@ -10,7 +10,14 @@ type Enqueue = (subscriptionId: string, payload: string) => Promise<void>;
 
 const aFailure = {
   event: 'job.failed',
-  data: { kind: 'library.scan', jobId: 'job-1', subject: 'library-1', reason: 'no space left' },
+  data: {
+    kind: 'library.scan',
+    label: 'Scan for changes',
+    jobId: 'job-1',
+    subject: 'library-1',
+    subjectName: 'Films',
+    reason: 'no space left',
+  },
 } as const;
 
 let subscriptions: WebhookStore;

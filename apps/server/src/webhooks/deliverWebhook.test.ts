@@ -11,7 +11,14 @@ const aPayload: WebhookPayload = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
   occurredAt: '2026-08-14T20:00:00.000Z',
   event: 'job.failed',
-  data: { kind: 'library.scan', jobId: 'job-1', subject: 'library-1', reason: 'no space left' },
+  data: {
+    kind: 'library.scan',
+    label: 'Scan for changes',
+    jobId: 'job-1',
+    subject: 'library-1',
+    subjectName: 'Films',
+    reason: 'no space left',
+  },
 };
 
 const aTarget: WebhookTarget = {

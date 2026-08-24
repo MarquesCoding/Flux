@@ -852,10 +852,33 @@ describe('AdminArea', () => {
 
     await waitFor(() => {
       expect(fetchMock).toHaveBeenCalledWith(
-        `/api/libraries/${MOVIES_LIBRARY_ID}/scan?force=true`,
+        expect.stringContaining(`/api/libraries/${MOVIES_LIBRARY_ID}/scan?force=true`),
         { method: 'POST' },
       );
     });
+  });
+
+  it('marks every library in one press as the same scan, so it is reported once', async () => {
+    const actor = userEvent.setup();
+
+    renderInAnAddress(<TheAdmin />);
+
+    await goTo(actor, 'Libraries');
+    await actor.click(screen.getByRole('button', { name: 'Scan all libraries' }));
+
+    await waitFor(() => {
+      expect(
+        fetchMock.mock.calls.filter(([where]) => String(where).includes('/scan?')).length,
+      ).toBeGreaterThan(0);
+    });
+
+    const runIds = fetchMock.mock.calls
+      .map(([where]) => String(where))
+      .filter((where) => where.includes('/scan?'))
+      .map((where) => new URL(where, 'http://localhost').searchParams.get('runId'));
+
+    expect(new Set(runIds).size).toBe(1);
+    expect(runIds[0]).not.toBeNull();
   });
 
   it('asks before resetting every library', async () => {

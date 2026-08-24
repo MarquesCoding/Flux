@@ -1,6 +1,7 @@
 import { isMediaFile } from './readTitleFromPath';
 import { resolveMetadata } from './MetadataProvider';
 import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
+import { describeQuality } from './describeQuality';
 import { readEpisodeFromPath } from './readEpisodeFromPath';
 import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
@@ -49,10 +50,25 @@ type MediaOverride = {
   externalKind: 'tv' | 'movie';
 };
 
+type ScannedItem = {
+  itemId: string;
+  title: string;
+  seriesTitle: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  year: number | null;
+  posterUrl: string | null;
+  overview: string | null;
+  durationSeconds: number | null;
+  genres: string[];
+  rating: number | null;
+  quality: string | null;
+};
+
 type MediaStore = {
   listStored: (libraryId: string) => Promise<StoredItem[]>;
-  upsert: (row: MediaRow) => Promise<void>;
-  removeByPaths: (libraryId: string, paths: string[]) => Promise<number>;
+  upsert: (row: MediaRow) => Promise<string | null>;
+  removeByPaths: (libraryId: string, paths: string[]) => Promise<ScannedItem[]>;
   listOverrides?: (libraryId: string) => Promise<MediaOverride[]>;
   markScanned: (libraryId: string) => Promise<void>;
 };
@@ -68,6 +84,8 @@ type ScanLibraryOptions = {
   isPartial?: boolean;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
+  onAdded?: (item: ScannedItem) => void;
+  onRemoved?: (items: ScannedItem[]) => void;
   isCancelled?: () => boolean;
 };
 
@@ -152,6 +170,8 @@ const scanLibrary = async ({
   isPartial = false,
   onProblem,
   onProgress,
+  onAdded,
+  onRemoved,
   isCancelled,
 }: ScanLibraryOptions): Promise<ScanResult> => {
   const found = (await files.listFiles(root)).filter((file) => isMediaFile(file.path));
@@ -241,7 +261,7 @@ const scanLibrary = async ({
 
       const { title, year } = metadata;
 
-      await store.upsert({
+      const itemId = await store.upsert({
         libraryId,
         path: file.path,
         title,
@@ -258,6 +278,23 @@ const scanLibrary = async ({
         updated += 1;
       } else {
         added += 1;
+
+        if (itemId !== null) {
+          onAdded?.({
+            itemId,
+            title,
+            seriesTitle: episode.seriesTitle ?? null,
+            seasonNumber: episode.seasonNumber,
+            episodeNumber: episode.episodeNumber,
+            year,
+            posterUrl: metadata.posterUrl ?? null,
+            overview: metadata.overview ?? null,
+            durationSeconds: probe.durationSeconds,
+            genres: metadata.genres ?? [],
+            rating: metadata.rating ?? null,
+            quality: describeQuality(probe.video.width, probe.video.height, probe.video.range),
+          });
+        }
       }
     } catch (error) {
       failed += 1;
@@ -284,13 +321,25 @@ const scanLibrary = async ({
     return { added, updated, removed: 0, failed };
   }
 
-  const removed = missing.length === 0 ? 0 : await store.removeByPaths(libraryId, missing);
+  const gone = missing.length === 0 ? [] : await store.removeByPaths(libraryId, missing);
+
+  if (gone.length > 0) {
+    onRemoved?.(gone);
+  }
 
   await store.markScanned(libraryId);
 
-  return { added, updated, removed, failed };
+  return { added, updated, removed: gone.length, failed };
 };
 
-export type { MediaFileSystem, MediaRow, MediaStore, ScanPhase, ScannedFile, StoredItem };
+export type {
+  MediaFileSystem,
+  MediaRow,
+  MediaStore,
+  ScanPhase,
+  ScannedFile,
+  ScannedItem,
+  StoredItem,
+};
 
 export { scanLibrary, selectChanged };

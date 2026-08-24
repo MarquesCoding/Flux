@@ -27,6 +27,7 @@ type JobDefinition = {
   description: string;
   needsLibrary: boolean;
   destructive: boolean;
+  announcesFinish: boolean;
 };
 
 const JOB_DEFINITIONS: JobDefinition[] = [
@@ -37,6 +38,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Finds new, changed and removed files, then makes whatever they are still missing.',
     needsLibrary: true,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: REGENERATE_PREVIEWS_JOB,
@@ -45,6 +47,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       "Renders preview clips for items that have none, using each library's forced audio language. Skips items that already have one.",
     needsLibrary: true,
     destructive: false,
+    announcesFinish: true,
   },
   {
     kind: REGENERATE_TRICKPLAY_JOB,
@@ -53,6 +56,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Renders the strip of images shown when scrubbing the seek bar, for items that have none. Skips items that already have one.',
     needsLibrary: true,
     destructive: false,
+    announcesFinish: true,
   },
   {
     kind: FETCH_LOGOS_JOB,
@@ -61,6 +65,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       "Collects the lettering each title is written in, so a hero shows the programme's own logo rather than its name set in the interface's typeface. Skips items that already have one, and items no catalogue has named.",
     needsLibrary: true,
     destructive: false,
+    announcesFinish: true,
   },
   {
     kind: DETECT_SEGMENTS_JOB,
@@ -69,6 +74,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Finds the intro and the recap in each episode by comparing the audio across a season, so viewers can skip them. Skips seasons already done.',
     needsLibrary: true,
     destructive: false,
+    announcesFinish: true,
   },
   {
     kind: RESET_LIBRARY_JOB,
@@ -77,6 +83,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Deletes every item in every library and starts again from nothing: scanning, then everything each item needs made for it. Hours of work on a large library.',
     needsLibrary: true,
     destructive: true,
+    announcesFinish: true,
   },
   {
     kind: CLEANUP_IMAGE_CACHE_JOB,
@@ -84,6 +91,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     description: 'Removes cached artwork and profile photos nothing references any more.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: CLEANUP_ARTEFACT_CACHE_JOB,
@@ -92,6 +100,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Removes preview clips and scrub previews nothing addresses any more, freeing the space left behind by a reset or a change to how they are made.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: PRUNE_HISTORY_JOB,
@@ -100,6 +109,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Forgets viewings older than a year. What each profile has watched recently stays; the rest is removed, because this log grows every evening and nobody reads back that far.',
     needsLibrary: false,
     destructive: true,
+    announcesFinish: false,
   },
   {
     kind: CLEANUP_SESSIONS_JOB,
@@ -107,6 +117,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     description: 'Clears out expired sign-in sessions and device-authorization codes.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: CHECK_CATALOGUE_CONNECTIVITY_JOB,
@@ -114,6 +125,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
     description: 'Verifies the configured catalogue key can actually reach the catalogue.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: CHECK_TRANSCODER_JOB,
@@ -122,6 +134,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Asks the transcoder whether it is still answering, so an operator hears about it going quiet from a notification rather than from somebody pressing play.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: CHECK_DISK_SPACE_JOB,
@@ -130,6 +143,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Asks how much room is left on the filesystems Valence writes to, so a disk about to fill is something an operator hears about rather than something a scan discovers.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: SEND_MEDIA_DIGEST_JOB,
@@ -138,6 +152,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Collects what has been imported since the last time and says it once, so a scan of four hundred files is one notification rather than four hundred.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: PRUNE_LOGS_JOB,
@@ -146,6 +161,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Forgets log records past the age their level is kept for, so errors outlive the ordinary chatter. A retention policy nobody enforces is a table that grows until the disk fills.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
   {
     kind: PRUNE_WEBHOOK_DELIVERIES_JOB,
@@ -154,6 +170,7 @@ const JOB_DEFINITIONS: JobDefinition[] = [
       'Forgets what was sent to webhook subscribers more than a week ago. Recent deliveries stay, so a receiver that has started failing is still visible; the rest goes, because this table gains a row for every event sent to everybody.',
     needsLibrary: false,
     destructive: false,
+    announcesFinish: false,
   },
 ];
 

@@ -90,43 +90,52 @@ const createJobQueue = async ({
   await boss.start();
 
   for (const kind of kinds) {
-    const handler = handlers[kind];
-
-    if (handler === undefined) {
-      continue;
+    if (handlers[kind] !== undefined) {
+      await boss.createQueue(kind);
     }
-
-    await boss.createQueue(kind);
-    await boss.work(kind, async (jobs: Job<JsonValue>[]) => {
-      for (const job of jobs) {
-        const payload = readJobPayload(job.data);
-        const subject = subjectOf(payload);
-
-        running.set(job.id, { kind, subject });
-
-        try {
-          await handler(job.id, payload);
-
-          onFinished?.({ kind, jobId: job.id, subject, reason: null });
-        } catch (error) {
-          onFinished?.({
-            kind,
-            jobId: job.id,
-            subject,
-            reason: error instanceof Error ? error.message : 'The job failed.',
-          });
-
-          throw error;
-        } finally {
-          running.delete(job.id);
-          progressByJobId.delete(job.id);
-          cancelled.delete(job.id);
-        }
-      }
-    });
   }
 
+  const startWorking = async (): Promise<void> => {
+    for (const kind of kinds) {
+      const handler = handlers[kind];
+
+      if (handler === undefined) {
+        continue;
+      }
+
+      await boss.work(kind, async (jobs: Job<JsonValue>[]) => {
+        for (const job of jobs) {
+          const payload = readJobPayload(job.data);
+          const subject = subjectOf(payload);
+
+          running.set(job.id, { kind, subject });
+
+          try {
+            await handler(job.id, payload);
+
+            onFinished?.({ kind, jobId: job.id, subject, reason: null });
+          } catch (error) {
+            onFinished?.({
+              kind,
+              jobId: job.id,
+              subject,
+              reason: error instanceof Error ? error.message : 'The job failed.',
+            });
+
+            throw error;
+          } finally {
+            running.delete(job.id);
+            progressByJobId.delete(job.id);
+            cancelled.delete(job.id);
+          }
+        }
+      });
+    }
+  };
+
   return {
+    startWorking,
+
     enqueue: (kind, payload, singletonKey) =>
       boss.send(kind, payload, {
         ...(singletonKey === undefined ? {} : { singletonKey }),

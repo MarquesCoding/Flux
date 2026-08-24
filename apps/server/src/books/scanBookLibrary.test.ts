@@ -4,7 +4,14 @@ import { join } from 'node:path';
 import { zipSync } from 'fflate';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { bookPathFor, scanBookLibrary } from './scanBookLibrary';
-import type { BookRow, BookStore, ChapterRow, ScannedFile, StoredChapter } from './scanBookLibrary';
+import type {
+  ArrivedBook,
+  BookRow,
+  BookStore,
+  ChapterRow,
+  ScannedFile,
+  StoredChapter,
+} from './scanBookLibrary';
 
 const A_PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a, 1]);
 
@@ -25,7 +32,7 @@ const store = (): BookStore => ({
   upsertBook: (row) => {
     books.push(row);
 
-    return Promise.resolve();
+    return Promise.resolve(`book-${books.length.toString()}`);
   },
   upsertChapter: (_libraryId, row) => {
     chapters.push(row);
@@ -77,6 +84,15 @@ const scan = async (paths: string[], force = false) =>
     files: { listFiles: () => Promise.resolve(listing(paths)) },
     store: store(),
     force,
+  });
+
+const scanReporting = async (paths: string[], onAdded: (book: ArrivedBook) => void) =>
+  scanBookLibrary({
+    libraryId: 'a-library',
+    root: where,
+    files: { listFiles: () => Promise.resolve(listing(paths)) },
+    store: store(),
+    onAdded,
   });
 
 describe('bookPathFor', () => {
@@ -210,5 +226,59 @@ describe('scanBookLibrary', () => {
     });
 
     expect(result.added).toBe(1);
+  });
+});
+
+describe('scanBookLibrary, saying what arrived', () => {
+  it('takes the year from the folder, which is the book, and not from a chapter inside it', async () => {
+    const folder = join(where, 'Rent-A-Girlfriend (Digital)');
+    const arrived: ArrivedBook[] = [];
+
+    await scanReporting([join(folder, 'Rent-A-Girlfriend v01 (2020).cbz')], (book) =>
+      arrived.push(book),
+    );
+
+    expect(arrived[0]?.year).toBeNull();
+  });
+
+  it('reports a book once, not once for every chapter inside it', async () => {
+    const folder = join(where, 'Rent-A-Girlfriend (Digital)');
+    const arrived: ArrivedBook[] = [];
+
+    await scanReporting(
+      [
+        join(folder, 'Rent-A-Girlfriend v01 (2020).cbz'),
+        join(folder, 'Rent-A-Girlfriend v02 (2020).cbz'),
+      ],
+      (book) => arrived.push(book),
+    );
+
+    expect(arrived).toHaveLength(1);
+    expect(arrived[0]).toMatchObject({ title: 'Rent-A-Girlfriend' });
+  });
+
+  it('reports a loose file as its own book', async () => {
+    const arrived: ArrivedBook[] = [];
+
+    await scanReporting([join(where, 'Loose Volume.cbz')], (book) => arrived.push(book));
+
+    expect(arrived.map((book) => book.title)).toEqual(['Loose Volume']);
+  });
+
+  it('says nothing about a book already on the shelf when a new chapter turns up', async () => {
+    const folder = join(where, 'Rent-A-Girlfriend (Digital)');
+    const first = join(folder, 'Rent-A-Girlfriend v01 (2020).cbz');
+    const second = join(folder, 'Rent-A-Girlfriend v02 (2020).cbz');
+    const arrived: ArrivedBook[] = [];
+
+    held = listing([first]).map((file) => ({
+      path: file.path,
+      sizeBytes: file.sizeBytes,
+      modifiedAtMs: file.modifiedAtMs,
+    }));
+
+    await scanReporting([first, second], (book) => arrived.push(book));
+
+    expect(arrived).toEqual([]);
   });
 });

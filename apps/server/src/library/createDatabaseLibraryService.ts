@@ -48,7 +48,7 @@ import type {
   MediaSummary,
   ScanResult,
 } from '@ValenceContracts/schemas/Library';
-import type { MediaFileSystem, ScanPhase } from './scanLibrary';
+import type { MediaFileSystem, ScanPhase, ScannedItem } from './scanLibrary';
 import type { MetadataProvider, SeriesShape } from './MetadataProvider';
 import type { ShowDetail } from '@ValenceContracts/schemas/Show';
 import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
@@ -74,6 +74,8 @@ type CreateDatabaseLibraryServiceOptions = {
   providers?: MetadataProvider[];
   books?: BookStore;
   onProblem?: (path: string, reason: string) => void;
+  onArrived?: (libraryId: string, item: ScannedItem) => void;
+  onDeparted?: (libraryId: string, items: ScannedItem[]) => void;
 };
 
 /**
@@ -179,6 +181,8 @@ const createDatabaseLibraryService = ({
   books,
   atOnce = 1,
   onProblem,
+  onArrived,
+  onDeparted,
 }: CreateDatabaseLibraryServiceOptions): DatabaseLibraryService => {
   const store = createMediaStore(db);
 
@@ -337,6 +341,8 @@ const createDatabaseLibraryService = ({
       force,
       ...(providers === undefined ? {} : { providers }),
       ...(onProblem === undefined ? {} : { onProblem }),
+      ...(onArrived === undefined ? {} : { onAdded: (item) => onArrived(found.id, item) }),
+      ...(onDeparted === undefined ? {} : { onRemoved: (items) => onDeparted(found.id, items) }),
       ...(jobId === undefined
         ? {}
         : {
@@ -374,6 +380,25 @@ const createDatabaseLibraryService = ({
       store: books,
       force,
       ...(onProblem === undefined ? {} : { onProblem }),
+      ...(onArrived === undefined
+        ? {}
+        : {
+            onAdded: (arrived) =>
+              onArrived(found.id, {
+                itemId: arrived.bookId,
+                title: arrived.title,
+                seriesTitle: null,
+                seasonNumber: null,
+                episodeNumber: null,
+                year: arrived.year,
+                posterUrl: null,
+                overview: null,
+                durationSeconds: null,
+                genres: [],
+                rating: null,
+                quality: null,
+              }),
+          }),
       ...(jobId === undefined
         ? {}
         : {
@@ -913,12 +938,20 @@ const createDatabaseLibraryService = ({
       return (kind === 'poster' ? row.poster : kind === 'logo' ? row.logo : row.backdrop) ?? null;
     },
 
-    scan: async (libraryId, force = false) => {
+    scan: async (libraryId, force = false, run) => {
       if ((await findLibrary(libraryId)) === null) {
         return null;
       }
 
-      const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force }, libraryId);
+      const jobId = await jobs.enqueue(
+        SCAN_LIBRARY_JOB,
+        {
+          libraryId,
+          force,
+          ...(run === undefined ? {} : { runId: run.id, runOf: run.of }),
+        },
+        libraryId,
+      );
 
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
