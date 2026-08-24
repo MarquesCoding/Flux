@@ -51,6 +51,7 @@ fn app(root: std::path::PathBuf) -> axum::Router {
             max_concurrent: 2,
         }),
         ffprobe: ffprobe(),
+        downloads: valence_transcoder::download::DownloadRegistry::new(),
         trickplay: TrickplayRegistry::default(),
         previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),

@@ -9,9 +9,14 @@ import { app } from 'electron';
  * worked on the bundle is Electron's own — so the dock shows an atom no matter what the window was
  * given. A packaged Valence takes its own icon from its own bundle and never needs this, which is
  * exactly why it is easy to leave broken for everybody who runs it from source.
+ *
+ * The macOS artwork, not the square one. Every other platform draws an icon to the edges of its
+ * box; macOS leaves about a fifth of the canvas empty around it, and reserves that room for the
+ * shadow and for making every icon in the dock look the same size. An icon drawn to its edges is
+ * not richer, it is simply larger than its neighbours.
  */
 const theDockIcon = (): void => {
-  app.dock?.setIcon(join(app.getAppPath(), 'build/icon.png'));
+  app.dock?.setIcon(join(app.getAppPath(), 'build/icon-macos.png'));
 };
 
 export { theDockIcon };

@@ -1,7 +1,9 @@
 import { installPlatform } from '@ValenceClient/platform/installPlatform';
 import { theBrowsersStore } from '@ValenceWeb/platform/browserStore';
 import { describeThisBrowser } from '@ValenceWeb/platform/describeThisBrowser';
+import { noFilesAreKept } from '@ValenceClient/platform/noFilesAreKept';
 import { thisTabsId } from '@ValenceWeb/platform/thisTabsId';
+import { theBrowsersReach } from '@ValenceWeb/platform/theBrowsersReach';
 import { openRealtimeSocket } from '@ValenceWeb/realtime/openRealtimeSocket';
 
 /**
@@ -13,6 +15,9 @@ const installBrowserPlatform = (): void => {
     store: theBrowsersStore(),
     describeThisClient: describeThisBrowser,
     thisClientId: thisTabsId,
+    canKeepFiles: () => false,
+    held: noFilesAreKept(),
+    reachability: theBrowsersReach(),
     openSocket: openRealtimeSocket,
   });
 };

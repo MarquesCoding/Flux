@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { InfoIcon, LinkIcon, PlayIcon, XIcon } from '@phosphor-icons/react';
+import { DownloadSimpleIcon, InfoIcon, LinkIcon, PlayIcon, XIcon } from '@phosphor-icons/react';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
@@ -12,6 +12,8 @@ import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
 import { ScrolledTitle } from '@ValenceScreens/components/ScrolledTitle/ScrolledTitle';
 import { BackdropScrim } from '@ValenceUI/BackdropScrim';
 import { Badge } from '@ValenceUI/Badge';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
+import { DownloadDialog } from '@ValenceScreens/components/DownloadDialog/DownloadDialog';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { Spinner } from '@ValenceUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
@@ -69,6 +71,7 @@ const ShowDialog = ({
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState(show);
   const [chosenSeason, setChosenSeason] = useState<number | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
   const prefersReducedMotion = useReducedMotion();
@@ -363,6 +366,18 @@ const ShowDialog = ({
                     },
                   },
                 ]),
+            ...(!canKeepFiles() || (shown.seriesId ?? null) === null
+              ? []
+              : [
+                  {
+                    id: 'download',
+                    label: 'Download the programme',
+                    icon: <Icon of={DownloadSimpleIcon} size={18} />,
+                    onChoose: () => {
+                      setIsDownloading(true);
+                    },
+                  },
+                ]),
             ...(onShare === undefined || (shown.seriesId ?? null) === null
               ? []
               : [
@@ -378,6 +393,18 @@ const ShowDialog = ({
           ]}
         />
       </DialogFooter>
+
+      <DownloadDialog
+        series={
+          isDownloading && (shown.seriesId ?? null) !== null
+            ? { id: shown.seriesId ?? '', title: shown.title, episodes: shown.episodeCount }
+            : null
+        }
+        media={null}
+        onClose={() => {
+          setIsDownloading(false);
+        }}
+      />
     </Dialog>
   );
 };

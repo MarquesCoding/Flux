@@ -7,7 +7,9 @@ import type { VideoSurfaceProps } from './VideoSurface.types';
  * no controls, no chrome, no session handling — so the player above it can be rebuilt without the
  * picture ever being torn down and remounted.
  *
- * @param src - What to play.
+ * @param src - What to play, where it is a file that can simply be named. A stream is attached to
+ *   the element by the player driving it instead, because a playlist is assembled rather than
+ *   pointed at — but a file already on the disk needs none of that and is only an address.
  * @param label - What is playing, read out to anybody who cannot see it.
  * @param videoRef - A handle on the element, for the player that drives it.
  * @param poster - A frame to show before playback starts.
@@ -25,6 +27,7 @@ import type { VideoSurfaceProps } from './VideoSurface.types';
  */
 const VideoSurface = ({
   label,
+  src,
   videoRef,
   poster,
   className,
@@ -72,6 +75,7 @@ const VideoSurface = ({
       ref={videoRef}
       aria-label={label}
       playsInline
+      {...(src === undefined ? {} : { src })}
       loop={loops}
       {...(poster === undefined ? {} : { poster })}
       className={cn('w-full bg-black', className)}

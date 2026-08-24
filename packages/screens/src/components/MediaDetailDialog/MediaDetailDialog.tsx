@@ -4,6 +4,7 @@ import {
   CaretLeftIcon,
   HeartIcon,
   InfoIcon,
+  DownloadSimpleIcon,
   PlayIcon,
   ShareNetworkIcon,
   UsersThreeIcon,
@@ -15,6 +16,10 @@ import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { ActionBar } from '@ValenceUI/ActionBar';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
+import { downloadQueries } from '@ValenceClient/query/downloadQueries';
+import { Spinner } from '@ValenceUI/Spinner';
+import { DownloadDialog } from '@ValenceScreens/components/DownloadDialog/DownloadDialog';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { useHasScrolledPast } from '@ValenceUI/useHasScrolledPast';
 import { ScrolledTitle } from '@ValenceScreens/components/ScrolledTitle/ScrolledTitle';
@@ -102,6 +107,15 @@ const MediaDetailDialog = ({
   const [isPreviewPlaying, setIsPreviewPlaying] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
+  const [isDownloading, setIsDownloading] = useState(false);
+
+  const prepared = useQuery({ ...downloadQueries.all(), enabled: canKeepFiles() });
+
+  const preparing = (prepared.data ?? []).find(
+    (one) => one.mediaId === shown?.id && one.state !== 'ready' && one.state !== 'failed',
+  );
+
+  const percent = `${Math.round((preparing?.progress ?? 0) * 100).toString()}%`;
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -439,6 +453,23 @@ const MediaDetailDialog = ({
                     },
                   },
                 ]),
+            ...(canKeepFiles()
+              ? [
+                  {
+                    id: 'download',
+                    label: preparing === undefined ? 'Download' : `Preparing ${percent}`,
+                    icon:
+                      preparing === undefined ? (
+                        <Icon of={DownloadSimpleIcon} size={18} />
+                      ) : (
+                        <Spinner size="sm" label="Preparing" />
+                      ),
+                    onChoose: () => {
+                      setIsDownloading(true);
+                    },
+                  },
+                ]
+              : []),
             ...(onStartParty === undefined
               ? []
               : [
@@ -454,6 +485,13 @@ const MediaDetailDialog = ({
           ]}
         />
       </DialogFooter>
+
+      <DownloadDialog
+        media={isDownloading ? shown : null}
+        onClose={() => {
+          setIsDownloading(false);
+        }}
+      />
     </Dialog>
   );
 };

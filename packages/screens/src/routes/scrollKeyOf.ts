@@ -6,6 +6,7 @@ const KEPT_IN_PLACE = [
   'account',
   'admin',
   'job',
+  'downloads',
   'library',
 ] as const;
 

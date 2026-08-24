@@ -5,7 +5,7 @@ import {
   lazyRouteComponent,
 } from '@tanstack/react-router';
 import { readSearch } from '@ValenceClient/navigation/readSearch';
-import { App } from '@ValenceScreens/components/App/App';
+import { ValenceRoot } from '@ValenceScreens/components/ValenceRoot/ValenceRoot';
 import { SignedIn } from '@ValenceScreens/components/SignedIn/SignedIn';
 import { ValenceShell } from '@ValenceScreens/components/ValenceShell/ValenceShell';
 import { HomePage } from '@ValenceScreens/components/HomePage/HomePage';
@@ -47,8 +47,9 @@ const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
 /**
  * Builds the router: every address Valence serves, what it carries, and what is drawn there.
  *
- * Three layers, because three things have different lifetimes. The root decides whether this server
- * has been set up at all. Inside it, everything but a share link is behind the way in, and that
+ * Three layers, because three things have different lifetimes. The root decides which application
+ * this is — the ordinary one or the small offline one — and then whether this server has been set up
+ * at all. Inside it, everything but a share link is behind the way in, and that
  * layer holds what the pages share — who is watching, what has been seen, the watch party. Inside
  * that again, the sections sit in the chrome, so moving between them changes the page and leaves the
  * dock, the dialogs and the player alone.
@@ -61,7 +62,7 @@ const BROWSABLE = ['/shows', '/films', '/new', '/favourites'] as const;
  * @returns The router, ready to hand to a provider.
  */
 const buildRouter = (title = 'Valence') => {
-  const root = createRootRoute({ component: () => <App initialTitle={title} /> });
+  const root = createRootRoute({ component: () => <ValenceRoot initialTitle={title} /> });
 
   const carries = { validateSearch: readSearch };
 

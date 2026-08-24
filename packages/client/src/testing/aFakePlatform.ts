@@ -1,3 +1,5 @@
+import { alwaysReachable } from '@ValenceClient/platform/alwaysReachable';
+import { noFilesAreKept } from '@ValenceClient/platform/noFilesAreKept';
 import type { Platform } from '@ValenceClient/platform/Platform.types';
 
 /**
@@ -23,6 +25,9 @@ const aFakePlatform = (overrides: Partial<Platform> = {}): Platform => {
     describeThisClient: () => 'A test',
     openSocket: () => ({ send: () => {}, close: () => {} }),
     thisClientId: () => 'client-1',
+    canKeepFiles: () => true,
+    held: noFilesAreKept(),
+    reachability: alwaysReachable(),
     ...overrides,
   };
 };

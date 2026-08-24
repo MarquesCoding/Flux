@@ -33,6 +33,7 @@ type Place = {
   adminJob: string | null;
   account: string | null;
   admin: string | null;
+  downloads: boolean;
 };
 
 const HOME: Place = {
@@ -49,6 +50,7 @@ const HOME: Place = {
   adminJob: null,
   account: null,
   admin: null,
+  downloads: false,
 };
 
 /**
@@ -87,6 +89,7 @@ const placeIn = (pathname: string, query: Record<string, string>): Place => {
     adminJob: said.job ?? null,
     account: said.account ?? (first === 'account' ? ACCOUNT_OPENS_ON : null),
     admin: said.admin ?? (first === 'admin' ? ADMIN_OPENS_ON : null),
+    downloads: said.downloads === 'open' || first === 'downloads',
   };
 };
 
@@ -161,6 +164,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.admin !== null) {
     query.set('admin', place.admin);
+  }
+
+  if (place.downloads) {
+    query.set('downloads', 'open');
   }
 
   if (place.admin !== null && place.adminJob !== null) {

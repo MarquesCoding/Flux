@@ -1461,6 +1461,82 @@ impl TranscodePlan {
         }
     }
 
+    /// The same decisions, written as one progressive file rather than segments.
+    ///
+    /// A download is the same transcode a session would have done — this exists
+    /// so that it is provably the same, rather than a second implementation
+    /// free to drift from the first. What it leaves out is everything about
+    /// segmenting: no `-ss`, since a kept file starts at the beginning, and no
+    /// `-copyts`, whose whole purpose is to keep timestamps comparable across
+    /// separately produced chunks. Carrying it here would write a file whose
+    /// first frame is at the source's start time rather than at zero, which
+    /// some players show as a gap and others refuse.
+    ///
+    /// The caller adds the muxer, the output and any extra tracks, because
+    /// those are the parts a download decides for itself.
+    #[must_use]
+    pub fn to_download_args(&self) -> Vec<String> {
+        self.to_download_args_from(0)
+    }
+
+    /// The same, resuming from part of the way in.
+    ///
+    /// A download stopped part way through keeps what it finished, so what it
+    /// asks for next starts where those left off. `-ss` before the input seeks
+    /// rather than decodes-and-discards, which is what makes resuming an hour
+    /// into a film cost nothing.
+    ///
+    #[must_use]
+    pub fn to_download_args_from(&self, from_seconds: u32) -> Vec<String> {
+        let mut args: Vec<String> = vec![
+            "-hide_banner".into(),
+            "-nostdin".into(),
+            "-loglevel".into(),
+            "error".into(),
+        ];
+
+        let on_the_gpu = frame_route(&self.spec, self.device_filters).decodes_on_the_device();
+
+        if on_the_gpu {
+            args.extend(self.spec.hardware_accel.device_arguments(&self.device));
+        }
+
+        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
+            args.push("-hwaccel".into());
+            args.push(flag.into());
+        }
+
+        if on_the_gpu {
+            if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
+                args.push("-hwaccel_output_format".into());
+                args.push(pipeline.output_format.into());
+            }
+        }
+
+        if from_seconds > 0 {
+            args.push("-ss".into());
+            args.push(from_seconds.to_string());
+        }
+
+        args.push("-i".into());
+        args.push(self.spec.input_path.clone());
+
+        let is_mapped = self.push_video_args(&mut args);
+
+        if let Some(index) = self.spec.audio_stream_index {
+            if !is_mapped {
+                args.push("-map".into());
+                args.push("0:v:0".into());
+                args.push("-map".into());
+                args.push(format!("0:{index}"));
+            }
+        }
+
+        self.push_audio_args(&mut args);
+
+        args
+    }
+
     /// Builds the `FFmpeg` argument vector for this plan.
     #[must_use]
     pub fn to_ffmpeg_args(&self) -> Vec<String> {

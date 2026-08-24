@@ -146,6 +146,8 @@ import { createDatabaseHistoryService } from '@ValenceServer/history/createDatab
 import { createDatabaseSignInStore } from '@ValenceServer/accounts/createDatabaseSignInStore';
 import { recordSignIn } from '@ValenceServer/accounts/recordSignIn';
 import { createDatabasePermissionService } from '@ValenceServer/auth/createDatabasePermissionService';
+import { createDownloadService } from '@ValenceServer/downloads/createDownloadService';
+import { keepingProfile } from '@ValenceServer/downloads/keepingProfile';
 const ChapterListSchema = z.array(
   z.object({
     title: z.string().nullable(),
@@ -1314,6 +1316,50 @@ const playbackService = createPlaybackService({
   forcedAccel: async () => (await settings.read()).hardwareAccel,
 });
 
+const downloadService = createDownloadService({
+  db,
+  media: {
+    findForPlayback: async (mediaId) => {
+      const item = await libraryService.getMedia(mediaId);
+
+      if (item === null) {
+        return null;
+      }
+
+      const rows = await db
+        .select({
+          path: mediaItem.path,
+          sizeBytes: mediaItem.sizeBytes,
+          generation: library.generation,
+        })
+        .from(mediaItem)
+        .innerJoin(library, eq(library.id, mediaItem.libraryId))
+        .where(eq(mediaItem.id, mediaId))
+        .limit(1);
+
+      const row = rows[0];
+
+      return row === undefined
+        ? null
+        : { item, path: row.path, sizeBytes: row.sizeBytes, generation: row.generation };
+    },
+    titleOf: async (mediaId) => (await libraryService.getMedia(mediaId))?.title ?? null,
+    episodesOf: async (seriesId) =>
+      (await libraryService.itemsForShare({ kind: 'series', mediaId: null, seriesId })).map(
+        (item) => ({ id: item.id, title: item.title }),
+      ),
+    seriesOf: async (mediaId) => {
+      const seriesId = await libraryService.seriesOf(mediaId);
+
+      return seriesId === null ? null : await libraryService.getSeries(seriesId);
+    },
+    keepingProfile,
+  },
+  transcoder,
+  capabilities: async () => transcoder.capabilities(),
+  forcedAccel: async () => (await settings.read()).hardwareAccel,
+});
+
 const app = createApp({
   auth,
   settings,
@@ -1340,6 +1386,7 @@ const app = createApp({
   notifications,
   events,
   readPushPublicKey: async () => (await readPushKeys()).publicKey,
+  downloads: downloadService,
   favourites: createDatabaseFavouriteService(db),
   ratings: createDatabaseRatingService(db),
   shares: createDatabaseShareService(db),

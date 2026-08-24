@@ -164,6 +164,7 @@ async fn asking_twice_at_once_renders_one_clip_rather_than_two() {
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),
+        downloads: valence_transcoder::download::DownloadRegistry::new(),
         trickplay: TrickplayRegistry::default(),
         previews: PreviewRegistry::default(),
         monitor: Monitor::new(Journal::new()),

@@ -24,7 +24,7 @@ describe('theDockIcon', () => {
   it('puts Valence in the dock, which otherwise shows the engine it was run with', () => {
     theDockIcon();
 
-    expect(setIcon).toHaveBeenCalledWith('/an/app/build/icon.png');
+    expect(setIcon).toHaveBeenCalledWith('/an/app/build/icon-macos.png');
   });
 
   it('does nothing where there is no dock, which is everywhere but macOS', () => {
