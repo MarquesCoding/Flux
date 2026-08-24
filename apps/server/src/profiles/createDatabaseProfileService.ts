@@ -322,7 +322,7 @@ const createDatabaseProfileService = (
         );
       }
 
-      return everyone;
+      return everyone.sort((one, other) => one.name.localeCompare(other.name));
     },
 
     accountOf: async (profileId) => {
