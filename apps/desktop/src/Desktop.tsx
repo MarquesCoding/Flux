@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { RouterProvider } from '@tanstack/react-router';
 import { buildRouter } from '@ValenceScreens/routes/buildRouter';
 import { ConnectToServer } from '@ValenceScreens/components/ConnectToServer/ConnectToServer';
+import { useAppliedTheme } from '@ValenceScreens/theme/useAppliedTheme';
 import { WindowBar } from '@ValenceScreens/components/WindowBar/WindowBar';
 import { rememberServerAddress, serverAddress } from '@ValenceClient/session/serverAddress';
 import { useServerIsLost } from '@ValenceClient/offline/useServerIsLost';
@@ -49,6 +50,9 @@ const router = buildRouter('Valence');
  * Whoever is asked again is shown the address that stopped answering rather than an empty box. They
  * came here to correct a detail or to wait for a machine to come back, not to remember what they
  * typed months ago.
+ *
+ * The chosen theme is put on the document from here as well as from the application's own root,
+ * because the screen this client owns is drawn instead of that root rather than inside it.
  */
 const Desktop = () => {
   const [server, setServer] = useState(serverAddress());
@@ -56,6 +60,8 @@ const Desktop = () => {
     () => window.valence.servers?.alreadyFound ?? [],
   );
   const isLost = useServerIsLost();
+
+  useAppliedTheme();
 
   useEffect(
     () =>
