@@ -245,7 +245,7 @@ describe('Button', () => {
     it('paints an overlay control from tokens, so a theme can move it', () => {
       render(<Button variant="overlay">Close</Button>);
 
-      expect(screen.getByRole('button', { name: 'Close' })).not.toHaveClass('bg-black/50');
+      expect(screen.getByRole('button', { name: 'Close' })).not.toHaveClass('bg-shade/50');
     });
 
     it('offers a treatment for text that reads as a way somewhere', () => {

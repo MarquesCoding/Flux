@@ -62,7 +62,7 @@ const ReadPage = () => {
 
   if (asked.data === undefined || asked.data === null || read.data === undefined) {
     return (
-      <div className="flex h-dvh items-center justify-center bg-black">
+      <div className="flex h-dvh items-center justify-center bg-shade">
         <Spinner label="Opening the book" />
       </div>
     );
@@ -70,9 +70,11 @@ const ReadPage = () => {
 
   if (chapterId === '') {
     return (
-      <div className="flex h-dvh flex-col items-center justify-center gap-2 bg-black text-center">
-        <p className="text-lg font-medium text-white">Nothing in this book yet</p>
-        <p className="text-sm text-white/70">Scanning the library again may find its chapters.</p>
+      <div className="flex h-dvh flex-col items-center justify-center gap-2 bg-shade text-center">
+        <p className="text-lg font-medium text-on-scrim">Nothing in this book yet</p>
+        <p className="text-sm text-on-scrim/70">
+          Scanning the library again may find its chapters.
+        </p>
       </div>
     );
   }

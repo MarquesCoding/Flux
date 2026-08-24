@@ -94,7 +94,7 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
       <BaseDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
         <BaseDialog.Backdrop
           data-slot="dialog-overlay"
-          className={cn('fixed inset-0 z-50 bg-black/55 backdrop-blur-md', OVERLAY_MOTION)}
+          className={cn('fixed inset-0 z-50 bg-shade/55 backdrop-blur-md', OVERLAY_MOTION)}
         />
 
         <BaseDialog.Popup

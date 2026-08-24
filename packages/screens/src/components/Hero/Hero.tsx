@@ -49,7 +49,7 @@ const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as cons
 
 const LOGO_BOX = [
   'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
-  'drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]',
+  'drop-shadow-[var(--shadow-legible)]',
 ].join(' ');
 
 /**
@@ -217,7 +217,7 @@ const Hero = ({
           }
           className={cn(
             'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',
-            'ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
+            'ring-1 ring-line shadow-[var(--shadow-cast)]',
           )}
         >
           <AnimatePresence initial={false} mode="popLayout">
@@ -245,8 +245,7 @@ const Hero = ({
             </motion.div>
           </AnimatePresence>
 
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-surface via-surface/60 to-transparent" />
-          <div className="pointer-events-none absolute inset-0 bg-gradient-to-r from-surface/85 via-transparent to-transparent" />
+          <div className="valence-artwork-scrim pointer-events-none absolute inset-0" />
 
           <motion.div
             key={featured.id}
@@ -261,7 +260,7 @@ const Hero = ({
               className={
                 isLettered
                   ? 'flex'
-                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-text'
+                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-on-scrim'
               }
             >
               {isLettered ? (
@@ -285,7 +284,7 @@ const Hero = ({
               <MediaFacts
                 media={featured}
                 hasEpisode={false}
-                className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
+                className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-on-scrim/75"
               />
             </motion.p>
 
@@ -299,7 +298,7 @@ const Hero = ({
                     duration: prefersReducedMotion === true ? 0.2 : 0.55,
                     ease: [0.2, 0, 0, 1],
                   }}
-                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-on-scrim/90 drop-shadow-[var(--shadow-legible-tight)]"
                 >
                   {told}
                 </motion.p>
@@ -361,7 +360,7 @@ const Hero = ({
                   ? {}
                   : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
               }
-              className="pointer-events-none absolute bottom-[calc(2rem+var(--dock-clearance,0px))] left-1/2 -translate-x-1/2 text-text-muted"
+              className="pointer-events-none absolute bottom-[calc(2rem+var(--dock-clearance,0px))] left-1/2 -translate-x-1/2 text-on-scrim/70"
             >
               <Icon of={CaretDownIcon} size={24} />
             </motion.span>

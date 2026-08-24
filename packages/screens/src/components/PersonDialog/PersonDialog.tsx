@@ -107,7 +107,7 @@ const PersonDialog = ({
 
         <div className="flex flex-col gap-8 p-5 pb-10 sm:p-8">
           <header className="flex flex-wrap items-start gap-5">
-            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
+            <span className="flex size-28 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-surface-raised ring-1 ring-line">
               {person?.portraitUrl === null || person?.portraitUrl === undefined ? (
                 <Icon of={UserIcon} size={36} className="text-text-muted" />
               ) : (

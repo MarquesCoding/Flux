@@ -14,10 +14,7 @@ const Skeleton = ({ label, className }: SkeletonProps) => (
     role={label === undefined ? 'presentation' : 'status'}
     aria-label={label}
     aria-hidden={label === undefined}
-    className={cn(
-      'block animate-pulse rounded-lg bg-white/[0.07] motion-reduce:animate-none',
-      className,
-    )}
+    className={cn('block animate-pulse rounded-lg bg-subtle motion-reduce:animate-none', className)}
   />
 );
 

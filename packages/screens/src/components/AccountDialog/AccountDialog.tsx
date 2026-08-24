@@ -140,7 +140,7 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
           detail={user.email}
           icon={
             profile === null ? (
-              <span className="size-12 shrink-0 rounded-xl bg-white/5" />
+              <span className="size-12 shrink-0 rounded-xl bg-subtle" />
             ) : (
               <ProfileFace profile={profile} className="size-12 shrink-0 rounded-xl text-lg" />
             )

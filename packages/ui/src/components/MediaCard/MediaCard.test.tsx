@@ -99,7 +99,7 @@ describe('MediaCard', () => {
     const title = screen.getByText('Arrival');
 
     expect(card.querySelector('img, span[aria-hidden]')).not.toBeNull();
-    expect(title.className).toContain('text-white');
+    expect(title.className).toContain('text-on-scrim');
   });
 
   it('shows badges over the artwork, where they stay readable', () => {
@@ -107,7 +107,7 @@ describe('MediaCard', () => {
       <MediaCard title="Arrival" subtitle="2016" badges={['4K', 'HDR10']} onSelect={vi.fn()} />,
     );
 
-    expect(screen.getByText('4K')).toHaveClass('bg-black/60');
+    expect(screen.getByText('4K')).toHaveClass('bg-shade/60');
   });
 
   it('draws the card without its motion for somebody who asked for less', () => {

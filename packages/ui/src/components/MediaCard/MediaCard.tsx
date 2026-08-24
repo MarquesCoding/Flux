@@ -71,16 +71,16 @@ const MediaCard = ({
       <span
         className={cn(
           'relative block overflow-hidden rounded-md bg-card',
-          'shadow-[0_18px_40px_-24px_rgba(0,0,0,0.9)] ring-1 ring-white/10',
+          'shadow-[var(--shadow-artwork)] ring-1 ring-line',
           'transition-shadow duration-[var(--duration-base)] ease-[var(--ease-out)]',
-          'motion-reduce:transition-none hover-hover:group-hover:shadow-[0_28px_60px_-28px_rgba(0,0,0,0.95)]',
+          'motion-reduce:transition-none hover-hover:group-hover:shadow-[var(--shadow-artwork-raised)]',
           SHAPE_CLASSES[shape],
         )}
       >
         {imageUrl === undefined ? (
           <span
             aria-hidden
-            className="absolute bottom-[-0.15em] left-[-0.06em] text-[9rem] font-semibold leading-none tracking-tighter text-white/[0.07]"
+            className="absolute bottom-[-0.15em] left-[-0.06em] text-[9rem] font-semibold leading-none tracking-tighter text-on-scrim/[0.07]"
           >
             {title.slice(0, 1).toUpperCase()}
           </span>
@@ -93,11 +93,11 @@ const MediaCard = ({
           />
         )}
 
-        <span className="absolute inset-0 bg-linear-to-t from-black/80 via-black/10 to-transparent opacity-70 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-90" />
+        <span className="absolute inset-0 bg-linear-to-t from-shade/80 via-shade/10 to-transparent opacity-70 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-90" />
 
         <span className="absolute inset-0 flex items-center justify-center opacity-0 transition-opacity duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none hover-hover:group-hover:opacity-100">
           <span className="valence-glass flex size-14 items-center justify-center rounded-full transition-transform duration-[var(--duration-base)] ease-[var(--ease-spring)] motion-reduce:transition-none hover-hover:group-hover:scale-100 scale-90">
-            <Icon of={PlayIcon} size={22} className="text-white" />
+            <Icon of={PlayIcon} size={22} className="text-on-scrim" />
           </span>
         </span>
 
@@ -112,7 +112,7 @@ const MediaCard = ({
         )}
 
         {watchedFraction === undefined ? null : (
-          <span className="absolute inset-x-3 bottom-2.5 mx-2 mb-1 h-1 overflow-hidden rounded-full bg-white/25">
+          <span className="absolute inset-x-3 bottom-2.5 mx-2 mb-1 h-1 overflow-hidden rounded-full bg-on-scrim/25">
             <span
               className="block h-full rounded-full bg-primary"
               style={{ width: `${(Math.min(Math.max(watchedFraction, 0), 1) * 100).toString()}%` }}
@@ -123,15 +123,15 @@ const MediaCard = ({
         {isLead ? (
           <span className="absolute inset-x-4 bottom-4 flex flex-col gap-1">
             {eyebrow === undefined ? null : (
-              <span className="text-[0.65rem] uppercase tracking-[0.18em] text-white/60">
+              <span className="text-[0.65rem] uppercase tracking-[0.18em] text-on-scrim/60">
                 {eyebrow}
               </span>
             )}
 
-            <span className="text-2xl font-semibold leading-tight tracking-tight text-white sm:text-3xl">
+            <span className="text-2xl font-semibold leading-tight tracking-tight text-on-scrim sm:text-3xl">
               {title}
             </span>
-            <span className="font-body text-xs text-white/70">{subtitle}</span>
+            <span className="font-body text-xs text-on-scrim/70">{subtitle}</span>
           </span>
         ) : null}
       </span>

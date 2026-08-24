@@ -120,7 +120,7 @@ const ProfilePicker = ({
               }}
               className="flex w-24 flex-col items-center gap-3 sm:w-32"
             >
-              <span className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-white/20 text-text-muted">
+              <span className="flex aspect-square w-full items-center justify-center rounded-lg border border-dashed border-line text-text-muted">
                 <Icon of={PlusIcon} size={28} />
               </span>
 

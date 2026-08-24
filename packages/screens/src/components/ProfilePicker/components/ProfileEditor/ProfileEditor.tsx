@@ -163,7 +163,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               setAvatar({ kind: 'initial' });
             }}
             style={{ backgroundColor: colour }}
-            className={`flex size-14 items-center justify-center rounded-lg text-xl font-semibold text-black/80 transition-transform ${
+            className={`flex size-14 items-center justify-center rounded-lg text-xl font-semibold text-shade/80 transition-transform ${
               avatar.kind === 'initial' && photo === null
                 ? 'scale-105 ring-2 ring-text'
                 : 'hover-hover:hover:scale-105'
@@ -183,7 +183,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
                 setPhoto(null);
                 setAvatar({ kind: 'drawn', style, seed });
               }}
-              className={`size-14 overflow-hidden rounded-lg bg-white/5 transition-transform ${
+              className={`size-14 overflow-hidden rounded-lg bg-subtle transition-transform ${
                 avatar.kind === 'drawn' && avatar.style === style && photo === null
                   ? 'scale-105 ring-2 ring-text'
                   : 'hover-hover:hover:scale-105'
@@ -227,7 +227,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
                 setPhoto(file);
               }}
             >
-              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-white/10 hover:text-text">
+              <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-hover hover:text-text">
                 <Icon of={ImageSquareIcon} size={16} />
                 {photo === null ? 'Upload a photo' : photo.name}
               </span>

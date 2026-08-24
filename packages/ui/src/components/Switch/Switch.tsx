@@ -45,7 +45,7 @@ const Switch = ({
       )}
     >
       {icon === undefined ? null : (
-        <span className={cn('shrink-0', isOverlay ? 'text-white/80' : 'text-text-muted')}>
+        <span className={cn('shrink-0', isOverlay ? 'text-on-scrim/80' : 'text-text-muted')}>
           {icon}
         </span>
       )}
@@ -59,10 +59,10 @@ const Switch = ({
           'motion-reduce:transition-none',
           isOn
             ? isOverlay
-              ? 'bg-white'
+              ? 'bg-on-scrim'
               : 'bg-accent'
             : isOverlay
-              ? 'bg-white/25'
+              ? 'bg-on-scrim/25'
               : 'bg-text-muted/25',
         )}
       >
@@ -72,7 +72,7 @@ const Switch = ({
             'transition-transform duration-[var(--duration-fast)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none',
             isOn ? 'translate-x-[18px]' : 'translate-x-0',
-            isOn && isOverlay ? 'bg-black' : isOn ? 'bg-white' : 'bg-white',
+            isOn && isOverlay ? 'bg-shade' : 'bg-on-scrim',
           )}
         />
       </span>

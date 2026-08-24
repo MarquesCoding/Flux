@@ -268,7 +268,7 @@ const PageReader = ({
 
   return (
     <div
-      className="valence-below-the-bar z-50 flex flex-col bg-black"
+      className="valence-below-the-bar z-50 flex flex-col bg-shade"
       onPointerMove={wake}
       onTouchStart={(event) => {
         const [one, other] = [event.touches[0], event.touches[1]];
@@ -336,7 +336,7 @@ const PageReader = ({
       <header
         className={[
           'absolute inset-x-0 top-0 z-10 flex items-center gap-3 p-3',
-          'bg-gradient-to-b from-black/80 to-transparent',
+          'bg-gradient-to-b from-shade/80 to-transparent',
           'transition-opacity duration-[var(--duration-fast)]',
           isChromeShown ? 'opacity-100' : 'pointer-events-none opacity-0',
         ].join(' ')}
@@ -345,7 +345,7 @@ const PageReader = ({
           <Icon of={XIcon} size={18} />
         </Button>
 
-        <span className="min-w-0 flex-1 truncate text-sm text-white">
+        <span className="min-w-0 flex-1 truncate text-sm text-on-scrim">
           {book.title} — {chapter?.title ?? ''}
         </span>
 
@@ -473,7 +473,7 @@ const PageReader = ({
       <footer
         className={[
           'absolute inset-x-0 bottom-0 z-10 flex items-center gap-3 p-3',
-          'bg-gradient-to-t from-black/80 to-transparent',
+          'bg-gradient-to-t from-shade/80 to-transparent',
           'transition-opacity duration-[var(--duration-fast)]',
           isChromeShown ? 'opacity-100' : 'pointer-events-none opacity-0',
         ].join(' ')}
@@ -490,7 +490,7 @@ const PageReader = ({
           className="flex-1"
         />
 
-        <span className="w-24 shrink-0 text-right text-xs tabular-nums text-white/80">
+        <span className="w-24 shrink-0 text-right text-xs tabular-nums text-on-scrim/80">
           {showing.length === 0
             ? '—'
             : `${((showing[0] ?? 0) + 1).toString()} / ${pageCount.toString()}`}

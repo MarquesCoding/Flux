@@ -43,7 +43,7 @@ const SplashScreen = ({ name = 'Valence', label = 'Loading' }: SplashScreenProps
         )}
       </motion.span>
 
-      <span className="h-0.5 w-48 overflow-hidden rounded-full bg-white/10 sm:w-64">
+      <span className="h-0.5 w-48 overflow-hidden rounded-full bg-track sm:w-64">
         {prefersReducedMotion === true ? (
           <span className="block h-full w-1/3 rounded-full bg-text/70" />
         ) : (

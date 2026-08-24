@@ -3,7 +3,7 @@ import type { GlassElevation, GlassPanelProps } from './GlassPanel.types';
 
 const ELEVATION_CLASSES: Record<GlassElevation, string> = {
   floating: 'valence-glass',
-  inset: 'border border-white/10 bg-white/[0.04] backdrop-blur-xl',
+  inset: 'border border-line bg-subtle backdrop-blur-xl',
 };
 
 /**

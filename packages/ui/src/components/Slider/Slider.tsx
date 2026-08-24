@@ -6,12 +6,12 @@ import type { SliderProps, SliderTone } from './Slider.types';
 
 const TRACK_CLASSES: Record<SliderTone, string> = {
   default: 'bg-surface-raised',
-  overlay: 'bg-white/30',
+  overlay: 'bg-on-scrim/30',
 };
 
 const FILL_CLASSES: Record<SliderTone, string> = {
   default: 'bg-primary',
-  overlay: 'bg-white',
+  overlay: 'bg-on-scrim',
 };
 
 /**

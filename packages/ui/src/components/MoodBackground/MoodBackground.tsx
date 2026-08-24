@@ -5,6 +5,7 @@ import { blendLights } from '@ValenceUI/blendLights';
 import { cn } from '@ValenceUI/cn';
 import type { DotFieldProps } from '@ValenceUI/DotField.types';
 import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types';
+import { HOUSE_LIGHTS } from '@ValenceUI/houseLights';
 
 const BLOOMS = [
   { at: '14% 8%', size: '70vw 60vh', strength: 40 },
@@ -16,13 +17,7 @@ const BLOOMS = [
 
 const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const;
 
-const HOUSE = [
-  'rgb(56 68 150)',
-  'rgb(48 60 138)',
-  'rgb(44 54 124)',
-  'rgb(50 62 142)',
-  'rgb(40 50 118)',
-] as const;
+const HOUSE = HOUSE_LIGHTS;
 
 const DEFAULT_LIGHTS: MoodLight[] = HOUSE.map((color) => ({ color }));
 

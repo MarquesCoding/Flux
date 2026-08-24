@@ -140,7 +140,7 @@ describe('PopoverPanel', () => {
   it('draws its own hover, since most of these sit on nothing that draws one', () => {
     draw();
 
-    expect(screen.getByRole('button', { name: 'Episodes' }).className).toContain('hover:bg-white');
+    expect(screen.getByRole('button', { name: 'Episodes' }).className).toContain('hover:bg-hover');
   });
 
   it('draws none where the chrome around it already does', () => {
@@ -148,7 +148,7 @@ describe('PopoverPanel', () => {
 
     const trigger = screen.getByRole('button', { name: 'Episodes' });
 
-    expect(trigger.className).not.toContain('hover:bg-white');
-    expect(trigger.className).not.toContain('data-[state=open]:bg-white');
+    expect(trigger.className).not.toContain('hover:bg-hover');
+    expect(trigger.className).not.toContain('data-[state=open]:bg-active');
   });
 });
