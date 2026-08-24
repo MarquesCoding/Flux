@@ -17,6 +17,7 @@ type LibraryBrowserProps = {
   onOpenShow?: (media: MediaSummary) => void;
   isKept?: (mediaId: string) => boolean;
   onToggleKept?: (media: MediaSummary) => void;
+  onAddLibrary?: () => void;
 };
 
 type BrowserState = 'loading' | 'ready' | 'unreachable';

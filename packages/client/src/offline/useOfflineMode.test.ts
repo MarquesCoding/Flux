@@ -133,4 +133,24 @@ describe('useOfflineMode', () => {
 
     expect(renderHook(() => useOfflineMode()).result.current.isOffline).toBe(true);
   });
+
+  it('catches up with a change published before it was listening', () => {
+    let isReachable = false;
+
+    const reachability: Reachability = {
+      isReachable: () => isReachable,
+      whenChanged: () => {
+        isReachable = true;
+
+        return () => {};
+      },
+    };
+
+    installPlatform(aFakePlatform({ reachability }));
+
+    const { result } = renderHook(() => useOfflineMode());
+
+    expect(result.current.isReachable).toBe(true);
+    expect(result.current.isOffline).toBe(false);
+  });
 });

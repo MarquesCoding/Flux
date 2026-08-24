@@ -2,7 +2,7 @@ import type { MoodLight } from '@ValenceUI/MoodBackground.types';
 import type { ReactNode } from 'react';
 import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 
-const BROWSE_SECTIONS = ['home', 'shows', 'films', 'new', 'favourites', 'read'] as const;
+const BROWSE_SECTIONS = ['home', 'shows', 'films', 'read', 'new', 'favourites'] as const;
 
 type ShellSection =
   'home' | 'shows' | 'films' | 'new' | 'favourites' | 'read' | 'search' | 'account' | 'admin';

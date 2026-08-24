@@ -20,6 +20,13 @@ const HomePage = () => {
       onLibraryChange={(libraryId) => {
         replace({ library: libraryId });
       }}
+      {...(user.role === 'admin'
+        ? {
+            onAddLibrary: () => {
+              go({ admin: 'libraries' });
+            },
+          }
+        : {})}
       onPlay={(media) => {
         go({ inspecting: media.id });
       }}

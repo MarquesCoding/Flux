@@ -256,7 +256,7 @@ const LibrariesPanel = ({
           </Button>
 
           <Button
-            variant="soft"
+            variant="glossy"
             size="sm"
             isPill
             onClick={() => {

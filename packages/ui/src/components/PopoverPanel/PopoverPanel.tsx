@@ -19,6 +19,8 @@ import type { PopoverPanelProps } from './PopoverPanel.types';
  * @param side - Which side of the trigger to prefer.
  * @param align - Which part of the trigger the panel lines up with, matching `ActionMenu`.
  * @param isDisabled - Whether it can be opened at all.
+ * @param isBare - Whether the surrounding chrome already draws the hover, so this must not draw a
+ * second one.
  * @param className - Extra classes for the caller's own layout.
  */
 const PopoverPanel = ({
@@ -31,6 +33,7 @@ const PopoverPanel = ({
   side = 'top',
   align = 'end',
   isDisabled = false,
+  isBare = false,
   className,
 }: PopoverPanelProps) => {
   const portalContainer = usePortalContainer();
@@ -47,11 +50,12 @@ const PopoverPanel = ({
           data-slot="popover-trigger"
           className={cn(
             'inline-flex size-10 shrink-0 items-center justify-center rounded-md',
-            'text-current outline-none hover:bg-white/15',
+            'text-current outline-none',
             'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
             'motion-reduce:transition-none',
             'focus-visible:ring-[3px] focus-visible:ring-ring',
-            'data-[state=open]:bg-white/20 disabled:cursor-not-allowed disabled:opacity-50',
+            'disabled:cursor-not-allowed disabled:opacity-50',
+            isBare ? '' : 'hover:bg-white/15 data-[state=open]:bg-white/20',
           )}
         >
           {trigger}

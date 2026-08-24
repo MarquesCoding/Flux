@@ -1,6 +1,6 @@
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { forgetPlatform } from '@ValenceClient/platform/installPlatform';
 import { aFakeHeldFiles } from '@ValenceClient/testing/aFakeHeldFiles';
 import { installATestClient } from '@ValenceScreens/testing/installATestClient';
@@ -31,12 +31,17 @@ const outOfReach: Reachability = {
   whenChanged: () => () => {},
 };
 
+const asTheDesktopClient = () => {
+  document.documentElement.dataset['valenceDesktop'] = 'true';
+};
+
 beforeEach(() => {
   installATestClient();
 });
 
 afterEach(() => {
   forgetPlatform();
+  delete document.documentElement.dataset['valenceDesktop'];
 });
 
 describe('OfflineApp', () => {
@@ -137,5 +142,47 @@ describe('OfflineApp', () => {
     await waitFor(() => {
       expect(files.dropped).toEqual(['00000000-0000-4000-8000-000000000001']);
     });
+  });
+
+  it('offers a way out to somebody stranded, which is when there is nothing else to press', () => {
+    asTheDesktopClient();
+    installATestClient({ reachability: outOfReach });
+
+    render(<OfflineApp title="Kestrel" />);
+
+    expect(screen.getByRole('button', { name: /Change server/ })).toBeInTheDocument();
+  });
+
+  it('asks the window for a different server when that is pressed', async () => {
+    asTheDesktopClient();
+    installATestClient({ reachability: outOfReach });
+
+    const asked = vi.fn();
+
+    document.addEventListener('valence:change-server', asked);
+
+    render(<OfflineApp title="Kestrel" />);
+
+    await userEvent.click(screen.getByRole('button', { name: /Change server/ }));
+
+    document.removeEventListener('valence:change-server', asked);
+
+    expect(asked).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers it in a browser to nobody, since a browser is already where it was opened', () => {
+    installATestClient({ reachability: outOfReach });
+
+    render(<OfflineApp title="Kestrel" />);
+
+    expect(screen.queryByRole('button', { name: /Change server/ })).not.toBeInTheDocument();
+  });
+
+  it('still offers to go back online where the server is answering again', () => {
+    asTheDesktopClient();
+
+    render(<OfflineApp title="Kestrel" />);
+
+    expect(screen.getByRole('button', { name: /Reconnect|Go back online/ })).toBeInTheDocument();
   });
 });

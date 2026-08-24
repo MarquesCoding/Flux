@@ -13,6 +13,7 @@ type BrowseAreaProps = {
   favourites?: string[];
   isKept?: (mediaId: string) => boolean;
   onToggleKept?: (media: MediaSummary) => void;
+  onAddLibrary?: () => void;
 };
 
 export type { BrowseAreaProps, BrowseKind };

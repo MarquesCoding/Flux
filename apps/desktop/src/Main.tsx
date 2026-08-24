@@ -45,12 +45,19 @@ const router = buildRouter('Valence');
  * until it is answered there is no server to ask anything of. What it offers on that screen is found
  * by the process that owns the window — a page served from a scheme of its own cannot go knocking on
  * `localhost` to see what answers, and would be refused for being somebody else's origin.
+ *
+ * An address that no longer answers is asked about again, but only where there is nothing on this
+ * device. Offline mode is built around a shelf of downloads, and offering it an empty shelf is
+ * showing somebody an empty room and calling it a feature — the honest question at that point is
+ * where Valence went, not which of the nothing they would like to watch. Somebody who does have
+ * downloads keeps them, because a laptop on a plane has not mistyped its address.
  */
 const Desktop = () => {
   const [server, setServer] = useState(serverAddress());
   const [found, setFound] = useState<readonly string[]>(
     () => window.valence.servers?.alreadyFound ?? [],
   );
+  const [hasNothingHeld, setHasNothingHeld] = useState(false);
 
   useEffect(
     () =>
@@ -60,11 +67,21 @@ const Desktop = () => {
     [],
   );
 
+  useEffect(() => {
+    if (window.valence.reach.now()) {
+      return;
+    }
+
+    void window.valence.held.all().then((kept) => {
+      setHasNothingHeld(Array.isArray(kept) && kept.length === 0);
+    });
+  }, []);
+
   return (
     <>
       <WindowBar />
 
-      {server === null || server === '' ? (
+      {server === null || server === '' || hasNothingHeld ? (
         <ConnectToServer
           found={found}
           onConnected={(chosen) => {

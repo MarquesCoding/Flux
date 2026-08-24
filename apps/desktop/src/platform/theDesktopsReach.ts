@@ -8,23 +8,20 @@ import type { Reachability } from '@ValenceClient/platform/Platform.types';
  * failed for one of the dozen reasons a query fails. It is also the only thing still asking once the
  * application has gone quiet, which is what lets a laptop notice the server is back.
  *
- * What is known at the moment the page loads comes across with the page, because the first thing the
- * application does is decide which of itself to draw, and there is no sensible shape to draw around
- * a promise.
+ * Asked rather than remembered. What the main process knows is the truth, and a copy kept out here
+ * is only as good as the last message that arrived: a change published before this window existed,
+ * or before its listener was attached, reaches nobody and is never repeated, because the main
+ * process only publishes on a change and has already changed. A window that started while the server
+ * was down then stayed offline against a server that had been answering for hours. Reading the level
+ * each time cannot miss an edge, because it does not depend on one.
  *
  * @returns What this client can say about the server.
  */
 const theDesktopsReach = (): Reachability => {
   const { reach } = window.valence;
 
-  let isReachable = reach.now;
-
-  reach.whenChanged((nowReachable) => {
-    isReachable = nowReachable;
-  });
-
   return {
-    isReachable: () => isReachable,
+    isReachable: () => reach.now(),
     whenChanged: (listener) => reach.whenChanged(listener),
   };
 };

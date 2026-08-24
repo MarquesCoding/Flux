@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CloudSlashIcon, WifiHighIcon } from '@phosphor-icons/react';
+import { CloudSlashIcon, HardDrivesIcon, WifiHighIcon } from '@phosphor-icons/react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
@@ -10,6 +10,10 @@ import { dropAFile, pauseAFile } from '@ValenceClient/downloads/keepingFiles';
 import { rememberWatchedOffline, watchedOffline } from '@ValenceClient/offline/watchedOffline';
 import { OfflinePlayer } from '@ValenceScreens/components/OfflinePlayer/OfflinePlayer';
 import { OfflineShelf } from '@ValenceScreens/components/OfflineShelf/OfflineShelf';
+import {
+  askForADifferentServer,
+  isTheDesktopClient,
+} from '@ValenceScreens/desktop/theDesktopShell';
 import type { OfflineAppProps } from './OfflineApp.types';
 
 /**
@@ -79,6 +83,18 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
             <Icon of={CloudSlashIcon} size={14} />
             Offline
           </Badge>
+
+          {!isTheDesktopClient() ? null : (
+            <Button
+              variant={isReachable ? 'ghost' : 'primary'}
+              size="sm"
+              isPill
+              onClick={askForADifferentServer}
+            >
+              <Icon of={HardDrivesIcon} size={15} />
+              Change server
+            </Button>
+          )}
 
           {!isReachable ? null : (
             <Button

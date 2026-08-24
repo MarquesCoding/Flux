@@ -1,4 +1,3 @@
-
 const SERVICE_WORKER_PATH = '/push-worker.js';
 
 /**

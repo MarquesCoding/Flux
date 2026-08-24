@@ -38,6 +38,13 @@ const BrowsePage = () => {
       onInspect={(media) => {
         go({ inspecting: media.id });
       }}
+      {...(user.role === 'admin'
+        ? {
+            onAddLibrary: () => {
+              go({ admin: 'libraries' });
+            },
+          }
+        : {})}
       onOpenShow={(media) => {
         const series = media.seriesId ?? showSlug(media.seriesTitle ?? '');
 
