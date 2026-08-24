@@ -160,6 +160,43 @@ const ChapterListSchema = z.array(
 const env = readEnv(process.env);
 const { db, schema } = createDatabase(env.DATABASE_URL);
 
+const MIGRATIONS_FOLDER = join(import.meta.dirname, '..', 'drizzle');
+
+const MIGRATION_JOURNAL = join(MIGRATIONS_FOLDER, 'meta', '_journal.json');
+
+const AppliedMigrationSchema = z.object({ created_at: z.union([z.string(), z.number()]) });
+
+/**
+ * The stamps of the migrations this database has run, or none where it has never run any.
+ *
+ * A database nobody has migrated has no ledger table to read, which is not a fault — it is what
+ * every first start looks like. Drizzle creates it as part of applying the first migration.
+ *
+ * @returns The stamps.
+ */
+const readAppliedStamps = async (): Promise<number[]> => {
+  try {
+    const applied = await db.execute(sql`select created_at from drizzle.__drizzle_migrations`);
+
+    return applied.rows.map((row) => Number(AppliedMigrationSchema.parse(row).created_at));
+  } catch {
+    return [];
+  }
+};
+
+await migrateToLatest({
+  pending: () =>
+    findPendingMigrations({
+      readJournal: () => readFile(MIGRATION_JOURNAL, 'utf8'),
+      readAppliedAt: readAppliedStamps,
+    }),
+  apply: () => migrate(db, { migrationsFolder: MIGRATIONS_FOLDER }),
+  isAllowed: env.MIGRATE_ON_START,
+  say: (_level, line) => {
+    process.stdout.write(`${line}\n`);
+  },
+});
+
 const settings = createDatabaseSettingsStore({
   db,
   defaults: {
@@ -312,29 +349,6 @@ const log = createLogger({
   ambient: () => logScope.current(),
   onRecord: (record) => {
     realtime.publish('logs', asJsonLog(record), { kind: 'everyone' });
-  },
-});
-
-const MIGRATIONS_FOLDER = join(import.meta.dirname, '..', 'drizzle');
-
-const MIGRATION_JOURNAL = join(MIGRATIONS_FOLDER, 'meta', '_journal.json');
-
-const AppliedMigrationSchema = z.object({ created_at: z.union([z.string(), z.number()]) });
-
-await migrateToLatest({
-  pending: () =>
-    findPendingMigrations({
-      readJournal: () => readFile(MIGRATION_JOURNAL, 'utf8'),
-      readAppliedAt: async () => {
-        const applied = await db.execute(sql`select created_at from drizzle.__drizzle_migrations`);
-
-        return applied.rows.map((row) => Number(AppliedMigrationSchema.parse(row).created_at));
-      },
-    }),
-  apply: () => migrate(db, { migrationsFolder: MIGRATIONS_FOLDER }),
-  isAllowed: env.MIGRATE_ON_START,
-  say: (level, line) => {
-    log[level]('server', line);
   },
 });
 
