@@ -54,6 +54,8 @@ const DEFAULT_ROLES: readonly DefaultRole[] = [
   },
 ];
 
+const ADMINISTRATOR_ROLE_NAME = 'Administrator';
+
 const DEFAULT_ROLE_NAME = 'Member';
 
-export { DEFAULT_ROLES, DEFAULT_ROLE_NAME };
+export { ADMINISTRATOR_ROLE_NAME, DEFAULT_ROLES, DEFAULT_ROLE_NAME };

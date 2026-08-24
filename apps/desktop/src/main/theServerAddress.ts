@@ -1,6 +1,6 @@
 import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
 
-const KEY = 'valence.server.address';
+const THE_SERVER_ADDRESS = 'valence.server.address';
 
 /**
  * Where this client has been told its Valence is, read from the same file the window writes it to.
@@ -11,7 +11,7 @@ const KEY = 'valence.server.address';
  *
  * @returns The address, or nothing before anybody has said.
  */
-const theServerAddress = (): string => thePreferenceFile().all()[KEY] ?? '';
+const theServerAddress = (): string => thePreferenceFile().all()[THE_SERVER_ADDRESS] ?? '';
 
 /**
  * Forgets it, so this client asks again.
@@ -22,7 +22,7 @@ const theServerAddress = (): string => thePreferenceFile().all()[KEY] ?? '';
  * be pointed somewhere else.
  */
 const forgetTheServerAddress = (): void => {
-  thePreferenceFile().forget(KEY);
+  thePreferenceFile().forget(THE_SERVER_ADDRESS);
 };
 
-export { forgetTheServerAddress, theServerAddress };
+export { forgetTheServerAddress, THE_SERVER_ADDRESS, theServerAddress };

@@ -143,7 +143,7 @@ import { markJobComplete } from '@ValenceServer/library/createMediaStore';
 import { createWorkLock } from '@ValenceServer/jobs/createWorkLock';
 import { seedDefaultJobTriggers } from '@ValenceServer/jobs/seedDefaultJobTriggers';
 import { seedDefaultRoles } from '@ValenceServer/auth/seedDefaultRoles';
-import { DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
+import { ADMINISTRATOR_ROLE_NAME, DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
 import { createDatabaseHistoryService } from '@ValenceServer/history/createDatabaseHistoryService';
 import { createDatabaseSignInStore } from '@ValenceServer/accounts/createDatabaseSignInStore';
 import { recordSignIn } from '@ValenceServer/accounts/recordSignIn';
@@ -302,16 +302,6 @@ const readLibraryBytes = async (): Promise<number> => {
   return Number(rows[0]?.total ?? 0);
 };
 
-/**
- * Makes an account an administrator, used by first-run setup for the account that claims a server
- * nobody owns yet.
- *
- * @param email - The account to promote.
- */
-const promoteToAdmin = async (email: string): Promise<void> => {
-  await db.update(user).set({ role: 'admin' }).where(eq(user.email, email));
-};
-
 const storedPermissions = createDatabasePermissionService(db);
 
 const realtime = createRealtimeRegistry({
@@ -457,6 +447,49 @@ const giveDefaultRole = async (userId: string): Promise<void> => {
 
   if (member !== undefined) {
     await permissions.assignRole(userId, member.id);
+  }
+};
+
+/**
+ * Makes an account an administrator, used by first-run setup for the account that claims a server
+ * nobody owns yet.
+ *
+ * Both halves of it, because two different things are read. The mark on the account is what the
+ * screens ask about; the role is what every permission check in this server resolves against. An
+ * account given one and not the other is an administrator in the chrome and a stranger to the API,
+ * and that is how first-run setup left the only account on a new instance.
+ *
+ * Found without regard to case. What somebody typed into the setup form is not what is stored —
+ * better-auth folds an address before it keeps it — so an email with a capital in it matched nothing
+ * here, silently, and setup finished by reporting success and promoting nobody.
+ *
+ * @param email - The account to promote.
+ */
+const promoteToAdmin = async (email: string): Promise<void> => {
+  const promoted = await db
+    .update(user)
+    .set({ role: 'admin' })
+    .where(sql`lower(${user.email}) = lower(${email})`)
+    .returning({ id: user.id });
+
+  if (promoted.length === 0) {
+    log.warn('auth', `no account at ${email} to make an administrator`);
+
+    return;
+  }
+
+  const administrator = (await permissions.listRoles()).find(
+    (role) => role.name === ADMINISTRATOR_ROLE_NAME,
+  );
+
+  if (administrator === undefined) {
+    log.warn('auth', 'there is no Administrator role to give');
+
+    return;
+  }
+
+  for (const account of promoted) {
+    await permissions.assignRole(account.id, administrator.id);
   }
 };
 const profileService = createDatabaseProfileService(db, join(env.IMAGE_CACHE_DIR, 'profiles'));

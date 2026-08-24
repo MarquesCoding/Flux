@@ -6,3 +6,8 @@ packages:
   - 'packages/*'
   - 'docs/site'
   - 'tools'
+
+onlyBuiltDependencies:
+  - electron
+  - electron-winstaller
+  - esbuild

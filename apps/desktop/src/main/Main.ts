@@ -14,7 +14,11 @@ import { whatIsPlaying } from '@ValenceDesktop/main/whatIsPlaying';
 import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { theWindowsOwnMenu } from '@ValenceDesktop/main/theWindowsOwnMenu';
-import { forgetTheServerAddress, theServerAddress } from '@ValenceDesktop/main/theServerAddress';
+import {
+  forgetTheServerAddress,
+  THE_SERVER_ADDRESS,
+  theServerAddress,
+} from '@ValenceDesktop/main/theServerAddress';
 import { FOUND_A_VALENCE, WHAT_WAS_FOUND } from '@ValenceDesktop/main/discoveryChannels';
 import { keepLookingForAValence, lookForAValence } from '@ValenceDesktop/main/lookForAValence';
 import { carryOldKeysOver } from '@ValenceClient/platform/carryOldKeysOver';
@@ -153,7 +157,11 @@ const start = async (): Promise<void> => {
   serveTheApplication(reach, held);
   carryTheSessionToTheSocket();
 
-  answerAboutPreferences(() => {});
+  answerAboutPreferences((key) => {
+    if (key === THE_SERVER_ADDRESS && theServerAddress() !== '') {
+      reach.noteReached();
+    }
+  });
 
   answerAboutHeldFiles(library, reach, (channel, said) => {
     if (theWindow !== null && !theWindow.isDestroyed()) {
