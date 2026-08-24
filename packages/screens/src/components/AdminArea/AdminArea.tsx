@@ -16,6 +16,7 @@ import { RolesPanel } from './components/RolesPanel/RolesPanel';
 import { WebhooksPanel } from './components/WebhooksPanel/WebhooksPanel';
 import { SharesPanel } from './components/SharesPanel/SharesPanel';
 import {
+  changeWebhook,
   createWebhook,
   deleteWebhook,
   redeliverWebhook,
@@ -37,6 +38,7 @@ import {
 import { rebuildArtefacts } from '@ValenceClient/library/fetchLibrary';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { adminQueries } from '@ValenceClient/query/adminQueries';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { StatStrip } from './components/StatStrip/StatStrip';
 import { ConcernsBanner } from './components/ConcernsBanner/ConcernsBanner';
@@ -144,6 +146,26 @@ const AdminArea = ({
   });
 
   const webhooks = askedWebhooks.data ?? [];
+
+  const askedWebhookAccounts = useQuery({
+    ...adminQueries.accounts(),
+    enabled: panel === 'webhooks',
+  });
+
+  const askedWebhookProfiles = useQuery({
+    ...profileQueries.everyone(),
+    enabled: panel === 'webhooks',
+  });
+
+  const webhookAccounts = useMemo(
+    () => (askedWebhookAccounts.data ?? []).map((one) => ({ id: one.id, label: one.name })),
+    [askedWebhookAccounts.data],
+  );
+
+  const webhookProfiles = useMemo(
+    () => (askedWebhookProfiles.data ?? []).map((one) => ({ id: one.id, label: one.name })),
+    [askedWebhookProfiles.data],
+  );
 
   const askedDeliveries = useQuery(adminQueries.deliveries(openHistoryId));
 
@@ -642,12 +664,23 @@ const AdminArea = ({
           <TabPanel value="webhooks" travel={travel}>
             <WebhooksPanel
               webhooks={webhooks}
+              accounts={webhookAccounts}
+              profiles={webhookProfiles}
               created={createdWebhook}
               onCreate={async (webhook) => {
                 const { created, refusal } = await createWebhook(webhook);
 
                 if (refusal === null) {
                   setCreatedWebhook(created);
+                  await reloadWebhooks();
+                }
+
+                return refusal;
+              }}
+              onEdit={async (id, change) => {
+                const refusal = await changeWebhook(id, change);
+
+                if (refusal === null) {
                   await reloadWebhooks();
                 }
 

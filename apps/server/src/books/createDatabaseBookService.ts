@@ -203,7 +203,7 @@ const createDatabaseBookService = (db: ValenceDatabase, cacheDir: string): BookS
     },
 
     upsertBook: async (row) => {
-      await db
+      const [saved] = await db
         .insert(book)
         .values({
           id: randomUUID(),
@@ -217,7 +217,10 @@ const createDatabaseBookService = (db: ValenceDatabase, cacheDir: string): BookS
         .onConflictDoUpdate({
           target: [book.libraryId, book.path],
           set: { title: row.title, layout: row.layout, year: row.year, updatedAt: new Date() },
-        });
+        })
+        .returning({ id: book.id });
+
+      return saved?.id ?? null;
     },
 
     upsertChapter: async (libraryId, row) => {

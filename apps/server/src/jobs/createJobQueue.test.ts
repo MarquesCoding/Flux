@@ -71,10 +71,12 @@ describe('createJobQueue', () => {
   it('runs a job that carries no data at all, which is every job on a clock', async () => {
     const handler = vi.fn(() => Promise.resolve());
 
-    await createJobQueue({
-      connectionString: 'postgres://flux',
-      handlers: { [CHECK_DISK]: handler },
-    });
+    await (
+      await createJobQueue({
+        connectionString: 'postgres://flux',
+        handlers: { [CHECK_DISK]: handler },
+      })
+    ).startWorking();
 
     await deliver(CHECK_DISK, [{ id: 'job-1', data: null }]);
 
@@ -84,11 +86,13 @@ describe('createJobQueue', () => {
   it('reports a job that carried nothing as finished rather than as failed', async () => {
     const onFinished = vi.fn();
 
-    await createJobQueue({
-      connectionString: 'postgres://flux',
-      handlers: { [CHECK_DISK]: () => Promise.resolve() },
-      onFinished,
-    });
+    await (
+      await createJobQueue({
+        connectionString: 'postgres://flux',
+        handlers: { [CHECK_DISK]: () => Promise.resolve() },
+        onFinished,
+      })
+    ).startWorking();
 
     await deliver(CHECK_DISK, [{ id: 'job-1', data: null }]);
 
@@ -104,11 +108,13 @@ describe('createJobQueue', () => {
     const onFinished = vi.fn();
     const handler = vi.fn(() => Promise.resolve());
 
-    await createJobQueue({
-      connectionString: 'postgres://flux',
-      handlers: { 'library.scan': handler },
-      onFinished,
-    });
+    await (
+      await createJobQueue({
+        connectionString: 'postgres://flux',
+        handlers: { 'library.scan': handler },
+        onFinished,
+      })
+    ).startWorking();
 
     await deliver('library.scan', [{ id: 'job-2', data: { libraryId: 'films', force: true } }]);
 
@@ -121,11 +127,13 @@ describe('createJobQueue', () => {
   it('hands the failure on where the handler is what failed', async () => {
     const onFinished = vi.fn();
 
-    await createJobQueue({
-      connectionString: 'postgres://flux',
-      handlers: { [CHECK_DISK]: () => Promise.reject(new Error('the disk is gone')) },
-      onFinished,
-    });
+    await (
+      await createJobQueue({
+        connectionString: 'postgres://flux',
+        handlers: { [CHECK_DISK]: () => Promise.reject(new Error('the disk is gone')) },
+        onFinished,
+      })
+    ).startWorking();
 
     await expect(deliver(CHECK_DISK, [{ id: 'job-3', data: null }])).rejects.toThrow(
       'the disk is gone',
@@ -133,6 +141,18 @@ describe('createJobQueue', () => {
     expect(onFinished).toHaveBeenCalledWith(
       expect.objectContaining({ jobId: 'job-3', reason: 'the disk is gone' }),
     );
+  });
+
+  it('runs nothing until it is told to start, so a handler cannot fire mid-assembly', async () => {
+    const handler = vi.fn(() => Promise.resolve());
+
+    await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: { [CHECK_DISK]: handler },
+    });
+
+    expect(boss.workers.size).toBe(0);
+    expect(handler).not.toHaveBeenCalled();
   });
 
   it('schedules with the same shape of payload the startup path sends', async () => {

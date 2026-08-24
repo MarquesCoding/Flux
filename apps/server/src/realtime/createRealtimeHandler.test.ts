@@ -45,7 +45,7 @@ const createWorld = (granted: Permission[] = []) => {
   let announce: ((event: PresenceControl) => void) | null = null;
 
   const presence: PresenceBinding = {
-    connect: (clientId, _profileId, _profileName, deviceLabel, send) => {
+    connect: ({ clientId, deviceLabel, send }) => {
       presenceCalls.connected.push(clientId);
       presenceCalls.labels.push(deviceLabel);
       announce = send;

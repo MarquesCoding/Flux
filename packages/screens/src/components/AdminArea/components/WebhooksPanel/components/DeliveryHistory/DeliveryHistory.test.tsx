@@ -55,7 +55,7 @@ describe('DeliveryHistory', () => {
     draw({ deliveries: [aDelivery()] });
 
     expect(screen.getByText('Delivered')).toBeInTheDocument();
-    expect(screen.getByText('A background job failed')).toBeInTheDocument();
+    expect(screen.getByText('Job failed')).toBeInTheDocument();
   });
 
   it('shows why a delivery failed', () => {

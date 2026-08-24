@@ -32,13 +32,11 @@ describe('allowCrossOriginClients', () => {
     expect(response.headers.get('access-control-allow-credentials')).toBe('true');
   });
 
-
   it('exposes what a player needs to seek, since range replies are read the same way', async () => {
     const response = await askedFrom('https://localhost:5173');
 
     expect(response.headers.get('access-control-expose-headers')).toContain('content-range');
   });
-
 
   it('says nothing to an origin nobody named, so the engine hides the answer', async () => {
     const response = await askedFrom('https://somewhere.else');
@@ -73,8 +71,6 @@ describe('allowCrossOriginClients', () => {
 
     expect(response.headers.get('access-control-allow-origin')).toBeNull();
   });
-
-
 
   it('varies on origin, so one client is not served another client answer', async () => {
     const response = await askedFrom('https://localhost:5173');

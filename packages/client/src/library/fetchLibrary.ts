@@ -313,8 +313,17 @@ const rebuildArtefacts = async (mediaId: string): Promise<RebuiltArtefacts | nul
  * @param force - Whether to re-probe every file.
  * @returns The job to follow, or null where the request failed.
  */
-const scanLibrary = async (libraryId: string, force = false): Promise<ScanJob | null> => {
-  const query = force ? '?force=true' : '';
+const scanLibrary = async (
+  libraryId: string,
+  force = false,
+  run?: { id: string; of: number },
+): Promise<ScanJob | null> => {
+  const asked = new URLSearchParams({
+    ...(force ? { force: 'true' } : {}),
+    ...(run === undefined ? {} : { runId: run.id, runOf: run.of.toString() }),
+  }).toString();
+
+  const query = asked === '' ? '' : `?${asked}`;
   const response = await fetch(`/api/libraries/${libraryId}/scan${query}`, {
     method: 'POST',
   });

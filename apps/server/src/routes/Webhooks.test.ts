@@ -152,6 +152,36 @@ describe('the webhook routes', () => {
     expect(listed.webhooks).toHaveLength(1);
   });
 
+  it('changes which events one asks for, over HTTP', async () => {
+    const { request, create } = await asKeeper();
+    const made = await create();
+
+    const response = await request(`/api/webhooks/${made.id}`, 'PATCH', {
+      events: ['playback.started'],
+    });
+    const changed = WebhookSubscriptionSchema.parse(await response.json());
+
+    expect(changed.events).toStrictEqual(['playback.started']);
+  });
+
+  it('refuses to repoint a subscription somewhere it will not deliver', async () => {
+    const { request, create } = await asKeeper();
+    const made = await create();
+
+    const response = await request(`/api/webhooks/${made.id}`, 'PATCH', {
+      url: 'http://169.254.169.254/latest/meta-data',
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('refuses to leave a subscription listening for nothing', async () => {
+    const { request, create } = await asKeeper();
+    const made = await create();
+
+    expect((await request(`/api/webhooks/${made.id}`, 'PATCH', { events: [] })).status).toBe(400);
+  });
+
   it('deletes one', async () => {
     const { request, create } = await asKeeper();
     const made = await create();
@@ -318,5 +348,25 @@ describe('the webhook routes', () => {
     });
 
     expect(response.status).toBe(401);
+  });
+});
+
+describe('the test delivery is a button, not a subscription', () => {
+  it('refuses a subscription that asks to be told about test deliveries', async () => {
+    const { request } = await asKeeper();
+
+    const response = await request('/api/webhooks', 'POST', {
+      ...aSubscription,
+      events: ['webhook.test'],
+    });
+
+    expect(response.status).toBe(400);
+  });
+
+  it('sends a test to a subscription that never asked for one', async () => {
+    const { request, create } = await asKeeper();
+    const made = await create();
+
+    expect((await request(`/api/webhooks/${made.id}/test`, 'POST')).status).toBe(202);
   });
 });

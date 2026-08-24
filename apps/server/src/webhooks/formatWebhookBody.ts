@@ -1,10 +1,60 @@
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
+import { discordEmbedFor } from './discordEmbedFor';
+import type { PlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
 import type { WebhookPayload, WebhookPreset } from '@ValenceContracts/schemas/Webhook';
+
+const HOW_PLAYED: Record<PlaybackMode, string> = {
+  DirectPlay: 'sent as it lies',
+  Remux: 'repackaged but not re-encoded',
+  DirectStream: 'with only the sound converted',
+  Transcode: 'transcoded',
+};
 
 type WebhookRequestBody = {
   body: string;
   contentType: string;
 };
+
+type NamedItem = {
+  title: string;
+  seriesTitle: string | null;
+  seasonNumber: number | null;
+  episodeNumber: number | null;
+  year: number | null;
+};
+
+type NamedViewer = {
+  accountName: string | null;
+  profileName: string | null;
+};
+
+/**
+ * Names one thing in a library the way a person would say it — an episode by its place in its
+ * series, anything else by its title and year.
+ *
+ * @param item - What arrived, left, or is being watched.
+ * @returns The name to say.
+ */
+const nameOf = (item: NamedItem): string => {
+  if (item.seriesTitle !== null && item.seasonNumber !== null && item.episodeNumber !== null) {
+    const season = item.seasonNumber.toString().padStart(2, '0');
+    const episode = item.episodeNumber.toString().padStart(2, '0');
+
+    return `${item.seriesTitle} S${season}E${episode} — ${item.title}`;
+  }
+
+  return item.year === null ? item.title : `${item.title} (${item.year.toString()})`;
+};
+
+/**
+ * Names whoever is watching, preferring the profile because that is who picked it, and falling back
+ * to the account or to nobody at all — a share link is watched by no account and no profile.
+ *
+ * @param viewer - Who is watching.
+ * @returns What to call them.
+ */
+const nameOfViewer = (viewer: NamedViewer): string =>
+  viewer.profileName ?? viewer.accountName ?? 'Somebody with a share link';
 
 /**
  * Writes what happened as one sentence, for the chat services that show a line rather than render a
@@ -20,27 +70,33 @@ const sentenceFor = (payload: WebhookPayload): string => {
     }
 
     case 'job.completed': {
-      const about = payload.data.subject === null ? '' : ` (${payload.data.subject})`;
+      const about = payload.data.subjectName === null ? '' : ` for ${payload.data.subjectName}`;
 
-      return `Finished: ${payload.data.kind}${about}`;
+      return `${payload.data.label}${about} finished.`;
     }
 
     case 'job.failed': {
-      const about = payload.data.subject === null ? '' : ` (${payload.data.subject})`;
+      const about = payload.data.subjectName === null ? '' : ` for ${payload.data.subjectName}`;
 
-      return `Failed: ${payload.data.kind}${about} — ${payload.data.reason}`;
+      return `${payload.data.label}${about} failed — ${payload.data.reason}`;
     }
 
     case 'library.scanned': {
-      const { libraryName, added, updated, removed, failed } = payload.data;
-      const counts = [
-        `${added.toString()} added`,
-        `${updated.toString()} updated`,
-        `${removed.toString()} removed`,
-        ...(failed === 0 ? [] : [`${failed.toString()} unreadable`]),
-      ];
+      const said = payload.data.libraries.map((one) => {
+        const counts = [
+          `${one.added.toString()} added`,
+          `${one.updated.toString()} updated`,
+          `${one.removed.toString()} removed`,
+          ...(one.failed === 0 ? [] : [`${one.failed.toString()} unreadable`]),
+        ];
+        const andMore =
+          one.arrivedNotListed === 0 ? '' : ` and ${one.arrivedNotListed.toString()} more`;
+        const titles = one.arrived.length === 0 ? '' : `\n${one.arrived.join(', ')}${andMore}`;
 
-      return `${libraryName}: ${counts.join(', ')}`;
+        return `${one.libraryName}: ${counts.join(', ')}${titles}`;
+      });
+
+      return said.join('\n');
     }
 
     case 'catalogue.unreachable': {
@@ -76,6 +132,54 @@ const sentenceFor = (payload: WebhookPayload): string => {
     case 'disk.recovered': {
       return `${payload.data.mountPoint} has room again — ${formatBytes(payload.data.availableBytes)} free. Nothing needs doing.`;
     }
+
+    case 'auth.succeeded': {
+      const from = payload.data.address === null ? '' : ` from ${payload.data.address}`;
+
+      return `${payload.data.name} signed in on ${payload.data.deviceLabel}${from}.`;
+    }
+
+    case 'auth.failed': {
+      const from = payload.data.address === null ? '' : ` from ${payload.data.address}`;
+
+      return `A sign-in as ${payload.data.identifier} was refused on ${payload.data.deviceLabel}${from} — ${payload.data.reason}`;
+    }
+
+    case 'account.created': {
+      return `${payload.data.name} now has an account.`;
+    }
+
+    case 'account.deleted': {
+      return `${payload.data.name}'s account was deleted.`;
+    }
+
+    case 'account.roleChanged': {
+      return payload.data.change === 'given'
+        ? `${payload.data.name} was given ${payload.data.role}.`
+        : `${payload.data.name} no longer has ${payload.data.role}.`;
+    }
+
+    case 'media.added': {
+      return `${nameOf(payload.data)} arrived in ${payload.data.libraryName}.`;
+    }
+
+    case 'media.removed': {
+      return `${nameOf(payload.data)} is no longer in ${payload.data.libraryName}.`;
+    }
+
+    case 'playback.started': {
+      return `${nameOfViewer(payload.data)} started watching ${nameOf(payload.data.item)} on ${payload.data.deviceLabel}, ${HOW_PLAYED[payload.data.mode]}.`;
+    }
+
+    case 'playback.stopped': {
+      const { positionSeconds, durationSeconds } = payload.data;
+      const through =
+        positionSeconds === null || durationSeconds === null || durationSeconds === 0
+          ? ''
+          : ` ${Math.round((positionSeconds / durationSeconds) * 100).toString()}% of the way through`;
+
+      return `${nameOfViewer(payload.data)} stopped watching ${nameOf(payload.data.item)}${through}.`;
+    }
   }
 };
 
@@ -95,7 +199,7 @@ const formatWebhookBody = (preset: WebhookPreset, payload: WebhookPayload): Webh
 
     case 'discord': {
       return {
-        body: JSON.stringify({ content: sentenceFor(payload) }),
+        body: JSON.stringify({ embeds: [discordEmbedFor(payload, sentenceFor(payload))] }),
         contentType: 'application/json',
       };
     }

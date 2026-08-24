@@ -8,8 +8,9 @@ import {
 } from '@ValenceContracts/schemas/Webhook';
 import type {
   WebhookDelivery,
-  WebhookEvent,
+  WebhookFilters,
   WebhookPreset,
+  WebhookSubscribableEvent,
   WebhookSubscription,
 } from '@ValenceContracts/schemas/Webhook';
 
@@ -17,11 +18,21 @@ const CreatedWebhookSchema = WebhookSubscriptionSchema.extend({ secret: z.string
 
 type CreatedWebhook = z.infer<typeof CreatedWebhookSchema>;
 
+type WebhookChange = {
+  name?: string;
+  url?: string;
+  preset?: WebhookPreset;
+  events?: WebhookSubscribableEvent[];
+  filters?: WebhookFilters;
+  enabled?: boolean;
+};
+
 type NewWebhook = {
   name: string;
   url: string;
   preset: WebhookPreset;
-  events: WebhookEvent[];
+  events: WebhookSubscribableEvent[];
+  filters: WebhookFilters;
 };
 
 /**
@@ -74,12 +85,23 @@ const createWebhook = async (
  * @param enabled - Whether it should be delivering.
  * @returns Any refusal from the server.
  */
-const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal> => {
+const setWebhookEnabled = async (id: string, enabled: boolean): Promise<Refusal> =>
+  changeWebhook(id, { enabled });
+
+/**
+ * Changes a subscription that already exists, so that trying a different set of events does not mean
+ * making a new subscription and a new secret to go with it.
+ *
+ * @param id - The subscription to change.
+ * @param change - Whatever is being changed; anything left out is left alone.
+ * @returns Any refusal from the server.
+ */
+const changeWebhook = async (id: string, change: WebhookChange): Promise<Refusal> => {
   const response = await fetch(`/api/webhooks/${id}`, {
     method: 'PATCH',
     credentials: 'same-origin',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ enabled }),
+    body: JSON.stringify(change),
   }).catch(() => null);
 
   return response === null
@@ -156,6 +178,7 @@ const redeliverWebhook = async (id: string, deliveryId: string): Promise<Refusal
 };
 
 export {
+  changeWebhook,
   createWebhook,
   deleteWebhook,
   fetchWebhookDeliveries,
@@ -165,4 +188,4 @@ export {
   testWebhook,
 };
 
-export type { CreatedWebhook, NewWebhook, Refusal };
+export type { CreatedWebhook, NewWebhook, Refusal, WebhookChange };

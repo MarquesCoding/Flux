@@ -22,6 +22,7 @@ import { createTranscoderIntake } from '@ValenceServer/logging/createTranscoderI
 import { withApiMemory } from '@ValenceServer/monitor/withApiMemory';
 import { createJobHealthWatch } from '@ValenceServer/jobs/createJobHealthWatch';
 import { labelForQueue } from '@ValenceServer/jobs/labelForQueue';
+import { announcesCompletion } from '@ValenceServer/jobs/announcesCompletion';
 import { traceJobs } from '@ValenceServer/logging/traceJobs';
 import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import { readSessionOnce } from '@ValenceServer/auth/readSessionOnce';
@@ -43,6 +44,15 @@ import {
 import { readEnv } from '@ValenceServer/env/Env';
 import { createDatabaseSettingsStore } from '@ValenceServer/settings/createDatabaseSettingsStore';
 import { createDatabaseLibraryService } from '@ValenceServer/library/createDatabaseLibraryService';
+import { mediaKindOf } from '@ValenceServer/library/mediaKindOf';
+import { describeQuality } from '@ValenceServer/library/describeQuality';
+import { describeSignInAttempt } from '@ValenceServer/auth/describeSignInAttempt';
+import { ARRIVED_TITLES_KEPT } from '@ValenceContracts/schemas/Webhook';
+import type { ScannedItem } from '@ValenceServer/library/scanLibrary';
+import type { PresenceViewing } from '@ValenceServer/presence/PresenceService';
+import type { WebhookPayload } from '@ValenceContracts/schemas/Webhook';
+
+type ViewingData = Extract<WebhookPayload, { event: 'playback.started' }>['data'];
 import { runScanPhases } from '@ValenceServer/library/runScanPhases';
 import { createCatalogueMetadataProvider } from '@ValenceServer/library/createCatalogueMetadataProvider';
 import { createFilenameMetadataProvider } from '@ValenceServer/library/createFilenameMetadataProvider';
@@ -103,6 +113,7 @@ import webPush from 'web-push';
 import type { VapidKeys } from '@ValenceServer/notifications/sendWebPush';
 import { runWebhookDelivery } from '@ValenceServer/webhooks/runWebhookDelivery';
 import { createWebhookEventBus } from '@ValenceServer/events/createWebhookEventBus';
+import { collectScanRuns } from '@ValenceServer/events/collectScanRuns';
 import { createReachabilityWatch } from '@ValenceServer/events/createReachabilityWatch';
 import { createDiskPressureWatch } from '@ValenceServer/events/createDiskPressureWatch';
 import { MonitorDisksSchema } from '@ValenceServer/maintenance/DiskUse';
@@ -194,6 +205,24 @@ const auth = createAuth({
   cookieSecure: persisted.cookieSecure,
   onUserCreated: async (userId) => {
     await db.insert(userProfile).values({ userId }).onConflictDoNothing();
+
+    const [made] = await db
+      .select({ name: user.name })
+      .from(user)
+      .where(eq(user.id, userId))
+      .limit(1);
+
+    void events.publish({
+      event: 'account.created',
+      data: { accountId: userId, name: made?.name ?? 'Somebody' },
+    });
+  },
+  onSignInSettled: (attempt) => {
+    const occurrence = describeSignInAttempt(attempt);
+
+    if (occurrence !== null) {
+      void events.publish(occurrence);
+    }
   },
   onSignedIn: async (userId, at) => {
     await recordSignIn({
@@ -324,7 +353,86 @@ try {
   );
 }
 
-const presence = createPresenceService();
+/**
+ * Fills out what a viewing was of, which presence does not hold.
+ *
+ * Presence knows who is connected and which item they asked for; the poster, the library it sits in
+ * and what kind of thing it is all live in the catalogue. Reading them here keeps presence an
+ * in-memory view of connections rather than a second, staler copy of the library.
+ *
+ * @param viewing - Who is watching what, as presence saw it.
+ * @returns The viewing as a subscriber reads it, or nothing where the item has since gone.
+ */
+const describeViewing = async (viewing: PresenceViewing): Promise<ViewingData | null> => {
+  const item = await libraryService.getMedia(viewing.mediaId);
+
+  if (item === null) {
+    return null;
+  }
+
+  const shelf = (await libraryService.list()).find((one) => one.id === item.libraryId);
+  const named =
+    viewing.accountId === null
+      ? []
+      : await db
+          .select({ name: user.name })
+          .from(user)
+          .where(eq(user.id, viewing.accountId))
+          .limit(1);
+
+  return {
+    accountId: viewing.accountId,
+    accountName: named[0]?.name ?? null,
+    profileId: viewing.profileId,
+    profileName: viewing.profileName,
+    item: {
+      itemId: item.id,
+      kind: mediaKindOf(
+        { seriesTitle: item.metadata.seriesTitle ?? null },
+        shelf?.kind ?? 'movies',
+      ),
+      title: item.title,
+      seriesTitle: item.metadata.seriesTitle ?? null,
+      seasonNumber: item.metadata.seasonNumber ?? null,
+      episodeNumber: item.metadata.episodeNumber ?? null,
+      year: item.year ?? null,
+      posterUrl: await libraryService.readArtworkUrl(viewing.mediaId, 'poster'),
+      libraryId: item.libraryId,
+      libraryName: shelf?.name ?? 'A library',
+      overview: item.metadata.overview ?? null,
+      durationSeconds: item.durationSeconds,
+      genres: item.metadata.genres ?? [],
+      rating: item.metadata.rating ?? null,
+      quality: describeQuality(item.width, item.height, item.videoRange),
+    },
+    deviceLabel: viewing.deviceLabel,
+    mode: viewing.mode,
+  };
+};
+
+const presence = createPresenceService({
+  onPlaybackStarted: (viewing) => {
+    void describeViewing(viewing).then((described) => {
+      if (described !== null) {
+        void events.publish({ event: 'playback.started', data: described });
+      }
+    });
+  },
+  onPlaybackStopped: (viewing) => {
+    void describeViewing(viewing).then((described) => {
+      if (described !== null) {
+        void events.publish({
+          event: 'playback.stopped',
+          data: {
+            ...described,
+            positionSeconds: viewing.positionSeconds,
+            durationSeconds: viewing.durationSeconds,
+          },
+        });
+      }
+    });
+  },
+});
 
 presence.watch(() => {
   realtime.publish('sessions', { changed: true }, { kind: 'everyone' });
@@ -448,6 +556,22 @@ const scheduleAcrossLibraries =
 const libraryWork = createWorkLock();
 
 const webhookSubscriptions = createDatabaseWebhookStore(db);
+
+let openDeliveries: ((subscriptionId: string, payload: string) => Promise<void>) | null = null;
+
+const events = createWebhookEventBus({
+  subscriptions: webhookSubscriptions,
+  enqueue: async (subscriptionId, payload) => {
+    if (openDeliveries === null) {
+      throw new Error('the delivery queue was not open yet');
+    }
+
+    await openDeliveries(subscriptionId, payload);
+  },
+  onProblem: (reason) => {
+    log.error('server', `events: ${reason}`);
+  },
+});
 const notifications = createDatabaseNotificationStore(db);
 
 /**
@@ -541,11 +665,30 @@ const jobHealth = createJobHealthWatch({
   },
 });
 
+const SCHEDULE_TRIGGER_SUFFIX = '.scheduled';
+
 /**
- * Announces a job that has ended, to whatever is subscribed — except the announcing job itself,
- * which would otherwise announce its own announcements for ever.
+ * Names the library a job was about, so that a delivery says "Movies" rather than the identifier the
+ * queue happens to carry. A subject that is not a library, or one that has since been deleted, has
+ * no name and is reported as none rather than as a bare identifier.
  *
- * @param outcome - Which job ended, what it was about, and whether it succeeded.
+ * @param subject - What the job was about, as the queue recorded it.
+ * @returns The library's name, or nothing.
+ */
+const nameOfLibrary = async (subject: string | null): Promise<string | null> =>
+  subject === null
+    ? null
+    : ((await libraryService.list()).find((one) => one.id === subject)?.name ?? null);
+
+/**
+ * Announces a job that has ended, to whatever is subscribed.
+ *
+ * Says nothing about the job that does the announcing, which would announce its own announcements
+ * for ever, and nothing about a schedule's trigger, which exists only to enqueue the real work and
+ * would otherwise report every scan twice. Nor about anything finishing that `announcesCompletion`
+ * judges not worth saying — though anything failing is still announced, whatever it is.
+ *
+ * @param finished - Which job ended, what it was about, and whether it succeeded.
  */
 const announceFinishedJob = (finished: FinishedJob): void => {
   const { kind, jobId, subject, reason } = finished;
@@ -556,11 +699,29 @@ const announceFinishedJob = (finished: FinishedJob): void => {
 
   jobHealth.record(finished);
 
-  void events.publish(
-    reason === null
-      ? { event: 'job.completed', data: { kind, jobId, subject } }
-      : { event: 'job.failed', data: { kind, jobId, subject, reason } },
-  );
+  if (kind.endsWith(SCHEDULE_TRIGGER_SUFFIX)) {
+    return;
+  }
+
+  if (reason === null && !announcesCompletion(kind)) {
+    return;
+  }
+
+  void (async () => {
+    const about = {
+      kind,
+      label: labelForQueue(kind),
+      jobId,
+      subject,
+      subjectName: await nameOfLibrary(subject),
+    };
+
+    await events.publish(
+      reason === null
+        ? { event: 'job.completed', data: about }
+        : { event: 'job.failed', data: { ...about, reason } },
+    );
+  })();
 };
 
 const jobs = await createJobQueue({
@@ -576,7 +737,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        const { libraryId, force } = parsed.data;
+        const { libraryId, force, runId, runOf } = parsed.data;
 
         await libraryWork.run(libraryId, async () => {
           const libraries = await libraryService.list();
@@ -601,10 +762,36 @@ const jobs = await createJobQueue({
                 1,
               );
 
-              await events.publish({
-                event: 'library.scanned',
-                data: { libraryId, libraryName: scanned?.name ?? 'A library', ...result },
+              const libraryName = scanned?.name ?? 'A library';
+              const libraryKind = scanned?.kind ?? 'movies';
+              const arrived = arrivals.get(libraryId) ?? [];
+              const departed = departures.get(libraryId) ?? [];
+
+              arrivals.delete(libraryId);
+              departures.delete(libraryId);
+
+              const named = (item: ScannedItem) => ({
+                ...item,
+                kind: mediaKindOf(item, libraryKind),
+                libraryId,
+                libraryName,
               });
+
+              scanRuns.record(runId ?? `${LONE_SCAN}:${jobId}`, runOf ?? 1, {
+                libraryId,
+                libraryName,
+                ...result,
+                arrived: arrived.slice(0, ARRIVED_TITLES_KEPT).map((item) => item.title),
+                arrivedNotListed: Math.max(arrived.length - ARRIVED_TITLES_KEPT, 0),
+              });
+
+              for (const item of arrived) {
+                await events.publish({ event: 'media.added', data: named(item) });
+              }
+
+              for (const item of departed) {
+                await events.publish({ event: 'media.removed', data: named(item) });
+              }
             },
           });
         });
@@ -953,13 +1140,7 @@ const queueWebhookDelivery = async (subscriptionId: string, payload: string): Pr
   await jobs.enqueue(DELIVER_WEBHOOK_JOB, { subscriptionId, payload });
 };
 
-const events = createWebhookEventBus({
-  subscriptions: webhookSubscriptions,
-  enqueue: queueWebhookDelivery,
-  onProblem: (reason) => {
-    log.error('server', `events: ${reason}`);
-  },
-});
+openDeliveries = queueWebhookDelivery;
 
 const maintenance = createDatabaseMaintenanceService({ jobs });
 const schedules = createJobScheduleService({
@@ -980,6 +1161,32 @@ const catalogueProvider = createCatalogueMetadataProvider({
   },
 });
 
+const arrivals = new Map<string, ScannedItem[]>();
+const departures = new Map<string, ScannedItem[]>();
+
+/**
+ * Keeps what a scan changed until the scan ends, so that arrivals can be reported as a list as well
+ * as one at a time. A library scans under a mutex, so one list per library is enough.
+ *
+ * @param held - Where to keep it.
+ * @param libraryId - The library being scanned.
+ * @param items - What changed.
+ */
+const remember = (held: Map<string, ScannedItem[]>, libraryId: string, items: ScannedItem[]) => {
+  held.set(libraryId, [...(held.get(libraryId) ?? []), ...items]);
+};
+
+const SCAN_GIVES_UP_AFTER_MILLISECONDS = 600_000;
+
+const LONE_SCAN = 'a scan on its own';
+
+const scanRuns = collectScanRuns({
+  givesUpAfterMilliseconds: SCAN_GIVES_UP_AFTER_MILLISECONDS,
+  onFinished: (report) => {
+    void events.publish({ event: 'library.scanned', data: report });
+  },
+});
+
 const libraryService = createDatabaseLibraryService({
   db,
   files: createMediaFileSystem(),
@@ -990,6 +1197,12 @@ const libraryService = createDatabaseLibraryService({
   atOnce: env.MEDIA_JOBS,
   onProblem: (path, reason) => {
     log.warn('scanner', `skipped ${path}: ${reason}`);
+  },
+  onArrived: (libraryId, item) => {
+    remember(arrivals, libraryId, [item]);
+  },
+  onDeparted: (libraryId, items) => {
+    remember(departures, libraryId, items);
   },
 });
 
@@ -1171,6 +1384,7 @@ const app = createApp({
   webhooks: webhookSubscriptions,
   queueWebhookDelivery,
   notifications,
+  events,
   readPushPublicKey: async () => (await readPushKeys()).publicKey,
   downloads: downloadService,
   favourites: createDatabaseFavouriteService(db),
@@ -1276,9 +1490,21 @@ const app = createApp({
     return true;
   },
   removeAccount: async (userId) => {
-    const removed = await db.delete(user).where(eq(user.id, userId)).returning({ id: user.id });
+    const [removed] = await db
+      .delete(user)
+      .where(eq(user.id, userId))
+      .returning({ id: user.id, name: user.name });
 
-    return removed.length > 0;
+    if (removed === undefined) {
+      return false;
+    }
+
+    void events.publish({
+      event: 'account.deleted',
+      data: { accountId: removed.id, name: removed.name },
+    });
+
+    return true;
   },
   isAccountBanned: async (userId) => {
     const [found] = await db
@@ -1394,6 +1620,8 @@ if (seededKinds.length > 0) {
   log.info('server', `schedule: default triggers set for ${seededKinds.join(', ')}`);
 }
 
+await jobs.startWorking();
+
 for (const kind of await schedules.sync()) {
   const queueName = scheduleQueueNameFor(kind);
 
@@ -1420,8 +1648,8 @@ const realtimeHandler = createRealtimeHandler({
     },
   },
   presence: {
-    connect: (clientId, profileId, profileName, deviceLabel, send) => {
-      presence.connect(clientId, profileId, profileName, deviceLabel, send);
+    connect: (arrival) => {
+      presence.connect(arrival);
     },
     disconnect: (clientId) => {
       presence.disconnect(clientId);

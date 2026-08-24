@@ -4,7 +4,17 @@ import { WEBHOOK_PAYLOAD_VERSION } from '@ValenceContracts/schemas/Webhook';
 import { formatWebhookBody } from './formatWebhookBody';
 import type { WebhookPayload } from '@ValenceContracts/schemas/Webhook';
 
-const DiscordMessageSchema = z.object({ content: z.string() });
+const DiscordMessageSchema = z.object({
+  embeds: z.array(
+    z.object({
+      title: z.string(),
+      description: z.string(),
+      color: z.number(),
+      author: z.object({ name: z.string() }),
+      fields: z.array(z.object({ name: z.string(), value: z.string() })),
+    }),
+  ),
+});
 
 const anEnvelope = {
   version: WEBHOOK_PAYLOAD_VERSION,
@@ -17,8 +27,10 @@ const aFailure: WebhookPayload = {
   event: 'job.failed',
   data: {
     kind: 'library.scan',
+    label: 'Scan for changes',
     jobId: 'job-1',
     subject: 'library-1',
+    subjectName: 'Films',
     reason: 'ffmpeg exited with 1',
   },
 };
@@ -26,7 +38,13 @@ const aFailure: WebhookPayload = {
 const aServerWideCompletion: WebhookPayload = {
   ...anEnvelope,
   event: 'job.completed',
-  data: { kind: 'server.cleanupSessions', jobId: 'job-2', subject: null },
+  data: {
+    kind: 'server.cleanupSessions',
+    label: 'Clean up sessions',
+    jobId: 'job-2',
+    subject: null,
+    subjectName: null,
+  },
 };
 
 describe('formatWebhookBody', () => {
@@ -37,13 +55,26 @@ describe('formatWebhookBody', () => {
     expect(JSON.parse(written.body)).toStrictEqual(aFailure);
   });
 
-  it('gives Discord something a person reads, not an envelope', () => {
+  it('gives Discord an embed, not a line of text and not an envelope', () => {
     const written = formatWebhookBody('discord', aFailure);
     const sent = DiscordMessageSchema.parse(JSON.parse(written.body));
 
     expect(written.contentType).toBe('application/json');
-    expect(sent.content).toContain('library.scan');
-    expect(sent.content).toContain('ffmpeg exited with 1');
+    expect(sent.embeds).toHaveLength(1);
+    expect(sent.embeds[0]?.title).toContain('Scan for changes');
+    expect(sent.embeds[0]?.description).toContain('ffmpeg exited with 1');
+  });
+
+  it('sends no more embeds in one message than Discord will render', () => {
+    const written = formatWebhookBody('discord', aFailure);
+    const sent = DiscordMessageSchema.parse(JSON.parse(written.body));
+
+    expect(sent.embeds.length).toBeLessThanOrEqual(10);
+  });
+
+  it('leaves the other presets alone, which is the whole of what changed', () => {
+    expect(formatWebhookBody('generic', aFailure).body).toBe(JSON.stringify(aFailure));
+    expect(formatWebhookBody('ntfy', aFailure).contentType).toBe('text/plain');
   });
 
   it('gives ntfy plain text, because JSON would be printed verbatim', () => {
@@ -54,14 +85,18 @@ describe('formatWebhookBody', () => {
     expect(written.body.startsWith('{')).toBe(false);
   });
 
-  it('names which library a job was about', () => {
-    expect(formatWebhookBody('ntfy', aFailure).body).toContain('library-1');
+  it('names which library a job was about, by its name and never by its identifier', () => {
+    const written = formatWebhookBody('ntfy', aFailure).body;
+
+    expect(written).toContain('Films');
+    expect(written).not.toContain('library-1');
+    expect(written).not.toContain('library.scan');
   });
 
   it('says nothing about a subject for a job that had none', () => {
     const written = formatWebhookBody('ntfy', aServerWideCompletion);
 
-    expect(written.body).toContain('server.cleanupSessions');
+    expect(written.body).toContain('Clean up sessions');
     expect(written.body).not.toContain('null');
     expect(written.body).not.toContain('()');
   });
@@ -70,17 +105,30 @@ describe('formatWebhookBody', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,
       event: 'job.completed',
-      data: { kind: 'library.scan', jobId: 'job-3', subject: 'library-1' },
+      data: {
+        kind: 'library.scan',
+        label: 'Scan for changes',
+        jobId: 'job-3',
+        subject: 'library-1',
+        subjectName: 'Films',
+      },
     });
 
-    expect(written.body).toContain('(library-1)');
+    expect(written.body).toContain('for Films');
   });
 
   it('says nothing about a subject for a failure that had none', () => {
     const written = formatWebhookBody('ntfy', {
       ...anEnvelope,
       event: 'job.failed',
-      data: { kind: 'server.cleanupSessions', jobId: 'job-4', subject: null, reason: 'no space' },
+      data: {
+        kind: 'server.cleanupSessions',
+        label: 'Clean up sessions',
+        jobId: 'job-4',
+        subject: null,
+        subjectName: null,
+        reason: 'no space',
+      },
     });
 
     expect(written.body).toContain('no space');
@@ -93,8 +141,18 @@ describe('formatWebhookBody', () => {
         ...anEnvelope,
         event: 'library.scanned',
         data: {
-          libraryId: 'library-1',
-          libraryName: 'Films',
+          libraries: [
+            {
+              libraryId: 'library-1',
+              libraryName: 'Films',
+              added: 2,
+              updated: 1,
+              removed: 0,
+              failed,
+              arrived: [],
+              arrivedNotListed: 0,
+            },
+          ],
           added: 2,
           updated: 1,
           removed: 0,
@@ -127,8 +185,18 @@ describe('formatWebhookBody', () => {
       ...anEnvelope,
       event: 'library.scanned',
       data: {
-        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
-        libraryName: 'Films',
+        libraries: [
+          {
+            libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+            libraryName: 'Films',
+            added: 4,
+            updated: 1,
+            removed: 0,
+            failed: 0,
+            arrived: [],
+            arrivedNotListed: 0,
+          },
+        ],
         added: 4,
         updated: 1,
         removed: 0,
@@ -146,8 +214,18 @@ describe('formatWebhookBody', () => {
       ...anEnvelope,
       event: 'library.scanned',
       data: {
-        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
-        libraryName: 'Films',
+        libraries: [
+          {
+            libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+            libraryName: 'Films',
+            added: 0,
+            updated: 0,
+            removed: 214,
+            failed: 0,
+            arrived: [],
+            arrivedNotListed: 0,
+          },
+        ],
         added: 0,
         updated: 0,
         removed: 214,
@@ -163,8 +241,18 @@ describe('formatWebhookBody', () => {
       ...anEnvelope,
       event: 'library.scanned',
       data: {
-        libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
-        libraryName: 'Films',
+        libraries: [
+          {
+            libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3302',
+            libraryName: 'Films',
+            added: 1,
+            updated: 0,
+            removed: 0,
+            failed: 0,
+            arrived: [],
+            arrivedNotListed: 0,
+          },
+        ],
         added: 1,
         updated: 0,
         removed: 0,
