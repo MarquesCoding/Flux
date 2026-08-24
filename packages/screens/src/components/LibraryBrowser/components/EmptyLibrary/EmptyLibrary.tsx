@@ -1,4 +1,5 @@
 import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
@@ -11,12 +12,14 @@ import type { EmptyLibraryProps } from './EmptyLibrary.types';
  * @param libraryName - The library being looked at, where one is chosen.
  * @param hasContentElsewhere - Whether any other library has anything in it.
  * @param canManage - Whether whoever is reading this could do anything about it.
+ * @param onManage - Told that they would like to, where they can.
  */
 const EmptyLibrary = ({
   search,
   libraryName,
   hasContentElsewhere,
   canManage = false,
+  onManage,
 }: EmptyLibraryProps) => {
   if (search !== '') {
     return (
@@ -37,14 +40,17 @@ const EmptyLibrary = ({
           : 'Nothing has been scanned yet'
       }
       detail={
-        canManage
-          ? hasContentElsewhere
-            ? 'Scan it from the admin area, or check its folder.'
-            : 'Add a library and scan it.'
-          : hasContentElsewhere
-            ? 'Ask whoever runs this server to scan it.'
-            : 'Ask whoever runs this server to scan one.'
+        canManage ? 'Scan it, or add files to its folder.' : 'Ask the server admin to scan it.'
       }
+      {...(onManage === undefined
+        ? {}
+        : {
+            action: (
+              <Button variant="glossy" isPill onClick={onManage}>
+                Scan it
+              </Button>
+            ),
+          })}
     />
   );
 };

@@ -99,12 +99,14 @@ describe('BrowseArea', () => {
     expect(await screen.findByRole('button', { name: /Arrival/ })).toBeInTheDocument();
   });
 
-  it('says why it is empty and what would fill it', async () => {
+  it('says what is missing in one line, rather than a line and an explanation of it', async () => {
     fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
 
     renderInAnAddress(<BrowseArea kind="favourites" onPlay={vi.fn()} onInspect={vi.fn()} />);
 
-    expect(await screen.findByText(/The heart on any item puts it here/)).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Nothing has been favourited yet' }),
+    ).toBeInTheDocument();
   });
 
   it('tells the page what it loaded, so an address can be turned back into an item', async () => {

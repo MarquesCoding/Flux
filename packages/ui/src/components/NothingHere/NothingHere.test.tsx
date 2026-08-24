@@ -44,7 +44,7 @@ describe('NothingHere', () => {
       <NothingHere of={FolderOpenIcon} title="Nothing" detail="Nothing." />,
     );
 
-    expect(container.firstElementChild?.className).toContain('py-10');
+    expect(container.firstElementChild?.className).toContain('py-24');
 
     rerender(<NothingHere of={FolderOpenIcon} title="Nothing" detail="Nothing." fills />);
 

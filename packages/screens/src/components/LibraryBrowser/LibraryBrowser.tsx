@@ -163,8 +163,8 @@ const LibraryBrowser = ({
         title="No libraries yet"
         detail={
           onAddLibrary === undefined
-            ? 'Ask whoever runs this server to add one.'
-            : 'Point one at a folder of media and scan it.'
+            ? 'Ask the server admin to add one.'
+            : 'Add one to get started.'
         }
         fills
         {...(onAddLibrary === undefined

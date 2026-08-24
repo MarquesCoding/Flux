@@ -1,5 +1,6 @@
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import userEvent from '@testing-library/user-event';
+import { describe, expect, it, vi } from 'vitest';
 import { EmptyLibrary } from './EmptyLibrary';
 
 describe('EmptyLibrary', () => {
@@ -19,16 +20,14 @@ describe('EmptyLibrary', () => {
   it('says the rest of the server is fine when only this library is empty', () => {
     render(<EmptyLibrary search="" libraryName="Documentaries" hasContentElsewhere canManage />);
 
-    expect(
-      screen.getByText('Scan it from the admin area, or check its folder.'),
-    ).toBeInTheDocument();
+    expect(screen.getByText('Scan it, or add files to its folder.')).toBeInTheDocument();
   });
 
   it('treats a server with nothing anywhere as one that has not been set up', () => {
     render(<EmptyLibrary search="" libraryName="Films" hasContentElsewhere={false} canManage />);
 
     expect(screen.getByText('Nothing has been scanned yet')).toBeInTheDocument();
-    expect(screen.getByText('Add a library and scan it.')).toBeInTheDocument();
+    expect(screen.getByText('Scan it, or add files to its folder.')).toBeInTheDocument();
   });
 
   it('copes with no library having been chosen yet', () => {
@@ -50,12 +49,36 @@ describe('EmptyLibrary', () => {
   it('tells somebody who cannot scan it who can, rather than sending them to a panel they cannot open', () => {
     render(<EmptyLibrary search="" libraryName="Films" hasContentElsewhere={false} />);
 
-    expect(screen.getByText('Ask whoever runs this server to scan one.')).toBeInTheDocument();
+    expect(screen.getByText('Ask the server admin to scan it.')).toBeInTheDocument();
   });
 
   it('does not send somebody who cannot manage it to the admin area', () => {
     render(<EmptyLibrary search="" libraryName="Documentaries" hasContentElsewhere />);
 
     expect(screen.queryByText(/admin area/)).not.toBeInTheDocument();
+  });
+
+  it('gives an administrator something to press rather than only somewhere to go', async () => {
+    const manage = vi.fn();
+
+    render(
+      <EmptyLibrary
+        search=""
+        libraryName="Films"
+        hasContentElsewhere={false}
+        canManage
+        onManage={manage}
+      />,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: 'Scan it' }));
+
+    expect(manage).toHaveBeenCalledTimes(1);
+  });
+
+  it('gives nothing to press to somebody who could not act on it', () => {
+    render(<EmptyLibrary search="" libraryName="Films" hasContentElsewhere={false} />);
+
+    expect(screen.queryByRole('button', { name: 'Scan it' })).not.toBeInTheDocument();
   });
 });

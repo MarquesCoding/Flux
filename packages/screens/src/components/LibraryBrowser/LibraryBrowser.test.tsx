@@ -232,8 +232,8 @@ describe('LibraryBrowser', () => {
 
     await screen.findByRole('heading', { name: 'No libraries yet' });
 
-    expect(screen.getByText('Ask whoever runs this server to add one.')).toBeInTheDocument();
-    expect(screen.queryByText(/Point one at a folder/)).not.toBeInTheDocument();
+    expect(screen.getByText('Ask the server admin to add one.')).toBeInTheDocument();
+    expect(screen.queryByText('Add one to get started.')).not.toBeInTheDocument();
   });
 
   it('says a server with nothing anywhere has not been scanned yet', async () => {

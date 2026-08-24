@@ -30,27 +30,25 @@ const PAGES: Record<
   shows: {
     title: 'Shows',
     standfirst: 'Everything that comes in episodes.',
-    empty:
-      'Nothing here belongs to a series yet. Anything with a season and an episode lands here.',
+    empty: 'No shows yet',
     of: TelevisionIcon,
   },
   films: {
     title: 'Films',
     standfirst: 'Everything that stands on its own.',
-    empty: 'Nothing here stands on its own yet. Anything that is not part of a series lands here.',
+    empty: 'No films yet',
     of: FilmSlateIcon,
   },
   new: {
     title: 'New & Popular',
     standfirst: 'The most recent arrivals, newest first.',
-    empty:
-      'Nothing has arrived yet. Scanning a library from the admin page is where things come from.',
+    empty: 'Nothing new yet',
     of: FireIcon,
   },
   favourites: {
     title: 'Favourites',
     standfirst: 'Everything you have kept.',
-    empty: 'Nothing kept yet. The heart on any item puts it here.',
+    empty: 'Nothing has been favourited yet',
     of: HeartIcon,
   },
 };
@@ -175,8 +173,8 @@ const BrowseArea = ({
               title="No libraries yet"
               detail={
                 onAddLibrary === undefined
-                  ? 'Ask whoever runs this server to add one.'
-                  : 'Point one at a folder of media and scan it.'
+                  ? 'Ask the server admin to add one.'
+                  : 'Add one to get started.'
               }
               {...(onAddLibrary === undefined
                 ? {}
@@ -191,8 +189,21 @@ const BrowseArea = ({
           ) : (
             <NothingHere
               of={page.of}
-              title={`Nothing in ${page.title.toLowerCase()} yet`}
-              detail={page.empty}
+              title={page.empty}
+              detail={
+                onAddLibrary === undefined
+                  ? 'Ask the server admin to scan one.'
+                  : 'Scan a library, or add files to its folder.'
+              }
+              {...(onAddLibrary === undefined
+                ? {}
+                : {
+                    action: (
+                      <Button variant="glossy" isPill onClick={onAddLibrary}>
+                        Scan a library
+                      </Button>
+                    ),
+                  })}
             />
           )
         ) : (
