@@ -41,7 +41,7 @@ const ProfileFace = ({ profile, pending = null, className }: ProfileFaceProps) =
     <span
       style={{ backgroundColor: showsPicture ? undefined : profile.colour }}
       className={cn(
-        'flex items-center justify-center overflow-hidden bg-white/5 font-semibold text-black/80',
+        'flex items-center justify-center overflow-hidden bg-subtle font-semibold text-text',
         className,
       )}
     >

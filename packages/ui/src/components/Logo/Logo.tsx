@@ -87,7 +87,7 @@ const Logo = ({
         <span className={isDotted ? 'valence-logo-dots' : 'absolute inset-0 overflow-hidden'}>
           <span
             className={cn(
-              'absolute -inset-1/2 bg-[conic-gradient(from_140deg,#ffffff,#ffffff_25%,var(--color-accent)_55%,#ffffff_85%,#ffffff)]',
+              'absolute -inset-1/2 bg-[conic-gradient(from_140deg,var(--color-on-scrim),var(--color-on-scrim)_25%,var(--color-accent)_55%,var(--color-on-scrim)_85%,var(--color-on-scrim))]',
               isDotted ? 'opacity-60' : '',
               isAnimated && !isDotted
                 ? 'animate-[spin_7s_linear_infinite] motion-reduce:animate-none'

@@ -53,7 +53,7 @@ const QrCode = ({ value, label, size = DEFAULT_SIZE, className }: QrCodeProps) =
       alt={label}
       width={size}
       height={size}
-      className={cn('rounded-md border border-border bg-white p-2', className)}
+      className={cn('rounded-md border border-border bg-on-scrim p-2', className)}
     />
   );
 };

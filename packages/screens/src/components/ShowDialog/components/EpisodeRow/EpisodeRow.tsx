@@ -48,7 +48,7 @@ const EpisodeRow = ({
         {episode.episodeNumber ?? '—'}
       </span>
 
-      <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10 sm:w-36">
+      <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-surface-raised ring-1 ring-line sm:w-36">
         {!episode.hasBackdrop ? null : (
           <img
             src={stillUrl(episode.id)}
@@ -58,12 +58,12 @@ const EpisodeRow = ({
           />
         )}
 
-        <span className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition-opacity group-hover/episode:opacity-100">
-          <Icon of={PlayIcon} size={20} className="text-white" />
+        <span className="absolute inset-0 flex items-center justify-center bg-shade/40 opacity-0 transition-opacity group-hover/episode:opacity-100">
+          <Icon of={PlayIcon} size={20} className="text-on-scrim" />
         </span>
 
         {watchedFraction === undefined ? null : (
-          <span className="absolute inset-x-0 bottom-0 h-1 bg-black/50">
+          <span className="absolute inset-x-0 bottom-0 h-1 bg-shade/50">
             <span
               className="block h-full bg-primary"
               style={{ width: `${(Math.min(Math.max(watchedFraction, 0), 1) * 100).toString()}%` }}

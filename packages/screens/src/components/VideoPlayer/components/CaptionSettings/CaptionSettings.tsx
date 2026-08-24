@@ -3,6 +3,9 @@ import { Slider } from '@ValenceUI/Slider';
 import { CaptionChoice } from './components/CaptionChoice/CaptionChoice';
 import { toCueDeclarations } from '@ValenceScreens/playback/captionStyle';
 import type { CaptionSettingsProps } from './CaptionSettings.types';
+import { CAPTION_COLOURS } from '@ValenceUI/captionColours';
+
+const COLOURS = CAPTION_COLOURS;
 
 const FONTS = [
   { id: 'sans', label: 'Sans serif' },
@@ -18,15 +21,6 @@ const EDGES = [
   { id: 'raised', label: 'Raised' },
 ] as const;
 
-const COLOURS = [
-  { id: '#ffffff', label: 'White' },
-  { id: '#ffff00', label: 'Yellow' },
-  { id: '#00ff00', label: 'Green' },
-  { id: '#00ffff', label: 'Cyan' },
-  { id: '#ff0000', label: 'Red' },
-  { id: '#000000', label: 'Black' },
-] as const;
-
 /**
  * Lets the person reading the captions decide how they look — size, font, colour, background and
  * edge — with every choice taking effect on the video behind the panel as it is made, and a way back
@@ -37,7 +31,10 @@ const COLOURS = [
  * @param onReset - Called to put every choice back to its default.
  */
 const CaptionSettings = ({ style, onChange, onReset }: CaptionSettingsProps) => (
-  <section aria-label="Caption settings" className="flex w-full flex-col gap-4 text-sm text-white">
+  <section
+    aria-label="Caption settings"
+    className="flex w-full flex-col gap-4 text-sm text-on-scrim"
+  >
     <p
       aria-label="Caption preview"
       className="rounded-md px-3 py-2 text-center"

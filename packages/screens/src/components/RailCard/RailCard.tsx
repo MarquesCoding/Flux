@@ -243,7 +243,7 @@ const RailCard = ({
                 top: anchor.top,
                 width: anchor.width,
               }}
-              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg bg-surface-raised p-1.5 shadow-[0_2px_10px_rgb(0_0_0/0.4),0_40px_90px_-24px_rgb(0_0_0/0.85)] ring-1 ring-[var(--surface-line)]"
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg bg-surface-raised p-1.5 shadow-[var(--shadow-overlay)] ring-1 ring-[var(--surface-line)]"
             >
               <Button
                 variant="bare"

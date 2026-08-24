@@ -32,7 +32,7 @@ describe('Badge', () => {
   it('stays readable on artwork rather than dissolving into it', () => {
     render(<Badge tone="solid">TV-14</Badge>);
 
-    expect(badgeOf('TV-14')).toHaveClass('bg-black/60');
+    expect(badgeOf('TV-14')).toHaveClass('bg-shade/60');
   });
 
   it('sets a display name so devtools can identify it', () => {

@@ -85,7 +85,7 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                 title={file.title}
                 description={describeKeeping(file)}
                 icon={
-                  <span className="block aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-md bg-surface-raised ring-1 ring-white/10">
+                  <span className="block aspect-[2/3] w-9 shrink-0 overflow-hidden rounded-md bg-surface-raised ring-1 ring-line">
                     {!file.hasPoster ? null : (
                       <img
                         src={posterForAFile(file.downloadId)}

@@ -71,7 +71,7 @@ const EpisodeMenu = ({
       <ul className="flex flex-col gap-3">
         {episodes.map((episode) => (
           <li key={episode.id} className="flex items-start gap-3">
-            <span className="w-5 shrink-0 pt-1 text-right text-sm tabular-nums text-white/50">
+            <span className="w-5 shrink-0 pt-1 text-right text-sm tabular-nums text-on-scrim/50">
               {episode.episodeNumber ?? ''}
             </span>
 

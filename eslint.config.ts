@@ -1,9 +1,11 @@
 import tseslint from 'typescript-eslint';
 import { noComments } from './tools/eslint/noComments';
+import { noRawColours } from './tools/eslint/noRawColours';
 
 const valence = {
   rules: {
     'no-comments': noComments,
+    'no-raw-colours': noRawColours,
   },
 };
 
@@ -85,8 +87,15 @@ export default tseslint.config(
     },
   },
   {
+    files: ['packages/ui/src/**/*.tsx', 'packages/screens/src/**/*.tsx', 'apps/web/src/**/*.tsx'],
+    rules: {
+      'valence/no-raw-colours': 'error',
+    },
+  },
+  {
     files: ['**/*.test.ts', '**/*.test.tsx'],
     rules: {
+      'valence/no-raw-colours': 'off',
       '@typescript-eslint/no-unnecessary-condition': 'off',
       'no-restricted-syntax': [
         'error',

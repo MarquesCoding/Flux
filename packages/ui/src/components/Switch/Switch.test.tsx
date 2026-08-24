@@ -72,7 +72,13 @@ describe('Switch', () => {
       <Switch label="Subtitles" isOn onToggle={vi.fn()} tone="overlay" />,
     );
 
-    expect(container.querySelector('.bg-white')).toBeInTheDocument();
+    expect(container.querySelector('.bg-on-scrim')).toBeInTheDocument();
+  });
+
+  it('takes its track from the theme where it is not over video', () => {
+    const { container } = render(<Switch label="Subtitles" isOn onToggle={vi.fn()} />);
+
+    expect(container.querySelector('.bg-accent')).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

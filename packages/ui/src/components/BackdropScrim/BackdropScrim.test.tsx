@@ -16,8 +16,13 @@ describe('BackdropScrim', () => {
   it('fades to the colour of the panel it meets, not to the page behind it', () => {
     const { container } = render(<BackdropScrim />);
 
-    expect(scrimIn(container).className).toContain('from-surface-raised');
-    expect(scrimIn(container).className).not.toContain('from-surface ');
+    expect(scrimIn(container).className).toContain('valence-artwork-veil--raised');
+  });
+
+  it('darkens the artwork the same way whichever theme is on, since it is over a picture', () => {
+    const { container } = render(<BackdropScrim />);
+
+    expect(scrimIn(container).className).toContain('valence-artwork-veil--raised');
   });
 
   it('reaches past its container, so no sliver of artwork survives the join', () => {
@@ -26,11 +31,13 @@ describe('BackdropScrim', () => {
     expect(scrimIn(container).className).toContain('-bottom-px');
   });
 
-  it('reaches its weight low down, where the title sits, rather than halfway up', () => {
+  it('keeps the darkening and the blend as separate layers, so neither can wash the other out', () => {
     const { container } = render(<BackdropScrim />);
 
-    expect(scrimIn(container).className).toContain('via-35%');
-    expect(scrimIn(container).className).toContain('via-surface-raised/60');
+    const painted = scrimIn(container).className;
+
+    expect(painted).toContain('valence-artwork-veil--raised');
+    expect(painted).not.toContain('valence-artwork-blend--raised ');
   });
 
   it('is scenery rather than something to read or press', () => {

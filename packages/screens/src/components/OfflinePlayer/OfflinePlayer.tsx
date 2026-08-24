@@ -43,7 +43,7 @@ const OfflinePlayer = ({ file, startAtSeconds = 0, onLeave, onProgress }: Offlin
   }, [startAtSeconds]);
 
   return (
-    <main className="flex h-full min-h-screen flex-col bg-black">
+    <main className="flex h-full min-h-screen flex-col bg-shade">
       <header className="flex items-center gap-3 px-4 py-3">
         <Button
           variant="ghost"
