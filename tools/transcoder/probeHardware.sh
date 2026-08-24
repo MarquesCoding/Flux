@@ -2,7 +2,7 @@
 
 # Reports what a machine's video hardware can actually do, using the same
 # ffmpeg, the same render node and the same probe arguments as the media
-# service. Run it inside the Flux image, on a host with a GPU passed through.
+# service. Run it inside the Valence image, on a host with a GPU passed through.
 #
 # set -u is the point of this file existing. The first attempt at checking an
 # RX 580 was an ad hoc compose file that used an unset $FF, so every probe ran
@@ -11,8 +11,8 @@
 # stop this script, not decorate it.
 set -euo pipefail
 
-FFMPEG="${FLUX_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}"
-DEVICE="${FLUX_VAAPI_DEVICE:-/dev/dri/renderD128}"
+FFMPEG="${VALENCE_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}"
+DEVICE="${VALENCE_VAAPI_DEVICE:-/dev/dri/renderD128}"
 
 # Matches PROBE_SIZE in apps/transcoder/src/capability.rs. Kept in step by hand,
 # because a probe that passes here and fails in the service is worse than no
@@ -31,7 +31,7 @@ require_executable() {
 
   if [ ! -x "$path" ]; then
     printf 'cannot run: %s is not executable\n' "$path" >&2
-    printf 'set %s to the ffmpeg this image ships, or run inside the Flux image\n' "$variable" >&2
+    printf 'set %s to the ffmpeg this image ships, or run inside the Valence image\n' "$variable" >&2
     exit 1
   fi
 }
@@ -75,11 +75,11 @@ probe_encoder() {
   printf '  %-14s FAILS — %s\n' "$encoder" "$(last_line "$complaint")"
 }
 
-require_executable "$FFMPEG" FLUX_FFMPEG
+require_executable "$FFMPEG" VALENCE_FFMPEG
 
 heading 'the card, and the render node the transcoder will open'
 ls -l /dev/dri || printf 'no /dev/dri — pass the device through\n'
-printf '\nFLUX_VAAPI_DEVICE=%s\n' "$DEVICE"
+printf '\nVALENCE_VAAPI_DEVICE=%s\n' "$DEVICE"
 
 if [ ! -e "$DEVICE" ]; then
   printf 'that node does not exist, so every VAAPI result below is meaningless\n' >&2

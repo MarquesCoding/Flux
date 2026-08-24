@@ -22,6 +22,13 @@ vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchMediaDetail: detailMock,
 }));
 
+const downloadsMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@ValenceClient/downloads/fetchDownloads', () => ({
+  fetchDownloads: downloadsMock,
+  fetchHoldings: vi.fn(() => Promise.resolve([])),
+}));
+
 const preview = vi.hoisted(() => ({
   report: (isPlaying: boolean) => {
     void isPlaying;
@@ -90,6 +97,8 @@ const detail = (overrides: Partial<MediaDetail['metadata']> = {}): MediaDetail =
 beforeEach(() => {
   detailMock.mockReset();
   detailMock.mockResolvedValue(detail());
+  downloadsMock.mockReset();
+  downloadsMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
@@ -115,6 +124,31 @@ describe('MediaDetailDialog', () => {
     renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.queryByRole('button', { name: /Download/ })).not.toBeInTheDocument();
+  });
+
+  it('draws while one of this viewer’s downloads is still being prepared', async () => {
+    downloadsMock.mockResolvedValue([
+      {
+        id: 'download-1',
+        mediaId: summary.id,
+        seriesId: null,
+        seriesTitle: null,
+        title: 'Arrival',
+        quality: 'original',
+        audioLanguages: [],
+        state: 'preparing',
+        progress: 0.4,
+        bytesPerSecond: null,
+        sizeBytes: null,
+        failure: null,
+        askedAt: '2026-08-10T00:00:00.000Z',
+        readyAt: null,
+      },
+    ]);
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(await screen.findByRole('button', { name: /Preparing 40%/ })).toBeInTheDocument();
   });
 
   it('names itself after the item', () => {

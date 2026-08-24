@@ -160,6 +160,7 @@ const DownloadList = () => {
                 {download.state !== 'preparing' ? null : (
                   <ProgressBar
                     value={download.progress}
+                    max={1}
                     label={`Preparing ${download.title}`}
                     className="w-28"
                   />

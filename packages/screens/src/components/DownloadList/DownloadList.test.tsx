@@ -87,6 +87,17 @@ describe('DownloadList', () => {
     expect(await screen.findByText(/40% done/)).toBeInTheDocument();
   });
 
+  it('measures a preparing download against finishing, not against a hundred', async () => {
+    drawWith([PREPARING]);
+
+    await screen.findByText(/40% done/);
+
+    const bar = screen.getByRole('progressbar', { name: `Preparing ${PREPARING.title}` });
+
+    expect(bar).toHaveAttribute('aria-valuenow', '0.4');
+    expect(bar).toHaveAttribute('aria-valuemax', '1');
+  });
+
   it('says why one failed rather than only that it did', async () => {
     drawWith([FAILED]);
 
