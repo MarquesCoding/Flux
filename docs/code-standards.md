@@ -178,6 +178,22 @@ discovers tables by scanning a module's named exports; given anything else it
 reports `0 tables` and generates an empty migration, silently. Under this rule
 that file is no longer an exception — it is simply the rule applied.
 
+### A migration written by hand still needs a snapshot
+
+`drizzle-kit generate` diffs the schema against the newest snapshot in
+`apps/server/drizzle/meta`, so a migration written by hand — which is the usual
+way one gets written here — leaves no snapshot and the next generation diffs
+against a stale one. It then writes SQL that recreates every table added since,
+plausibly enough to be committed and destructively enough to fail on the first
+`CREATE TABLE`. This is not theoretical: snapshots `0039`, `0040` and `0043` to
+`0048` were absent, and generation had been wrong for six migrations before
+anyone ran it (VAL-193).
+
+So: write the SQL by hand where that is clearer, then run
+`pnpm --filter @valence/server db:generate` and commit **the snapshot it leaves**
+while discarding the SQL it writes. `pnpm db:check` fails when the two are out of
+step, and CI runs it.
+
 ---
 
 ## 6. Comments
