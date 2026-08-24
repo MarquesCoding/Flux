@@ -205,6 +205,27 @@ describe('LibraryBrowser', () => {
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument();
   });
 
+  it('offers to add one to somebody who can, rather than only describing the task', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+
+    const add = vi.fn();
+
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} onAddLibrary={add} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Add a library' }));
+
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers it to nobody who could not act on it', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await screen.findByRole('heading', { name: 'No libraries yet' });
+
+    expect(screen.queryByRole('button', { name: 'Add a library' })).not.toBeInTheDocument();
+  });
+
   it('says a server with nothing anywhere has not been scanned yet', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
     renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
