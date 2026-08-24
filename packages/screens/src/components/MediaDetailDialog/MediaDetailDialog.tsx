@@ -111,11 +111,6 @@ const MediaDetailDialog = ({
 
   const prepared = useQuery({ ...downloadQueries.all(), enabled: canKeepFiles() });
 
-  const preparing = (prepared.data ?? []).find(
-    (one) => one.mediaId === shown?.id && one.state !== 'ready' && one.state !== 'failed',
-  );
-
-  const percent = `${Math.round((preparing?.progress ?? 0) * 100).toString()}%`;
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -141,6 +136,12 @@ const MediaDetailDialog = ({
   }
 
   const shown = media ?? lastShown;
+
+  const preparing = (prepared.data ?? []).find(
+    (one) => one.mediaId === shown?.id && one.state !== 'ready' && one.state !== 'failed',
+  );
+
+  const percent = `${Math.round((preparing?.progress ?? 0) * 100).toString()}%`;
   const shownResume = media === null ? heldRef.current.resume : resumeSeconds;
   const shownSiblings = media === null ? heldRef.current.siblings : siblings;
 

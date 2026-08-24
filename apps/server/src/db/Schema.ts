@@ -126,6 +126,8 @@ const jwks = pgTable('jwks', {
   privateKey: text('privateKey').notNull(),
   createdAt: timestamp('createdAt').notNull(),
   expiresAt: timestamp('expiresAt'),
+  alg: text('alg'),
+  crv: text('crv'),
 });
 
 const apikey = pgTable('apikey', {

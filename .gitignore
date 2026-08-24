@@ -27,3 +27,4 @@ apps/web/certificates/
 apps/desktop/dist-main/
 apps/desktop/dist-preload/
 apps/desktop/release/
+.backups/
