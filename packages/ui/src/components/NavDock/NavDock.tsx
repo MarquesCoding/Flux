@@ -1,10 +1,14 @@
 import { useState } from 'react';
+import { motion, useReducedMotion } from 'motion/react';
 import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
 import { Button } from '@ValenceUI/Button';
 import { SlidingMark } from '@ValenceUI/SlidingMark';
 import { cn } from '@ValenceUI/cn';
+import { revealTransition } from '@ValenceUI/animations/reveal';
 import { useOpenAction } from './useOpenAction';
 import type { NavDockProps } from './NavDock.types';
+
+const ARRIVES_AFTER_SECONDS = 0.35;
 
 /**
  * The platform's one navigation bar, floating at the foot of the window: the places in the middle,
@@ -12,6 +16,12 @@ import type { NavDockProps } from './NavDock.types';
  * rather than two. A single mark rests on where you are, follows the pointer to whatever it passes
  * over, and returns when the pointer leaves. At the foot rather than the head because the top of a
  * page is where the thing being looked at introduces itself.
+ *
+ * It slides up from below the foot of the window, and does nothing else on the way. The dock is an
+ * offer rather than the thing being looked at, so it arrives after the page has settled — but a bar
+ * that also swells and unblurs as it comes is asking to be watched, which is the opposite of what an
+ * offer should do. Somebody who has asked their system for less movement is given the same bar
+ * without the journey.
  *
  * An action whose control has a panel open is held still while it is open — not merely stopped.
  * The gesture is a hover affordance saying what pressing an icon would do, and a popover is anchored
@@ -29,6 +39,7 @@ import type { NavDockProps } from './NavDock.types';
 const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }: NavDockProps) => {
   const [pointedAt, setPointedAt] = useState<string | null>(null);
   const { actionsRef, openAction } = useOpenAction();
+  const prefersReducedMotion = useReducedMotion();
 
   const lit = pointedAt ?? selectedId;
 
@@ -42,12 +53,18 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
       )}
     >
       <nav aria-label="Sections" className="mx-auto flex max-w-fit justify-center">
-        <div
+        <motion.div
           onPointerLeave={() => {
             setPointedAt(null);
           }}
           onBlur={() => {
             setPointedAt(null);
+          }}
+          initial={prefersReducedMotion === true ? { opacity: 0 } : { opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            ...revealTransition(prefersReducedMotion, 'heavy'),
+            delay: prefersReducedMotion === true ? 0 : ARRIVES_AFTER_SECONDS,
           }}
           className="valence-glass pointer-events-auto relative flex items-center gap-1 rounded-lg p-1.5"
         >
@@ -190,7 +207,7 @@ const NavDock = ({ brand, items, selectedId, onSelect, actions = [], className }
               ),
             )}
           </div>
-        </div>
+        </motion.div>
       </nav>
     </header>
   );
