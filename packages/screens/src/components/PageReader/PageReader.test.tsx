@@ -4,6 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { forgetPlatform, installPlatform } from '@ValenceClient/platform/installPlatform';
 import { PageReader } from './PageReader';
 import type { Book, BookChapter } from '@ValenceContracts/schemas/Book';
+import { alwaysReachable } from '@ValenceClient/platform/alwaysReachable';
+import { noFilesAreKept } from '@ValenceClient/platform/noFilesAreKept';
 
 const held = new Map<string, string>();
 
@@ -74,6 +76,9 @@ beforeEach(() => {
       },
     },
     describeThisClient: () => 'Valence',
+    canKeepFiles: () => true,
+    held: noFilesAreKept(),
+    reachability: alwaysReachable(),
     thisClientId: () => 'a-client',
     openSocket: () => ({ send: () => {}, close: () => {} }),
   });

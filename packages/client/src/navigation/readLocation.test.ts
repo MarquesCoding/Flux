@@ -129,6 +129,7 @@ describe('writeLocation', () => {
       adminJob: null,
       account: null,
       admin: null,
+      downloads: false,
     } as const;
 
     expect(readLocation(`http://valence.local${writeLocation(place)}`)).toEqual(place);
@@ -295,5 +296,24 @@ describe('the account, which is a dialog rather than a section', () => {
 
   it('lets that old address name a panel, rather than always landing on the first', () => {
     expect(placeIn('/account', { account: 'devices' }).account).toBe('devices');
+  });
+});
+
+describe('downloads, which are a dialog rather than a page', () => {
+  it('opens over whichever section it was opened from', () => {
+    expect(writeLocation({ ...HOME, section: 'films', downloads: true })).toBe(
+      '/films?downloads=open',
+    );
+  });
+
+  it('is shut when nothing in the address says otherwise', () => {
+    expect(placeIn('/films', {}).downloads).toBe(false);
+  });
+
+  it('still answers the address it was briefly a page at', () => {
+    const place = placeIn('/downloads', {});
+
+    expect(place.section).toBe('home');
+    expect(place.downloads).toBe(true);
   });
 });

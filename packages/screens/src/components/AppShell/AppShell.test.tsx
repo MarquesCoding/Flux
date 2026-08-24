@@ -12,6 +12,8 @@ vi.mock('@ValenceUI/badAppleFilm', () => ({
       },
     }),
 }));
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 import type { AppShellProps } from './AppShell.types';
 
 const draw = (overrides: Partial<AppShellProps> = {}) => {
@@ -22,6 +24,8 @@ const draw = (overrides: Partial<AppShellProps> = {}) => {
     onOpenAccount: vi.fn(),
     isAdminOpen: false,
     onOpenAdmin: vi.fn(),
+    isDownloadsOpen: false,
+    onOpenDownloads: vi.fn(),
     children: <p>The library</p>,
     ...overrides,
   };
@@ -93,6 +97,20 @@ describe('AppShell', () => {
     draw({ section: 'search' });
 
     expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('offers downloads on a client that can keep a file', () => {
+    draw();
+
+    expect(screen.getByRole('button', { name: 'Downloads' })).toBeInTheDocument();
+  });
+
+  it('offers no downloads in a browser, which cannot be trusted to keep one', () => {
+    installPlatform(aFakePlatform({ canKeepFiles: () => false }));
+
+    draw();
+
+    expect(screen.queryByRole('button', { name: 'Downloads' })).not.toBeInTheDocument();
   });
 
   it('raises the account rather than going to it, since it is a dialog and not a section', async () => {
@@ -252,6 +270,8 @@ describe('AppShell', () => {
         onOpenAccount={vi.fn()}
         isAdminOpen={false}
         onOpenAdmin={vi.fn()}
+        isDownloadsOpen={false}
+        onOpenDownloads={vi.fn()}
       >
         <p>The library</p>
       </AppShell>,

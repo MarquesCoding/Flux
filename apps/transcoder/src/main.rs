@@ -168,6 +168,7 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     let state = AppState {
         registry: registry.clone(),
         ffprobe,
+        downloads: valence_transcoder::download::DownloadRegistry::new(),
         trickplay: valence_transcoder::trickplay::TrickplayRegistry::new(),
         previews: valence_transcoder::preview::PreviewRegistry::new(),
         monitor: valence_transcoder::monitor::Monitor::new(journal),

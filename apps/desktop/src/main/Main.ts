@@ -1,5 +1,5 @@
 import { join } from 'node:path';
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, net } from 'electron';
 import { answerAboutPreferences } from '@ValenceDesktop/main/answerAboutPreferences';
 import {
   CHANGE_SERVER,
@@ -22,8 +22,29 @@ import { thePreferenceFile } from '@ValenceDesktop/main/thePreferenceFile';
 import { showTheApplication } from '@ValenceDesktop/main/showTheApplication';
 import { claimTheScheme, serveTheApplication } from '@ValenceDesktop/main/serveTheApplication';
 import { carryTheSessionToTheSocket } from '@ValenceDesktop/main/carryTheSessionToTheSocket';
+import { answerAboutHeldFiles } from '@ValenceDesktop/main/answerAboutHeldFiles';
+import { theHeldFolder } from '@ValenceDesktop/main/theHeldFolder';
+import { theHeldIndex } from '@ValenceDesktop/main/theHeldIndex';
+import { theHeldLibrary } from '@ValenceDesktop/main/theHeldLibrary';
+import { theServerReach } from '@ValenceDesktop/main/theServerReach';
+import type { AskingTheServer } from '@ValenceDesktop/main/keepADownload';
 
 const WHERE_IT_HAS_ALWAYS_BEEN = 'Valence';
+
+const ASK_AGAIN_EVERY = 15_000;
+
+/**
+ * Asks Valence for something from out here, where none of a page's rules apply.
+ *
+ * Wrapped rather than handed over as it stands, because passing a method around detached from what
+ * it belongs to is how it ends up called with the wrong `this` — and because what the rest of this
+ * wants is the narrow thing it actually calls rather than everything a fetch can do.
+ *
+ * @param where - The address.
+ * @param how - What to send.
+ * @returns The answer.
+ */
+const askValence: AskingTheServer = (where, how) => net.fetch(where, how);
 
 app.setName('Valence');
 
@@ -113,10 +134,42 @@ const start = async (): Promise<void> => {
 
   carryWhatThisMachineRemembers();
 
-  serveTheApplication();
+  const held = theHeldFolder(app.getPath('userData'));
+
+  const reach = theServerReach({
+    where: theServerAddress,
+    fetching: askValence,
+    every: ASK_AGAIN_EVERY,
+  });
+
+  const library = theHeldLibrary({
+    folder: held,
+    index: theHeldIndex(),
+    where: theServerAddress,
+    fetching: askValence,
+    now: () => new Date().toISOString(),
+  });
+
+  serveTheApplication(reach, held);
   carryTheSessionToTheSocket();
 
   answerAboutPreferences(() => {});
+
+  answerAboutHeldFiles(library, reach, (channel, said) => {
+    if (theWindow !== null && !theWindow.isDestroyed()) {
+      theWindow.webContents.send(channel, said);
+    }
+  });
+
+  reach.whenChanged((isReachable) => {
+    if (isReachable) {
+      void library.carryOnWhereItLeftOff();
+    }
+  });
+
+  app.on('will-quit', () => {
+    reach.stop();
+  });
 
   ipcMain.on(WHAT_WAS_FOUND, (event) => {
     event.returnValue = whatWasFound;
@@ -159,6 +212,8 @@ const start = async (): Promise<void> => {
 
   await findAValence();
   await showTheApplication(theWindow);
+
+  await library.carryOnWhereItLeftOff();
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) {

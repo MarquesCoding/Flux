@@ -9,6 +9,7 @@ type TextTrack = {
 
 type VideoSurfaceProps = {
   label: string;
+  src?: string;
   videoRef: RefObject<HTMLVideoElement | null>;
   poster?: string;
   className?: string;
