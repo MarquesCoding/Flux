@@ -50,6 +50,8 @@ jobs:
 
       - run: pnpm typecheck
 
+      - run: pnpm db:check
+
       - run: pnpm test
 
   transcoder:

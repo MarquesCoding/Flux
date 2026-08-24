@@ -22,7 +22,8 @@
     "rust:test": "cargo test",
     "prepare": "husky",
     "fixtures:sync": "tsx tools/fixtures/syncFixtures.ts",
-    "ffmpeg:sync": "tsx tools/ffmpeg/syncFfmpeg.ts"
+    "ffmpeg:sync": "tsx tools/ffmpeg/syncFfmpeg.ts",
+    "db:check": "tsx tools/drizzle/checkDrizzleSnapshot.ts"
   },
   "devDependencies": {
     "@commitlint/cli": "^19.6.1",
