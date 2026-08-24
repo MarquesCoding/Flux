@@ -87,6 +87,7 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
       {held.state !== 'fetching' ? null : (
         <ProgressBar
           value={keptFraction(held) ?? 0}
+          max={1}
           label={`Fetching ${download.title} to this device`}
           className="w-28"
         />

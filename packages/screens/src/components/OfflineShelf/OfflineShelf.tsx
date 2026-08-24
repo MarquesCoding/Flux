@@ -104,6 +104,7 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                 {file.state !== 'fetching' ? null : (
                   <ProgressBar
                     value={keptFraction(file) ?? 0}
+                    max={1}
                     label={`Fetching ${file.title}`}
                     className="w-28"
                   />

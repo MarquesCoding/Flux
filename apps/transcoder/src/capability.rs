@@ -561,7 +561,7 @@ pub const MINIMUM_FFMPEG: (u32, u32) = (7, 0);
 /// containers say `-Valence` and will go on saying it until they are rebuilt.
 /// Matching only the new one would quietly call every existing build a
 /// stranger.
-const OUR_BUILDS: [&str; 2] = ["-Valence", "-Valence"];
+const OUR_BUILDS: [&str; 2] = ["-Flux", "-Valence"];
 
 /// Says which `FFmpeg` the service resolved, and whether it is the one Valence ships.
 ///
@@ -1026,6 +1026,19 @@ mod tests {
         assert!(notice.contains("Valence's own ffmpeg"), "{notice}");
         assert!(notice.contains("/repo/.ffmpeg/ffmpeg"), "{notice}");
         assert!(notice.contains("8.1.2-Valence"), "{notice}");
+    }
+
+    /// The shipped build still labels itself `-Flux`, so the rename must not
+    /// stop the service recognising the very ffmpeg it installs. See VAL-183.
+    #[test]
+    fn still_knows_the_build_that_kept_its_old_name() {
+        let notice = describe_build(
+            "/repo/.ffmpeg/ffmpeg",
+            "ffmpeg version 8.1.2-Flux Copyright (c) 2000-2026 the FFmpeg developers",
+        );
+
+        assert!(notice.contains("Valence's own ffmpeg"), "{notice}");
+        assert!(notice.contains("8.1.2-Flux"), "{notice}");
     }
 
     #[test]
