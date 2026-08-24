@@ -220,4 +220,16 @@ describe('createMemoryProfileService', () => {
       false,
     );
   });
+
+  it('offers the household in alphabetical order, not the order they were made', async () => {
+    const profiles = createMemoryProfileService();
+
+    await profiles.ensureDefault('user-zoe', 'Zoe');
+    await profiles.ensureDefault('user-ada', 'Ada');
+    await profiles.ensureDefault('user-milo', 'Milo');
+
+    const everyone = await profiles.listEveryone();
+
+    expect(everyone.map((one) => one.name)).toEqual(['Ada', 'Milo', 'Zoe']);
+  });
 });

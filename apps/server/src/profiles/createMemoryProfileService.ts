@@ -149,7 +149,10 @@ const createMemoryProfileService = (
       });
     },
 
-    listEveryone: () => Promise.resolve(state.map((held) => held.profile)),
+    listEveryone: () =>
+      Promise.resolve(
+        state.map((held) => held.profile).sort((one, other) => one.name.localeCompare(other.name)),
+      ),
 
     findSignInEmail: (profileId) => Promise.resolve(find(profileId)?.email ?? null),
 
