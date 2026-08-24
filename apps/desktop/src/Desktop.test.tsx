@@ -55,11 +55,19 @@ const theWindowOffers = (found: string[]): void => {
   };
 };
 
-const aClient = (overrides: Partial<Platform> = {}, chosen: string | null = null): void => {
+const aClient = (
+  overrides: Partial<Platform> = {},
+  chosen: string | null = null,
+  theme: string | null = null,
+): void => {
   const platform = aFakePlatform(overrides);
 
   if (chosen !== null) {
     platform.store.write(THE_ADDRESS, chosen);
+  }
+
+  if (theme !== null) {
+    platform.store.write('valence.theme', theme);
   }
 
   installPlatform(platform);
@@ -74,6 +82,7 @@ beforeEach(() => {
 
 afterEach(() => {
   forgetPlatform();
+  delete document.documentElement.dataset['theme'];
 });
 
 describe('Desktop', () => {
@@ -140,6 +149,14 @@ describe('Desktop', () => {
         'Valence at http://valence.example could not be reached. Check that it is running.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('draws the screen it owns in the theme somebody chose, not the one the machine prefers', () => {
+    aClient({}, null, 'dark');
+
+    render(<Desktop />);
+
+    expect([asking() === null, document.documentElement.dataset['theme']]).toEqual([false, 'dark']);
   });
 
   it('leaves somebody with downloads in offline mode rather than asking them again', async () => {
