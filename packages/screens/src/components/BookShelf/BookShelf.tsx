@@ -1,7 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useQueries, useQuery } from '@tanstack/react-query';
 import { BooksIcon } from '@phosphor-icons/react';
 import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
+import { bookQueries } from '@ValenceClient/query/bookQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
 import type { BookShelfProps } from './BookShelf.types';
@@ -17,6 +18,16 @@ import type { BookShelfProps } from './BookShelf.types';
 const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
   const asked = useQuery(libraryQueries.all());
   const shelves = (asked.data ?? []).filter((library) => library.kind === 'books');
+
+  const onEachShelf = useQueries({
+    queries: shelves.map((library) => bookQueries.inLibrary(library.id)),
+  });
+
+  const isCounting = onEachShelf.some((shelf) => shelf.data === undefined && !shelf.isError);
+  const hasNothingOnAnyShelf =
+    shelves.length > 0 &&
+    !isCounting &&
+    onEachShelf.every((shelf) => (shelf.data ?? []).length === 0);
 
   if (asked.data !== undefined && shelves.length === 0) {
     return (
@@ -34,6 +45,29 @@ const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
               action: (
                 <Button variant="glossy" isPill onClick={onAddLibrary}>
                   Add a library
+                </Button>
+              ),
+            })}
+      />
+    );
+  }
+
+  if (hasNothingOnAnyShelf) {
+    return (
+      <NothingHere
+        of={BooksIcon}
+        title="Nothing to read yet"
+        detail={
+          onAddLibrary === undefined
+            ? 'Ask the server admin to scan it.'
+            : 'Scan it, or add files to its folder.'
+        }
+        {...(onAddLibrary === undefined
+          ? {}
+          : {
+              action: (
+                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                  Scan it
                 </Button>
               ),
             })}
