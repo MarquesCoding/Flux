@@ -58,7 +58,7 @@
     ],
     "mac": {
       "category": "public.app-category.entertainment",
-      "icon": "build/icon.png"
+      "icon": "build/icon-macos.png"
     },
     "win": {
       "icon": "build/icon.png"

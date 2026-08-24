@@ -2,6 +2,8 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { installPlatform } from '@ValenceClient/platform/installPlatform';
 import { STORAGE_KEY, readLastLibrary, rememberLastLibrary } from './lastLibrary';
 import type { Platform } from '@ValenceClient/platform/Platform.types';
+import { alwaysReachable } from '@ValenceClient/platform/alwaysReachable';
+import { noFilesAreKept } from '@ValenceClient/platform/noFilesAreKept';
 
 const held = new Map<string, string>();
 
@@ -17,6 +19,9 @@ const aPlatform = (): Platform => ({
   },
   describeThisClient: () => 'a test',
   thisClientId: () => 'a-client',
+  canKeepFiles: () => true,
+  held: noFilesAreKept(),
+  reachability: alwaysReachable(),
   openSocket: vi.fn(),
 });
 

@@ -276,6 +276,58 @@ const rating = pgTable(
   ],
 );
 
+const preparedDownload = pgTable(
+  'prepared_download',
+  {
+    id: text('id').primaryKey(),
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    quality: text('quality').notNull(),
+    audioLanguages: text('audioLanguages').array().notNull().default([]),
+    renditionId: text('renditionId').notNull(),
+    state: text('state').notNull().default('preparing'),
+    progress: integer('progress').notNull().default(0),
+    bytesPerSecond: bigint('bytesPerSecond', { mode: 'number' }),
+    sizeBytes: bigint('sizeBytes', { mode: 'number' }),
+    failure: text('failure'),
+    askedAt: timestamp('askedAt').notNull().defaultNow(),
+    readyAt: timestamp('readyAt'),
+  },
+  (table) => [
+    uniqueIndex('prepared_download_asked_idx').on(
+      table.profileId,
+      table.mediaItemId,
+      table.quality,
+    ),
+    index('prepared_download_rendition_idx').on(table.renditionId),
+    index('prepared_download_recent_idx').on(table.profileId, table.askedAt),
+  ],
+);
+
+const downloadHolding = pgTable(
+  'download_holding',
+  {
+    id: text('id').primaryKey(),
+    profileId: text('profileId')
+      .notNull()
+      .references(() => viewerProfile.id, { onDelete: 'cascade' }),
+    clientId: text('clientId').notNull(),
+    mediaItemId: text('mediaItemId')
+      .notNull()
+      .references(() => mediaItem.id, { onDelete: 'cascade' }),
+    quality: text('quality').notNull(),
+    heldAt: timestamp('heldAt').notNull().defaultNow(),
+  },
+  (table) => [
+    uniqueIndex('download_holding_one_idx').on(table.clientId, table.mediaItemId, table.quality),
+    index('download_holding_profile_idx').on(table.profileId, table.heldAt),
+  ],
+);
+
 const share = pgTable(
   'share',
   {
@@ -769,6 +821,8 @@ export {
   pushSubscription,
   watchProgress,
   favourite,
+  preparedDownload,
+  downloadHolding,
   share,
   shareVisit,
   logRecord,

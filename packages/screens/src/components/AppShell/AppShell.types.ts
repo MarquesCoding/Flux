@@ -18,6 +18,8 @@ type AppShellProps = {
   onOpenAccount: () => void;
   isAdminOpen: boolean;
   onOpenAdmin: () => void;
+  isDownloadsOpen: boolean;
+  onOpenDownloads: () => void;
   onSurprise?: (only?: LibraryKind) => void;
   surpriseKinds?: LibraryKind[];
   notifications?: ReactNode;

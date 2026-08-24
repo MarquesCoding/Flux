@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MediaDetailDialog } from './MediaDetailDialog';
 import type { ReactNode } from 'react';
 import type { MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
+import { installPlatform } from '@ValenceClient/platform/installPlatform';
+import { aFakePlatform } from '@ValenceClient/testing/aFakePlatform';
 import type * as MotionReact from 'motion/react';
 
 const motion = vi.hoisted(() => ({ isReduced: false }));
@@ -99,6 +101,20 @@ describe('MediaDetailDialog', () => {
     renderInAnAddress(<MediaDetailDialog media={null} onClose={vi.fn()} onPlay={vi.fn()} />);
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('offers to download on a client that can keep a file', () => {
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /Download/ })).toBeInTheDocument();
+  });
+
+  it('offers no download in a browser, which cannot be trusted to keep one', () => {
+    installPlatform(aFakePlatform({ canKeepFiles: () => false }));
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: /Download/ })).not.toBeInTheDocument();
   });
 
   it('names itself after the item', () => {

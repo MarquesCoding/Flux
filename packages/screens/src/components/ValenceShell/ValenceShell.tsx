@@ -9,6 +9,7 @@ import { MediaDetailDialog } from '@ValenceScreens/components/MediaDetailDialog/
 import { PersonDialog } from '@ValenceScreens/components/PersonDialog/PersonDialog';
 import { AccountDialog } from '@ValenceScreens/components/AccountDialog/AccountDialog';
 import { AdminDialog } from '@ValenceScreens/components/AdminDialog/AdminDialog';
+import { DownloadsDialog } from '@ValenceScreens/components/DownloadsDialog/DownloadsDialog';
 import { ShareDialog } from '@ValenceScreens/components/ShareDialog/ShareDialog';
 import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareDialog.types';
 import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
@@ -141,6 +142,10 @@ const ValenceShell = () => {
       isAdminOpen={place.admin !== null}
       onOpenAdmin={() => {
         go({ admin: ADMIN_OPENS_ON });
+      }}
+      isDownloadsOpen={place.downloads}
+      onOpenDownloads={() => {
+        go({ downloads: true });
       }}
       moodLights={place.section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
@@ -308,6 +313,13 @@ const ValenceShell = () => {
         }}
         onClose={() => {
           go({ account: null });
+        }}
+      />
+
+      <DownloadsDialog
+        isOpen={place.downloads}
+        onClose={() => {
+          go({ downloads: false });
         }}
       />
 

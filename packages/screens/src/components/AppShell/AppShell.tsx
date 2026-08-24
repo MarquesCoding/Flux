@@ -2,6 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import {
   BellIcon,
   BookOpenIcon,
+  DownloadSimpleIcon,
   DiceFiveIcon,
   FilmSlateIcon,
   FireIcon,
@@ -22,6 +23,7 @@ import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { useDotFilm } from '@ValenceUI/useDotFilm';
 import { useKonamiCode } from '@ValenceUI/useKonamiCode';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
 import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
@@ -96,6 +98,8 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param children - The page itself.
  * @param moodLights - The colours to light the page with.
  * @param isAdministrator - Whether to offer the admin section at all.
+ * @param isDownloadsOpen - Whether the downloads dialog is raised.
+ * @param onOpenDownloads - Told to raise the downloads dialog.
  * @param isAdminOpen - Whether the server dialog is raised, which lights the dock's cog.
  * @param onOpenAdmin - Told to raise the server dialog.
  * @param isAccountOpen - Whether the account dialog is raised, which lights the dock's face.
@@ -116,6 +120,8 @@ const AppShell = ({
   onOpenAccount,
   isAdminOpen,
   onOpenAdmin,
+  isDownloadsOpen,
+  onOpenDownloads,
   avatar,
   onSurprise,
   surpriseKinds = [],
@@ -187,6 +193,19 @@ const AppShell = ({
   }));
 
   const actions: NavDockAction[] = [
+    ...(canKeepFiles()
+      ? [
+          {
+            id: 'downloads',
+            label: 'Downloads',
+            icon: <Icon of={DownloadSimpleIcon} size={20} />,
+            activeIcon: <Icon of={DownloadSimpleIcon} size={20} isActive />,
+            gesture: 'settle' as const,
+            isCurrent: isDownloadsOpen,
+            onSelect: onOpenDownloads,
+          },
+        ]
+      : []),
     {
       id: 'search',
       label: 'Search',
