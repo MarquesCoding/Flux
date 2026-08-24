@@ -71,10 +71,22 @@ describe('Button', () => {
     expect(Button.displayName).toBe('Button');
   });
 
-  it('offers a glossy treatment for the controls that matter most', () => {
+  it('offers a pale treatment for the controls that matter most', () => {
     render(<Button variant="glossy">Play</Button>);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('valence-gloss');
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('valence-raise--pale');
+  });
+
+  it('raises every filled control off the surface rather than painting it on', () => {
+    render(<Button variant="secondary">Share</Button>);
+
+    expect(screen.getByRole('button', { name: 'Share' })).toHaveClass('valence-raise');
+  });
+
+  it('leaves a control that is not meant to look like one flat', () => {
+    render(<Button variant="ghost">Dismiss</Button>);
+
+    expect(screen.getByRole('button', { name: 'Dismiss' })).not.toHaveClass('valence-raise');
   });
 
   it('squares off a pill of text, since a lozenge reads as soft where this reads as precise', () => {
