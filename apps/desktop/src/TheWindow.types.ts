@@ -20,7 +20,7 @@ type FilesHeld = {
 };
 
 type Reach = {
-  now: boolean;
+  now: () => boolean;
   whenChanged: (listener: (isReachable: boolean) => void) => () => void;
 };
 

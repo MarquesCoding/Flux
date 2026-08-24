@@ -29,7 +29,8 @@ const held = HeldSchema.parse(ipcRenderer.sendSync(READ_EVERYTHING));
 
 const alreadyFound = z.array(z.string()).catch([]).parse(ipcRenderer.sendSync(WHAT_WAS_FOUND));
 
-const canReachNow = z.boolean().catch(true).parse(ipcRenderer.sendSync(CAN_REACH_NOW));
+const canReachNow = (): boolean =>
+  z.boolean().catch(true).parse(ipcRenderer.sendSync(CAN_REACH_NOW));
 
 markTheDocument(document);
 
