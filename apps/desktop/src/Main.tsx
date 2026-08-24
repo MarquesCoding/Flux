@@ -8,8 +8,6 @@ import { buildQueryClient } from '@ValenceClient/query/queryClient';
 import { buildRouter } from '@ValenceScreens/routes/buildRouter';
 import { ConnectToServer } from '@ValenceScreens/components/ConnectToServer/ConnectToServer';
 import { WindowBar } from '@ValenceScreens/components/WindowBar/WindowBar';
-import { whereWeCanGo } from '@ValenceScreens/desktop/whereWeCanGo';
-import type { WentWhere } from '@ValenceScreens/desktop/whereWeCanGo';
 import { rememberServerAddress, serverAddress } from '@ValenceClient/session/serverAddress';
 import { installDesktopPlatform } from '@ValenceDesktop/platform/installDesktopPlatform';
 import './styles/main.css';
@@ -39,9 +37,9 @@ const router = buildRouter('Valence');
  * that owns the window. So nothing here is cross-origin, no cookie is dropped for being somebody
  * else's, and signing in is an ordinary request rather than a negotiation between two origins.
  *
- * The bar along the top is this client's too, and for the same reason: a browser draws one and a
- * window has to be given one. It sits in the page rather than over it, so every screen below it
- * begins where it ends without having been told a bar exists.
+ * The strip along the top is this client's too, and for the same reason: a browser gives a window
+ * somewhere to be picked up by and a frameless one has nowhere. It draws nothing and lies over the
+ * page rather than above it, so no screen pays height for a bar it never sees.
  *
  * The one screen this client owns is the first one: which Valence is yours. It has to be ours, because
  * until it is answered there is no server to ask anything of. What it offers on that screen is found
@@ -50,19 +48,8 @@ const router = buildRouter('Valence');
  */
 const Desktop = () => {
   const [server, setServer] = useState(serverAddress());
-  const [ahead, setAhead] = useState(0);
-  const [canGoBack, setCanGoBack] = useState(false);
   const [found, setFound] = useState<readonly string[]>(
     () => window.valence.servers?.alreadyFound ?? [],
-  );
-
-  useEffect(
-    () =>
-      router.history.subscribe(({ action }: { action: WentWhere }) => {
-        setAhead((was) => whereWeCanGo(was, action));
-        setCanGoBack(router.history.canGoBack());
-      }),
-    [],
   );
 
   useEffect(
@@ -75,17 +62,7 @@ const Desktop = () => {
 
   return (
     <>
-      <WindowBar
-        name="Valence"
-        canGoBack={canGoBack}
-        canGoForward={ahead > 0}
-        onBack={() => {
-          router.history.back();
-        }}
-        onForward={() => {
-          router.history.forward();
-        }}
-      />
+      <WindowBar />
 
       {server === null || server === '' ? (
         <ConnectToServer
