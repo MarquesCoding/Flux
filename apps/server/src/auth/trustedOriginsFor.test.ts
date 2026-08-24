@@ -61,4 +61,39 @@ describe('trustedOriginsFor', () => {
 
     expect(origins.filter((one) => one === 'https://valence.example.com')).toHaveLength(1);
   });
+
+  it('always trusts the desktop client, whose origin nobody would think to configure', async () => {
+    const answer = trustedOriginsFor({
+      configured: [],
+      port: 8420,
+      settings: { read: () => Promise.resolve({ trustedOrigins: [] }) },
+    });
+
+    expect(await answer()).toContain('valence://app');
+  });
+
+  it('trusts it even where an operator named origins of their own', async () => {
+    const answer = trustedOriginsFor({
+      configured: ['https://valence.example.com'],
+      port: 8420,
+      settings: { read: () => Promise.resolve({ trustedOrigins: [] }) },
+    });
+
+    const trusted = await answer();
+
+    expect(trusted).toContain('valence://app');
+    expect(trusted).toContain('https://valence.example.com');
+  });
+
+  it('names it once, however many times it appears', async () => {
+    const answer = trustedOriginsFor({
+      configured: ['valence://app'],
+      port: 8420,
+      settings: { read: () => Promise.resolve({ trustedOrigins: ['valence://app'] }) },
+    });
+
+    const trusted = await answer();
+
+    expect(trusted.filter((one) => one === 'valence://app')).toHaveLength(1);
+  });
 });
