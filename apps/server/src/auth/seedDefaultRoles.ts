@@ -1,4 +1,8 @@
-import { DEFAULT_ROLES, DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
+import {
+  ADMINISTRATOR_ROLE_NAME,
+  DEFAULT_ROLES,
+  DEFAULT_ROLE_NAME,
+} from '@ValenceCore/functions/defaultRoles';
 import type { SettingsStore } from '@ValenceServer/settings/ServerSettings';
 import type { PermissionService } from './PermissionService';
 
@@ -18,8 +22,6 @@ type SeedOutcome = {
   administratorsCarried: number;
   membersAssigned: number;
 };
-
-const ADMINISTRATOR_ROLE_NAME = 'Administrator';
 
 /**
  * Gives an instance its default roles the first time it starts, and gives every account that already
