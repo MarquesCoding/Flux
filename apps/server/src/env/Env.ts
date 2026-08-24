@@ -7,6 +7,10 @@ const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().int().positive().default(8420),
   DATABASE_URL: z.string().url().default('postgres://valence:valence@localhost:5432/valence'),
+  MIGRATE_ON_START: z
+    .enum(['true', 'false'])
+    .default('true')
+    .transform((value) => value === 'true'),
   BETTER_AUTH_SECRET: z.string().min(32).default('development-secret-change-me-in-production'),
   BETTER_AUTH_URL: z.string().url().default('http://localhost:8420'),
   TRUSTED_ORIGINS: z
