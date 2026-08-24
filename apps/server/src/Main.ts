@@ -30,7 +30,9 @@ import { createAuth } from '@ValenceServer/auth/Auth';
 import { trustedOriginsFor } from '@ValenceServer/auth/trustedOriginsFor';
 import type { RealtimeSession } from '@ValenceServer/realtime/createRealtimeHandler';
 import { createDatabase } from '@ValenceServer/db/Database';
+import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { findPendingMigrations } from '@ValenceServer/db/findPendingMigrations';
+import { migrateToLatest } from '@ValenceServer/db/migrateToLatest';
 import {
   user,
   library,
@@ -313,45 +315,28 @@ const log = createLogger({
   },
 });
 
-const MIGRATION_JOURNAL = join(import.meta.dirname, '..', 'drizzle', 'meta', '_journal.json');
+const MIGRATIONS_FOLDER = join(import.meta.dirname, '..', 'drizzle');
+
+const MIGRATION_JOURNAL = join(MIGRATIONS_FOLDER, 'meta', '_journal.json');
 
 const AppliedMigrationSchema = z.object({ created_at: z.union([z.string(), z.number()]) });
 
-/**
- * Says so, loudly, where this database has not run every migration the repository carries.
- *
- * A missing column breaks reads of the one table that selects it and nothing else, so the server
- * comes up, most of the API answers, and the endpoints that do not look like they have a bug of
- * their own. Saying it once at startup is the difference between that and an evening.
- */
-const reportPendingMigrations = async (): Promise<void> => {
-  const pending = await findPendingMigrations({
-    readJournal: () => readFile(MIGRATION_JOURNAL, 'utf8'),
-    readAppliedAt: async () => {
-      const applied = await db.execute(sql`select created_at from drizzle.__drizzle_migrations`);
+await migrateToLatest({
+  pending: () =>
+    findPendingMigrations({
+      readJournal: () => readFile(MIGRATION_JOURNAL, 'utf8'),
+      readAppliedAt: async () => {
+        const applied = await db.execute(sql`select created_at from drizzle.__drizzle_migrations`);
 
-      return applied.rows.map((row) => Number(AppliedMigrationSchema.parse(row).created_at));
-    },
-  });
-
-  if (pending.length === 0) {
-    return;
-  }
-
-  log.error(
-    'server',
-    `This database has not run ${pending.length.toString()} migration${pending.length === 1 ? '' : 's'} the repository carries: ${pending.join(', ')}. Reads of the tables they change will fail until \`pnpm --filter @valence/server db:migrate\` is run.`,
-  );
-};
-
-try {
-  await reportPendingMigrations();
-} catch (problem) {
-  log.warn(
-    'server',
-    `The migrations this database has run could not be read, so nothing is known about whether it is in step: ${problem instanceof Error ? problem.message : 'no reason given'}`,
-  );
-}
+        return applied.rows.map((row) => Number(AppliedMigrationSchema.parse(row).created_at));
+      },
+    }),
+  apply: () => migrate(db, { migrationsFolder: MIGRATIONS_FOLDER }),
+  isAllowed: env.MIGRATE_ON_START,
+  say: (level, line) => {
+    log[level]('server', line);
+  },
+});
 
 /**
  * Fills out what a viewing was of, which presence does not hold.
