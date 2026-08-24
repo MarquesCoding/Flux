@@ -1,57 +1,47 @@
-import { describe, expect, it, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
-import { userEvent } from '@testing-library/user-event';
+import { describe, expect, it } from 'vitest';
 import { WindowBar } from './WindowBar';
 
-const bar = (given: Partial<Parameters<typeof WindowBar>[0]> = {}) =>
-  render(
-    <WindowBar
-      name="Valence"
-      canGoBack={true}
-      canGoForward={true}
-      onBack={vi.fn()}
-      onForward={vi.fn()}
-      {...given}
-    />,
-  );
-
 describe('WindowBar', () => {
-  it('says what the application is called, and leaves what is playing to the screen', () => {
-    bar();
+  it('gives a frameless window somewhere to be picked up by', () => {
+    const { container } = render(<WindowBar />);
 
-    expect(screen.getByText('Valence')).toBeInTheDocument();
-    expect(screen.queryByText(/Watching/)).not.toBeInTheDocument();
+    expect(container.querySelector('[data-slot="window-bar"]')).toBeInTheDocument();
   });
 
-  it('goes back when asked', async () => {
-    const onBack = vi.fn();
+  it('draws nothing, because everything it used to say the page says better', () => {
+    render(<WindowBar />);
 
-    bar({ onBack });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Back' }));
-
-    expect(onBack).toHaveBeenCalled();
+    expect(screen.queryByRole('button')).not.toBeInTheDocument();
+    expect(screen.queryByRole('banner')).not.toBeInTheDocument();
   });
 
-  it('goes forward when asked', async () => {
-    const onForward = vi.fn();
+  it('is hidden from anybody listening rather than read out as an empty region', () => {
+    const { container } = render(<WindowBar />);
 
-    bar({ onForward });
-
-    await userEvent.click(screen.getByRole('button', { name: 'Forward' }));
-
-    expect(onForward).toHaveBeenCalled();
+    expect(container.querySelector('[data-slot="window-bar"]')).toHaveAttribute(
+      'aria-hidden',
+      'true',
+    );
   });
 
-  it('offers no way back when there is nowhere behind us', () => {
-    bar({ canGoBack: false });
+  it('lies over the page rather than taking height from it', () => {
+    const { container } = render(<WindowBar />);
 
-    expect(screen.getByRole('button', { name: 'Back' })).toBeDisabled();
+    expect(container.querySelector('[data-slot="window-bar"]')).toHaveClass('fixed', 'top-0');
   });
 
-  it('offers no way forward when there is nowhere ahead of us', () => {
-    bar({ canGoForward: false });
+  it('takes hold of the window it is laid over', () => {
+    const { container } = render(<WindowBar />);
 
-    expect(screen.getByRole('button', { name: 'Forward' })).toBeDisabled();
+    expect(container.querySelector('[data-slot="window-bar"]')).toHaveClass(
+      '[-webkit-app-region:drag]',
+    );
+  });
+
+  it('can be made deeper where the top of a page would otherwise be the only handle', () => {
+    const { container } = render(<WindowBar height="4rem" />);
+
+    expect(container.querySelector('[data-slot="window-bar"]')).toHaveStyle({ height: '4rem' });
   });
 });
