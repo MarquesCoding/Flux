@@ -3,7 +3,13 @@ import { and, asc, desc, eq, lt, sql } from 'drizzle-orm';
 import { z } from 'zod';
 import { toIso } from '@ValenceCore/functions/toIso';
 import { webhookDelivery, webhookSubscription } from '@ValenceServer/db/Schema';
-import { WebhookEventSchema, WebhookPresetSchema } from '@ValenceContracts/schemas/Webhook';
+import {
+  DEFAULT_WEBHOOK_FILTERS,
+  WebhookEventSchema,
+  WebhookFiltersSchema,
+  WebhookPresetSchema,
+} from '@ValenceContracts/schemas/Webhook';
+import { subscriptionWants } from './subscriptionWants';
 import type { ValenceDatabase } from '@ValenceServer/db/Database';
 import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
@@ -25,6 +31,7 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
   const readRow = (row: typeof webhookSubscription.$inferSelect): WebhookSubscription[] => {
     const events = StoredEventsSchema.safeParse(row.events);
     const preset = WebhookPresetSchema.safeParse(row.preset);
+    const filters = WebhookFiltersSchema.safeParse(row.filters);
 
     if (!events.success || !preset.success || events.data.length === 0) {
       return [];
@@ -37,6 +44,7 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
         url: row.url,
         preset: preset.data,
         events: events.data,
+        filters: filters.success ? filters.data : DEFAULT_WEBHOOK_FILTERS,
         enabled: row.enabled,
         createdAt: row.createdAt.toISOString(),
         lastAttemptAt: toIso(row.lastAttemptAt),
@@ -56,14 +64,14 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
       return rows.flatMap((row) => readRow(row));
     },
 
-    create: async ({ name, url, preset, events }) => {
+    create: async ({ name, url, preset, events, filters = DEFAULT_WEBHOOK_FILTERS }) => {
       const id = randomUUID();
       const secret = `${WEBHOOK_SECRET_PREFIX}${randomBytes(WEBHOOK_SECRET_BYTES).toString('base64url')}`;
       const createdAt = new Date();
 
       await db
         .insert(webhookSubscription)
-        .values({ id, name, url, secret, preset, events, enabled: true, createdAt });
+        .values({ id, name, url, secret, preset, events, filters, enabled: true, createdAt });
 
       return {
         secret,
@@ -73,6 +81,7 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
           url,
           preset,
           events,
+          filters,
           enabled: true,
           createdAt: createdAt.toISOString(),
           lastAttemptAt: null,
@@ -85,7 +94,14 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
     update: async (id, change) => {
       const changed = await db
         .update(webhookSubscription)
-        .set({ enabled: change.enabled })
+        .set({
+          ...(change.name === undefined ? {} : { name: change.name }),
+          ...(change.url === undefined ? {} : { url: change.url }),
+          ...(change.preset === undefined ? {} : { preset: change.preset }),
+          ...(change.events === undefined ? {} : { events: change.events }),
+          ...(change.filters === undefined ? {} : { filters: change.filters }),
+          ...(change.enabled === undefined ? {} : { enabled: change.enabled }),
+        })
         .where(eq(webhookSubscription.id, id))
         .returning();
 
@@ -101,7 +117,7 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
       return removed.length > 0;
     },
 
-    listenersFor: async (event) => {
+    listenersFor: async (occurrence) => {
       const rows = await db
         .select()
         .from(webhookSubscription)
@@ -109,7 +125,7 @@ const createDatabaseWebhookStore = (db: ValenceDatabase): WebhookStore => {
 
       return rows
         .flatMap((row) => readRow(row))
-        .filter((subscription) => subscription.events.includes(event))
+        .filter((subscription) => subscriptionWants(subscription, occurrence))
         .map((subscription) => subscription.id);
     },
 

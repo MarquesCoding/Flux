@@ -7,6 +7,7 @@ import { Switch } from '@ValenceUI/Switch';
 import { WEBHOOK_EVENT_LABELS } from '@ValenceContracts/schemas/Webhook';
 import { describeSince } from '@ValenceScreens/components/AdminArea/describeSince';
 import { AddWebhookDialog } from './components/AddWebhookDialog/AddWebhookDialog';
+import { EditWebhookDialog } from './components/EditWebhookDialog/EditWebhookDialog';
 import { DeliveryHistory } from './components/DeliveryHistory/DeliveryHistory';
 import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhooksPanelProps } from './WebhooksPanel.types';
@@ -44,6 +45,9 @@ const describeLastAttempt = (
  * @param webhooks - The subscriptions configured.
  * @param created - A subscription just made, whose secret is still being shown.
  * @param onCreate - Called with a subscription to make, answering with any refusal.
+ * @param onEdit - Called with a subscription to change, answering with any refusal.
+ * @param accounts - The accounts a new subscription can be narrowed to.
+ * @param profiles - The profiles a new subscription can be narrowed to.
  * @param onDismissCreated - Called once the secret has been taken down.
  * @param onSetEnabled - Called with a subscription and whether it should be delivering.
  * @param onDelete - Called with the subscription to remove.
@@ -58,6 +62,9 @@ const WebhooksPanel = ({
   webhooks,
   created,
   onCreate,
+  onEdit,
+  accounts,
+  profiles,
   onDismissCreated,
   onSetEnabled,
   onDelete,
@@ -69,12 +76,25 @@ const WebhooksPanel = ({
   onRedeliver,
 }: WebhooksPanelProps) => {
   const [isAdding, setIsAdding] = useState(false);
+  const [editing, setEditing] = useState<WebhookSubscription | null>(null);
   const [deleting, setDeleting] = useState<WebhookSubscription | null>(null);
   const now = Date.now();
 
   return (
     <div className="flex flex-col gap-4">
+      <EditWebhookDialog
+        webhook={editing}
+        accounts={accounts}
+        profiles={profiles}
+        onClose={() => {
+          setEditing(null);
+        }}
+        onSave={onEdit}
+      />
+
       <AddWebhookDialog
+        accounts={accounts}
+        profiles={profiles}
         isOpen={isAdding}
         onClose={() => {
           setIsAdding(false);
@@ -165,7 +185,10 @@ const WebhooksPanel = ({
                   <span className="break-all text-xs text-text-muted">{webhook.url}</span>
 
                   <span className="text-xs text-text-muted">
-                    {webhook.events.map((event) => WEBHOOK_EVENT_LABELS[event]).join(' · ')}
+                    {webhook.events
+                      .filter((event) => event !== 'webhook.test')
+                      .map((event) => WEBHOOK_EVENT_LABELS[event])
+                      .join(' · ')}
                   </span>
 
                   {webhook.lastError === null ? null : (
@@ -191,6 +214,17 @@ const WebhooksPanel = ({
                       }}
                     >
                       Send a test
+                    </Button>
+
+                    <Button
+                      variant="secondary"
+                      isPill
+                      size="sm"
+                      onClick={() => {
+                        setEditing(webhook);
+                      }}
+                    >
+                      Edit
                     </Button>
 
                     <Button

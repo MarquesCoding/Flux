@@ -206,10 +206,12 @@ const startScanAll = async (libraries: readonly Library[]): Promise<void> => {
   isScanningAll = true;
   notify();
 
+  const run = { id: crypto.randomUUID(), of: libraries.length };
+
   try {
     await Promise.all(
       libraries.map((library) =>
-        runAndTrack(library.id, 'scan', () => scanLibrary(library.id, true)),
+        runAndTrack(library.id, 'scan', () => scanLibrary(library.id, true, run)),
       ),
     );
   } finally {

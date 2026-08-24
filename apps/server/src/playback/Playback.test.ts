@@ -750,7 +750,14 @@ describe('telling presence what is being watched', () => {
       { store, permissions, isAdministrator: true },
     );
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: () => {},
+    });
 
     const response = await app.request(
       post(`/api/playback/${MEDIA_ID}/session`, {
@@ -825,7 +832,14 @@ describe('telling presence what is being watched', () => {
       { store, permissions, isAdministrator: true },
     );
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: () => {},
+    });
 
     const response = await app.request(
       post(`/api/playback/${MEDIA_ID}/session`, {
@@ -868,7 +882,14 @@ describe('telling presence what is being watched', () => {
       { store, permissions, isAdministrator: true },
     );
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', () => {});
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: () => {},
+    });
 
     const response = await app.request(
       post(`/api/playback/${MEDIA_ID}/session`, {

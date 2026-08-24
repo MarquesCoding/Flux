@@ -183,7 +183,11 @@ const scanLibraryRoute = createRoute({
   summary: 'Queue a scan for new, changed and removed files',
   request: {
     params: z.object({ id: z.string().uuid() }),
-    query: z.object({ force: z.enum(['true', 'false']).optional() }),
+    query: z.object({
+      force: z.enum(['true', 'false']).optional(),
+      runId: z.string().min(1).max(64).optional(),
+      runOf: z.coerce.number().int().positive().max(100).optional(),
+    }),
   },
   responses: {
     202: {

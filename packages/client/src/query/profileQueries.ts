@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import { fetchProfiles } from '@ValenceClient/profiles/fetchProfiles';
+import { fetchEveryone } from '@ValenceClient/profiles/fetchEveryone';
 import { readCurrentProfile } from '@ValenceClient/profiles/currentProfile';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
@@ -43,6 +44,18 @@ const watching = () =>
     },
   });
 
-const profileQueries = { all, watching, key: PROFILES };
+/**
+ * Every face on this server rather than only the ones on this account, which is what an operator
+ * choosing whose viewing to be told about is picking from.
+ *
+ * @returns The query.
+ */
+const everyone = () =>
+  queryOptions({
+    queryKey: [...PROFILES, 'everyone'],
+    queryFn: () => fetchEveryone(),
+  });
+
+const profileQueries = { all, watching, everyone, key: PROFILES };
 
 export { profileQueries };

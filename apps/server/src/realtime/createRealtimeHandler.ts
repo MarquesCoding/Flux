@@ -29,13 +29,14 @@ type PresenceControl =
   | { kind: 'message'; text: string };
 
 type PresenceBinding = {
-  connect: (
-    clientId: string,
-    profileId: string | null,
-    profileName: string | null,
-    deviceLabel: string,
-    send: (event: PresenceControl) => void,
-  ) => void;
+  connect: (arrival: {
+    clientId: string;
+    accountId: string | null;
+    profileId: string | null;
+    profileName: string | null;
+    deviceLabel: string;
+    send: (event: PresenceControl) => void;
+  }) => void;
   disconnect: (clientId: string) => void;
   nameOf: (accountId: string, profileId: string | null) => Promise<string | null>;
 };
@@ -200,14 +201,21 @@ const createRealtimeHandler = ({
 
         myName = named ?? myName;
 
-        presence.connect(clientId, profileId, named, deviceLabel ?? 'Unknown device', (event) => {
-          write({
-            kind: 'event',
-            topic: 'presence',
-            atMs: now(),
-            folded: 0,
-            payload: asPayload(event),
-          });
+        presence.connect({
+          clientId,
+          accountId: who.accountId,
+          profileId,
+          profileName: named,
+          deviceLabel: deviceLabel ?? 'Unknown device',
+          send: (event) => {
+            write({
+              kind: 'event',
+              topic: 'presence',
+              atMs: now(),
+              folded: 0,
+              payload: asPayload(event),
+            });
+          },
         });
       },
 

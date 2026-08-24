@@ -13,6 +13,8 @@ const ReadAgainJobSchema = z.object({
 const ScanLibraryJobSchema = z.object({
   libraryId: z.string().uuid(),
   force: z.boolean().default(false),
+  runId: z.string().min(1).optional(),
+  runOf: z.number().int().positive().optional(),
 });
 
 const REGENERATE_PREVIEWS_JOB = 'library.regeneratePreviews';
@@ -92,6 +94,7 @@ type RunningJob = {
 };
 
 type JobQueue = {
+  startWorking: () => Promise<void>;
   enqueue: (
     kind: string,
     payload: { [key: string]: JsonValue },

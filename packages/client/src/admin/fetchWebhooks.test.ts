@@ -8,6 +8,7 @@ import {
   setWebhookEnabled,
   testWebhook,
 } from './fetchWebhooks';
+import { DEFAULT_WEBHOOK_FILTERS } from '@ValenceContracts/schemas/Webhook';
 
 const aSubscription = {
   id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
@@ -15,6 +16,7 @@ const aSubscription = {
   url: 'https://discord.com/api/webhooks/1/abc',
   preset: 'discord',
   events: ['job.failed'],
+  filters: { mediaAdded: 'perScan', accounts: [], profiles: [], itemTypes: [] },
   enabled: true,
   createdAt: '2026-08-14T20:00:00.000Z',
   lastAttemptAt: null,
@@ -61,6 +63,7 @@ describe('createWebhook', () => {
       url: 'https://discord.com/api/webhooks/1/abc',
       preset: 'discord',
       events: ['job.failed'],
+      filters: DEFAULT_WEBHOOK_FILTERS,
     });
 
     expect(refusal).toBeNull();
@@ -78,6 +81,7 @@ describe('createWebhook', () => {
       url: 'http://169.254.169.254/',
       preset: 'generic',
       events: ['job.failed'],
+      filters: DEFAULT_WEBHOOK_FILTERS,
     });
 
     expect(created).toBeNull();
@@ -92,6 +96,7 @@ describe('createWebhook', () => {
       url: 'https://discord.com/api/webhooks/1/abc',
       preset: 'discord',
       events: ['job.failed'],
+      filters: DEFAULT_WEBHOOK_FILTERS,
     });
 
     expect(refusal?.message).toContain('could not be reached');

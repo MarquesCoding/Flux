@@ -89,7 +89,14 @@ describe('presence over HTTP', () => {
     const { app, presence } = build();
     const cookie = await signedIn(app);
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -113,7 +120,14 @@ describe('presence over HTTP', () => {
     const { app, presence } = build();
     const cookie = await signedIn(app);
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',
@@ -138,7 +152,14 @@ describe('presence over HTTP', () => {
     const { app, presence } = build();
     const cookie = await signedIn(app);
 
-    presence.connect('tab-1', null, null, 'Chrome on macOS', vi.fn());
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
     presence.startPlayback('tab-1', {
       mediaId: 'media-1',
       mediaTitle: 'Arrival',

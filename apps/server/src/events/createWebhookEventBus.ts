@@ -23,7 +23,7 @@ const createWebhookEventBus = ({
 }: CreateWebhookEventBusOptions): EventBus => ({
   publish: async (occurrence) => {
     try {
-      const listeners = await subscriptions.listenersFor(occurrence.event);
+      const listeners = await subscriptions.listenersFor(occurrence);
 
       if (listeners.length === 0) {
         return;

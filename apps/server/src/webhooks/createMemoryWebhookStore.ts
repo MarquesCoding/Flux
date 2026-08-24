@@ -1,4 +1,6 @@
 import { randomUUID } from 'node:crypto';
+import { DEFAULT_WEBHOOK_FILTERS } from '@ValenceContracts/schemas/Webhook';
+import { subscriptionWants } from './subscriptionWants';
 import type { WebhookDelivery, WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookStore } from './WebhookStore';
 
@@ -29,7 +31,7 @@ const createMemoryWebhookStore = (): WebhookStore => {
   return {
     list: () => Promise.resolve([...subscriptions.values()].map((held) => held.subscription)),
 
-    create: ({ name, url, preset, events }) => {
+    create: ({ name, url, preset, events, filters = DEFAULT_WEBHOOK_FILTERS }) => {
       const id = randomUUID();
       const held = {
         secret: `whsec_memory_${id}`,
@@ -39,6 +41,7 @@ const createMemoryWebhookStore = (): WebhookStore => {
           url,
           preset,
           events,
+          filters,
           enabled: true,
           createdAt: new Date().toISOString(),
           lastAttemptAt: null,
@@ -59,7 +62,15 @@ const createMemoryWebhookStore = (): WebhookStore => {
         return Promise.resolve(null);
       }
 
-      const changed = { ...held.subscription, enabled: change.enabled };
+      const changed = {
+        ...held.subscription,
+        ...(change.name === undefined ? {} : { name: change.name }),
+        ...(change.url === undefined ? {} : { url: change.url }),
+        ...(change.preset === undefined ? {} : { preset: change.preset }),
+        ...(change.events === undefined ? {} : { events: change.events }),
+        ...(change.filters === undefined ? {} : { filters: change.filters }),
+        ...(change.enabled === undefined ? {} : { enabled: change.enabled }),
+      };
 
       subscriptions.set(id, { ...held, subscription: changed });
 
@@ -68,10 +79,12 @@ const createMemoryWebhookStore = (): WebhookStore => {
 
     remove: (id) => Promise.resolve(subscriptions.delete(id)),
 
-    listenersFor: (event) =>
+    listenersFor: (occurrence) =>
       Promise.resolve(
         [...subscriptions.values()]
-          .filter((held) => held.subscription.enabled && held.subscription.events.includes(event))
+          .filter(
+            (held) => held.subscription.enabled && subscriptionWants(held.subscription, occurrence),
+          )
           .map((held) => held.subscription.id),
       ),
 

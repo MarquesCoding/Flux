@@ -9,6 +9,18 @@ const aSubscription = {
   events: ['job.failed'],
 } as const;
 
+const aFailure = {
+  event: 'job.failed',
+  data: {
+    kind: 'library.scan',
+    label: 'Scan for changes',
+    jobId: 'job-1',
+    subject: null,
+    subjectName: null,
+    reason: 'no space left',
+  },
+} as const;
+
 let store: WebhookStore;
 
 beforeEach(() => {
@@ -34,7 +46,7 @@ describe('createMemoryWebhookStore', () => {
     const wanted = await store.create({ ...aSubscription, events: ['job.failed'] });
     await store.create({ ...aSubscription, events: ['job.completed'] });
 
-    expect(await store.listenersFor('job.failed')).toStrictEqual([wanted.subscription.id]);
+    expect(await store.listenersFor(aFailure)).toStrictEqual([wanted.subscription.id]);
   });
 
   it('leaves out a subscription that has been turned off', async () => {
@@ -42,7 +54,7 @@ describe('createMemoryWebhookStore', () => {
 
     await store.update(subscription.id, { enabled: false });
 
-    expect(await store.listenersFor('job.failed')).toStrictEqual([]);
+    expect(await store.listenersFor(aFailure)).toStrictEqual([]);
     expect(await store.readTarget(subscription.id)).toBeNull();
   });
 
@@ -195,5 +207,50 @@ describe('the delivery history', () => {
 
     expect(await store.pruneDeliveries(new Date(Date.now() + 60_000))).toBe(1);
     expect(await store.listDeliveries(subscription.id, 10)).toStrictEqual([]);
+  });
+});
+
+describe('changing a subscription that already exists', () => {
+  it('changes which events it asks for, keeping its secret', async () => {
+    const created = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    const changed = await store.update(created.subscription.id, {
+      events: ['playback.started'],
+    });
+
+    expect(changed?.events).toStrictEqual(['playback.started']);
+    expect(await store.readTarget(created.subscription.id)).toMatchObject({
+      secret: created.secret,
+    });
+  });
+
+  it('repoints a subscription somewhere else', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    const changed = await store.update(subscription.id, { url: 'https://elsewhere.test/hook' });
+
+    expect(changed?.url).toBe('https://elsewhere.test/hook');
+  });
+
+  it('leaves alone everything the change did not mention', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    const changed = await store.update(subscription.id, { name: 'Renamed' });
+
+    expect(changed).toMatchObject({
+      name: 'Renamed',
+      url: aSubscription.url,
+      preset: 'discord',
+      events: ['job.failed'],
+      enabled: true,
+    });
+  });
+
+  it('stops delivering what it no longer asks for', async () => {
+    const { subscription } = await store.create({ ...aSubscription, events: ['job.failed'] });
+
+    await store.update(subscription.id, { events: ['job.completed'] });
+
+    expect(await store.listenersFor(aFailure)).toStrictEqual([]);
   });
 });

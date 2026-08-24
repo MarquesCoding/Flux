@@ -12,6 +12,7 @@ import type { CheckboxProps } from './Checkbox.types';
  * wrong.
  *
  * @param label - What ticking it means.
+ * @param description - A qualification the label would be worse for carrying, shown beneath it.
  * @param checked - Whether it is ticked, for a caller holding the state.
  * @param defaultChecked - Whether it starts ticked, for a caller that would rather not.
  * @param disabled - Whether it can be changed at all.
@@ -20,6 +21,7 @@ import type { CheckboxProps } from './Checkbox.types';
  */
 const Checkbox = ({
   label,
+  description,
   checked,
   defaultChecked,
   disabled = false,
@@ -27,15 +29,23 @@ const Checkbox = ({
   className,
 }: CheckboxProps) => {
   const labelId = useId();
+  const describedId = useId();
 
   return (
-    <span className={cn('inline-flex items-center gap-2 text-text', className)}>
+    <span
+      className={cn(
+        'inline-flex gap-2 text-text',
+        description === undefined ? 'items-center' : 'items-start',
+        className,
+      )}
+    >
       <RadixCheckbox.Root
         {...(checked === undefined ? {} : { checked })}
         {...(defaultChecked === undefined ? {} : { defaultChecked })}
         {...(onCheckedChange === undefined ? {} : { onCheckedChange })}
         disabled={disabled}
         aria-labelledby={labelId}
+        {...(description === undefined ? {} : { 'aria-describedby': describedId })}
         data-slot="checkbox"
         className={cn(
           'flex size-5 shrink-0 items-center justify-center rounded-sm border border-input',
@@ -51,7 +61,16 @@ const Checkbox = ({
           <Icon of={CheckIcon} size={14} />
         </RadixCheckbox.Indicator>
       </RadixCheckbox.Root>
-      <span id={labelId}>{label}</span>
+      {description === undefined ? (
+        <span id={labelId}>{label}</span>
+      ) : (
+        <span className="flex flex-col gap-0.5">
+          <span id={labelId}>{label}</span>
+          <span id={describedId} className="text-xs text-text-muted">
+            {description}
+          </span>
+        </span>
+      )}
     </span>
   );
 };

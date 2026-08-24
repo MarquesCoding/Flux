@@ -11,6 +11,7 @@ const aWebhook = (overrides: Partial<WebhookSubscription> = {}): WebhookSubscrip
   url: 'https://discord.com/api/webhooks/1/abc',
   preset: 'discord',
   events: ['job.failed'],
+  filters: { mediaAdded: 'perScan', accounts: [], profiles: [], itemTypes: [] },
   enabled: true,
   createdAt: '2026-08-14T20:00:00.000Z',
   lastAttemptAt: null,
@@ -22,8 +23,11 @@ const aWebhook = (overrides: Partial<WebhookSubscription> = {}): WebhookSubscrip
 const draw = (overrides: Partial<Parameters<typeof WebhooksPanel>[0]> = {}) => {
   const props = {
     webhooks: [],
+    accounts: [],
+    profiles: [],
     created: null,
     onCreate: vi.fn().mockResolvedValue(null),
+    onEdit: vi.fn().mockResolvedValue(null),
     onDismissCreated: vi.fn(),
     onSetEnabled: vi.fn(),
     onDelete: vi.fn(),
@@ -118,6 +122,17 @@ describe('WebhooksPanel', () => {
     await user.click(screen.getByRole('button', { name: 'Delete', hidden: false }));
 
     expect(onDelete).toHaveBeenCalledWith(aWebhook().id);
+  });
+
+  it('opens an editor for a subscription rather than making somebody start again', async () => {
+    const user = userEvent.setup();
+
+    draw({ webhooks: [aWebhook()] });
+
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /Name/ })).toHaveValue('Discord');
   });
 
   it('opens the history for the subscription that was asked about', async () => {
