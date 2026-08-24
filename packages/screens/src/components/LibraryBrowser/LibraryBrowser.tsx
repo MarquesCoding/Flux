@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { FolderOpenIcon } from '@phosphor-icons/react';
 import { Button } from '@ValenceUI/Button';
-import { Icon } from '@ValenceUI/Icon';
+import { NothingHere } from '@ValenceUI/NothingHere';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
@@ -158,21 +158,21 @@ const LibraryBrowser = ({
 
   if (libraries.length === 0) {
     return (
-      <section className="flex min-h-[70vh] flex-col items-center justify-center gap-2 px-5 text-center">
-        <Icon of={FolderOpenIcon} size={28} className="text-text-muted" />
-
-        <h2 className="text-sm font-medium text-text">No libraries yet</h2>
-
-        <p className="max-w-sm text-sm text-text-muted">
-          Add a library pointing at a folder of media, then scan it to see your films here.
-        </p>
-
-        {onAddLibrary === undefined ? null : (
-          <Button variant="glossy" isPill className="mt-2" onClick={onAddLibrary}>
-            Add a library
-          </Button>
-        )}
-      </section>
+      <NothingHere
+        of={FolderOpenIcon}
+        title="No libraries yet"
+        detail="Add a library pointing at a folder of media, then scan it to see your films here."
+        fills
+        {...(onAddLibrary === undefined
+          ? {}
+          : {
+              action: (
+                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                  Add a library
+                </Button>
+              ),
+            })}
+      />
     );
   }
 

@@ -1,4 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
+import { BooksIcon } from '@phosphor-icons/react';
+import { Button } from '@ValenceUI/Button';
+import { NothingHere } from '@ValenceUI/NothingHere';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
 import type { BookShelfProps } from './BookShelf.types';
@@ -11,18 +14,27 @@ import type { BookShelfProps } from './BookShelf.types';
  *
  * @param onOpen - Told which book somebody wants to read.
  */
-const BookShelf = ({ onOpen }: BookShelfProps) => {
+const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
   const asked = useQuery(libraryQueries.all());
   const shelves = (asked.data ?? []).filter((library) => library.kind === 'books');
 
   if (asked.data !== undefined && shelves.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-2 py-16 text-center">
-        <p className="text-lg font-medium text-text">Nothing to read yet</p>
-        <p className="max-w-prose text-sm text-text-muted">
-          Add a library of books from the admin page, point it at a folder of them, and scan it.
-        </p>
-      </div>
+      <NothingHere
+        of={BooksIcon}
+        title="Nothing to read yet"
+        detail="Add a library of books pointing at a folder of them, then scan it to see them here."
+        fills
+        {...(onAddLibrary === undefined
+          ? {}
+          : {
+              action: (
+                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                  Add a library
+                </Button>
+              ),
+            })}
+      />
     );
   }
 

@@ -1,5 +1,5 @@
-import { Icon } from '@ValenceUI/Icon';
 import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { NothingHere } from '@ValenceUI/NothingHere';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
 
 /**
@@ -14,35 +14,28 @@ import type { EmptyLibraryProps } from './EmptyLibrary.types';
 const EmptyLibrary = ({ search, libraryName, hasContentElsewhere }: EmptyLibraryProps) => {
   if (search !== '') {
     return (
-      <div className="flex flex-col items-center gap-2 py-10 text-center">
-        <Icon of={MagnifyingGlassIcon} size={28} className="text-text-muted" />
-
-        <p className="text-sm font-medium text-text">Nothing matches “{search}”</p>
-
-        <p className="max-w-sm text-sm text-text-muted">
-          Try fewer words, or a different spelling. Search looks at titles rather than at what is
-          inside a programme.
-        </p>
-      </div>
+      <NothingHere
+        of={MagnifyingGlassIcon}
+        title={`Nothing matches “${search}”`}
+        detail="Try fewer words, or a different spelling. Search looks at titles rather than at what is inside a programme."
+      />
     );
   }
 
   return (
-    <div className="flex flex-col items-center gap-2 py-10 text-center">
-      <Icon of={FolderOpenIcon} size={28} className="text-text-muted" />
-
-      <p className="text-sm font-medium text-text">
-        {hasContentElsewhere
+    <NothingHere
+      of={FolderOpenIcon}
+      title={
+        hasContentElsewhere
           ? `Nothing in ${libraryName ?? 'this library'} yet`
-          : 'Nothing has been scanned yet'}
-      </p>
-
-      <p className="max-w-sm text-sm text-text-muted">
-        {hasContentElsewhere
+          : 'Nothing has been scanned yet'
+      }
+      detail={
+        hasContentElsewhere
           ? 'Your other libraries have media in them. Scan this one from the admin area, or check that its folder is where Valence expects.'
-          : 'Add a library pointing at a folder of media and scan it, and what it finds will show up here.'}
-      </p>
-    </div>
+          : 'Add a library pointing at a folder of media and scan it, and what it finds will show up here.'
+      }
+    />
   );
 };
 

@@ -1,4 +1,6 @@
 import { useNavigate } from '@tanstack/react-router';
+import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useShell } from '@ValenceClient/shell/useShell';
 import { BookShelf } from '@ValenceScreens/components/BookShelf/BookShelf';
 
 /**
@@ -10,6 +12,8 @@ import { BookShelf } from '@ValenceScreens/components/BookShelf/BookShelf';
  */
 const BooksPage = () => {
   const go = useNavigate();
+  const { user } = useShell();
+  const { go: goWithin } = usePlace();
 
   return (
     <main className="mx-auto w-full max-w-screen-2xl px-4 py-6">
@@ -17,6 +21,13 @@ const BooksPage = () => {
         onOpen={(book) => {
           void go({ to: '/read/$bookId', params: { bookId: book.id } });
         }}
+        {...(user.role === 'admin'
+          ? {
+              onAddLibrary: () => {
+                goWithin({ admin: 'libraries' });
+              },
+            }
+          : {})}
       />
     </main>
   );
