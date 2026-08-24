@@ -73,7 +73,7 @@ const PopoverPanel = ({
           collisionPadding={12}
           data-slot="popover-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-on-scrim',
+            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-text',
             'outline-none',
             POPUP_MOTION,
             className,

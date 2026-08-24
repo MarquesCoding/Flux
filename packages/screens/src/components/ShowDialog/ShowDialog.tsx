@@ -197,7 +197,7 @@ const ShowDialog = ({
               transition={revealTransition(prefersReducedMotion)}
               className="flex flex-wrap items-center gap-3"
             >
-              <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
+              <span className="text-sm font-medium uppercase tracking-[0.2em] text-on-scrim/75">
                 {shown.seasonCount === 1
                   ? `${shown.episodeCount.toString()} episodes`
                   : `${shown.seasonCount.toString()} seasons · ${shown.episodeCount.toString()} episodes`}
@@ -209,7 +209,7 @@ const ShowDialog = ({
               transition={revealTransition(prefersReducedMotion, 'heavy')}
               className={
                 lettered === null || unlettered === lettered.id
-                  ? 'max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text'
+                  ? 'max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-on-scrim'
                   : 'flex'
               }
             >

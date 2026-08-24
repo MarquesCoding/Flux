@@ -88,9 +88,9 @@ const PartyPanel = ({
   );
 
   return (
-    <section className="flex w-80 max-w-full flex-col text-on-scrim">
+    <section className="flex w-80 max-w-full flex-col text-text">
       <div className="flex items-center justify-between gap-2 px-1 pb-2">
-        <p className="text-xs uppercase tracking-wide text-on-scrim/60">
+        <p className="text-xs uppercase tracking-wide text-text-muted">
           {watching.toString()} watching
         </p>
 
@@ -112,7 +112,7 @@ const PartyPanel = ({
 
       {invitation === undefined ? null : (
         <div className="flex flex-col gap-2 rounded-lg bg-subtle p-3">
-          <p className="text-xs leading-relaxed text-on-scrim/70">
+          <p className="text-xs leading-relaxed text-text-muted">
             Send this to anybody with an account here. It puts them in this party, watching this.
           </p>
 
@@ -140,7 +140,7 @@ const PartyPanel = ({
 
       {!mayAsk || onAsk === undefined || elsewhere.length === 0 ? null : (
         <div className="mt-2 flex flex-col gap-2 rounded-lg bg-subtle p-3">
-          <p className="text-xs leading-relaxed text-on-scrim/70">
+          <p className="text-xs leading-relaxed text-text-muted">
             Ask somebody along. They are told wherever they asked to be told things, and the message
             carries this same link.
           </p>
@@ -193,18 +193,18 @@ const PartyPanel = ({
               )}
 
               {member.isWatching ? (
-                <span className="flex items-center gap-1 text-xs text-on-scrim/70">
+                <span className="flex items-center gap-1 text-xs text-text-muted">
                   <Icon of={EyeIcon} size={13} />
                   Watching
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-on-scrim/70">
+                <span className="flex items-center gap-1 text-xs text-text-muted">
                   <Icon of={PauseCircleIcon} size={13} />
                   Not watching
                 </span>
               )}
 
-              {drift !== null && <span className="text-xs text-on-scrim/70">{drift}</span>}
+              {drift !== null && <span className="text-xs text-text-muted">{drift}</span>}
 
               {me?.role === 'host' && member.connectionId !== meConnectionId && (
                 <span className="ml-auto flex gap-1">
@@ -260,14 +260,14 @@ const PartyPanel = ({
             }}
           />
 
-          <p className="text-xs leading-relaxed text-on-scrim/70">
+          <p className="text-xs leading-relaxed text-text-muted">
             Skipping is the disruptive one — a stray scrub throws everybody across the film, which
             is why it can be withheld while pausing stays shared.
           </p>
 
           {onSetPassword === undefined ? null : (
             <div className="flex flex-col gap-2 border-t border-line pt-3">
-              <p className="text-xs leading-relaxed text-on-scrim/70">
+              <p className="text-xs leading-relaxed text-text-muted">
                 {party.hasPassword
                   ? 'This party has a password. Anybody opening the link is asked for it.'
                   : 'A password asks anybody opening the link for it, for a link that may travel further than you meant.'}

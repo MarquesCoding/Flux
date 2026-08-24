@@ -69,7 +69,7 @@ const Tooltip = ({
           collisionPadding={8}
           data-slot="tooltip-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover rounded-md px-2 py-1 text-xs font-medium text-on-scrim shadow-[var(--shadow-lifted)]',
+            'z-50 valence-glass valence-glass--popover rounded-md px-2 py-1 text-xs font-medium text-text shadow-[var(--shadow-lifted)]',
             POPUP_MOTION,
           )}
         >

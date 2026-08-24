@@ -559,6 +559,27 @@ body {
   --raise-ring: rgb(0 0 0 / 0.16);
 }
 
+.valence-artwork-scrim {
+  background-image:
+    linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.4) 38%, transparent 72%),
+    linear-gradient(to right, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
+}
+
+.valence-artwork-blend {
+  background-image: linear-gradient(to top, var(--color-surface) 0%, transparent 20%);
+}
+
+.valence-artwork-blend--raised {
+  background-image: linear-gradient(to top, var(--color-surface-raised) 0%, transparent 22%);
+}
+
+.valence-artwork-veil--raised {
+  background-image:
+    linear-gradient(to top, var(--color-surface-raised) 0%, transparent 22%),
+    linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.4) 38%, transparent 72%),
+    linear-gradient(to right, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
+}
+
 .valence-rail {
   scrollbar-width: none;
 }
