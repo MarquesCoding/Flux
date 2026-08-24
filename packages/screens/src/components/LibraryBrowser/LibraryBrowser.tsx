@@ -168,7 +168,7 @@ const LibraryBrowser = ({
         </p>
 
         {onAddLibrary === undefined ? null : (
-          <Button variant="primary" isPill className="mt-2" onClick={onAddLibrary}>
+          <Button variant="glossy" isPill className="mt-2" onClick={onAddLibrary}>
             Add a library
           </Button>
         )}
