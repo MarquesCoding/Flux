@@ -1577,7 +1577,7 @@ const VideoPlayer = ({
       <header
         className={
           isImmersive
-            ? `absolute inset-x-0 top-0 z-10 flex items-center gap-4 bg-gradient-to-b from-black/70 to-transparent p-4 text-white transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
+            ? `absolute inset-x-0 top-0 z-10 flex items-center gap-4 bg-gradient-to-b from-shade/70 to-transparent p-4 text-on-scrim transition-transform duration-[var(--duration-base)] ease-[var(--ease-out)] motion-reduce:transition-none ${
                 isBarUp ? 'translate-y-0' : '-translate-y-full'
               }`
             : 'flex items-center gap-4'
@@ -1605,8 +1605,8 @@ const VideoPlayer = ({
         tabIndex={-1}
         className={`${
           isImmersive
-            ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-black'
-            : 'relative overflow-hidden rounded-lg bg-black'
+            ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-shade'
+            : 'relative overflow-hidden rounded-lg bg-shade'
         } ${isIdle && !isShowingStats && !isMenuOpen ? 'cursor-none' : 'cursor-default'} outline-none`}
       >
         <VideoSurface
@@ -1637,7 +1637,7 @@ const VideoPlayer = ({
         )}
 
         {!isPoppedOut ? null : (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-shade text-center">
             <Icon of={PictureInPictureIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
@@ -1651,7 +1651,7 @@ const VideoPlayer = ({
         <Toaster id={PLAYER_TOASTS} position="top-center" />
 
         {castState !== 'connected' ? null : (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black text-center">
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-shade text-center">
             <Icon of={ScreencastIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
@@ -1665,7 +1665,7 @@ const VideoPlayer = ({
         {heldFrame === null ? null : (
           <div
             role="presentation"
-            className="pointer-events-none absolute inset-0 bg-black bg-contain bg-center bg-no-repeat"
+            className="pointer-events-none absolute inset-0 bg-shade bg-contain bg-center bg-no-repeat"
             style={{ backgroundImage: `url(${heldFrame.url})` }}
           />
         )}
@@ -1687,7 +1687,7 @@ const VideoPlayer = ({
               size="lg"
             />
 
-            <p className="valence-glass rounded-md px-4 py-1.5 text-sm text-white">
+            <p className="valence-glass rounded-md px-4 py-1.5 text-sm text-on-scrim">
               {party?.isHeld === true
                 ? waitingWord(party.waitingFor)
                 : 'Waiting for more of the film'}
@@ -1700,7 +1700,7 @@ const VideoPlayer = ({
             className={
               heldFrame === null
                 ? 'pointer-events-none absolute inset-0 flex items-center justify-center'
-                : 'pointer-events-none absolute right-3 top-3 rounded-full bg-black/60 p-2 text-white'
+                : 'pointer-events-none absolute right-3 top-3 rounded-full bg-shade/60 p-2 text-on-scrim'
             }
           >
             <Spinner

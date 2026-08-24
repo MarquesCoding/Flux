@@ -49,7 +49,7 @@ const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as cons
 
 const LOGO_BOX = [
   'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
-  'drop-shadow-[0_2px_12px_rgba(0,0,0,0.55)]',
+  'drop-shadow-[var(--shadow-legible)]',
 ].join(' ');
 
 /**
@@ -217,7 +217,7 @@ const Hero = ({
           }
           className={cn(
             'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',
-            'ring-1 ring-white/10 shadow-[0_40px_80px_-40px_rgba(0,0,0,0.9)]',
+            'ring-1 ring-line shadow-[var(--shadow-cast)]',
           )}
         >
           <AnimatePresence initial={false} mode="popLayout">
@@ -299,7 +299,7 @@ const Hero = ({
                     duration: prefersReducedMotion === true ? 0.2 : 0.55,
                     ease: [0.2, 0, 0, 1],
                   }}
-                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[0_1px_8px_rgba(0,0,0,0.7)]"
+                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-text/90 drop-shadow-[var(--shadow-legible-tight)]"
                 >
                   {told}
                 </motion.p>

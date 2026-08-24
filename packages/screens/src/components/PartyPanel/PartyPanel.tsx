@@ -88,9 +88,9 @@ const PartyPanel = ({
   );
 
   return (
-    <section className="flex w-80 max-w-full flex-col text-white">
+    <section className="flex w-80 max-w-full flex-col text-on-scrim">
       <div className="flex items-center justify-between gap-2 px-1 pb-2">
-        <p className="text-xs uppercase tracking-wide text-white/60">
+        <p className="text-xs uppercase tracking-wide text-on-scrim/60">
           {watching.toString()} watching
         </p>
 
@@ -111,13 +111,13 @@ const PartyPanel = ({
       )}
 
       {invitation === undefined ? null : (
-        <div className="flex flex-col gap-2 rounded-lg bg-white/5 p-3">
-          <p className="text-xs leading-relaxed text-white/70">
+        <div className="flex flex-col gap-2 rounded-lg bg-subtle p-3">
+          <p className="text-xs leading-relaxed text-on-scrim/70">
             Send this to anybody with an account here. It puts them in this party, watching this.
           </p>
 
           <div className="flex items-center gap-2">
-            <code className="min-w-0 flex-1 select-all truncate rounded-lg bg-black/30 px-3 py-2 font-mono text-xs">
+            <code className="min-w-0 flex-1 select-all truncate rounded-lg bg-shade/30 px-3 py-2 font-mono text-xs">
               {invitation}
             </code>
 
@@ -139,8 +139,8 @@ const PartyPanel = ({
       )}
 
       {!mayAsk || onAsk === undefined || elsewhere.length === 0 ? null : (
-        <div className="mt-2 flex flex-col gap-2 rounded-lg bg-white/5 p-3">
-          <p className="text-xs leading-relaxed text-white/70">
+        <div className="mt-2 flex flex-col gap-2 rounded-lg bg-subtle p-3">
+          <p className="text-xs leading-relaxed text-on-scrim/70">
             Ask somebody along. They are told wherever they asked to be told things, and the message
             carries this same link.
           </p>
@@ -170,7 +170,7 @@ const PartyPanel = ({
         </div>
       )}
 
-      <ul className="flex flex-col divide-y divide-white/10">
+      <ul className="flex flex-col divide-y divide-divider">
         {party.members.map((member) => {
           const drift = timekeeper === undefined ? null : describeDrift(member, timekeeper);
 
@@ -193,18 +193,18 @@ const PartyPanel = ({
               )}
 
               {member.isWatching ? (
-                <span className="flex items-center gap-1 text-xs text-white/70">
+                <span className="flex items-center gap-1 text-xs text-on-scrim/70">
                   <Icon of={EyeIcon} size={13} />
                   Watching
                 </span>
               ) : (
-                <span className="flex items-center gap-1 text-xs text-white/70">
+                <span className="flex items-center gap-1 text-xs text-on-scrim/70">
                   <Icon of={PauseCircleIcon} size={13} />
                   Not watching
                 </span>
               )}
 
-              {drift !== null && <span className="text-xs text-white/70">{drift}</span>}
+              {drift !== null && <span className="text-xs text-on-scrim/70">{drift}</span>}
 
               {me?.role === 'host' && member.connectionId !== meConnectionId && (
                 <span className="ml-auto flex gap-1">
@@ -243,7 +243,7 @@ const PartyPanel = ({
       </ul>
 
       {me?.role === 'host' && (
-        <div className="flex flex-col gap-3 border-t border-white/10 px-1 pt-3">
+        <div className="flex flex-col gap-3 border-t border-line px-1 pt-3">
           <Switch
             label="Everyone can play and pause"
             isOn={party.everyoneMayPlayPause}
@@ -260,14 +260,14 @@ const PartyPanel = ({
             }}
           />
 
-          <p className="text-xs leading-relaxed text-white/70">
+          <p className="text-xs leading-relaxed text-on-scrim/70">
             Skipping is the disruptive one — a stray scrub throws everybody across the film, which
             is why it can be withheld while pausing stays shared.
           </p>
 
           {onSetPassword === undefined ? null : (
-            <div className="flex flex-col gap-2 border-t border-white/10 pt-3">
-              <p className="text-xs leading-relaxed text-white/70">
+            <div className="flex flex-col gap-2 border-t border-line pt-3">
+              <p className="text-xs leading-relaxed text-on-scrim/70">
                 {party.hasPassword
                   ? 'This party has a password. Anybody opening the link is asked for it.'
                   : 'A password asks anybody opening the link for it, for a link that may travel further than you meant.'}

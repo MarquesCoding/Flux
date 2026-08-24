@@ -78,7 +78,7 @@ const VideoSurface = ({
       {...(src === undefined ? {} : { src })}
       loop={loops}
       {...(poster === undefined ? {} : { poster })}
-      className={cn('w-full bg-black', className)}
+      className={cn('w-full bg-shade', className)}
       onTimeUpdate={(event) => {
         onTimeUpdate?.(event.currentTarget.currentTime);
       }}

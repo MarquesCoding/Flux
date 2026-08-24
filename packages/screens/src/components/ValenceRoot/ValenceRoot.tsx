@@ -1,5 +1,7 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { useOfflineMode } from '@ValenceClient/offline/useOfflineMode';
+import { useTheme } from '@ValenceClient/shell/useTheme';
+import { applyTheme } from '@ValenceScreens/theme/applyTheme';
 import { sendWatchedOffline } from '@ValenceClient/offline/watchedOffline';
 import { App } from '@ValenceScreens/components/App/App';
 import { OfflineApp } from '@ValenceScreens/components/OfflineApp/OfflineApp';
@@ -18,11 +20,20 @@ import type { ValenceRootProps } from './ValenceRoot.types';
  * Coming back is the moment anything watched on the aeroplane is told to the server, because it is
  * the first moment there is a server to tell.
  *
+ * The chosen theme is put on the document from here, before the browser paints, because this is the
+ * outermost thing either application has in common. Applied after paint it would show whichever
+ * theme the machine prefers for a frame first, which is the flash everybody recognises.
+ *
  * @param initialTitle - What this instance is called.
  */
 const ValenceRoot = ({ initialTitle }: ValenceRootProps) => {
   const { isOffline } = useOfflineMode();
+  const { theme } = useTheme();
   const wasOffline = useRef(isOffline);
+
+  useLayoutEffect(() => {
+    applyTheme(theme);
+  }, [theme]);
 
   useEffect(() => {
     if (wasOffline.current && !isOffline) {

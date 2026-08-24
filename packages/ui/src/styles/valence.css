@@ -96,6 +96,7 @@
 
   --color-scrim: color-mix(in oklab, black 55%, transparent);
   --color-on-scrim: oklch(0.99 0 0);
+  --color-shade: oklch(0 0 0);
 
   --glass-brightness: 1.35;
 
@@ -112,6 +113,11 @@
   --color-muted: var(--color-surface-raised);
   --color-muted-foreground: var(--color-text-muted);
   --color-subtle: color-mix(in oklab, var(--color-text) 6%, transparent);
+  --color-line: var(--surface-line);
+  --color-hover: var(--surface-hover);
+  --color-active: var(--surface-active);
+  --color-divider: var(--surface-divider);
+  --color-track: color-mix(in oklab, var(--color-text) 12%, transparent);
   --color-destructive: var(--color-danger);
   --color-destructive-foreground: oklch(0.99 0 0);
   --color-input: var(--color-border);
@@ -146,6 +152,11 @@
   --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.06), 0 8px 24px -16px rgb(0 0 0 / 0.35);
   --shadow-lifted: 0 2px 4px rgb(0 0 0 / 0.08), 0 18px 40px -20px rgb(0 0 0 / 0.45);
   --shadow-overlay: 0 24px 60px -24px rgb(0 0 0 / 0.55);
+  --shadow-legible: 0 2px 12px rgb(0 0 0 / 0.55);
+  --shadow-legible-tight: 0 1px 8px rgb(0 0 0 / 0.7);
+  --shadow-artwork: 0 18px 40px -24px rgb(0 0 0 / 0.9);
+  --shadow-artwork-raised: 0 28px 60px -28px rgb(0 0 0 / 0.95);
+  --shadow-cast: 0 40px 80px -40px rgb(0 0 0 / 0.9);
 
   --raise-from: rgb(227 227 227 / 0.8);
   --raise-to: rgb(227 227 227 / 0.8);

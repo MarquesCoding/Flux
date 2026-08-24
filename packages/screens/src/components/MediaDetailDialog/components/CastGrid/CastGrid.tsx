@@ -74,7 +74,7 @@ const CastGrid = ({ members, onOpenPerson }: CastGridProps) => {
                   onOpenPerson?.(member);
                 }}
               >
-                <span className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-raised ring-1 ring-white/10">
+                <span className="aspect-[2/3] w-full overflow-hidden rounded-lg bg-surface-raised ring-1 ring-line">
                   {member.imageUrl === null ? (
                     <span className="flex h-full w-full items-center justify-center">
                       <Icon of={UserIcon} size={48} className="text-text-muted" />

@@ -295,7 +295,7 @@ const ShowDialog = ({
                 Nothing here yet. Episodes appear as they are scanned.
               </p>
             ) : (
-              <ul className="flex flex-col divide-y divide-white/5">
+              <ul className="flex flex-col divide-y divide-divider">
                 {inOrder.map(({ key, at, episode, listed }) => (
                   <li key={key}>
                     {episode === null ? (

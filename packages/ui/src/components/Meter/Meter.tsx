@@ -31,7 +31,7 @@ const Meter = ({ label, fraction, value, className }: MeterProps) => {
         <span className="text-sm tabular-nums text-text">{value}</span>
       </div>
 
-      <span className="block h-1.5 overflow-hidden rounded-full bg-white/10">
+      <span className="block h-1.5 overflow-hidden rounded-full bg-track">
         <span
           style={{ width: `${(filled * 100).toString()}%` }}
           className={cn(

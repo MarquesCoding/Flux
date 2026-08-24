@@ -63,7 +63,7 @@ const Button = ({
           isIconOnly,
           shape: isBare && !isPill ? 'bare' : isPill ? 'pill' : 'square',
         }),
-        isActive && !isBare ? 'bg-white/20' : '',
+        isActive && !isBare ? 'bg-active' : '',
         className,
       )}
       {...rest}

@@ -284,7 +284,7 @@ const MediaPreview = ({
 
   return (
     <div
-      className={`relative overflow-hidden bg-black ${
+      className={`relative overflow-hidden bg-shade ${
         fills ? 'h-full w-full' : 'aspect-video w-full'
       }`}
     >
@@ -304,7 +304,7 @@ const MediaPreview = ({
 
       {absence === null ? null : (
         <div className="pointer-events-none absolute inset-0 flex items-end justify-start p-4">
-          <p className="rounded-md bg-black/65 px-2.5 py-1.5 text-xs font-medium text-white/85 backdrop-blur-sm">
+          <p className="rounded-md bg-shade/65 px-2.5 py-1.5 text-xs font-medium text-on-scrim/85 backdrop-blur-sm">
             {absence === 'pending' ? PREVIEW_PENDING : PREVIEW_ABSENT}
           </p>
         </div>
@@ -401,7 +401,7 @@ const MediaPreview = ({
                   element.pause();
                 }
               }}
-              className="bg-black/50 text-white backdrop-blur"
+              className="bg-shade/50 text-on-scrim backdrop-blur"
             >
               {isPaused ? <Icon of={PlayIcon} size={18} /> : <Icon of={PauseIcon} size={18} />}
             </Button>
@@ -426,7 +426,7 @@ const MediaPreview = ({
                   setIsMuted(isSilenced);
                   saveSoundPreference(isSilenced ? 'muted' : 'audible');
                 }}
-                className="bg-black/50 text-white backdrop-blur"
+                className="bg-shade/50 text-on-scrim backdrop-blur"
               >
                 {isMuted ? (
                   <Icon of={SpeakerSlashIcon} size={18} />

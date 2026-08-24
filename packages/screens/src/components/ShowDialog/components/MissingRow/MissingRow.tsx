@@ -17,7 +17,7 @@ const MissingRow = ({ episodeNumber, title, stillUrl }: MissingRowProps) => (
         {episodeNumber}
       </span>
 
-      <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-surface-raised ring-1 ring-dashed ring-white/15 sm:w-36">
+      <span className="relative aspect-video w-28 shrink-0 overflow-hidden rounded-lg bg-surface-raised ring-1 ring-dashed ring-line sm:w-36">
         {stillUrl === null || stillUrl === undefined ? null : (
           <img
             src={stillUrl}

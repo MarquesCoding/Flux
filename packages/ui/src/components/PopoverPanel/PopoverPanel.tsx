@@ -55,7 +55,7 @@ const PopoverPanel = ({
             'motion-reduce:transition-none',
             'focus-visible:ring-[3px] focus-visible:ring-ring',
             'disabled:cursor-not-allowed disabled:opacity-50',
-            isBare ? '' : 'hover:bg-white/15 data-[state=open]:bg-white/20',
+            isBare ? '' : 'hover:bg-hover data-[state=open]:bg-active',
           )}
         >
           {trigger}
@@ -73,7 +73,7 @@ const PopoverPanel = ({
           collisionPadding={12}
           data-slot="popover-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-white',
+            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-on-scrim',
             'outline-none',
             POPUP_MOTION,
             className,

@@ -31,9 +31,9 @@ type RowProps = {
  * @param children - The fact itself.
  */
 const Row = ({ name, children }: RowProps) => (
-  <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-white/5">
-    <dt className="w-40 shrink-0 text-white/50">{name}</dt>
-    <dd className="min-w-0 break-words font-medium tabular-nums text-white">{children}</dd>
+  <div className="flex gap-3 rounded-md px-1 py-1 transition-colors hover:bg-on-scrim/5">
+    <dt className="w-40 shrink-0 text-on-scrim/50">{name}</dt>
+    <dd className="min-w-0 break-words font-medium tabular-nums text-on-scrim">{children}</dd>
   </div>
 );
 
@@ -56,7 +56,7 @@ type GroupProps = {
  */
 const Group = ({ name, children }: GroupProps) => (
   <div className="mb-3 last:mb-0">
-    <h4 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-white/35">
+    <h4 className="mb-1 px-1 text-[10px] font-semibold uppercase tracking-wider text-on-scrim/35">
       {name}
     </h4>
     <dl className="flex flex-col">{children}</dl>
@@ -117,9 +117,9 @@ const StreamStats = ({
   return (
     <section
       aria-label="Stats for nerds"
-      className="valence-rail valence-glass pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-white"
+      className="valence-rail valence-glass pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-on-scrim"
     >
-      <header className="mb-3 flex items-center justify-between gap-4 border-b border-white/10 pb-2">
+      <header className="mb-3 flex items-center justify-between gap-4 border-b border-on-scrim/10 pb-2">
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>

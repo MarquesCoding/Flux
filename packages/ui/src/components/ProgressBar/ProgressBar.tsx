@@ -30,7 +30,7 @@ const ProgressBar = ({
       max={max}
       aria-label={label}
       data-slot="progress"
-      className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-white/10"
+      className="block h-1.5 w-20 shrink-0 overflow-hidden rounded-full bg-track"
     >
       <RadixProgress.Indicator
         style={value === null ? undefined : { width: `${((value / max) * 100).toString()}%` }}

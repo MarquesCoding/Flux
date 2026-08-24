@@ -5,6 +5,8 @@ import { FilePicker } from '@ValenceUI/FilePicker';
 import { SettingRow } from '@ValenceUI/SettingRow';
 import { TextField } from '@ValenceUI/TextField';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
+import { useTheme } from '@ValenceClient/shell/useTheme';
+import { readTheme } from '@ValenceClient/shell/theme';
 import { Switch } from '@ValenceUI/Switch';
 import { PROFILE_COLOURS, AVATAR_STYLES } from '@ValenceContracts/schemas/ViewerProfile';
 import { STILL_WATCHING_OFF } from '@ValenceContracts/schemas/StillWatching';
@@ -19,6 +21,12 @@ const ASK_AFTER = [
   { id: '3', label: '3' },
   { id: '4', label: '4' },
   { id: '6', label: '6' },
+] as const;
+
+const THEMES = [
+  { id: 'system', label: 'System' },
+  { id: 'light', label: 'Light' },
+  { id: 'dark', label: 'Dark' },
 ] as const;
 
 /**
@@ -38,6 +46,8 @@ const ASK_AFTER = [
  * @param onDraft - Told what somebody changed.
  */
 const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
+  const { theme, choose } = useTheme();
+
   const isReady = profile !== null && draft !== null;
   const seed = profile?.id ?? 'valence';
 
@@ -108,7 +118,7 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
             label={`Use the ${style} face`}
             isActive={draft?.avatar.kind === 'drawn' && draft.avatar.style === style}
             disabled={!isReady}
-            className={`size-8 overflow-hidden rounded-lg bg-white/5 transition-transform ${
+            className={`size-8 overflow-hidden rounded-lg bg-subtle transition-transform ${
               draft?.avatar.kind === 'drawn' && draft.avatar.style === style
                 ? 'ring-2 ring-accent'
                 : 'hover-hover:hover:scale-105'
@@ -139,6 +149,22 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
         >
           <Icon of={ArrowsClockwiseIcon} size={16} />
         </Button>
+      </SettingRow>
+
+      <SettingRow
+        title="Theme"
+        description="Kept on this device rather than on your account, and applied as soon as you choose it."
+      >
+        <SegmentedRow
+          size="sm"
+          tone="accent"
+          label="Theme"
+          value={theme}
+          items={THEMES}
+          onSelect={(chosen) => {
+            choose(readTheme(chosen));
+          }}
+        />
       </SettingRow>
 
       <SettingRow
