@@ -92,6 +92,29 @@ const worthCarrying = (from: Headers): Record<string, string> => {
 };
 
 /**
+ * The headers to send the server, for a request this process is making on the window's behalf.
+ *
+ * Says the request comes from the server it is going to, because out here it does. Anything that
+ * ends or changes a session is refused outright without an origin the server trusts, and a page on a
+ * scheme of our own has none to offer — `valence://app` is not an address the server has ever heard
+ * of, and it is refused as readily as no origin at all. Signing out is the one everybody notices,
+ * because it fails silently and leaves somebody signed in on a machine they walked away from.
+ *
+ * Nothing is given away by saying so. What an origin protects against is a page somewhere else
+ * making a request in somebody's name, and there is no somewhere else: this handler answers only its
+ * own scheme, serves only this client's own bundle, and is the only route to the server. The page
+ * could not have got here another way.
+ *
+ * @param from - The headers the page sent.
+ * @param origin - The server being asked.
+ * @returns What to send onward.
+ */
+const askingAs = (from: Headers, origin: string): Record<string, string> => ({
+  ...worthCarrying(from),
+  origin,
+});
+
+/**
  * Answers as the server would when it cannot be asked.
  *
  * A refusal has to arrive as an answer rather than as nothing. A handler that throws gives the page
@@ -205,7 +228,7 @@ const serveTheApplication = (reach: ServerReach, heldFolder: string): void => {
       try {
         const answer = await net.fetch(onward.toString(), {
           method: request.method,
-          headers: worthCarrying(request.headers),
+          headers: askingAs(request.headers, onward.origin),
           ...(sent === null || sent.byteLength === 0 ? {} : { body: sent }),
           credentials: 'include',
         });
@@ -252,4 +275,4 @@ const serveTheApplication = (reach: ServerReach, heldFolder: string): void => {
   });
 };
 
-export { ORIGIN, claimTheScheme, serveTheApplication };
+export { ORIGIN, askingAs, claimTheScheme, serveTheApplication, worthCarrying };

@@ -1,4 +1,7 @@
 import { ownOrigins } from '@ValenceServer/env/ownOrigins';
+
+const THE_DESKTOP_CLIENT = 'valence://app';
+
 type TrustedOriginsOptions = {
   configured: readonly string[];
   port: number;
@@ -17,6 +20,16 @@ type TrustedOriginsOptions = {
  * is how one of them comes to disagree — better-auth refused an origin the CORS headers had just
  * allowed, and the desktop client saw a server that would not answer.
  *
+ * The desktop client's own scheme is always trusted, and needs to be. Its pages are served from
+ * `valence://app`, which is an origin no operator would think to configure and which every Valence
+ * would need configured identically — so leaving it out meant signing out silently failed on the
+ * desktop, refused as an invalid origin, leaving somebody signed in on a machine they had walked
+ * away from.
+ *
+ * It is safe to trust because it cannot be borrowed. A browser writes the origin header itself and
+ * will not write that one; only an application that registered the scheme can be on it, and the only
+ * application that registers it is this one.
+ *
  * @param configured - What the environment named.
  * @param port - The port this server listens on, for working out its own addresses.
  * @param settings - Where an operator's later additions are stored.
@@ -26,7 +39,7 @@ const trustedOriginsFor =
   ({ configured, port, settings }: TrustedOriginsOptions) =>
   async (): Promise<string[]> => {
     const stored = (await settings.read()).trustedOrigins;
-    const named = [...new Set([...configured, ...stored])];
+    const named = [...new Set([...configured, ...stored, THE_DESKTOP_CLIENT])];
 
     return [...named, ...ownOrigins(named, port)];
   };
