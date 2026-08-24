@@ -24,7 +24,6 @@ const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
         of={BooksIcon}
         title="Nothing to read yet"
         detail="Add a library of books pointing at a folder of them, then scan it to see them here."
-        fills
         {...(onAddLibrary === undefined
           ? {}
           : {
