@@ -146,4 +146,37 @@ describe('BrowseArea', () => {
   it('sets a display name so devtools can identify it', () => {
     expect(BrowseArea.displayName).toBe('BrowseArea');
   });
+
+  it('says nothing about libraries on the page that is not about them', async () => {
+    fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
+
+    renderInAnAddress(<BrowseArea kind="favourites" onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    await screen.findByRole('heading', { name: 'Nothing has been favourited yet' });
+
+    expect(screen.queryByText(/Scan/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Scan it' })).not.toBeInTheDocument();
+  });
+
+  it('talks about every library on the page that reads across all of them', async () => {
+    fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
+
+    renderInAnAddress(
+      <BrowseArea kind="new" onPlay={vi.fn()} onInspect={vi.fn()} onAddLibrary={vi.fn()} />,
+    );
+
+    expect(
+      await screen.findByText('Scan your libraries, or add files to them.'),
+    ).toBeInTheDocument();
+  });
+
+  it('talks about the one library on a page that reads from one', async () => {
+    fetchLibraryItems.mockResolvedValue({ items: [], total: 0 });
+
+    renderInAnAddress(
+      <BrowseArea kind="shows" onPlay={vi.fn()} onInspect={vi.fn()} onAddLibrary={vi.fn()} />,
+    );
+
+    expect(await screen.findByText('Scan it, or add files to its folder.')).toBeInTheDocument();
+  });
 });
