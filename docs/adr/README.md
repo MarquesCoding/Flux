@@ -55,6 +55,7 @@ more valuable than a tidy directory.
 | [0026](0026-the-desktop-client-is-a-window-onto-the-server.md)              | The desktop client is a window onto the server, not a copy of it                          | Proposed                           |
 | [0027](0027-a-book-is-not-a-media-item.md)                                  | Keep books in tables of their own                                                         | Proposed                           |
 | [0028](0028-icons-from-phosphor-at-two-weights.md)                          | Icons from Phosphor, bold at rest and filled in force                                     | Accepted                           |
+| [0029](0029-the-server-migrates-its-own-database.md)                        | The server migrates its own database, and does not try to undo one                        | Proposed                           |
 
 ## Format
 
