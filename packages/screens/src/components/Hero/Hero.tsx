@@ -246,7 +246,6 @@ const Hero = ({
           </AnimatePresence>
 
           <div className="valence-artwork-scrim pointer-events-none absolute inset-0" />
-          <div className="valence-artwork-blend pointer-events-none absolute inset-0" />
 
           <motion.div
             key={featured.id}

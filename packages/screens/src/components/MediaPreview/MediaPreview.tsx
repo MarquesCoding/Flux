@@ -440,7 +440,7 @@ const MediaPreview = ({
       )}
 
       {fills ? null : (
-        <div className="valence-artwork-blend pointer-events-none absolute inset-x-0 bottom-0 h-32" />
+        <div className="valence-artwork-blend--raised pointer-events-none absolute inset-x-0 bottom-0 h-32" />
       )}
     </div>
   );

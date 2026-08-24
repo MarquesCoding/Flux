@@ -565,10 +565,6 @@ body {
     linear-gradient(to right, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
 }
 
-.valence-artwork-blend {
-  background-image: linear-gradient(to top, var(--color-surface) 0%, transparent 20%);
-}
-
 .valence-artwork-blend--raised {
   background-image: linear-gradient(to top, var(--color-surface-raised) 0%, transparent 22%);
 }
