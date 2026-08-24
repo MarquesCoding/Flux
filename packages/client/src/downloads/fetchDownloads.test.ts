@@ -198,6 +198,32 @@ describe('setDownloadPaused', () => {
   });
 });
 
+describe('an answer the server should not have sent', () => {
+  it('reads a nonsensical download as none, rather than throwing into whatever asked', async () => {
+    fetchMock.mockResolvedValue(answering({ nothing: 'useful' }));
+
+    await expect(askForDownload(A_DOWNLOAD.mediaId, '1080p')).resolves.toBeNull();
+  });
+
+  it('reads a nonsensical queue as an empty one', async () => {
+    fetchMock.mockResolvedValue(answering({ downloads: [{ nothing: 'useful' }] }));
+
+    await expect(askForSeries('a-series', '1080p')).resolves.toEqual([]);
+  });
+
+  it('reads a nonsensical offer as no offer', async () => {
+    fetchMock.mockResolvedValue(answering({ nothing: 'useful' }));
+
+    await expect(fetchDownloadOffer(A_DOWNLOAD.mediaId, PROFILE)).resolves.toBeNull();
+  });
+
+  it('still refuses a nonsensical list of downloads outright, because a query catches it', async () => {
+    fetchMock.mockResolvedValue(answering({ downloads: [{ nothing: 'useful' }] }));
+
+    await expect(fetchDownloads()).rejects.toThrow();
+  });
+});
+
 describe('fetchDownloads', () => {
   it('reads everything that has been asked for', async () => {
     fetchMock.mockResolvedValue(answering({ downloads: [A_DOWNLOAD] }));

@@ -9,6 +9,8 @@ import {
 } from '@ValenceContracts/schemas/Download';
 import type { Download, DownloadQuality, Holding } from '@ValenceContracts/schemas/Download';
 import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
+import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 const DownloadOptionSchema = z.object({
   quality: DownloadQualitySchema,
@@ -28,6 +30,24 @@ const DownloadOfferSchema = z.object({
 
 type DownloadOffer = z.infer<typeof DownloadOfferSchema>;
 type DownloadOption = z.infer<typeof DownloadOptionSchema>;
+
+/**
+ * Reads an offer the server sent, and treats one it cannot read as no offer at all.
+ *
+ * Refused rather than thrown, because of where this is called from. These answers are read inside a
+ * click — somebody pressing a button to see what a film would cost — and an exception there escapes
+ * as an unhandled rejection: the spinner stops, nothing is drawn, nobody is told, and the only trace
+ * is in a console the person pressing the button will never open. Nothing is a shape the screen
+ * already knows how to say something about.
+ *
+ * @param said - What the server sent.
+ * @returns The offer, or nothing where it was not one.
+ */
+const anOffer = (said: JsonValue): DownloadOffer | null => {
+  const read = DownloadOfferSchema.safeParse(said);
+
+  return read.success ? read.data : null;
+};
 
 /**
  * What could be downloaded for this item, and what each would cost.
@@ -54,7 +74,7 @@ const fetchDownloadOffer = async (
     return null;
   }
 
-  return DownloadOfferSchema.parse(await response.json());
+  return anOffer(JsonValueSchema.parse(await response.json()));
 };
 
 /**
@@ -85,7 +105,7 @@ const fetchSeriesDownloadOffer = async (
     return null;
   }
 
-  return DownloadOfferSchema.parse(await response.json());
+  return anOffer(JsonValueSchema.parse(await response.json()));
 };
 
 /**
@@ -114,7 +134,9 @@ const askForDownload = async (
     return null;
   }
 
-  return DownloadSchema.parse(await response.json());
+  const read = DownloadSchema.safeParse(await response.json());
+
+  return read.success ? read.data : null;
 };
 
 /**
@@ -144,7 +166,9 @@ const askForSeries = async (
     return [];
   }
 
-  return DownloadListSchema.parse(await response.json()).downloads;
+  const read = DownloadListSchema.safeParse(await response.json());
+
+  return read.success ? read.data.downloads : [];
 };
 
 /**

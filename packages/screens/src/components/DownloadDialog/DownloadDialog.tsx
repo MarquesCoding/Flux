@@ -215,6 +215,9 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
                 await cache.invalidateQueries({ queryKey: downloadQueries.key });
                 onClose();
               })
+              .catch(() => {
+                notify.failed('That could not be started.');
+              })
               .finally(() => {
                 setIsAsking(false);
               });
