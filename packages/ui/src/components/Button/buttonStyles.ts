@@ -1,6 +1,8 @@
 import { cva } from 'class-variance-authority';
 import { PRESS_MOTION } from '@ValenceUI/animations/motion';
 
+const RAISED = 'valence-raise';
+
 const buttonStyles = cva(
   [
     'inline-flex select-none font-medium',
@@ -12,14 +14,12 @@ const buttonStyles = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground shadow-xs hover:bg-primary/90',
-        glossy:
-          'valence-gloss bg-white text-black shadow-xs hover:brightness-105 hover:shadow-[0_10px_30px_-6px_rgba(255,255,255,0.35)]',
-        secondary:
-          'border border-[var(--surface-line)] bg-secondary text-secondary-foreground shadow-xs hover:bg-[var(--surface-hover)]',
-        soft: 'border border-accent/30 bg-accent/15 text-accent hover:bg-accent/25',
+        primary: `${RAISED} valence-raise--tinted [--raise-fill:var(--color-accent)] text-primary-foreground`,
+        glossy: `${RAISED} valence-raise--pale text-black`,
+        secondary: `${RAISED} text-secondary-foreground`,
+        soft: `${RAISED} valence-raise--tinted [--raise-fill:color-mix(in_oklab,var(--color-accent)_28%,var(--color-surface-raised))] text-accent`,
         ghost: 'bg-transparent text-foreground hover:bg-[var(--surface-hover)]',
-        danger: 'bg-destructive text-destructive-foreground shadow-xs hover:bg-destructive/90',
+        danger: `${RAISED} valence-raise--tinted [--raise-fill:var(--color-danger)] text-destructive-foreground`,
         overlay: 'bg-scrim text-on-scrim backdrop-blur-md hover:brightness-125',
         link: 'bg-transparent text-foreground underline-offset-4 hover:underline',
         bare: '',
@@ -51,6 +51,7 @@ const buttonStyles = cva(
       { isIconOnly: true, size: 'lg', class: 'size-10' },
       { isIconOnly: true, size: 'xl', class: 'size-12' },
       { variant: 'bare', class: 'shadow-none active:scale-100' },
+      { variant: ['ghost', 'link', 'overlay'], class: 'shadow-none' },
       { shape: 'pill', isIconOnly: false, class: 'rounded-md' },
     ],
     defaultVariants: {
