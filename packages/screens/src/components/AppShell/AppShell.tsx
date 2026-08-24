@@ -270,7 +270,6 @@ const AppShell = ({
             id: 'notifications',
             label: 'Notifications',
             icon: <Icon of={BellIcon} size={20} />,
-            gesture: 'ring' as const,
             control: notifications,
           },
         ]),

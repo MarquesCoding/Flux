@@ -161,7 +161,11 @@ const LibraryBrowser = ({
       <NothingHere
         of={FolderOpenIcon}
         title="No libraries yet"
-        detail="Add a library pointing at a folder of media, then scan it to see your films here."
+        detail={
+          onAddLibrary === undefined
+            ? 'Ask whoever runs this server to add one.'
+            : 'Point one at a folder of media and scan it.'
+        }
         fills
         {...(onAddLibrary === undefined
           ? {}
@@ -245,6 +249,7 @@ const LibraryBrowser = ({
                 search={appliedSearch}
                 libraryName={libraries.find((entry) => entry.id === loadedFor)?.name ?? null}
                 hasContentElsewhere={heroItems.length > 0}
+                canManage={onAddLibrary !== undefined}
               />
             ) : (
               <div className="flex flex-col gap-10">

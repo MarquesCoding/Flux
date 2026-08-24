@@ -226,6 +226,16 @@ describe('LibraryBrowser', () => {
     expect(screen.queryByRole('button', { name: 'Add a library' })).not.toBeInTheDocument();
   });
 
+  it('tells somebody who cannot add one who can, rather than telling them to', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await screen.findByRole('heading', { name: 'No libraries yet' });
+
+    expect(screen.getByText('Ask whoever runs this server to add one.')).toBeInTheDocument();
+    expect(screen.queryByText(/Point one at a folder/)).not.toBeInTheDocument();
+  });
+
   it('says a server with nothing anywhere has not been scanned yet', async () => {
     fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
     renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);

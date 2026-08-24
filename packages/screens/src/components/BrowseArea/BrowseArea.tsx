@@ -173,7 +173,11 @@ const BrowseArea = ({
             <NothingHere
               of={FolderOpenIcon}
               title="No libraries yet"
-              detail="Add a library pointing at a folder of media, then scan it to see things here."
+              detail={
+                onAddLibrary === undefined
+                  ? 'Ask whoever runs this server to add one.'
+                  : 'Point one at a folder of media and scan it.'
+              }
               {...(onAddLibrary === undefined
                 ? {}
                 : {

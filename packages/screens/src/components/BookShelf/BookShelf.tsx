@@ -23,7 +23,11 @@ const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
       <NothingHere
         of={BooksIcon}
         title="Nothing to read yet"
-        detail="Add a library of books pointing at a folder of them, then scan it to see them here."
+        detail={
+          onAddLibrary === undefined
+            ? 'Ask whoever runs this server to add one.'
+            : 'Point a library at a folder of books and scan it.'
+        }
         {...(onAddLibrary === undefined
           ? {}
           : {
