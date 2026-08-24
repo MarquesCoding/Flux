@@ -82,7 +82,7 @@ const SECTION_LABELS: Record<ShellSection, string> = {
   films: 'Films',
   new: 'New & Popular',
   favourites: 'Favourites',
-  read: 'Read',
+  read: 'Books',
   search: 'Search',
   account: 'Account',
   admin: 'Admin',
