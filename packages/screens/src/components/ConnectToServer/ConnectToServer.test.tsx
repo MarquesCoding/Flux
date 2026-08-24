@@ -133,6 +133,20 @@ describe('coming back because the server stopped answering', () => {
   });
 });
 
+describe('the way in', () => {
+  it('wears the mark, so the first screen is Valence rather than a form on a blank page', () => {
+    render(<ConnectToServer onConnected={vi.fn()} />);
+
+    expect(screen.getByRole('img', { name: 'Valence' })).toBeInTheDocument();
+  });
+
+  it('asks its question as a heading, at the size the profile gate asks its own', () => {
+    render(<ConnectToServer onConnected={vi.fn()} />);
+
+    expect(screen.getByRole('heading', { name: 'Which Valence is yours?' })).toBeInTheDocument();
+  });
+});
+
 describe('what it found on this machine', () => {
   it('offers a server it found, so nobody types the address of their own machine', () => {
     render(<ConnectToServer onConnected={vi.fn()} found={['http://localhost:8420']} />);
