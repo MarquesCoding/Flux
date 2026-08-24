@@ -9,6 +9,11 @@ const fetchLibrariesMock = vi.hoisted(() => vi.fn());
 const fetchItemsMock = vi.hoisted(() => vi.fn());
 const fetchDetailMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
 
+vi.mock('@ValenceClient/books/fetchBooks', () => ({
+  fetchBooks: vi.fn(() => Promise.resolve([])),
+  bookCoverUrl: (bookId: string) => `/api/books/${bookId}/cover`,
+}));
+
 vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   fetchLibraries: fetchLibrariesMock,
   fetchLibraryItems: fetchItemsMock,
@@ -203,6 +208,37 @@ describe('LibraryBrowser', () => {
     renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
 
     expect(await screen.findByRole('heading', { name: 'No libraries yet' })).toBeInTheDocument();
+  });
+
+  it('offers to add one to somebody who can, rather than only describing the task', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+
+    const add = vi.fn();
+
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} onAddLibrary={add} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Add a library' }));
+
+    expect(add).toHaveBeenCalledTimes(1);
+  });
+
+  it('offers it to nobody who could not act on it', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await screen.findByRole('heading', { name: 'No libraries yet' });
+
+    expect(screen.queryByRole('button', { name: 'Add a library' })).not.toBeInTheDocument();
+  });
+
+  it('tells somebody who cannot add one who can, rather than telling them to', async () => {
+    fetchLibrariesMock.mockResolvedValue([]);
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
+
+    await screen.findByRole('heading', { name: 'No libraries yet' });
+
+    expect(screen.getByText('Ask the server admin to add one.')).toBeInTheDocument();
+    expect(screen.queryByText('Add one to get started.')).not.toBeInTheDocument();
   });
 
   it('says a server with nothing anywhere has not been scanned yet', async () => {
@@ -490,5 +526,38 @@ describe('LibraryBrowser', () => {
     await waitFor(() => {
       expect(cardIn('Recently added', 'Arrival')).toBeInTheDocument();
     });
+  });
+
+  it('says a shelf of books that holds nothing is empty, rather than drawing nothing', async () => {
+    fetchLibrariesMock.mockResolvedValue([
+      {
+        id: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
+        name: 'Manga',
+        kind: 'books',
+        path: '/media/books',
+        itemCount: 0,
+        lastScannedAt: null,
+        defaultAudioLanguage: null,
+        filesAtOnce: null,
+      },
+    ]);
+
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} />);
+
+    expect(
+      await screen.findByRole('heading', { name: /Nothing in Manga yet/ }),
+    ).toBeInTheDocument();
+  });
+
+  it('gives an administrator the button that fixes an empty library', async () => {
+    fetchItemsMock.mockResolvedValue({ items: [], total: 0 });
+
+    const manage = vi.fn();
+
+    renderInAnAddress(<LibraryBrowser onPlay={vi.fn()} onAddLibrary={manage} />);
+
+    await userEvent.click(await screen.findByRole('button', { name: 'Scan it' }));
+
+    expect(manage).toHaveBeenCalledTimes(1);
   });
 });

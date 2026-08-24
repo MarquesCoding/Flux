@@ -136,4 +136,19 @@ describe('PopoverPanel', () => {
     expect(panel.className).toContain('data-[state=open]:zoom-in-95');
     expect(panel.className).toContain('origin-[var(--radix-popper-transform-origin');
   });
+
+  it('draws its own hover, since most of these sit on nothing that draws one', () => {
+    draw();
+
+    expect(screen.getByRole('button', { name: 'Episodes' }).className).toContain('hover:bg-white');
+  });
+
+  it('draws none where the chrome around it already does', () => {
+    draw({ isBare: true });
+
+    const trigger = screen.getByRole('button', { name: 'Episodes' });
+
+    expect(trigger.className).not.toContain('hover:bg-white');
+    expect(trigger.className).not.toContain('data-[state=open]:bg-white');
+  });
 });

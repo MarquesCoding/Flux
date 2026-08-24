@@ -24,7 +24,7 @@ const aBridge = (isReachable = true) => ({
     whenChanged: () => () => {},
   },
   reach: {
-    now: isReachable,
+    now: () => isReachable,
     whenChanged: () => () => {},
   },
 });
@@ -108,5 +108,22 @@ describe('installDesktopPlatform', () => {
     installDesktopPlatform();
 
     expect(platformInUse().reachability.isReachable()).toBe(false);
+  });
+
+  it('asks again rather than answering from what it was told first', () => {
+    let isReachable = false;
+
+    vi.stubGlobal('valence', {
+      ...aBridge(),
+      reach: { now: () => isReachable, whenChanged: () => () => {} },
+    });
+
+    installDesktopPlatform();
+
+    expect(platformInUse().reachability.isReachable()).toBe(false);
+
+    isReachable = true;
+
+    expect(platformInUse().reachability.isReachable()).toBe(true);
   });
 });

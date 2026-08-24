@@ -27,6 +27,10 @@ type OfflineMode = {
  * into a mode built around a shelf of downloads would be showing it an empty room and calling it a
  * feature. It draws its ordinary errors instead, which is the honest thing to draw.
  *
+ * Reach is read again after subscribing, not only before. Between the first read and the listener
+ * being attached there is a gap, and a host that publishes only on a change publishes into it once
+ * and never again — which left a window offline against a server that had been answering for hours.
+ *
  * @returns What mode this is, and how to change it.
  */
 const useOfflineMode = (): OfflineMode => {
@@ -36,7 +40,13 @@ const useOfflineMode = (): OfflineMode => {
   const [isReachable, setIsReachable] = useState(() => platform.reachability.isReachable());
   const [isByChoice, setIsByChoice] = useState(chosenOffline);
 
-  useEffect(() => platform.reachability.whenChanged(setIsReachable), [platform]);
+  useEffect(() => {
+    const stop = platform.reachability.whenChanged(setIsReachable);
+
+    setIsReachable(platform.reachability.isReachable());
+
+    return stop;
+  }, [platform]);
 
   const goOffline = useCallback((isChosen: boolean) => {
     chooseOffline(isChosen);

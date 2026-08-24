@@ -88,6 +88,10 @@
         "./packages/ui/src/components/ProgressBar/ProgressBar.types.ts"
       ],
       "@ValenceUI/QrCode": ["./packages/ui/src/components/QrCode/QrCode.tsx"],
+      "@ValenceUI/NothingHere": ["./packages/ui/src/components/NothingHere/NothingHere.tsx"],
+      "@ValenceUI/NothingHere.types": [
+        "./packages/ui/src/components/NothingHere/NothingHere.types.ts"
+      ],
       "@ValenceUI/Rail": ["./packages/ui/src/components/Rail/Rail.tsx"],
       "@ValenceUI/ReadMore": ["./packages/ui/src/components/ReadMore/ReadMore.tsx"],
       "@ValenceUI/ReadMore.types": ["./packages/ui/src/components/ReadMore/ReadMore.types.ts"],

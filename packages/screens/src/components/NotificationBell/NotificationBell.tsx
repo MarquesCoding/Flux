@@ -39,6 +39,7 @@ const NotificationBell = ({
       label="Notifications"
       side="bottom"
       align="center"
+      isBare
       onOpenChange={(isOpen) => {
         if (isOpen) {
           onOpen();
@@ -46,7 +47,7 @@ const NotificationBell = ({
       }}
       trigger={
         <span className="relative flex size-9 items-center justify-center">
-          {unread === 0 ? <Icon of={BellIcon} size={20} /> : <Icon of={BellIcon} size={20} />}
+          <Icon of={BellIcon} size={20} />
 
           {unread === 0 ? null : (
             <Badge tone="accent" size="sm" className="absolute -right-1 -top-1">

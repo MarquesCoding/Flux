@@ -10,6 +10,7 @@ type PopoverPanelProps = {
   side?: 'top' | 'bottom';
   align?: 'start' | 'center' | 'end';
   isDisabled?: boolean;
+  isBare?: boolean;
   className?: string;
 };
 

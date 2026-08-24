@@ -4,37 +4,62 @@ import { Spinner } from '@ValenceUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
+import {
+  FilmSlateIcon,
+  FireIcon,
+  FolderOpenIcon,
+  HeartIcon,
+  TelevisionIcon,
+} from '@phosphor-icons/react';
+import { Button } from '@ValenceUI/Button';
+import { NothingHere } from '@ValenceUI/NothingHere';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { collapseToShows } from '@ValenceClient/library/pickFeatured';
 import { MediaGrid } from '@ValenceScreens/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@ValenceScreens/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@ValenceScreens/library/gridSizePreference';
+import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
 const PAGE_SIZE = 120;
 
-const PAGES: Record<BrowseKind, { title: string; standfirst: string; empty: string }> = {
+const PAGES: Record<
+  BrowseKind,
+  {
+    title: string;
+    standfirst: string;
+    empty: string;
+    of: PhosphorIcon;
+    emptyIsAbout: 'one library' | 'every library' | 'nothing anybody scanned';
+  }
+> = {
   shows: {
     title: 'Shows',
     standfirst: 'Everything that comes in episodes.',
-    empty:
-      'Nothing here belongs to a series yet. Anything with a season and an episode lands here.',
+    empty: 'No shows yet',
+    emptyIsAbout: 'one library',
+    of: TelevisionIcon,
   },
   films: {
     title: 'Films',
     standfirst: 'Everything that stands on its own.',
-    empty: 'Nothing here stands on its own yet. Anything that is not part of a series lands here.',
+    empty: 'No films yet',
+    emptyIsAbout: 'one library',
+    of: FilmSlateIcon,
   },
   new: {
     title: 'New & Popular',
     standfirst: 'The most recent arrivals, newest first.',
-    empty:
-      'Nothing has arrived yet. Scanning a library from the admin page is where things come from.',
+    empty: 'Nothing new yet',
+    emptyIsAbout: 'every library',
+    of: FireIcon,
   },
   favourites: {
     title: 'Favourites',
     standfirst: 'Everything you have kept.',
-    empty: 'Nothing kept yet. The heart on any item puts it here.',
+    empty: 'Nothing has been favourited yet',
+    emptyIsAbout: 'nothing anybody scanned',
+    of: HeartIcon,
   },
 };
 
@@ -64,6 +89,7 @@ const BrowseArea = ({
   favourites = [],
   isKept,
   onToggleKept,
+  onAddLibrary,
 }: BrowseAreaProps) => {
   const [size, setSize] = useState(readGridSize);
   const prefersReducedMotion = useReducedMotion();
@@ -74,6 +100,8 @@ const BrowseArea = ({
   reportItems.current = onItemsLoaded;
 
   const libraries = useQuery(libraryQueries.all());
+
+  const hasNoLibraries = libraries.data !== undefined && libraries.data.length === 0;
 
   const libraryIds = useMemo(
     () => (libraries.data ?? []).map((entry) => entry.id),
@@ -149,7 +177,51 @@ const BrowseArea = ({
         ) : isReading ? (
           <Spinner label={`Reading ${page.title.toLowerCase()}`} size="sm" />
         ) : items.length === 0 ? (
-          <p className="max-w-prose text-text-muted">{page.empty}</p>
+          hasNoLibraries ? (
+            <NothingHere
+              of={FolderOpenIcon}
+              title="No libraries yet"
+              detail={
+                onAddLibrary === undefined
+                  ? 'Ask the server admin to add one.'
+                  : 'Add one to get started.'
+              }
+              {...(onAddLibrary === undefined
+                ? {}
+                : {
+                    action: (
+                      <Button variant="glossy" isPill onClick={onAddLibrary}>
+                        Add a library
+                      </Button>
+                    ),
+                  })}
+            />
+          ) : page.emptyIsAbout === 'nothing anybody scanned' ? (
+            <NothingHere of={page.of} title={page.empty} />
+          ) : (
+            <NothingHere
+              of={page.of}
+              title={page.empty}
+              detail={
+                page.emptyIsAbout === 'every library'
+                  ? onAddLibrary === undefined
+                    ? 'Ask the server admin to scan your libraries.'
+                    : 'Scan your libraries, or add files to them.'
+                  : onAddLibrary === undefined
+                    ? 'Ask the server admin to scan it.'
+                    : 'Scan it, or add files to its folder.'
+              }
+              {...(onAddLibrary === undefined
+                ? {}
+                : {
+                    action: (
+                      <Button variant="glossy" isPill onClick={onAddLibrary}>
+                        Scan it
+                      </Button>
+                    ),
+                  })}
+            />
+          )
         ) : (
           <MediaGrid
             items={items}

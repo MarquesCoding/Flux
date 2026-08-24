@@ -1,5 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
+import { FolderOpenIcon } from '@phosphor-icons/react';
+import { Button } from '@ValenceUI/Button';
+import { NothingHere } from '@ValenceUI/NothingHere';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
@@ -13,6 +16,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
 import { readLastLibrary, rememberLastLibrary } from '@ValenceClient/library/lastLibrary';
+import { bookQueries } from '@ValenceClient/query/bookQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { pickFeatured } from '@ValenceClient/library/pickFeatured';
@@ -59,6 +63,7 @@ const LibraryBrowser = ({
   onOpenShow,
   isKept,
   onToggleKept,
+  onAddLibrary,
   onPlay,
   onShow,
   onWatch,
@@ -80,6 +85,13 @@ const LibraryBrowser = ({
 
   const selected = libraries.find((entry) => entry.id === selectedId) ?? null;
   const shelf = selected !== null && selected.kind === 'books' ? selected : null;
+
+  const onTheShelf = useQuery({
+    ...bookQueries.inLibrary(shelf?.id ?? ''),
+    enabled: shelf !== null,
+  });
+
+  const hasNothingOnTheShelf = shelf !== null && (onTheShelf.data ?? []).length === 0;
 
   const page = useQuery(
     libraryQueries.items(selectedId, { search: appliedSearch, limit: PAGE_SIZE }),
@@ -154,12 +166,25 @@ const LibraryBrowser = ({
 
   if (libraries.length === 0) {
     return (
-      <section className="flex flex-col gap-2">
-        <h2 className="text-lg font-medium text-text">No libraries yet</h2>
-        <p className="text-text-muted">
-          Add a library pointing at a folder of media, then scan it to see your films here.
-        </p>
-      </section>
+      <NothingHere
+        of={FolderOpenIcon}
+        title="No libraries yet"
+        detail={
+          onAddLibrary === undefined
+            ? 'Ask the server admin to add one.'
+            : 'Add one to get started.'
+        }
+        fills
+        {...(onAddLibrary === undefined
+          ? {}
+          : {
+              action: (
+                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                  Add a library
+                </Button>
+              ),
+            })}
+      />
     );
   }
 
@@ -219,7 +244,7 @@ const LibraryBrowser = ({
             animate="shown"
             exit="gone"
           >
-            {shelf !== null ? (
+            {shelf !== null && !hasNothingOnTheShelf ? (
               <BookRail
                 libraryId={shelf.id}
                 title={shelf.name}
@@ -227,11 +252,15 @@ const LibraryBrowser = ({
                   void go({ to: '/read/$bookId', params: { bookId: book.id } });
                 }}
               />
-            ) : items.length === 0 ? (
+            ) : hasNothingOnTheShelf || items.length === 0 ? (
               <EmptyLibrary
                 search={appliedSearch}
-                libraryName={libraries.find((entry) => entry.id === loadedFor)?.name ?? null}
+                libraryName={
+                  shelf?.name ?? libraries.find((entry) => entry.id === loadedFor)?.name ?? null
+                }
                 hasContentElsewhere={heroItems.length > 0}
+                canManage={onAddLibrary !== undefined}
+                {...(onAddLibrary === undefined ? {} : { onManage: onAddLibrary })}
               />
             ) : (
               <div className="flex flex-col gap-10">
