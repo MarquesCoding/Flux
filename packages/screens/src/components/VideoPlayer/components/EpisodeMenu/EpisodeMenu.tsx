@@ -60,6 +60,7 @@ const EpisodeMenu = ({
 
   return (
     <PopoverPanel
+      tone="overlay"
       label="Episodes"
       heading={headingOf(playing?.seasonNumber)}
       isDisabled={isDisabled}

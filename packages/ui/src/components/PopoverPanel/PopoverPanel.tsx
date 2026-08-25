@@ -21,6 +21,7 @@ import type { PopoverPanelProps } from './PopoverPanel.types';
  * @param isDisabled - Whether it can be opened at all.
  * @param isBare - Whether the surrounding chrome already draws the hover, so this must not draw a
  * second one.
+ * @param tone - Whether it sits on the page or over film, where the page's colours say nothing.
  * @param className - Extra classes for the caller's own layout.
  */
 const PopoverPanel = ({
@@ -34,6 +35,7 @@ const PopoverPanel = ({
   align = 'end',
   isDisabled = false,
   isBare = false,
+  tone = 'default',
   className,
 }: PopoverPanelProps) => {
   const portalContainer = usePortalContainer();
@@ -74,6 +76,7 @@ const PopoverPanel = ({
           data-slot="popover-content"
           className={cn(
             'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-text',
+            tone === 'overlay' ? 'valence-glass--film' : '',
             'outline-none',
             POPUP_MOTION,
             className,

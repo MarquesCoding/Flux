@@ -23,4 +23,23 @@ describe('the Valence stylesheet', () => {
     expect(stylesheet).toContain("[data-theme='dark']");
     expect(stylesheet).toContain('prefers-color-scheme: dark');
   });
+
+  it('tells the browser which theme is on, so native controls follow it', () => {
+    expect(stylesheet).toContain('color-scheme: light');
+    expect(stylesheet).toContain('color-scheme: dark');
+  });
+
+  it('gives glass over film the scrim palette rather than the page one', () => {
+    const film = /\.valence-glass--film \{([^}]*)\}/.exec(stylesheet)?.[1] ?? '';
+
+    expect(film).toContain('--color-text: var(--color-on-scrim)');
+    expect(film).toContain('--color-foreground: var(--color-on-scrim)');
+    expect(film).toContain('--color-text-muted:');
+  });
+
+  it('scales the blooms by theme, a glow over black being a wash over white', () => {
+    expect(stylesheet).toContain('--bloom-strength: 0.4');
+    expect(stylesheet).toContain('--bloom-strength: 1');
+    expect(stylesheet).toContain('opacity: var(--bloom-strength)');
+  });
 });

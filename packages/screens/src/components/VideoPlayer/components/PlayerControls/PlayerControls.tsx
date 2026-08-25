@@ -164,7 +164,7 @@ const PlayerControls = ({
   renderPreview,
   partyMenu,
 }: PlayerControlsProps) => (
-  <div className="valence-glass flex flex-col gap-1 rounded-lg px-3 py-2 text-on-scrim sm:px-4">
+  <div className="valence-glass valence-glass--film flex flex-col gap-1 rounded-lg px-3 py-2 text-on-scrim sm:px-4">
     <div className="flex items-center gap-3">
       <Slider
         label={`Seek through ${title}`}
@@ -296,6 +296,7 @@ const PlayerControls = ({
 
       <SettingsMenu
         label="Settings"
+        tone="overlay"
         {...(onMenuOpenChange === undefined ? {} : { onOpenChange: onMenuOpenChange })}
         isDisabled={isDisabled}
         trigger={<Icon of={GearSixIcon} size={20} />}

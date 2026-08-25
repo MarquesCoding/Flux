@@ -65,6 +65,7 @@ const PartyMenu = ({
 
   return (
     <PopoverPanel
+      tone="overlay"
       label={party === null ? 'Watch party' : `Watch party · ${watching.toString()} watching`}
       heading="Watch party"
       isDisabled={isDisabled}

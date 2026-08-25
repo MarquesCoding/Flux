@@ -87,18 +87,18 @@
   --color-surface-raised: oklch(0.9555 0.0118 170);
   --color-border: oklch(0.87 0.016 200);
   --color-text: oklch(0.3548 0.0401 261);
-  --color-text-muted: oklch(0.53 0.03 252);
-  --color-accent: oklch(0.58 0.17 258);
+  --color-text-muted: oklch(0.49 0.03 252);
+  --color-accent: oklch(0.55 0.17 258);
   --color-accent-contrast: oklch(0.99 0 0);
-  --color-highlight: oklch(0.8 0.115 85);
-  --color-highlight-contrast: oklch(0.3548 0.0401 261);
+  --color-highlight: oklch(0.54 0.115 85);
+  --color-highlight-contrast: oklch(0.99 0 0);
   --color-danger: oklch(0.55 0.17 25);
 
   --color-scrim: color-mix(in oklab, black 55%, transparent);
   --color-on-scrim: oklch(0.99 0 0);
   --color-shade: oklch(0 0 0);
 
-  --glass-brightness: 1.35;
+  --glass-brightness: 1.05;
 
   --color-background: var(--color-surface);
   --color-foreground: var(--color-text);
@@ -154,8 +154,8 @@
   --shadow-overlay: 0 24px 60px -24px rgb(0 0 0 / 0.55);
   --shadow-legible: 0 2px 12px rgb(0 0 0 / 0.55);
   --shadow-legible-tight: 0 1px 8px rgb(0 0 0 / 0.7);
-  --shadow-artwork: 0 18px 40px -24px rgb(0 0 0 / 0.9);
-  --shadow-artwork-raised: 0 28px 60px -28px rgb(0 0 0 / 0.95);
+  --shadow-artwork: 0 18px 40px -24px rgb(0 0 0 / 0.28);
+  --shadow-artwork-raised: 0 28px 60px -28px rgb(0 0 0 / 0.34);
   --shadow-cast: 0 40px 80px -40px rgb(0 0 0 / 0.9);
 
   --raise-from: rgb(227 227 227 / 0.8);
@@ -169,12 +169,22 @@
   --surface-active: color-mix(in oklab, var(--color-text) 12%, transparent);
   --surface-divider: color-mix(in oklab, var(--color-text) 18%, transparent);
 
-  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 72%, transparent);
-  --glass-edge: color-mix(in oklab, white 40%, transparent);
-  --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
+  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 88%, transparent);
+  --glass-edge: color-mix(in oklab, var(--color-border) 85%, transparent);
+  --glass-shadow: 0 24px 60px -28px rgb(0 0 0 / 0.18);
+
+  --glass-popover-tint: color-mix(in oklab, var(--color-surface-raised) 92%, transparent);
+  --glass-popover-edge: color-mix(in oklab, var(--color-border) 85%, transparent);
+  --glass-popover-brightness: 1.02;
+
+  --bloom-strength: 0.4;
 }
 
 @layer theme {
+  :root {
+    color-scheme: light;
+  }
+
   :root[data-theme='dark'],
   :root:not([data-theme='light']) {
     @media (prefers-color-scheme: dark) {
@@ -188,15 +198,23 @@
       --color-highlight: oklch(0.8834 0.1013 87);
       --color-highlight-contrast: oklch(0.14 0.012 265);
       --color-danger: oklch(0.68 0.16 25);
+      color-scheme: dark;
       --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
       --glass-edge: color-mix(in oklab, white 16%, transparent);
       --glass-brightness: 0.55;
+      --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
+      --glass-popover-tint: color-mix(in oklab, oklch(0.24 0.018 265) 46%, transparent);
+      --glass-popover-edge: color-mix(in oklab, white 26%, transparent);
+      --glass-popover-brightness: 1;
+      --bloom-strength: 1;
       --surface-line: color-mix(in oklab, white 10%, transparent);
       --surface-hover: color-mix(in oklab, white 10%, transparent);
       --surface-active: color-mix(in oklab, white 20%, transparent);
       --surface-divider: color-mix(in oklab, white 24%, transparent);
       --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.7);
       --shadow-lifted: 0 2px 6px rgb(0 0 0 / 0.5), 0 18px 40px -20px rgb(0 0 0 / 0.8);
+      --shadow-artwork: 0 18px 40px -24px rgb(0 0 0 / 0.9);
+      --shadow-artwork-raised: 0 28px 60px -28px rgb(0 0 0 / 0.95);
       --raise-from: #201e25;
       --raise-to: #323137;
       --raise-edge-from: #4b4951;
@@ -216,15 +234,23 @@
     --color-highlight: oklch(0.8834 0.1013 87);
     --color-highlight-contrast: oklch(0.14 0.012 265);
     --color-danger: oklch(0.68 0.16 25);
+    color-scheme: dark;
     --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
     --glass-edge: color-mix(in oklab, white 16%, transparent);
     --glass-brightness: 0.55;
+    --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
+    --glass-popover-tint: color-mix(in oklab, oklch(0.24 0.018 265) 46%, transparent);
+    --glass-popover-edge: color-mix(in oklab, white 26%, transparent);
+    --glass-popover-brightness: 1;
+    --bloom-strength: 1;
     --surface-line: color-mix(in oklab, white 10%, transparent);
     --surface-hover: color-mix(in oklab, white 10%, transparent);
     --surface-active: color-mix(in oklab, white 20%, transparent);
     --surface-divider: color-mix(in oklab, white 24%, transparent);
     --shadow-raised: 0 1px 2px rgb(0 0 0 / 0.4), 0 8px 24px -16px rgb(0 0 0 / 0.7);
     --shadow-lifted: 0 2px 6px rgb(0 0 0 / 0.5), 0 18px 40px -20px rgb(0 0 0 / 0.8);
+    --shadow-artwork: 0 18px 40px -24px rgb(0 0 0 / 0.9);
+    --shadow-artwork-raised: 0 28px 60px -28px rgb(0 0 0 / 0.95);
     --raise-from: #201e25;
     --raise-to: #323137;
     --raise-edge-from: #4b4951;
@@ -286,6 +312,7 @@ body {
 .valence-bloom {
   position: absolute;
   inset: 0;
+  opacity: var(--bloom-strength);
   background-repeat: no-repeat;
   background-size: 150% 150%;
   background-position: 50% 50%;
@@ -435,15 +462,33 @@ body {
 }
 
 .valence-glass--popover {
-  --glass-tint: color-mix(in oklab, var(--color-surface-raised) 46%, transparent);
-  --glass-edge: color-mix(in oklab, white 26%, transparent);
-  --glass-brightness: 1;
+  --glass-tint: var(--glass-popover-tint);
+  --glass-edge: var(--glass-popover-edge);
+  --glass-brightness: var(--glass-popover-brightness);
 }
 
 .valence-glass--film {
   --glass-tint: color-mix(in oklab, black 45%, transparent);
   --glass-edge: color-mix(in oklab, white 16%, transparent);
   --glass-brightness: 0.5;
+  --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
+  --color-text: var(--color-on-scrim);
+  --color-foreground: var(--color-on-scrim);
+  --color-text-muted: color-mix(in oklab, var(--color-on-scrim) 68%, transparent);
+  --color-muted-foreground: color-mix(in oklab, var(--color-on-scrim) 68%, transparent);
+  --color-border: color-mix(in oklab, white 18%, transparent);
+  --color-input: color-mix(in oklab, white 18%, transparent);
+  --color-track: color-mix(in oklab, white 22%, transparent);
+  --color-subtle: color-mix(in oklab, white 8%, transparent);
+  --surface-line: color-mix(in oklab, white 14%, transparent);
+  --surface-hover: color-mix(in oklab, white 12%, transparent);
+  --surface-active: color-mix(in oklab, white 22%, transparent);
+  --surface-divider: color-mix(in oklab, white 22%, transparent);
+  --color-line: color-mix(in oklab, white 14%, transparent);
+  --color-hover: color-mix(in oklab, white 12%, transparent);
+  --color-active: color-mix(in oklab, white 22%, transparent);
+  --color-divider: color-mix(in oklab, white 22%, transparent);
+  color: var(--color-on-scrim);
 }
 
 .valence-surface {
@@ -560,20 +605,38 @@ body {
 }
 
 .valence-artwork-scrim {
+  --artwork-ramp: 38%;
+  --artwork-ramp-end: 72%;
+  --artwork-side: linear-gradient(
+    to right,
+    rgb(0 0 0 / 0.7) 0%,
+    rgb(0 0 0 / 0.15) 45%,
+    transparent 70%
+  );
+
   background-image:
-    linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.4) 38%, transparent 72%),
-    linear-gradient(to right, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
+    linear-gradient(
+      to top,
+      rgb(0 0 0 / 0.82) 0%,
+      rgb(0 0 0 / 0.4) var(--artwork-ramp),
+      transparent var(--artwork-ramp-end)
+    ),
+    var(--artwork-side);
+}
+
+.valence-artwork-scrim--foot {
+  --artwork-ramp: 25%;
+  --artwork-ramp-end: 48%;
+  --artwork-side: radial-gradient(
+    120% 53% at 0% 100%,
+    rgb(0 0 0 / 0.7) 0%,
+    rgb(0 0 0 / 0.15) 45%,
+    transparent 72%
+  );
 }
 
 .valence-artwork-blend--raised {
   background-image: linear-gradient(to top, var(--color-surface-raised) 0%, transparent 22%);
-}
-
-.valence-artwork-veil--raised {
-  background-image:
-    linear-gradient(to top, var(--color-surface-raised) 0%, transparent 22%),
-    linear-gradient(to top, rgb(0 0 0 / 0.82) 0%, rgb(0 0 0 / 0.4) 38%, transparent 72%),
-    linear-gradient(to right, rgb(0 0 0 / 0.7) 0%, rgb(0 0 0 / 0.15) 45%, transparent 70%);
 }
 
 .valence-rail {

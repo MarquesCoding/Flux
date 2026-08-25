@@ -13,31 +13,40 @@ const scrimIn = (container: HTMLElement): HTMLElement => {
 };
 
 describe('BackdropScrim', () => {
-  it('fades to the colour of the panel it meets, not to the page behind it', () => {
+  it('does not fade the picture into the panel, there being no one colour glass is', () => {
     const { container } = render(<BackdropScrim />);
 
-    expect(scrimIn(container).className).toContain('valence-artwork-veil--raised');
+    expect(scrimIn(container).className).not.toContain('--raised');
   });
 
   it('darkens the artwork the same way whichever theme is on, since it is over a picture', () => {
     const { container } = render(<BackdropScrim />);
 
-    expect(scrimIn(container).className).toContain('valence-artwork-veil--raised');
+    expect(scrimIn(container).className).toContain('valence-artwork-scrim');
   });
 
-  it('reaches past its container, so no sliver of artwork survives the join', () => {
-    const { container } = render(<BackdropScrim />);
-
-    expect(scrimIn(container).className).toContain('-bottom-px');
-  });
-
-  it('keeps the darkening and the blend as separate layers, so neither can wash the other out', () => {
+  it('takes the same box as the picture, so its edges are not their own to draw a line along', () => {
     const { container } = render(<BackdropScrim />);
 
     const painted = scrimIn(container).className;
 
-    expect(painted).toContain('valence-artwork-veil--raised');
-    expect(painted).not.toContain('valence-artwork-blend--raised ');
+    expect(painted).toContain('inset-0');
+    expect(painted).not.toContain('h-2/3');
+  });
+
+  it('paints nothing that carries the page palette, so the light theme cannot wash it out', () => {
+    const { container } = render(<BackdropScrim />);
+
+    const painted = scrimIn(container).className;
+
+    expect(painted).toContain('valence-artwork-scrim');
+    expect(painted).not.toContain('valence-artwork-blend--raised');
+  });
+
+  it('takes the side darkening to the corner, so a scrim over part of a picture draws no line', () => {
+    const { container } = render(<BackdropScrim />);
+
+    expect(scrimIn(container).className).toContain('valence-artwork-scrim--foot');
   });
 
   it('is scenery rather than something to read or press', () => {
