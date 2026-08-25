@@ -174,7 +174,7 @@ const MediaDetailDialog = ({
           transition={{ duration: prefersReducedMotion === true ? 0 : 0.35, ease: 'easeOut' }}
         >
           <div ref={topRef} className="relative overflow-hidden rounded-2xl">
-            <div className="h-[42vh] min-h-[16rem] sm:h-[26rem]">
+            <div className="relative h-[42vh] min-h-[16rem] sm:h-[26rem]">
               <MediaPreview
                 mediaId={shown.id}
                 backdropUrl={shown.hasBackdrop ? artworkUrl(shown.id, 'backdrop') : null}
@@ -206,9 +206,13 @@ const MediaDetailDialog = ({
                 fills
                 onPlayingChange={setIsPreviewPlaying}
               />
-            </div>
 
-            <BackdropScrim />
+              <BackdropScrim
+                className={`transition-opacity duration-700 ${
+                  isPreviewPlaying ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+            </div>
 
             {onBack === undefined ? null : (
               <div className="absolute left-4 top-4">
@@ -251,7 +255,7 @@ const MediaDetailDialog = ({
                 transition={revealTransition(prefersReducedMotion)}
                 className="flex flex-wrap items-center justify-between gap-3"
               >
-                <span className="text-sm font-medium uppercase tracking-[0.2em] text-text-muted">
+                <span className="text-sm font-medium uppercase tracking-[0.2em] text-on-scrim/75">
                   {shown.seriesTitle === null || shown.seriesTitle === undefined
                     ? null
                     : shown.title}
@@ -261,7 +265,7 @@ const MediaDetailDialog = ({
               <motion.h2
                 variants={revealVariants(prefersReducedMotion)}
                 transition={revealTransition(prefersReducedMotion, 'heavy')}
-                className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-text"
+                className="max-w-[16ch] text-[clamp(2rem,6vw,3.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-on-scrim"
               >
                 {shown.seriesTitle ?? shown.title}
               </motion.h2>
@@ -273,7 +277,7 @@ const MediaDetailDialog = ({
                 <MediaFacts
                   media={shown}
                   hasRuntime
-                  className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-text-muted"
+                  className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-on-scrim/75"
                 />
               </motion.div>
             </motion.div>

@@ -1687,7 +1687,7 @@ const VideoPlayer = ({
               size="lg"
             />
 
-            <p className="valence-glass rounded-md px-4 py-1.5 text-sm text-on-scrim">
+            <p className="valence-glass valence-glass--film rounded-md px-4 py-1.5 text-sm text-on-scrim">
               {party?.isHeld === true
                 ? waitingWord(party.waitingFor)
                 : 'Waiting for more of the film'}

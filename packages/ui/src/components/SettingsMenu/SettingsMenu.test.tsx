@@ -37,6 +37,30 @@ afterEach(() => {
 });
 
 describe('SettingsMenu', () => {
+  it('takes film glass over video, so neither theme decides how it reads', async () => {
+    const actor = userEvent.setup();
+
+    render(
+      <SettingsMenu label="Settings" trigger={<span>gear</span>} rows={[SPEED]} tone="overlay" />,
+    );
+    await open(actor);
+
+    const menu = await screen.findByRole('dialog', { name: 'Settings' });
+
+    expect(menu.className).toContain('valence-glass--film');
+  });
+
+  it("takes the page's glass when it is not over anything", async () => {
+    const actor = userEvent.setup();
+
+    draw();
+    await open(actor);
+
+    const menu = await screen.findByRole('dialog', { name: 'Settings' });
+
+    expect(menu.className).not.toContain('valence-glass--film');
+  });
+
   it('keeps everything behind one control', () => {
     draw();
 

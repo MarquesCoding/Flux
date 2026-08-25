@@ -85,13 +85,13 @@ describe('TextField', () => {
     expect(input).toHaveAttribute('max', '59');
   });
 
-  it('draws a time field against a dark surface', () => {
+  it('leaves a time field to the theme rather than pinning it dark', () => {
     render(<TextField label="Time" value="03:00" onValueChange={vi.fn()} type="time" />);
 
     const input = screen.getByLabelText('Time');
 
     expect(input).toHaveAttribute('type', 'time');
-    expect(input.className).toContain('[color-scheme:dark]');
+    expect(input.className).not.toContain('color-scheme');
   });
 
   it('does not accept input when disabled', async () => {
