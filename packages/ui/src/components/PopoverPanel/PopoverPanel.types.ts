@@ -11,6 +11,7 @@ type PopoverPanelProps = {
   align?: 'start' | 'center' | 'end';
   isDisabled?: boolean;
   isBare?: boolean;
+  tone?: 'default' | 'overlay';
   className?: string;
 };
 

@@ -109,7 +109,6 @@ const TextField = ({
                     ? 'h-12 px-6 text-base'
                     : 'h-9 px-3.5 text-sm',
             isBare && size === 'xl' ? 'text-2xl tracking-tight sm:text-3xl' : '',
-            type === 'time' ? '[color-scheme:dark]' : '',
             isBare ? '' : isPill ? 'rounded-full' : 'rounded-md',
             error === undefined ? '' : 'border-destructive',
           )}

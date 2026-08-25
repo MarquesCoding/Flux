@@ -169,16 +169,16 @@ const ShowDialog = ({
         </ScrolledTitle>
 
         <div ref={topRef} className="relative overflow-hidden rounded-2xl">
-          <div className="h-[34vh] min-h-[14rem] sm:h-[22rem]">
+          <div className="relative h-[34vh] min-h-[14rem] sm:h-[22rem]">
             <MediaPreview
               mediaId={shown.coverMediaId}
               backdropUrl={artworkUrl(shown.coverMediaId)}
               durationSeconds={0}
               fills
             />
-          </div>
 
-          <BackdropScrim />
+            <BackdropScrim />
+          </div>
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>

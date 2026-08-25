@@ -62,6 +62,7 @@ type SettingsMenuProps = {
   rows: SettingsRow[];
   onOpenChange?: (isOpen: boolean) => void;
   isDisabled?: boolean;
+  tone?: 'default' | 'overlay';
   className?: string;
 };
 

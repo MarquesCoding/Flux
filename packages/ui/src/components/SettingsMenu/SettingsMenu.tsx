@@ -59,6 +59,7 @@ const opensSomething = (row: SettingsRow): row is SettingsChoiceRow | SettingsPa
  * @param rows - The settings, each a choice, a toggle or a panel.
  * @param onOpenChange - Told when the menu opens or closes.
  * @param isDisabled - Whether it can be opened at all.
+ * @param tone - Whether it sits on the page or over film, where the page's colours say nothing.
  * @param className - Extra classes for the caller's own layout.
  */
 const SettingsMenu = ({
@@ -68,6 +69,7 @@ const SettingsMenu = ({
   rows,
   onOpenChange,
   isDisabled = false,
+  tone = 'default',
   className,
 }: SettingsMenuProps) => {
   const portalContainer = usePortalContainer();
@@ -129,6 +131,7 @@ const SettingsMenu = ({
           data-slot="settings-menu"
           className={cn(
             'z-50 valence-glass valence-glass--popover flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
+            tone === 'overlay' ? 'valence-glass--film' : '',
             POPUP_MOTION,
           )}
         >
@@ -161,7 +164,7 @@ const SettingsMenu = ({
                           isOn={row.isOn}
                           onToggle={row.onToggle}
                           icon={row.icon}
-                          tone="overlay"
+                          tone={tone}
                           className={cn(ROW, 'shrink-0 ')}
                         />
                       );

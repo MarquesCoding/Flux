@@ -117,7 +117,7 @@ const StreamStats = ({
   return (
     <section
       aria-label="Stats for nerds"
-      className="valence-rail valence-glass pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-on-scrim"
+      className="valence-rail valence-glass valence-glass--film pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-on-scrim"
     >
       <header className="mb-3 flex items-center justify-between gap-4 border-b border-on-scrim/10 pb-2">
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>

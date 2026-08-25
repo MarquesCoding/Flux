@@ -143,6 +143,30 @@ describe('PopoverPanel', () => {
     expect(screen.getByRole('button', { name: 'Episodes' }).className).toContain('hover:bg-hover');
   });
 
+  it("takes the page's glass by default", async () => {
+    const actor = userEvent.setup();
+
+    draw();
+
+    await actor.click(screen.getByRole('button', { name: 'Episodes' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Episodes' });
+
+    expect(panel.className).not.toContain('valence-glass--film');
+  });
+
+  it("takes film glass over video, where the page's colours say nothing", async () => {
+    const actor = userEvent.setup();
+
+    draw({ tone: 'overlay' });
+
+    await actor.click(screen.getByRole('button', { name: 'Episodes' }));
+
+    const panel = await screen.findByRole('dialog', { name: 'Episodes' });
+
+    expect(panel.className).toContain('valence-glass--film');
+  });
+
   it('draws none where the chrome around it already does', () => {
     draw({ isBare: true });
 
