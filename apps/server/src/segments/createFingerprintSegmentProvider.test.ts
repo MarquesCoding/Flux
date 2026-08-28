@@ -79,7 +79,8 @@ const transcoderThat = (
   forgetTrickplay: () => Promise.reject(new Error('not used')),
   sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.resolve(probe),
-  startSession: () => Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false }),
+  startSession: () =>
+    Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false, reuse: 'none' as const }),
   readSessionFile: () => Promise.resolve(null),
   readFile: () => Promise.resolve(null),
   fingerprint: (request) => Promise.resolve(fingerprint(request.inputPath)),

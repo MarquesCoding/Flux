@@ -169,7 +169,28 @@ describe('stopPlaybackSession', () => {
   it('tells the server the session is finished', async () => {
     await stopPlaybackSession('abc');
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', { method: 'DELETE' });
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', {
+      method: 'DELETE',
+      keepalive: false,
+    });
+  });
+
+  it('names the device letting go, so the server knows which viewer left', async () => {
+    await stopPlaybackSession('abc', 'tab-1');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc?clientId=tab-1', {
+      method: 'DELETE',
+      keepalive: false,
+    });
+  });
+
+  it('asks the browser to finish the request where the page is going away', async () => {
+    await stopPlaybackSession('abc', 'tab-1', true);
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc?clientId=tab-1', {
+      method: 'DELETE',
+      keepalive: true,
+    });
   });
 
   it('does not throw when the server is unreachable', async () => {

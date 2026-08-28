@@ -225,6 +225,7 @@ describe('fetchActiveSessions', () => {
       hasBackdrop: true,
       mode: 'direct' as const,
       plan,
+      reuse: null,
       isPlaying: true,
       pausedByAdmin: false,
       startedAt: 1500,
@@ -236,6 +237,36 @@ describe('fetchActiveSessions', () => {
     answerWith([SESSION]);
 
     await expect(fetchActiveSessions()).resolves.toEqual([SESSION]);
+  });
+
+  it('reads what the server found already made for a session', async () => {
+    answerWith([
+      { ...SESSION, playback: { ...SESSION.playback, mode: 'transcode', reuse: 'shared' } },
+    ]);
+
+    await expect(fetchActiveSessions()).resolves.toMatchObject([{ playback: { reuse: 'shared' } }]);
+  });
+
+  it('reads a server that has not learned to say what it reused as having reused nothing', async () => {
+    answerWith([
+      {
+        ...SESSION,
+        playback: {
+          mediaId: 'media-1',
+          mediaTitle: 'Arrival',
+          hasPoster: true,
+          hasBackdrop: true,
+          mode: 'direct',
+          plan,
+          isPlaying: true,
+          pausedByAdmin: false,
+          startedAt: 1500,
+          health: null,
+        },
+      },
+    ]);
+
+    await expect(fetchActiveSessions()).resolves.toMatchObject([{ playback: { reuse: null } }]);
   });
 
   it('says so when the answer is not the shape it was promised', async () => {

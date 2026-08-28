@@ -103,6 +103,7 @@ describe('presence over HTTP', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });
@@ -134,6 +135,7 @@ describe('presence over HTTP', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });
@@ -166,6 +168,7 @@ describe('presence over HTTP', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });

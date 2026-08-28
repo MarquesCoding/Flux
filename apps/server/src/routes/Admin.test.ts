@@ -43,6 +43,7 @@ const build = (
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
   const presence = createPresenceService();
+  const playback = createMemoryPlaybackService();
 
   const app = createApp({
     ...(waiting.isTranscoderReachable === undefined
@@ -65,7 +66,7 @@ const build = (
         },
       ]),
     library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
-    playback: createMemoryPlaybackService(),
+    playback,
     segments: createMemorySegmentService(),
     subtitles: createMemorySubtitleService({}),
     progress: createMemoryWatchProgressService(),
@@ -75,7 +76,7 @@ const build = (
     presence,
   });
 
-  return { app, settings, store, permissions, presence };
+  return { app, settings, store, permissions, presence, playback };
 };
 
 const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
@@ -272,6 +273,45 @@ describe('administration over HTTP', () => {
     expect(send).toHaveBeenCalledWith({ kind: 'message', text: 'Restarting in five minutes' });
   });
 
+  it('names the device an admin stopped, so it stops counting as a viewer', async () => {
+    const context = build();
+    const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
+    const stop = vi.spyOn(context.playback, 'stop');
+
+    context.presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+    context.presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'transcode',
+      reuse: 'none',
+      transcoderSessionId: 'ses-1',
+      plan: {
+        mediaId: 'media-1',
+        container: { kind: 'passthrough', reason: REASON },
+        video: { kind: 'passthrough', reason: REASON },
+        audio: { kind: 'passthrough', streamIndex: 1, reason: REASON },
+        subtitles: { kind: 'none', reason: REASON },
+      },
+    });
+
+    const response = await context.app.request(`${BASE}/api/admin/sessions/tab-1`, {
+      method: 'DELETE',
+      headers: { cookie, origin: BASE },
+    });
+
+    expect(response.status).toBe(204);
+    expect(stop).toHaveBeenCalledWith('ses-1', 'tab-1');
+  });
+
   it('leaves the session exactly as it found it', async () => {
     const context = build();
     const cookie = await signedInAsAdmin(context.app, context.store, context.permissions);
@@ -290,6 +330,7 @@ describe('administration over HTTP', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan: {
         mediaId: 'media-1',
@@ -854,6 +895,7 @@ describe('watching and steering what is being watched', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan: {
         mediaId: 'media-1',

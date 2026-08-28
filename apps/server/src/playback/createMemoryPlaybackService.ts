@@ -84,6 +84,7 @@ const createMemoryPlaybackService = (
         mode: describePlaybackMode(plan),
         plan,
         warnings: [],
+        reuse: null,
       },
     });
   },

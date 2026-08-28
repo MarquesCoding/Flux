@@ -9,6 +9,7 @@ import {
   describeVideoAxis,
   describeAudioAxis,
 } from '@ValenceCore/functions/describePlaybackAxis';
+import { describeTranscodeReuse } from '@ValenceCore/functions/describeTranscodeReuse';
 import type { SessionStatsDialogProps } from './SessionStatsDialog.types';
 
 type RowProps = {
@@ -67,6 +68,7 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
                   ? 'Transcoding — the server is converting this on the fly'
                   : 'Direct play — the original file, unconverted'}
               </Row>
+              <Row name="Reused">{describeTranscodeReuse(playback.reuse)}</Row>
               <Row name="Status">
                 {playback.isPlaying
                   ? 'Playing'

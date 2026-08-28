@@ -4,6 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
+use serde::Serialize;
 use thiserror::Error;
 use tokio::process::Command;
 use tokio::sync::{oneshot, Mutex, Notify};
@@ -214,6 +215,27 @@ pub struct Session {
     /// what stops one viewer closing their tab from taking the transcode away
     /// from the others. See ADR-0011.
     holders: usize,
+    /// Which devices are holding this session open.
+    ///
+    /// Not the same question as how many holders there are. A player opening a
+    /// stream asks for it twice on its own — that is what `starting` exists to
+    /// absorb — so a second request is far more often the same viewer arriving
+    /// than a different one, and only the device can tell those apart.
+    ///
+    /// Counted per device rather than held as a set, because a device leaves as
+    /// well as arrives: one that stopped watching is not somebody the next
+    /// joiner is sharing with, and a set could only ever grow.
+    ///
+    /// A player's two opening requests leave it holding twice and stopping
+    /// once, so a device outlives its own stop here exactly as it does in
+    /// `holders`. Idle collection is what ends that, as it always was.
+    devices: HashMap<String, usize>,
+    /// What this session found already made when it was started.
+    ///
+    /// Kept so that the same viewer asking twice is told the same thing twice.
+    /// Their second request joins their own first one, and answering it as
+    /// though somebody else were watching would be false on the common path.
+    reuse: Reuse,
     /// Where every segment of this film begins and ends.
     lengths: Arc<Vec<f64>>,
     groups: Arc<Vec<u32>>,
@@ -363,6 +385,104 @@ fn encode_instead(
     }
 }
 
+/// What a session found already made when it started.
+///
+/// A directory is addressed by the plan that produced it, so a request for a
+/// treatment somebody has already had done finds the work waiting. Which of
+/// these it found decides whether anything is being encoded for this viewer at
+/// all, and that is not something the caller can work out for itself.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Reuse {
+    /// Nothing was there. This transcode is being made now.
+    None,
+    /// Segments from an earlier session were on disk, and the run resumed
+    /// where they stopped rather than encoding them again.
+    Partial,
+    /// The whole transcode was finished already. No ffmpeg runs for this.
+    Whole,
+    /// Another viewer's transcode of exactly this was already running, and
+    /// both of them are now holding it. One ffmpeg, two viewers.
+    Shared,
+}
+
+/// What a session that had to be made found waiting for it.
+///
+/// Only for a directory nothing was already serving — joining a live session is
+/// its own answer, and a finished directory is the same answer however it was
+/// reached.
+///
+/// `resumed` is whether the run actually starts later than the viewer asked
+/// for, rather than whether the directory holds segments at all. Those come
+/// apart: a directory holding somebody else's twenty-minute mark has segments
+/// on it, and a viewer starting from the beginning skips none of them. Calling
+/// that a resumed session would promise saved work to an operator whose
+/// encoder is doing the whole film.
+#[must_use]
+pub fn classify_reuse(is_complete: bool, resumed: bool) -> Reuse {
+    if is_complete {
+        return Reuse::Whole;
+    }
+
+    if resumed {
+        return Reuse::Partial;
+    }
+
+    Reuse::None
+}
+
+/// Whether a request to join a session is a viewer the session does not have.
+///
+/// A player asks for a stream twice as it opens one, so the second request is
+/// usually the same viewer rather than a new one — and telling somebody their
+/// transcode is shared with another person when it is their own second request
+/// is a specific claim about somebody who is not there.
+///
+/// A request that names no device cannot be told apart from either, so it is
+/// not treated as a new viewer. The cost of that is a genuinely shared session
+/// reported as whatever it was made as; the cost the other way is inventing a
+/// viewer, which is worse.
+///
+/// Reads only devices that are still holding the session. A viewer who has
+/// stopped is nobody to share with, which is what [`release_device`] is for.
+///
+/// Asks whether anyone *other than* the joiner is holding it, rather than
+/// whether the joiner is absent from the map. Those differ on the second of a
+/// joiner's own two opening requests, by which point it is in the map itself:
+/// reading its own presence as "not new" told a genuinely sharing viewer
+/// `Shared` once and `None` once, which is the very split this exists to stop.
+#[must_use]
+pub fn is_another_viewer<S: std::hash::BuildHasher>(
+    devices: &HashMap<String, usize, S>,
+    joining: Option<&str>,
+) -> bool {
+    joining.is_some_and(|joining| devices.keys().any(|holding| holding != joining))
+}
+
+/// Gives up one of a device's holds on a session, forgetting it at the last.
+///
+/// A device still in the map is somebody the next joiner is sharing with, so a
+/// viewer who has gone has to leave it — otherwise the map only grows, and a
+/// tab that closed goes on standing in for a viewer who is not there.
+pub fn release_device<S: std::hash::BuildHasher>(
+    devices: &mut HashMap<String, usize, S>,
+    leaving: Option<&str>,
+) {
+    let Some(leaving) = leaving else {
+        return;
+    };
+
+    let Some(holds) = devices.get_mut(leaving) else {
+        return;
+    };
+
+    *holds = holds.saturating_sub(1);
+
+    if *holds == 0 {
+        devices.remove(leaving);
+    }
+}
+
 /// A session that is now serving, and what it turned out to be doing.
 #[derive(Debug, Clone)]
 pub struct Started {
@@ -374,6 +494,8 @@ pub struct Started {
     /// it will report that decision to a viewer, and it would otherwise report
     /// something that is not happening.
     pub encodes_video: bool,
+    /// What this session found already made when it started.
+    pub reuse: Reuse,
 }
 
 /// Where a run of the transcode began and how far it has got.
@@ -465,6 +587,24 @@ pub fn run_has_closed(run: Option<RunPosition>, wanted: u64) -> bool {
     run.is_some_and(|run| run.from <= wanted && run.head.is_some_and(|head| head >= wanted))
 }
 
+/// The one segment the live run has open for writing right now.
+///
+/// ffmpeg writes them in order and names each in its own playlist as it closes
+/// it, so everything up to `head` is whole and the file after it is half of
+/// one. A run that has written nothing yet has the segment it began at open.
+///
+/// This is what stops a restart over a half-finished directory serving a
+/// truncated segment. The directory an abandoned session left behind keeps its
+/// segments — the boundaries beside them are still good, so nothing discards
+/// them — and a run started over it reopens the first one and truncates it
+/// while the second is still there from before. Without this, "the next
+/// segment exists, so this one is whole" reads that as proof and hands the
+/// player the piece ffmpeg is midway through writing.
+#[must_use]
+pub fn run_is_writing(run: Option<RunPosition>, wanted: u64) -> bool {
+    run.is_some_and(|run| wanted == run.head.map_or(run.from, |head| head.saturating_add(1)))
+}
+
 /// Whether a segment can be served.
 ///
 /// Existing is not enough, and this is the piece Valence has never had: ffmpeg is
@@ -478,7 +618,9 @@ pub fn run_has_closed(run: Option<RunPosition>, wanted: u64) -> bool {
 ///
 /// The next segment existing stays as the fallback, because a run's playlist is
 /// deleted when the next run starts and the segments it left behind are still
-/// perfectly good.
+/// perfectly good — every one of them except the one the live run has open,
+/// which the fallback cannot tell from a finished file and which
+/// [`run_is_writing`] is there to take back out.
 async fn is_segment_ready(
     directory: &Path,
     wanted: u64,
@@ -499,12 +641,74 @@ async fn is_segment_ready(
         return true;
     }
 
+    if run_is_writing(run, wanted) {
+        return false;
+    }
+
     tokio::fs::try_exists(directory.join(crate::playlist::segment_name(
         index_of(wanted.saturating_add(1)),
         container,
     )))
     .await
     .unwrap_or(false)
+}
+
+/// Where a session's run starts, and what it found already made.
+///
+/// One reading rather than two, because the answers are the same question: a
+/// finished directory has nothing left to run, and anything reused is exactly
+/// the distance between where the viewer asked to begin and where the run
+/// actually has to.
+async fn plan_the_run(
+    directory: &Path,
+    spec: &SessionSpec,
+    lengths: &[f64],
+    is_complete: bool,
+) -> (u64, Reuse) {
+    let opening = segment_at(lengths, f64::from(spec.start_seconds))
+        .and_then(|index| u64::try_from(index).ok())
+        .unwrap_or(0);
+
+    let resume = if is_complete {
+        opening
+    } else {
+        resume_from(directory, opening, lengths.len(), spec.container).await
+    };
+
+    (resume, classify_reuse(is_complete, resume > opening))
+}
+
+/// Where a run has to start, given what an earlier one left behind.
+///
+/// A directory addressed by this plan already holds segments this plan would
+/// produce: the boundaries beside them were checked before any of this ran,
+/// and anything that would change them discards them on the way past. So a run
+/// started at the beginning re-encodes files that are already good — work
+/// nobody asked for, with a viewer waiting behind it for their own segments to
+/// be made a second time.
+///
+/// Walks forward over what is whole and starts where that stops. The last
+/// segment an abandoned run wrote does not count as whole: nothing follows it
+/// to vouch for it, and it is the one ffmpeg had open when it was taken away.
+///
+/// Never past the film's last segment, so a directory holding files beyond the
+/// end of it cannot send a run somewhere the film does not go — and a
+/// directory that holds every segment without ever having been marked complete
+/// still gets a run, rather than a session with nothing writing for it.
+async fn resume_from(
+    directory: &Path,
+    opening: u64,
+    segments: usize,
+    container: SegmentContainer,
+) -> u64 {
+    let last = u64::try_from(segments.saturating_sub(1)).unwrap_or(u64::MAX);
+    let mut at = opening;
+
+    while at < last && is_segment_ready(directory, at, false, None, container).await {
+        at = at.saturating_add(1);
+    }
+
+    at
 }
 
 /// A segment number as the playlist counts them.
@@ -648,8 +852,15 @@ impl SessionRegistry {
         existing.touch();
         existing.holders += 1;
 
+        let is_another_viewer = is_another_viewer(&existing.devices, device);
+
+        if let Some(device) = device {
+            *existing.devices.entry(device.to_owned()).or_insert(0) += 1;
+        }
+
         let directory = existing.directory.clone();
         let encodes_video = matches!(existing.spec.video, VideoAction::Encode { .. });
+        let found = existing.reuse;
 
         drop(sessions);
 
@@ -660,6 +871,13 @@ impl SessionRegistry {
         Some(Started {
             id: id.to_owned(),
             encodes_video,
+            reuse: if is_already_complete(&directory).await {
+                Reuse::Whole
+            } else if is_another_viewer {
+                Reuse::Shared
+            } else {
+                found
+            },
         })
     }
 
@@ -731,6 +949,11 @@ impl SessionRegistry {
             cut_seconds: boundaries.cut_seconds,
         };
 
+        let is_complete = is_already_complete(&directory).await;
+
+        let (resume, reuse) =
+            plan_the_run(&directory, &spec, &boundaries.lengths, is_complete).await;
+
         let mut session = Session {
             id: id.clone(),
             directory,
@@ -742,20 +965,21 @@ impl SessionRegistry {
             reached: Arc::new(AtomicU64::new(0)),
             woken: Arc::new(Notify::new()),
             holders: 1,
+            devices: device
+                .map(|device| (device.to_owned(), 1))
+                .into_iter()
+                .collect(),
+            reuse,
             groups: Arc::new(boundaries.grouping()),
             lengths: Arc::new(boundaries.lengths),
             seeks_forward: boundaries.seeks_forward,
             last_wanted: 0,
         };
 
-        if is_already_complete(&session.directory).await {
+        if is_complete {
             mark_used(&session.directory).await;
         } else {
-            let opening = segment_at(&session.lengths, f64::from(session.spec.start_seconds))
-                .and_then(|index| u64::try_from(index).ok())
-                .unwrap_or(0);
-
-            self.begin_run(&mut session, opening).await;
+            self.begin_run(&mut session, resume).await;
         }
 
         let encodes_video = matches!(session.spec.video, VideoAction::Encode { .. });
@@ -764,7 +988,11 @@ impl SessionRegistry {
 
         sessions.insert(id.clone(), session);
 
-        Ok(Started { id, encodes_video })
+        Ok(Started {
+            id,
+            encodes_video,
+            reuse,
+        })
     }
 
     /// Starts a run at a segment, stopping whatever was running before.
@@ -919,7 +1147,7 @@ impl SessionRegistry {
     ///
     /// The segments stay on disk either way. What ends is the process writing
     /// more of them.
-    pub async fn stop(&self, id: &str) -> bool {
+    pub async fn stop(&self, id: &str, device: Option<&str>) -> bool {
         let mut sessions = self.sessions.lock().await;
 
         let Some(session) = sessions.get_mut(id) else {
@@ -927,6 +1155,8 @@ impl SessionRegistry {
         };
 
         session.holders = session.holders.saturating_sub(1);
+
+        release_device(&mut session.devices, device);
 
         if session.holders == 0 {
             if let Some(mut last) = sessions.remove(id) {
@@ -1491,9 +1721,11 @@ pub async fn await_run(directory: &Path, timeout: Duration) -> bool {
 #[cfg(test)]
 mod tests {
     use super::{
-        classify_exit, resolve_segment, run_has_closed, should_retry_in_software, ExitClass,
-        RunPosition, SegmentPlan, SessionConfig, SessionRegistry,
+        classify_exit, classify_reuse, is_another_viewer, is_segment_ready, release_device,
+        resolve_segment, resume_from, run_has_closed, run_is_writing, should_retry_in_software,
+        ExitClass, Reuse, RunPosition, SegmentPlan, SessionConfig, SessionRegistry,
     };
+    use crate::transcode_plan::SegmentContainer;
 
     fn run(from: u64, head: Option<u64>) -> RunPosition {
         RunPosition { from, head }
@@ -1531,6 +1763,142 @@ mod tests {
     #[test]
     fn takes_no_word_when_nothing_is_running() {
         assert!(!run_has_closed(None, 4));
+    }
+
+    /// The file after the last one named is the one ffmpeg has open.
+    #[test]
+    fn finds_the_segment_the_run_is_writing() {
+        assert!(run_is_writing(Some(run(0, Some(9))), 10));
+    }
+
+    /// A run that has written nothing has the segment it began at open.
+    #[test]
+    fn finds_a_run_that_has_written_nothing_writing_where_it_began() {
+        assert!(run_is_writing(Some(run(300, None)), 300));
+    }
+
+    /// Everything the run has already named is finished with.
+    #[test]
+    fn leaves_alone_what_the_run_has_already_closed() {
+        assert!(!run_is_writing(Some(run(0, Some(9))), 9));
+    }
+
+    /// A segment before the run began is one an earlier run left, and this run
+    /// will never touch it — which is the reuse the fallback exists to serve.
+    #[test]
+    fn leaves_alone_a_segment_from_before_the_run_began() {
+        assert!(!run_is_writing(Some(run(300, Some(320))), 12));
+    }
+
+    /// A forward seek lands beyond the run, on files an earlier one left.
+    /// Those are whole, and refusing them would throw the reuse away.
+    #[test]
+    fn leaves_alone_a_segment_the_run_has_not_reached() {
+        assert!(!run_is_writing(Some(run(300, Some(320))), 400));
+    }
+
+    /// Nothing is running, so nothing is being written.
+    #[test]
+    fn writes_nothing_when_nothing_is_running() {
+        assert!(!run_is_writing(None, 4));
+    }
+
+    /// A finished directory is the whole transcode, whatever else is beside it.
+    #[test]
+    fn reads_a_finished_directory_as_the_whole_transcode() {
+        assert_eq!(classify_reuse(true, true), Reuse::Whole);
+        assert_eq!(classify_reuse(true, false), Reuse::Whole);
+    }
+
+    /// A run that starts later than the viewer asked for skipped work.
+    #[test]
+    fn reads_a_resumed_run_as_part_of_a_transcode_reused() {
+        assert_eq!(classify_reuse(false, true), Reuse::Partial);
+    }
+
+    /// A run starting where the viewer asked skipped nothing, whatever else is
+    /// lying about the directory.
+    #[test]
+    fn reads_a_run_that_skipped_nothing_as_nothing_reused() {
+        assert_eq!(classify_reuse(false, false), Reuse::None);
+    }
+
+    fn holding(devices: &[&str]) -> std::collections::HashMap<String, usize> {
+        devices
+            .iter()
+            .map(|device| ((*device).to_owned(), 1))
+            .collect()
+    }
+
+    /// The common path, and the one this exists for: a player asks for its
+    /// stream twice as it opens it, and the second request is not a stranger.
+    #[test]
+    fn does_not_take_a_viewers_own_second_request_for_somebody_else() {
+        assert!(!is_another_viewer(&holding(&["tab-1"]), Some("tab-1")));
+    }
+
+    /// A different tab, phone or television is genuinely sharing the transcode.
+    #[test]
+    fn takes_a_device_the_session_does_not_have_for_another_viewer() {
+        assert!(is_another_viewer(&holding(&["tab-1"]), Some("tab-2")));
+    }
+
+    /// The second viewer asks twice as well, and by its second request it is
+    /// in the map itself. Reading its own presence as "not new" told one
+    /// person Shared and None about the same session.
+    #[test]
+    fn still_sees_another_viewer_once_the_joiner_is_holding_it_too() {
+        assert!(is_another_viewer(
+            &holding(&["tab-1", "tab-2"]),
+            Some("tab-2")
+        ));
+    }
+
+    /// Nobody is holding it, so there is nobody to share it with.
+    #[test]
+    fn finds_no_other_viewer_where_the_session_has_no_devices() {
+        assert!(!is_another_viewer(&holding(&[]), Some("tab-1")));
+    }
+
+    /// A caller that names no device could be either, and inventing a viewer
+    /// is the worse of the two mistakes.
+    #[test]
+    fn claims_no_other_viewer_for_a_request_that_names_no_device() {
+        assert!(!is_another_viewer(&holding(&["tab-1"]), None));
+    }
+
+    /// A viewer who has stopped is not somebody the next one is sharing with.
+    #[test]
+    fn forgets_a_device_once_it_has_given_up_its_last_hold() {
+        let mut devices = holding(&["tab-1"]);
+
+        release_device(&mut devices, Some("tab-1"));
+
+        assert!(!is_another_viewer(&devices, Some("tab-2")));
+    }
+
+    /// A player holds twice as it opens a stream, so one stop is not a viewer
+    /// leaving — and somebody arriving is still sharing with them.
+    #[test]
+    fn keeps_a_device_that_still_holds_the_session_after_one_stop() {
+        let mut devices = holding(&[]);
+
+        devices.insert("tab-1".to_owned(), 2);
+        release_device(&mut devices, Some("tab-1"));
+
+        assert!(is_another_viewer(&devices, Some("tab-2")));
+    }
+
+    /// A stop that names nobody, or names somebody who was never here, must
+    /// not take a hold away from whoever is.
+    #[test]
+    fn leaves_the_others_alone_for_a_stop_it_cannot_attribute() {
+        let mut devices = holding(&["tab-1"]);
+
+        release_device(&mut devices, None);
+        release_device(&mut devices, Some("never-here"));
+
+        assert!(is_another_viewer(&devices, Some("tab-2")));
     }
 
     /// A segment that is whole is served, whatever the transcode is doing.
@@ -1759,7 +2127,7 @@ mod tests {
     async fn stopping_an_unknown_session_reports_nothing_to_stop() {
         let registry = SessionRegistry::new(SessionConfig::default());
 
-        assert!(!registry.stop("does-not-exist").await);
+        assert!(!registry.stop("does-not-exist", None).await);
     }
 
     #[tokio::test]
@@ -1779,5 +2147,163 @@ mod tests {
     #[test]
     fn keeps_a_session_alive_through_three_missed_heartbeats_worth_of_idle_time() {
         assert_eq!(SessionConfig::default().idle_timeout.as_secs(), 90);
+    }
+
+    /// A directory as an abandoned session leaves it: two segments, and no
+    /// marker to say the film was finished.
+    fn abandoned(name: &str) -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!("valence-readiness-{name}"));
+
+        std::fs::remove_dir_all(&path).ok();
+        std::fs::create_dir_all(&path).expect("the directory can be made");
+
+        for index in 0..2_usize {
+            std::fs::write(
+                path.join(crate::playlist::segment_name(index, SegmentContainer::Fmp4)),
+                b"stale",
+            )
+            .expect("the segment is written");
+        }
+
+        path
+    }
+
+    /// The one a run has open is half a segment, whatever lies beside it.
+    ///
+    /// This is the case the next-segment fallback got wrong: a run started over
+    /// a directory an earlier session abandoned has truncated the first segment
+    /// and the second is still there from before, so the fallback read a file
+    /// being written as a file that was finished.
+    #[tokio::test]
+    async fn refuses_the_segment_the_run_has_open_however_many_lie_beyond_it() {
+        let directory = abandoned("open");
+
+        assert!(
+            !is_segment_ready(
+                &directory,
+                0,
+                false,
+                Some(run(0, None)),
+                SegmentContainer::Fmp4
+            )
+            .await
+        );
+    }
+
+    /// A run working elsewhere will never touch this, so what an earlier run
+    /// left is whole — which is the reuse a viewer seeking about depends on.
+    #[tokio::test]
+    async fn serves_what_an_earlier_run_left_where_this_one_is_elsewhere() {
+        let directory = abandoned("elsewhere");
+
+        assert!(
+            is_segment_ready(
+                &directory,
+                0,
+                false,
+                Some(run(5, Some(9))),
+                SegmentContainer::Fmp4
+            )
+            .await
+        );
+    }
+
+    /// Nothing is writing, so nothing can be half written.
+    #[tokio::test]
+    async fn serves_what_is_on_disk_when_no_run_is_live() {
+        let directory = abandoned("idle");
+
+        assert!(is_segment_ready(&directory, 0, false, None, SegmentContainer::Fmp4).await);
+    }
+
+    /// A finished film is finished, whatever a run believes it is doing.
+    #[tokio::test]
+    async fn serves_from_a_finished_directory_whatever_a_run_says() {
+        let directory = abandoned("finished");
+
+        assert!(
+            is_segment_ready(
+                &directory,
+                0,
+                true,
+                Some(run(0, None)),
+                SegmentContainer::Fmp4
+            )
+            .await
+        );
+    }
+
+    /// A segment nothing has written is not there to serve.
+    #[tokio::test]
+    async fn refuses_a_segment_that_does_not_exist() {
+        let directory = abandoned("absent");
+
+        assert!(!is_segment_ready(&directory, 40, false, None, SegmentContainer::Fmp4).await);
+    }
+
+    /// A directory holding the first `count` segments of a film, and no marker.
+    fn holding_segments(name: &str, count: usize) -> std::path::PathBuf {
+        let path = std::env::temp_dir().join(format!("valence-resume-{name}"));
+
+        std::fs::remove_dir_all(&path).ok();
+        std::fs::create_dir_all(&path).expect("the directory can be made");
+
+        for index in 0..count {
+            std::fs::write(
+                path.join(crate::playlist::segment_name(index, SegmentContainer::Fmp4)),
+                b"stale",
+            )
+            .expect("the segment is written");
+        }
+
+        path
+    }
+
+    /// Nothing on disk, so the run starts where the viewer asked to.
+    #[tokio::test]
+    async fn starts_a_run_where_the_viewer_is_when_nothing_was_left_behind() {
+        let directory = holding_segments("empty", 0);
+
+        assert_eq!(
+            resume_from(&directory, 0, 100, SegmentContainer::Fmp4).await,
+            0
+        );
+    }
+
+    /// The work an abandoned run finished is not done again. Three segments
+    /// exist, the first two are vouched for by the one after them, and the
+    /// third is where ffmpeg was interrupted — so that is where this run goes.
+    #[tokio::test]
+    async fn resumes_where_the_abandoned_run_stopped_being_trustworthy() {
+        let directory = holding_segments("partial", 3);
+
+        assert_eq!(
+            resume_from(&directory, 0, 100, SegmentContainer::Fmp4).await,
+            2
+        );
+    }
+
+    /// A viewer starting past everything on disk is not walked backwards.
+    #[tokio::test]
+    async fn starts_where_the_viewer_asked_when_that_is_past_what_is_there() {
+        let directory = holding_segments("ahead", 3);
+
+        assert_eq!(
+            resume_from(&directory, 40, 100, SegmentContainer::Fmp4).await,
+            40
+        );
+    }
+
+    /// A directory holding the whole film without ever having been marked
+    /// complete still gets a run, on its last segment, rather than a session
+    /// with nothing writing for it and a final segment nothing vouches for.
+    #[tokio::test]
+    async fn never_walks_past_the_last_segment_of_the_film() {
+        let directory = holding_segments("whole", 6);
+
+        assert_eq!(
+            resume_from(&directory, 0, 6, SegmentContainer::Fmp4).await,
+            5
+        );
     }
 }

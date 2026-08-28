@@ -166,9 +166,10 @@ const START_ATTEMPTS = 4;
  * nothing useful to do about a failure to tidy up, and nobody left to tell.
  *
  * @param sessionId - The session to stop.
+ * @param clientId - Which device is letting go of it.
  */
-const abandonStartedSession = (sessionId: string) => {
-  void stopPlaybackSession(sessionId);
+const abandonStartedSession = (sessionId: string, clientId: string) => {
+  void stopPlaybackSession(sessionId, clientId);
 };
 
 const EMPTY_HEALTH: PlaybackHealth = {
@@ -809,10 +810,7 @@ const VideoPlayer = ({
       }
 
       if (startedId !== null) {
-        void fetch(`/api/playback/session/${startedId}`, {
-          method: 'DELETE',
-          keepalive: true,
-        }).catch(() => undefined);
+        void stopPlaybackSession(startedId, clientId, true);
       }
 
       void stopWatching(clientId, true);
@@ -842,7 +840,7 @@ const VideoPlayer = ({
       startedId = outcome.session.sessionId;
 
       if (isAbandoned()) {
-        abandonStartedSession(startedId);
+        abandonStartedSession(startedId, clientId);
 
         return;
       }
@@ -931,7 +929,7 @@ const VideoPlayer = ({
       releaseRef.current = null;
 
       if (startedId !== null) {
-        void stopPlaybackSession(startedId);
+        void stopPlaybackSession(startedId, clientId);
       }
     };
   }, [request, start]);

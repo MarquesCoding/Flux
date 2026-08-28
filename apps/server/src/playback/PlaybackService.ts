@@ -2,6 +2,7 @@ import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { PlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
 import type { QualityStepId } from '@ValenceContracts/schemas/QualityStep';
+import type { TranscodeReuse } from '@ValenceContracts/schemas/TranscodeReuse';
 type Explanation = {
   mode: PlaybackMode;
   plan: PlaybackPlan;
@@ -13,6 +14,7 @@ type StartedSession = Explanation & {
   sessionId: string;
   delivery: Delivery;
   warnings: string[];
+  reuse: TranscodeReuse | null;
 };
 
 type StartOutcome =
@@ -63,7 +65,7 @@ type PlaybackService = {
   readFrame: (mediaId: string, seconds: number, width: number) => Promise<ArrayBuffer | null>;
   readPreview: (mediaId: string, range: string | null) => Promise<PreviewRead>;
   readTrickplayFile: (trickplayId: string, name: string) => Promise<StoredFile | null>;
-  stop: (sessionId: string) => Promise<boolean>;
+  stop: (sessionId: string, deviceId?: string) => Promise<boolean>;
   heartbeat: (sessionId: string, isPlaying: boolean) => Promise<boolean>;
 };
 
