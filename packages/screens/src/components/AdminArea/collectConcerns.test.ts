@@ -92,6 +92,7 @@ const streaming = (bufferedAheadSeconds: number, isPlaying = true): ActiveSessio
     hasBackdrop: false,
     mode: 'transcode',
     plan: PLAN,
+    reuse: null,
     isPlaying,
     pausedByAdmin: false,
     startedAt: 0,

@@ -210,6 +210,7 @@ const createPlaybackService = ({
             mode: describePlaybackMode(plan),
             plan,
             warnings: [],
+            reuse: null,
           },
         };
       }
@@ -259,6 +260,7 @@ const createPlaybackService = ({
             mode: describePlaybackMode(delivered),
             plan: delivered,
             warnings: outcome.warnings,
+            reuse: session.reuse,
           },
         };
       } catch (error) {
@@ -352,7 +354,7 @@ const createPlaybackService = ({
 
     readTrickplayFile: (trickplayId, name) => transcoder.readTrickplayFile(trickplayId, name),
 
-    stop: (sessionId) => transcoder.stopSession(sessionId),
+    stop: (sessionId, deviceId) => transcoder.stopSession(sessionId, deviceId),
 
     heartbeat: (sessionId, isPlaying) => transcoder.heartbeatSession(sessionId, isPlaying),
   };

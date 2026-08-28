@@ -40,6 +40,7 @@ const WATCHING_SESSION: ActiveSession = {
     hasBackdrop: false,
     mode: 'transcode',
     plan: PLAN,
+    reuse: 'none',
     isPlaying: true,
     pausedByAdmin: false,
     startedAt: 1500,
@@ -77,6 +78,26 @@ describe('SessionStatsDialog', () => {
     render(<SessionStatsDialog session={session} isOpen onClose={vi.fn()} />);
 
     expect(screen.getByText('Paused by an admin')).toBeInTheDocument();
+  });
+
+  it('says a transcode is being made now where nothing was reused', () => {
+    render(<SessionStatsDialog session={WATCHING_SESSION} isOpen onClose={vi.fn()} />);
+
+    expect(screen.getByText('No — this transcode is being made now')).toBeInTheDocument();
+  });
+
+  it('says when a session is playing a transcode that was already made', () => {
+    const session: ActiveSession = {
+      ...WATCHING_SESSION,
+      playback:
+        WATCHING_SESSION.playback === null
+          ? null
+          : { ...WATCHING_SESSION.playback, reuse: 'whole' },
+    };
+
+    render(<SessionStatsDialog session={session} isOpen onClose={vi.fn()} />);
+
+    expect(screen.getByText('Yes — the whole transcode was already made')).toBeInTheDocument();
   });
 
   it('says when nothing is playing rather than showing empty fields', () => {

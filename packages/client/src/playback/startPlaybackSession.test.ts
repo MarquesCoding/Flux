@@ -172,6 +172,14 @@ describe('stopPlaybackSession', () => {
     expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', { method: 'DELETE' });
   });
 
+  it('names the device letting go, so the server knows which viewer left', async () => {
+    await stopPlaybackSession('abc', 'tab-1');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc?clientId=tab-1', {
+      method: 'DELETE',
+    });
+  });
+
   it('does not throw when the server is unreachable', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 

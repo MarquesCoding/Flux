@@ -395,7 +395,7 @@ describe('VideoPlayer', () => {
     unmount();
 
     await waitFor(() => {
-      expect(stopMock).toHaveBeenCalledWith('abc');
+      expect(stopMock).toHaveBeenCalledWith('abc', 'client-1');
     });
     expect(teardownMock).toHaveBeenCalled();
     expect(stopWatchingMock).toHaveBeenCalledWith('client-1');
@@ -741,7 +741,7 @@ describe('VideoPlayer', () => {
     deferred.deliver({ kind: 'started', session: { ...startedSession, sessionId: 'orphan' } });
 
     await waitFor(() => {
-      expect(stopMock).toHaveBeenCalledWith('orphan');
+      expect(stopMock).toHaveBeenCalledWith('orphan', 'client-1');
     });
   });
 

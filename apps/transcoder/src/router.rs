@@ -22,7 +22,7 @@ use crate::preview::{
 };
 use crate::probe::probe_media;
 use crate::queue::WorkQueue;
-use crate::session::{await_run, segment_number, SessionRegistry};
+use crate::session::{await_run, segment_number, Reuse, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
 use crate::transcode_plan::{DeviceFilters, SegmentStart, TranscodePlan};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
@@ -186,6 +186,13 @@ pub struct SessionResponse {
     /// viewer so, and this is how it learns that what it decided is not what is
     /// happening. See VAL-125.
     pub encodes_video: bool,
+    /// What this session found already made when it started.
+    ///
+    /// A transcode is addressed by the treatment it performs, so a request for
+    /// one somebody has already had done is answered out of what is on disk.
+    /// Nobody downstream can see that from the manifest — the segments arrive
+    /// the same either way — so it is said here or it is not said at all.
+    pub reuse: Reuse,
 }
 
 #[derive(Debug, Serialize)]
@@ -575,7 +582,7 @@ async fn start_session(
             ),
         );
 
-        state.registry.stop(&id).await;
+        state.registry.stop(&id, device_id.as_deref()).await;
 
         return error(
             StatusCode::INTERNAL_SERVER_ERROR,
@@ -589,6 +596,7 @@ async fn start_session(
             manifest: format!("/sessions/{id}/{MANIFEST_NAME}"),
             id,
             encodes_video: started.encodes_video,
+            reuse: started.reuse,
         }),
     )
         .into_response()
@@ -1249,8 +1257,23 @@ async fn start_fingerprint(
     }
 }
 
-async fn stop_session(State(state): State<AppState>, AxumPath(id): AxumPath<String>) -> Response {
-    if state.registry.stop(&id).await {
+/// Who is letting go of a session.
+///
+/// Optional, and a request without it stops a hold without saying whose. That
+/// is what an older caller sends, and it costs only the accuracy of what the
+/// next joiner is told about who else is watching.
+#[derive(Debug, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct StopSessionQuery {
+    device_id: Option<String>,
+}
+
+async fn stop_session(
+    State(state): State<AppState>,
+    AxumPath(id): AxumPath<String>,
+    Query(query): Query<StopSessionQuery>,
+) -> Response {
+    if state.registry.stop(&id, query.device_id.as_deref()).await {
         return (StatusCode::NO_CONTENT, Body::empty()).into_response();
     }
 

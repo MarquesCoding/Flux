@@ -18,6 +18,7 @@ const PLAYBACK = {
   hasPoster: true,
   hasBackdrop: true,
   mode: 'direct' as const,
+  reuse: null,
   transcoderSessionId: null,
   plan,
 };
@@ -78,6 +79,22 @@ describe('createPresenceService', () => {
     expect(presence.list()).toMatchObject([
       { playback: { mediaTitle: 'Arrival', isPlaying: true } },
     ]);
+  });
+
+  it('carries what the media service found already made through to the session list', () => {
+    const presence = createPresenceService();
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+    presence.startPlayback('tab-1', { ...PLAYBACK, mode: 'transcode', reuse: 'shared' });
+
+    expect(presence.list()).toMatchObject([{ playback: { reuse: 'shared' } }]);
   });
 
   it('clears playback once a tab stops watching', () => {
@@ -333,6 +350,7 @@ describe('the things presence is asked about tabs it does not have', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });
@@ -384,6 +402,7 @@ describe('the things presence is asked about tabs it does not have', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });
@@ -412,6 +431,7 @@ describe('the things presence is asked about tabs it does not have', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan,
     });

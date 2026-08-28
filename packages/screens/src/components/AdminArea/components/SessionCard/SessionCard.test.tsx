@@ -33,6 +33,7 @@ const WATCHING_SESSION: ActiveSession = {
     hasBackdrop: false,
     mode: 'transcode',
     plan: PLAN,
+    reuse: 'none',
     isPlaying: true,
     pausedByAdmin: false,
     startedAt: 1500,
@@ -70,6 +71,92 @@ describe('SessionCard', () => {
     );
 
     expect(screen.queryByRole('button', { name: /Pause|Stop/ })).not.toBeInTheDocument();
+  });
+
+  it('shows no reuse badge for a transcode this session is paying for', () => {
+    render(
+      <SessionCard
+        session={WATCHING_SESSION}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Cached')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shared')).not.toBeInTheDocument();
+  });
+
+  it('marks a session playing a transcode that was already made', () => {
+    const session: ActiveSession = {
+      ...WATCHING_SESSION,
+      playback:
+        WATCHING_SESSION.playback === null
+          ? null
+          : { ...WATCHING_SESSION.playback, reuse: 'whole' },
+    };
+
+    render(
+      <SessionCard
+        session={session}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Cached')).toBeInTheDocument();
+  });
+
+  it('marks a session riding on another viewer’s encoder', () => {
+    const session: ActiveSession = {
+      ...WATCHING_SESSION,
+      playback:
+        WATCHING_SESSION.playback === null
+          ? null
+          : { ...WATCHING_SESSION.playback, reuse: 'shared' },
+    };
+
+    render(
+      <SessionCard
+        session={session}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText('Shared')).toBeInTheDocument();
+  });
+
+  it('shows no reuse badge for a part-finished directory, which saves no encoder', () => {
+    const session: ActiveSession = {
+      ...WATCHING_SESSION,
+      playback:
+        WATCHING_SESSION.playback === null
+          ? null
+          : { ...WATCHING_SESSION.playback, reuse: 'partial' },
+    };
+
+    render(
+      <SessionCard
+        session={session}
+        isBusy={false}
+        onStop={vi.fn()}
+        onPause={vi.fn()}
+        onResume={vi.fn()}
+        onMessage={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText('Cached')).not.toBeInTheDocument();
+    expect(screen.queryByText('Shared')).not.toBeInTheDocument();
   });
 
   it('shows what a tab is watching, and how', () => {

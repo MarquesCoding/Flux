@@ -290,6 +290,7 @@ describe('administration over HTTP', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan: {
         mediaId: 'media-1',
@@ -854,6 +855,7 @@ describe('watching and steering what is being watched', () => {
       hasPoster: false,
       hasBackdrop: false,
       mode: 'direct',
+      reuse: null,
       transcoderSessionId: null,
       plan: {
         mediaId: 'media-1',

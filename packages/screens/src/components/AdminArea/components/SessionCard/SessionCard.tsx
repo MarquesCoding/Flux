@@ -68,6 +68,13 @@ const SessionCard = ({
               {playback.mode === 'transcode' ? 'Transcoding' : 'Direct'}
             </Badge>
           )}
+
+          {playback === null ||
+          (playback.reuse !== 'whole' && playback.reuse !== 'shared') ? null : (
+            <Badge size="sm" tone="success">
+              {playback.reuse === 'whole' ? 'Cached' : 'Shared'}
+            </Badge>
+          )}
         </span>
 
         <span className="flex min-w-0 items-center gap-1.5 text-xs text-text-muted">

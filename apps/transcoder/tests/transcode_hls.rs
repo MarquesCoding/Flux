@@ -823,7 +823,7 @@ async fn reuses_a_finished_transcode_instead_of_running_it_again() {
         tokio::time::sleep(Duration::from_millis(100)).await;
     }
 
-    registry.stop(&id).await;
+    registry.stop(&id, None).await;
 
     let before = std::fs::metadata(cache_root("reuse").join(&id).join("index.m3u8"))
         .and_then(|meta| meta.modified())

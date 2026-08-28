@@ -1,6 +1,7 @@
 import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import { ScanJobSchema } from '@ValenceClient/library/fetchLibrary';
 import { getRealtimeClient } from '@ValenceClient/realtime/getRealtimeClient';
 import type { RealtimeClient } from '@ValenceClient/realtime/createRealtimeClient';
@@ -151,6 +152,7 @@ const ActiveSessionSchema = z.object({
       hasBackdrop: z.boolean(),
       mode: z.enum(['direct', 'transcode']),
       plan: PlaybackPlanSchema,
+      reuse: TranscodeReuseSchema.nullable().default(null),
       isPlaying: z.boolean(),
       pausedByAdmin: z.boolean(),
       startedAt: z.number(),

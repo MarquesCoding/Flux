@@ -5,6 +5,7 @@ import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
 import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type { SessionSpec, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 import type { MediaLookup } from './createPlaybackService';
+import type { TranscodeReuse } from '@ValenceContracts/schemas/TranscodeReuse';
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
@@ -68,7 +69,12 @@ const anything = (): Transcoder => ({
   sweepTrickplay: () => Promise.reject(new Error('not used')),
   probe: () => Promise.reject(new Error('not used')),
   startSession: () =>
-    Promise.resolve({ id: 'session-1', manifest: '/session-1', encodesVideo: false }),
+    Promise.resolve({
+      id: 'session-1',
+      manifest: '/session-1',
+      encodesVideo: false,
+      reuse: 'none' as const,
+    }),
   readSessionFile: () => Promise.resolve(null),
   readFile: () => Promise.resolve(null),
   fingerprint: () => Promise.reject(new Error('not used')),
@@ -89,6 +95,7 @@ const harness = (
   defaultAudioLanguage: string | null,
   encodesVideo = false,
   played: MediaItem = bilingual,
+  reuse: TranscodeReuse = 'none',
 ) => {
   const media: MediaLookup = {
     findForPlayback: (mediaId) =>
@@ -116,7 +123,7 @@ const harness = (
     startSession: (spec) => {
       startedSpecs.push(spec);
 
-      return Promise.resolve({ id: 'session-1', manifest: '/session-1', encodesVideo });
+      return Promise.resolve({ id: 'session-1', manifest: '/session-1', encodesVideo, reuse });
     },
     readSessionFile: () => Promise.resolve(null),
     readFile: () => Promise.resolve(null),
@@ -184,6 +191,33 @@ describe('createPlaybackService', () => {
     expect(outcome).toMatchObject({
       kind: 'started',
       session: { plan: { video: { kind: 'passthrough' } } },
+    });
+  });
+
+  it('passes on what the media service found already made', async () => {
+    const { service } = harness('en', false, bilingual, 'whole');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { reuse: 'whole' } });
+  });
+
+  it('says nothing was reused where the media service says nothing was', async () => {
+    const { service } = harness('en');
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({ kind: 'started', session: { reuse: 'none' } });
+  });
+
+  it('reports no reuse at all for direct play, which asks the media service nothing', async () => {
+    const { service } = harness(null, false, { ...bilingual, videoCodec: 'h264' });
+
+    const outcome = await service.start(MEDIA_ID, capableProfile, 0);
+
+    expect(outcome).toMatchObject({
+      kind: 'started',
+      session: { delivery: { kind: 'direct' }, reuse: null },
     });
   });
 
@@ -316,7 +350,12 @@ const build = (
     ...anything(),
     capabilities: () => Promise.resolve(CAPABILITIES),
     startSession: () =>
-      Promise.resolve({ id: 'session-1', manifest: 'index.m3u8', encodesVideo: false }),
+      Promise.resolve({
+        id: 'session-1',
+        manifest: 'index.m3u8',
+        encodesVideo: false,
+        reuse: 'none' as const,
+      }),
     readFrame: () => Promise.resolve(new ArrayBuffer(4)),
     requestPreview: () => Promise.resolve({ id: 'clip-1', url: '/clip', isReady: true }),
     requestTrickplay: () =>
@@ -614,7 +653,15 @@ describe('ending and holding a session', () => {
     const { service } = build({ stopSession });
 
     await expect(service.stop('session-1')).resolves.toBe(true);
-    expect(stopSession).toHaveBeenCalledWith('session-1');
+    expect(stopSession).toHaveBeenCalledWith('session-1', undefined);
+  });
+
+  it('names the device letting go, so the media service knows who left', async () => {
+    const stopSession = vi.fn(() => Promise.resolve(true));
+    const { service } = build({ stopSession });
+
+    await expect(service.stop('session-1', 'tab-1')).resolves.toBe(true);
+    expect(stopSession).toHaveBeenCalledWith('session-1', 'tab-1');
   });
 
   it('says a session is still being watched', async () => {

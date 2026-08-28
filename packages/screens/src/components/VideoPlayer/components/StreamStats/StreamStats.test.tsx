@@ -91,6 +91,7 @@ const draw = (overrides: Partial<StreamStatsProps> = {}) => {
       mode: 'Transcode',
       plan,
       warnings: [],
+      reuse: 'none',
     },
     detail,
     health,
@@ -150,6 +151,7 @@ describe('StreamStats', () => {
           audio: { kind: 'passthrough', streamIndex: 1, reason },
         },
         warnings: [],
+        reuse: null,
       },
     });
 
@@ -196,6 +198,42 @@ describe('StreamStats', () => {
     expect(screen.getByText('unknown')).toBeInTheDocument();
   });
 
+  it('says a transcode is being made now where nothing was reused', () => {
+    draw();
+
+    expect(screen.getByText('No — this transcode is being made now')).toBeInTheDocument();
+  });
+
+  it('says when the whole transcode was already on disk', () => {
+    draw({
+      session: {
+        sessionId: 'abc',
+        delivery: { kind: 'hls', manifestUrl: '/api/playback/session/abc/index.m3u8' },
+        mode: 'Transcode',
+        plan,
+        warnings: [],
+        reuse: 'whole',
+      },
+    });
+
+    expect(screen.getByText('Yes — the whole transcode was already made')).toBeInTheDocument();
+  });
+
+  it('says the question does not apply to a stream nothing transcodes', () => {
+    draw({
+      session: {
+        sessionId: 'abc',
+        delivery: { kind: 'direct', url: '/api/playback/media-1/file' },
+        mode: 'DirectPlay',
+        plan,
+        warnings: [],
+        reuse: null,
+      },
+    });
+
+    expect(screen.getByText('n/a — nothing is being transcoded')).toBeInTheDocument();
+  });
+
   it('surfaces warnings the server attached to the session', () => {
     draw({
       session: {
@@ -204,6 +242,7 @@ describe('StreamStats', () => {
         mode: 'DirectPlay',
         plan,
         warnings: ['This server cannot tone map HDR to SDR.'],
+        reuse: null,
       },
     });
 
