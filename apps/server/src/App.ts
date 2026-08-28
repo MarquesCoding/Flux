@@ -1715,7 +1715,7 @@ const createApp = ({
       ?.playback?.transcoderSessionId;
 
     if (transcoderSessionId !== null && transcoderSessionId !== undefined) {
-      await playback.stop(transcoderSessionId);
+      await playback.stop(transcoderSessionId, clientId);
     }
 
     if (!presence.stop(clientId, 'This stream was stopped by an admin.')) {
