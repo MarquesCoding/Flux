@@ -1,6 +1,7 @@
 import { Agent, fetch as undiciFetch } from 'undici';
 import { z } from 'zod';
 import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
+import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 
 type HttpResponse = {
@@ -81,6 +82,7 @@ const SessionResponseSchema = z.object({
   id: z.string().min(1),
   manifest: z.string().min(1),
   encodesVideo: z.boolean().default(false),
+  reuse: TranscodeReuseSchema.default('none'),
 });
 
 const CapabilitiesSchema = z.object({
@@ -279,7 +281,7 @@ type Transcoder = {
   forgetPreview: (request: PreviewSweepSubject) => Promise<boolean>;
   forgetTrickplay: (request: TrickplayRequest) => Promise<boolean>;
   readTrickplayFile: (id: string, name: string) => Promise<TranscoderFile | null>;
-  stopSession: (id: string) => Promise<boolean>;
+  stopSession: (id: string, deviceId?: string) => Promise<boolean>;
   heartbeatSession: (id: string, isPlaying: boolean) => Promise<boolean>;
   capabilities: () => Promise<TranscoderCapabilities>;
 };
@@ -563,8 +565,9 @@ const createTranscoderClient = ({
       };
     },
 
-    stopSession: async (id) => {
-      const response = await call2(`${origin}/sessions/${id}`, { method: 'DELETE' });
+    stopSession: async (id, deviceId) => {
+      const asked = deviceId === undefined ? '' : `?deviceId=${encodeURIComponent(deviceId)}`;
+      const response = await call2(`${origin}/sessions/${id}${asked}`, { method: 'DELETE' });
 
       return response.ok;
     },

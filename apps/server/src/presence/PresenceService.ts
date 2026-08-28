@@ -1,6 +1,7 @@
 import { describePlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
 import type { PlaybackMode } from '@ValenceContracts/functions/describePlaybackMode';
 import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
+import type { TranscodeReuse } from '@ValenceContracts/schemas/TranscodeReuse';
 
 type PresencePlayback = {
   mediaId: string;
@@ -9,6 +10,7 @@ type PresencePlayback = {
   hasBackdrop: boolean;
   mode: 'direct' | 'transcode';
   plan: PlaybackPlan;
+  reuse: TranscodeReuse | null;
   transcoderSessionId: string | null;
   isPlaying: boolean;
   pausedByAdmin: boolean;

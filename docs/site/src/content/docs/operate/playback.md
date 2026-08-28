@@ -50,6 +50,37 @@ you jump.
 Direct play skips all of this: the original file is served over byte ranges and
 the browser seeks it directly.
 
+## Reusing a transcode
+
+A transcode is addressed by the treatment it performs, not by who asked for it.
+The address covers the file, the segment length, the encoder, the size and
+bitrate being encoded to, the audio track, the subtitles and the container —
+everything that changes the bytes, and nothing that does not. Two people whose
+devices negotiate the same treatment therefore land on the same directory and
+share one encoder, however differently they arrived at it.
+
+That gives three ways a stream costs less than it looks:
+
+- The whole thing was already made, and nothing is being encoded at all.
+- Somebody else is watching the same thing on a comparable device, so one
+  ffmpeg is feeding both of you.
+- Part of it was left behind by a session that stopped early. The new run picks
+  up where those segments stop being trustworthy rather than making them again,
+  so seeking into them is instant and the encoder only does what is left.
+
+None of it is kept on purpose. Each device holds the last thing it played for a
+week, everything else lasts a day, and the whole lot is capped at twenty
+gigabytes — so a film you paused last night is still there this evening, and one
+you finished a fortnight ago is not.
+
+A device that negotiates differently gets its own transcode. That is deliberate:
+sharing segments between two plans that disagree about even one axis is how
+subtly corrupt streams happen, and a second encode is the cheaper mistake.
+
+Stats for nerds names which of these applies under **Reused**, and the sessions
+page on the admin area shows the same thing — as a badge on any session that is
+not costing an encoder, and in full behind the information button.
+
 ## Seek-bar previews
 
 Hovering the scrub bar shows the frame you would land on. Valence renders those
@@ -71,6 +102,10 @@ knows about what is on screen: the session and how it is being delivered, the
 decision and reason on each of the four axes, what the source actually is, and
 what the browser is managing to do with it — buffered ahead, how much has been
 encoded, the size being decoded, and frames dropped.
+
+It also says whether any of this was made for you or reused, which is the
+difference between a server that is working and one that is handing back
+something it had already done. See [Reusing a transcode](#reusing-a-transcode).
 
 Frame counts are reported as _not reported_ rather than as zero where a browser
 does not keep them, because a decoder dropping frames is exactly when someone

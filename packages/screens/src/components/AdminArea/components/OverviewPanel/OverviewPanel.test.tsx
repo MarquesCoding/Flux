@@ -107,6 +107,7 @@ const watching = (mode: 'direct' | 'transcode' = 'direct'): ActiveSession =>
       hasBackdrop: false,
       mode,
       plan: PLAN,
+      reuse: null,
       isPlaying: true,
       pausedByAdmin: false,
       startedAt: 0,

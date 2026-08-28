@@ -7,6 +7,7 @@ import {
   describeVideoAxis as videoAxis,
   describeAudioAxis as audioAxis,
 } from '@ValenceCore/functions/describePlaybackAxis';
+import { describeTranscodeReuse } from '@ValenceCore/functions/describeTranscodeReuse';
 import type { StreamStatsProps } from './StreamStats.types';
 
 /**
@@ -133,6 +134,9 @@ const StreamStats = ({
           <Row name="Media id">{media.id}</Row>
           <Row name="Session">{session?.sessionId ?? 'not started'}</Row>
           <Row name="Mode">{session?.mode ?? 'deciding'}</Row>
+          <Row name="Reused">
+            {session === null ? 'deciding' : describeTranscodeReuse(session.reuse)}
+          </Row>
           <Row name="Starts at">{formatDuration(sessionStartSeconds)}</Row>
           <Row name="Delivery">
             {session === null

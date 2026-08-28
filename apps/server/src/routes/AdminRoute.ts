@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import { JobRunRequestSchema } from '@ValenceServer/jobs/jobDefinitions';
 import { ScheduleTriggerSchema } from '@ValenceServer/jobs/scheduleTrigger';
 import { LogPageSchema, LogQuerySchema } from '@ValenceContracts/schemas/Log';
@@ -147,6 +148,7 @@ const AdminSessionSchema = z
         hasBackdrop: z.boolean(),
         mode: z.enum(['direct', 'transcode']),
         plan: PlaybackPlanSchema,
+        reuse: TranscodeReuseSchema.nullable(),
         isPlaying: z.boolean(),
         pausedByAdmin: z.boolean(),
         startedAt: z.number(),

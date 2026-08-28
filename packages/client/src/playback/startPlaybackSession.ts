@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type { PlaybackPlan } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { QualityPreference } from './qualityPreference';
@@ -18,6 +19,7 @@ const StartedSessionSchema = z.object({
   mode: z.string(),
   plan: PlaybackPlanSchema,
   warnings: z.array(z.string()).default([]),
+  reuse: TranscodeReuseSchema.nullable().default(null),
 });
 
 type StartedSession = z.infer<typeof StartedSessionSchema>;
@@ -90,10 +92,26 @@ const startPlaybackSession = async (
  * Tells the server a session is finished, so the encoder stops rather than running on for a viewer
  * who has gone.
  *
+ * Names the device letting go, because everyone watching the same thing at the same quality holds
+ * one session: without it the server knows a viewer left but not which, and goes on telling the
+ * next arrival they are sharing with somebody who has gone.
+ *
  * @param sessionId - The session to stop.
+ * @param clientId - Which device is letting go of it.
+ * @param keepalive - Whether the page is going away, which decides whether the browser has promised
+ *   to finish the request.
  */
-const stopPlaybackSession = async (sessionId: string): Promise<void> => {
-  await fetch(`/api/playback/session/${sessionId}`, { method: 'DELETE' }).catch(() => undefined);
+const stopPlaybackSession = async (
+  sessionId: string,
+  clientId?: string,
+  keepalive = false,
+): Promise<void> => {
+  const asked = clientId === undefined ? '' : `?clientId=${encodeURIComponent(clientId)}`;
+
+  await fetch(`/api/playback/session/${sessionId}${asked}`, {
+    method: 'DELETE',
+    keepalive,
+  }).catch(() => undefined);
 };
 
 /**

@@ -109,7 +109,8 @@ const harness = (options: {
     forgetTrickplay: () => Promise.reject(new Error('not used')),
     sweepTrickplay: () => Promise.reject(new Error('not used')),
     probe: options.probeImpl ?? (() => Promise.resolve(probe())),
-    startSession: () => Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false }),
+    startSession: () =>
+      Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false, reuse: 'none' as const }),
     readSessionFile: () => Promise.resolve(null),
     readFile: () => Promise.resolve(null),
     fingerprint: () => Promise.resolve({ framesPerSecond: 15.625, startSeconds: 0, hashes: [] }),
@@ -480,7 +481,8 @@ describe('scanLibrary', () => {
         forgetTrickplay: () => Promise.reject(new Error('not used')),
         sweepTrickplay: () => Promise.reject(new Error('not used')),
         probe: () => Promise.reject(new Error('moov atom not found')),
-        startSession: () => Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false }),
+        startSession: () =>
+          Promise.resolve({ id: 'x', manifest: '/x', encodesVideo: false, reuse: 'none' as const }),
         readSessionFile: () => Promise.resolve(null),
         readFile: () => Promise.resolve(null),
         fingerprint: () =>

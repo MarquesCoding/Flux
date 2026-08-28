@@ -929,6 +929,7 @@ const createApp = ({
           hasPoster: item.metadata.hasPoster,
           hasBackdrop: item.metadata.hasBackdrop,
           mode: outcome.session.delivery.kind === 'direct' ? 'direct' : 'transcode',
+          reuse: outcome.session.reuse,
           transcoderSessionId:
             outcome.session.delivery.kind === 'hls' ? outcome.session.sessionId : null,
           plan: outcome.session.plan,
@@ -1714,7 +1715,7 @@ const createApp = ({
       ?.playback?.transcoderSessionId;
 
     if (transcoderSessionId !== null && transcoderSessionId !== undefined) {
-      await playback.stop(transcoderSessionId);
+      await playback.stop(transcoderSessionId, clientId);
     }
 
     if (!presence.stop(clientId, 'This stream was stopped by an admin.')) {
@@ -3223,8 +3224,9 @@ const createApp = ({
 
   app.openapi(stopRoute, async (context) => {
     const { sessionId } = context.req.valid('param');
+    const { clientId } = context.req.valid('query');
 
-    const stopped = await playback.stop(sessionId);
+    const stopped = await playback.stop(sessionId, clientId);
 
     if (!stopped) {
       return context.json({ error: 'No such session.' }, 404);

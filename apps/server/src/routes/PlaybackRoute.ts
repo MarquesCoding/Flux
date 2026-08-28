@@ -2,6 +2,7 @@ import { createRoute, z } from '@hono/zod-openapi';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
 import { DeviceProfileSchema } from '@ValenceContracts/schemas/DeviceProfile';
 import { QualityStepIdSchema } from '@ValenceContracts/schemas/QualityStep';
+import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import { PLAYBACK_MODES } from '@ValenceContracts/functions/describePlaybackMode';
 const PlaybackError = z.object({ error: z.string() }).openapi('PlaybackError');
 
@@ -33,6 +34,7 @@ const StartResponse = z
     mode: z.enum(PLAYBACK_MODES),
     plan: PlaybackPlanSchema,
     warnings: z.array(z.string()),
+    reuse: TranscodeReuseSchema.nullable(),
   })
   .openapi('PlaybackStartResponse');
 
@@ -110,6 +112,7 @@ const stopRoute = createRoute({
   summary: 'Stop a playback session',
   request: {
     params: z.object({ sessionId: z.string().min(1) }),
+    query: z.object({ clientId: z.string().min(1).optional() }),
   },
   responses: {
     204: { description: 'The session was stopped' },
