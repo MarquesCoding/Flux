@@ -810,10 +810,7 @@ const VideoPlayer = ({
       }
 
       if (startedId !== null) {
-        void fetch(`/api/playback/session/${startedId}`, {
-          method: 'DELETE',
-          keepalive: true,
-        }).catch(() => undefined);
+        void stopPlaybackSession(startedId, clientId, true);
       }
 
       void stopWatching(clientId, true);

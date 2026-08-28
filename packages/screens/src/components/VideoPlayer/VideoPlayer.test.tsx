@@ -462,10 +462,6 @@ describe('VideoPlayer', () => {
   });
 
   it('stops the session with a keepalive request when the tab actually closes', async () => {
-    const fetchMock = vi.fn().mockResolvedValue({ ok: true });
-
-    vi.stubGlobal('fetch', fetchMock);
-
     renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await waitFor(() => {
@@ -474,13 +470,8 @@ describe('VideoPlayer', () => {
 
     window.dispatchEvent(new Event('pagehide'));
 
-    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc', {
-      method: 'DELETE',
-      keepalive: true,
-    });
+    expect(stopMock).toHaveBeenCalledWith('abc', 'client-1', true);
     expect(stopWatchingMock).toHaveBeenCalledWith('client-1', true);
-
-    vi.unstubAllGlobals();
   });
 
   it('saves where it got to when the tab actually closes', async () => {

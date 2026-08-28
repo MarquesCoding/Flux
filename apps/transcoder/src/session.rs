@@ -411,36 +411,24 @@ pub enum Reuse {
 /// Only for a directory nothing was already serving — joining a live session is
 /// its own answer, and a finished directory is the same answer however it was
 /// reached.
+///
+/// `resumed` is whether the run actually starts later than the viewer asked
+/// for, rather than whether the directory holds segments at all. Those come
+/// apart: a directory holding somebody else's twenty-minute mark has segments
+/// on it, and a viewer starting from the beginning skips none of them. Calling
+/// that a resumed session would promise saved work to an operator whose
+/// encoder is doing the whole film.
 #[must_use]
-pub fn classify_reuse(is_complete: bool, has_segments: bool) -> Reuse {
+pub fn classify_reuse(is_complete: bool, resumed: bool) -> Reuse {
     if is_complete {
         return Reuse::Whole;
     }
 
-    if has_segments {
+    if resumed {
         return Reuse::Partial;
     }
 
     Reuse::None
-}
-
-/// Whether a directory already holds any segment of its transcode.
-///
-/// Answers on the first one found rather than counting them, because the
-/// question is whether an earlier session left anything behind and a finished
-/// film is thousands of files to walk for an answer the first one gives.
-async fn has_segments(directory: &Path) -> bool {
-    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
-        return false;
-    };
-
-    while let Ok(Some(entry)) = entries.next_entry().await {
-        if entry.file_name().to_string_lossy().starts_with("segment") {
-            return true;
-        }
-    }
-
-    false
 }
 
 /// Whether a request to join a session is a viewer the session does not have.
@@ -457,12 +445,18 @@ async fn has_segments(directory: &Path) -> bool {
 ///
 /// Reads only devices that are still holding the session. A viewer who has
 /// stopped is nobody to share with, which is what [`release_device`] is for.
+///
+/// Asks whether anyone *other than* the joiner is holding it, rather than
+/// whether the joiner is absent from the map. Those differ on the second of a
+/// joiner's own two opening requests, by which point it is in the map itself:
+/// reading its own presence as "not new" told a genuinely sharing viewer
+/// `Shared` once and `None` once, which is the very split this exists to stop.
 #[must_use]
 pub fn is_another_viewer<S: std::hash::BuildHasher>(
     devices: &HashMap<String, usize, S>,
     joining: Option<&str>,
 ) -> bool {
-    joining.is_some_and(|joining| !devices.is_empty() && !devices.contains_key(joining))
+    joining.is_some_and(|joining| devices.keys().any(|holding| holding != joining))
 }
 
 /// Gives up one of a device's holds on a session, forgetting it at the last.
@@ -657,6 +651,31 @@ async fn is_segment_ready(
     )))
     .await
     .unwrap_or(false)
+}
+
+/// Where a session's run starts, and what it found already made.
+///
+/// One reading rather than two, because the answers are the same question: a
+/// finished directory has nothing left to run, and anything reused is exactly
+/// the distance between where the viewer asked to begin and where the run
+/// actually has to.
+async fn plan_the_run(
+    directory: &Path,
+    spec: &SessionSpec,
+    lengths: &[f64],
+    is_complete: bool,
+) -> (u64, Reuse) {
+    let opening = segment_at(lengths, f64::from(spec.start_seconds))
+        .and_then(|index| u64::try_from(index).ok())
+        .unwrap_or(0);
+
+    let resume = if is_complete {
+        opening
+    } else {
+        resume_from(directory, opening, lengths.len(), spec.container).await
+    };
+
+    (resume, classify_reuse(is_complete, resume > opening))
 }
 
 /// Where a run has to start, given what an earlier one left behind.
@@ -931,7 +950,9 @@ impl SessionRegistry {
         };
 
         let is_complete = is_already_complete(&directory).await;
-        let reuse = classify_reuse(is_complete, has_segments(&directory).await);
+
+        let (resume, reuse) =
+            plan_the_run(&directory, &spec, &boundaries.lengths, is_complete).await;
 
         let mut session = Session {
             id: id.clone(),
@@ -958,18 +979,6 @@ impl SessionRegistry {
         if is_complete {
             mark_used(&session.directory).await;
         } else {
-            let opening = segment_at(&session.lengths, f64::from(session.spec.start_seconds))
-                .and_then(|index| u64::try_from(index).ok())
-                .unwrap_or(0);
-
-            let resume = resume_from(
-                &session.directory,
-                opening,
-                session.lengths.len(),
-                session.spec.container,
-            )
-            .await;
-
             self.begin_run(&mut session, resume).await;
         }
 
@@ -1801,15 +1810,16 @@ mod tests {
         assert_eq!(classify_reuse(true, false), Reuse::Whole);
     }
 
-    /// Segments without the marker are what an abandoned session left.
+    /// A run that starts later than the viewer asked for skipped work.
     #[test]
-    fn reads_segments_without_a_marker_as_part_of_one() {
+    fn reads_a_resumed_run_as_part_of_a_transcode_reused() {
         assert_eq!(classify_reuse(false, true), Reuse::Partial);
     }
 
-    /// An empty directory is a transcode nobody has made yet.
+    /// A run starting where the viewer asked skipped nothing, whatever else is
+    /// lying about the directory.
     #[test]
-    fn reads_an_empty_directory_as_nothing_reused() {
+    fn reads_a_run_that_skipped_nothing_as_nothing_reused() {
         assert_eq!(classify_reuse(false, false), Reuse::None);
     }
 
@@ -1831,6 +1841,17 @@ mod tests {
     #[test]
     fn takes_a_device_the_session_does_not_have_for_another_viewer() {
         assert!(is_another_viewer(&holding(&["tab-1"]), Some("tab-2")));
+    }
+
+    /// The second viewer asks twice as well, and by its second request it is
+    /// in the map itself. Reading its own presence as "not new" told one
+    /// person Shared and None about the same session.
+    #[test]
+    fn still_sees_another_viewer_once_the_joiner_is_holding_it_too() {
+        assert!(is_another_viewer(
+            &holding(&["tab-1", "tab-2"]),
+            Some("tab-2")
+        ));
     }
 
     /// Nobody is holding it, so there is nobody to share it with.

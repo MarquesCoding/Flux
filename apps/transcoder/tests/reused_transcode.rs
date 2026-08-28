@@ -493,3 +493,78 @@ async fn stops_counting_a_viewer_who_has_gone_as_somebody_to_share_with() {
         "everybody who was watching has gone, so there is nobody to share with"
     );
 }
+
+/// The second viewer's player asks twice as well.
+///
+/// The first viewer's two requests were made to agree; the second viewer's
+/// were not, because by its second request it is holding the session itself
+/// and read its own presence as "not a new viewer". One person watching
+/// alongside another was told `shared` once and `none` once.
+#[tokio::test(flavor = "multi_thread")]
+async fn tells_a_sharing_viewer_asking_twice_the_same_thing_both_times() {
+    require_ffmpeg();
+
+    let app = app(registry("shared-twice"));
+    let spec = spec(&long_source());
+
+    start_as(&app, &spec, Some("tab-1")).await;
+
+    let first = start_as(&app, &spec, Some("tab-2")).await;
+    let second = start_as(&app, &spec, Some("tab-2")).await;
+
+    assert_eq!(
+        reuse(&second),
+        reuse(&first),
+        "one viewer's two requests must not disagree about what was reused"
+    );
+    assert_eq!(
+        reuse(&second),
+        "shared",
+        "somebody else is watching, on both of this viewer's requests"
+    );
+}
+
+/// Segments somewhere else in the film are not a resumed session.
+///
+/// A directory holding another viewer's twenty-minute mark has segments on it,
+/// and somebody starting from the beginning skips none of them. Reporting that
+/// as resumed promises saved work to an operator whose encoder is about to do
+/// the whole film.
+#[tokio::test(flavor = "multi_thread")]
+async fn does_not_call_it_resumed_where_the_run_starts_where_it_would_have() {
+    require_ffmpeg();
+
+    let root = cache_root("elsewhere");
+    let app = app(registry("elsewhere"));
+    let spec = spec(&long_source());
+
+    let started = start(&app, &spec).await;
+    let id = started["id"]
+        .as_str()
+        .expect("a session has an id")
+        .to_owned();
+    let directory = root.join(&id);
+
+    assert!(
+        wait_for(&directory.join("segment00002.m4s"), Duration::from_secs(60)).await,
+        "the run wrote nothing to leave behind"
+    );
+
+    stop(&app, &id).await;
+
+    for index in 0..3 {
+        std::fs::remove_file(directory.join(format!("segment{index:05}.m4s")))
+            .expect("the opening segments can be taken away");
+    }
+
+    std::fs::write(directory.join("segment00200.m4s"), b"somebody else's mark")
+        .expect("a segment further into the film is written");
+
+    let again = start(&app, &spec).await;
+
+    assert_eq!(
+        reuse(&again),
+        "none",
+        "nothing was skipped, so nothing was reused"
+    );
+}

@@ -98,13 +98,20 @@ const startPlaybackSession = async (
  *
  * @param sessionId - The session to stop.
  * @param clientId - Which device is letting go of it.
+ * @param keepalive - Whether the page is going away, which decides whether the browser has promised
+ *   to finish the request.
  */
-const stopPlaybackSession = async (sessionId: string, clientId?: string): Promise<void> => {
+const stopPlaybackSession = async (
+  sessionId: string,
+  clientId?: string,
+  keepalive = false,
+): Promise<void> => {
   const asked = clientId === undefined ? '' : `?clientId=${encodeURIComponent(clientId)}`;
 
-  await fetch(`/api/playback/session/${sessionId}${asked}`, { method: 'DELETE' }).catch(
-    () => undefined,
-  );
+  await fetch(`/api/playback/session/${sessionId}${asked}`, {
+    method: 'DELETE',
+    keepalive,
+  }).catch(() => undefined);
 };
 
 /**
