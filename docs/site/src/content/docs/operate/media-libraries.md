@@ -16,6 +16,16 @@ replace.
 
 ## Scanning
 
+Valence has no opinion about how you arrange a library. A film sitting loose in
+a folder of films is read, and so is one in a folder of its own; a programme is
+read whether its episodes sit in `Season 1` folders, in `S01`, in `Series 1`, or
+loose in the show's own folder. `Specials` and `Extras` are read as season zero
+and shown after the seasons rather than before them.
+
+Symbolic links are followed, so a library assembled out of them — mergerfs,
+rclone, the layouts a download stack leaves behind — is read like any other. A
+link pointing back up its own tree is walked once and not followed round.
+
 Scanning walks the library root, skips anything that is not a media file, and
 probes what is left. A file already stored at the same size and modification
 time is left alone, so rescanning a large library does not re-probe it.
@@ -57,6 +67,13 @@ disappeared are still removed either way.
 Valence ships one metadata provider, and it reads the filename. `Arrival (2016).mkv`
 becomes _Arrival_, 2016. Scene-release noise — resolutions, codecs, group tags —
 is stripped.
+
+Where the filename names no year and the folder holding it does, the folder is
+believed instead, so `Arrival (2016)/movie.mkv` is still _Arrival_, 2016. A
+filename with no year is weak evidence and a folder somebody deliberately named
+is strong. A title the filename did give is never overruled, and a folder that
+names a year and nothing else — filing by release year — is not mistaken for a
+title.
 
 Set `CATALOGUE_API_KEY` and a richer provider takes over: overview, tagline,
 genres, cast, rating, poster and backdrop, searched by title and year — or by
