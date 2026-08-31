@@ -1,4 +1,5 @@
 import { findYear } from './readTitleFromPath';
+import { readSeasonDirectory } from './readSeasonDirectory';
 
 const EPISODE_PATTERNS = [
   /\bs(?<season>\d{1,2})[\s._-]*e(?<episode>\d{1,3})\b/i,
@@ -6,12 +7,8 @@ const EPISODE_PATTERNS = [
   /\bseason[\s._-]*(?<season>\d{1,2})[\s._-]*episode[\s._-]*(?<episode>\d{1,3})\b/i,
 ] as const;
 
-const SEASON_DIRECTORY = /\b(?:season|series|s)[\s._-]*(?<season>\d{1,2})\b/i;
-
 const RELEASE_NOISE =
   /\b(?:\d{3,4}p|4k|uhd|web[\s._-]?dl|webrip|bluray|blu[\s._-]?ray|hdtv|dvdrip|remux|proper|repack|x26[45]|h\.?26[45]|hevc|avc|aac\d*|ac3|eac3|ddp?\d?|dts[\w]*|flac|opus|10bit|8bit|hdr\d*|dv|sdr|amzn|nf|dsnp|hulu|atvp|multi|dual)\b/i;
-
-const SPECIALS_DIRECTORY = /\b(?:specials?|extras?)\b/i;
 
 type EpisodeNumbering = {
   seriesTitle: string | null;
@@ -34,23 +31,6 @@ const tidy = (name: string): string =>
     .replace(/[[\]()_.]+/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
-
-/**
- * Reads the season a directory declares, accepting the several ways people write it — `Season 2`,
- * `S02`, `Series 2` — since a shelf is arranged by whoever filled it rather than by a convention.
- *
- * @param name - The directory name as it is on disk.
- * @returns The season number, or null where the directory names none.
- */
-const readSeasonDirectory = (name: string): number | null => {
-  if (SPECIALS_DIRECTORY.test(name)) {
-    return 0;
-  }
-
-  const match = SEASON_DIRECTORY.exec(name);
-
-  return match?.groups?.season === undefined ? null : Number(match.groups.season);
-};
 
 /**
  * Reads which programme, season and episode a file is from its path, using the folders above it as
@@ -142,4 +122,4 @@ const isSameSeason = (left: EpisodeNumbering, right: EpisodeNumbering): boolean 
 
 export type { EpisodeNumbering };
 
-export { readEpisodeFromPath, readSeasonDirectory, isSameSeason, tidy };
+export { readEpisodeFromPath, isSameSeason, tidy };
