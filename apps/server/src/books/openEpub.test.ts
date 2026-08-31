@@ -122,3 +122,11 @@ describe('openEpub', () => {
     expect(await openEpub(join(where, 'missing.epub'), address)).toBeNull();
   });
 });
+
+describe('what a book says about itself', () => {
+  it('carries the title and author out of the package rather than dropping them', async () => {
+    const book = await openEpub(path, address);
+
+    expect(book?.about).toMatchObject({ title: 'Moby-Dick', authors: ['Herman Melville'] });
+  });
+});

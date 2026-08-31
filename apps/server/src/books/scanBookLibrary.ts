@@ -25,6 +25,8 @@ type BookRow = {
   layout: BookLayout;
   direction: 'rightToLeft' | 'leftToRight';
   year: number | null;
+  authors: string[];
+  overview: string | null;
 };
 
 type ChapterRow = {
@@ -98,6 +100,11 @@ const bookPathFor = (root: string, path: string): string => {
  * time, reflowing where it lays itself out against a screen. A folder holding both is not something
  * that happens, and where it does the rest is reported as a problem rather than quietly mixed.
  *
+ * What a file states about itself is preferred over what its path suggested, the same way a
+ * catalogue is preferred over a filename for a film — except for the title of a book that lives in a
+ * folder, where the folder was named by whoever arranged the shelf and one chapter's own title is
+ * not the series it belongs to.
+ *
  * @param options - The library, where it is, what to read it with, and where to put it.
  * @returns What the scan changed.
  */
@@ -169,14 +176,18 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
 
     if (!written.has(bookPath)) {
       const named = readBookTitleFromPath(basename(bookPath));
+      const about = opened.about ?? null;
+      const standsAlone = bookPath === file.path;
 
       const bookId = await store.upsertBook({
         libraryId,
         path: bookPath,
-        title: named.title,
+        title: (standsAlone ? about?.title : null) ?? named.title,
         layout: opened.layout,
         direction: directionFor(opened.layout),
         year: named.year,
+        authors: about?.authors ?? [],
+        overview: about?.description ?? null,
       });
 
       written.add(bookPath);

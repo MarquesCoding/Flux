@@ -46,13 +46,29 @@ const openPortableDocument = async (path: string): Promise<FixedBook | null> => 
     }
   })();
 
+  const stated = (key: string): string | null => {
+    try {
+      const found = opened.getMetaData(key)?.trim();
+
+      return found === undefined || found === '' ? null : found;
+    } catch {
+      return null;
+    }
+  };
+
   if (pageCount === 0) {
     return null;
   }
 
+  const title = stated(Document.META_INFO_TITLE);
+  const author = stated(Document.META_INFO_AUTHOR);
+
   return {
     layout: 'fixed',
     pageCount,
+    ...(title === null && author === null
+      ? {}
+      : { about: { title, authors: author === null ? [] : [author], description: null } }),
     readPage: (at) => {
       if (at < 0 || at >= pageCount) {
         return Promise.resolve(null);

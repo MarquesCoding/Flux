@@ -1,4 +1,5 @@
 import { imageTypeFor } from './imageTypeFor';
+import { COMIC_INFO, readComicInfo } from './readComicInfo';
 import { inPageOrder } from './inPageOrder';
 import { readZipDirectory } from './readZipDirectory';
 import { readZipEntry } from './readZipEntry';
@@ -27,9 +28,15 @@ const openComicZip = async (path: string): Promise<FixedBook | null> => {
 
   const pages = new Map<string, ZipEntry>();
 
+  let described: ZipEntry | null = null;
+
   for (const entry of entries) {
     if (imageTypeFor(entry.name) !== null) {
       pages.set(entry.name, entry);
+    }
+
+    if (entry.name.toLowerCase().endsWith(COMIC_INFO)) {
+      described = entry;
     }
   }
 
@@ -39,9 +46,14 @@ const openComicZip = async (path: string): Promise<FixedBook | null> => {
     return null;
   }
 
+  const describedBytes = described === null ? null : await readZipEntry(path, described);
+  const about =
+    describedBytes === null ? null : readComicInfo(new TextDecoder().decode(describedBytes));
+
   return {
     layout: 'fixed',
     pageCount: ordered.length,
+    ...(about === null ? {} : { about }),
     readPage: async (at) => {
       const name = ordered[at];
       const entry = name === undefined ? undefined : pages.get(name);
