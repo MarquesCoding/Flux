@@ -11,7 +11,7 @@ describe('nameSeason', () => {
     expect(nameSeason(0)).toBe('Specials');
   });
 
-  it('calls episodes with no season specials rather than nothing at all', () => {
-    expect(nameSeason(null)).toBe('Specials');
+  it('does not call an episode nobody could place a special, which is a different thing', () => {
+    expect(nameSeason(null)).toBe('Other');
   });
 });
