@@ -2,6 +2,8 @@ import { z } from 'zod';
 import { MediaItemSchema } from './MediaItem';
 const LIBRARY_KINDS = ['movies', 'shows', 'music', 'books'] as const;
 
+const SELECTABLE_LIBRARY_KINDS = ['movies', 'shows', 'books'] as const;
+
 const LibraryKindSchema = z.enum(LIBRARY_KINDS);
 
 const ScanResultSchema = z.object({
@@ -104,6 +106,7 @@ export type ScanResult = z.infer<typeof ScanResultSchema>;
 
 export {
   LIBRARY_KINDS,
+  SELECTABLE_LIBRARY_KINDS,
   LibraryKindSchema,
   LibrarySchema,
   UpdateLibraryRequestSchema,
