@@ -3,6 +3,7 @@ import {
   findSidecarSubtitles,
   describeTags,
   describeLabel,
+  isBitmapSubtitle,
   splitName,
 } from './findSidecarSubtitles';
 import type { SidecarFile } from './findSidecarSubtitles';
@@ -147,5 +148,71 @@ describe('findSidecarSubtitles', () => {
     const found = findSidecarSubtitles('Arrival.mkv', [file('Arrival 2.en.srt')]);
 
     expect(found).toHaveLength(0);
+  });
+});
+
+describe('a tag that is a language and a marker at once', () => {
+  it('reads hi as Hindi where nothing else named a language', () => {
+    expect(describeTags(['hi'])).toMatchObject({ language: 'hi', isHearingImpaired: false });
+  });
+
+  it('reads hi as hearing impaired where another tag already named the language', () => {
+    expect(describeTags(['en', 'hi'])).toMatchObject({ language: 'en', isHearingImpaired: true });
+  });
+
+  it('leaves the tags that mean only one thing alone', () => {
+    expect(describeTags(['sdh'])).toMatchObject({ isHearingImpaired: true });
+    expect(describeTags(['cc'])).toMatchObject({ isHearingImpaired: true });
+  });
+});
+
+describe('a tag that says how to use a track rather than what is in it', () => {
+  it('does not mistake default for a language', () => {
+    expect(describeTags(['default', 'en']).language).toBe('en');
+  });
+});
+
+describe('isBitmapSubtitle', () => {
+  it('knows the ones held as pictures', () => {
+    expect(isBitmapSubtitle('Arrival (2016).sup')).toBe(true);
+    expect(isBitmapSubtitle('Arrival (2016).idx')).toBe(true);
+  });
+
+  it('leaves the ones held as text', () => {
+    expect(isBitmapSubtitle('Arrival (2016).srt')).toBe(false);
+  });
+});
+
+describe('a folder holding one film and nothing else', () => {
+  const alone = [file(VIDEO), file('English.srt')];
+
+  it('takes a subtitle that does not repeat the film name', () => {
+    expect(findSidecarSubtitles(VIDEO, alone)).toHaveLength(1);
+  });
+
+  it('reads the language out of the whole name', () => {
+    expect(findSidecarSubtitles(VIDEO, alone)[0]?.language).toBe('en');
+  });
+
+  it('is not fooled by a second film into taking either one loosely', () => {
+    const two = [file(VIDEO), file('Parasite (2019).mkv'), file('English.srt')];
+
+    expect(findSidecarSubtitles(VIDEO, two)).toHaveLength(0);
+  });
+});
+
+describe('a season folder with one episode left in it', () => {
+  const EPISODE = 'Some.Show.S01E05.mkv';
+
+  it('refuses a subtitle belonging to an episode that has gone', () => {
+    const leftovers = [file(EPISODE), file('Some.Show.S01E03.en.srt')];
+
+    expect(findSidecarSubtitles(EPISODE, leftovers)).toHaveLength(0);
+  });
+
+  it('still takes the one that names the episode itself', () => {
+    const itsOwn = [file(EPISODE), file('Some.Show.S01E05.en.srt')];
+
+    expect(findSidecarSubtitles(EPISODE, itsOwn)).toHaveLength(1);
   });
 });

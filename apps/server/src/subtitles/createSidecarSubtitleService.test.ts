@@ -8,7 +8,10 @@ const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
 const SUB_RIP = '1\n00:00:01,000 --> 00:00:03,000\nHello\n';
 
-const library = async (files: Record<string, string>) => {
+const library = async (
+  files: Record<string, string>,
+  onProblem?: (path: string, reason: string) => void,
+) => {
   const root = await mkdtemp(join(tmpdir(), 'valence-subs-'));
   const video = join(root, 'Arrival (2016).mkv');
 
@@ -26,6 +29,7 @@ const library = async (files: Record<string, string>) => {
 
   const service = createSidecarSubtitleService({
     media: { findPath: () => Promise.resolve(video) },
+    ...(onProblem === undefined ? {} : { onProblem }),
   });
 
   return { service, root, video };
@@ -126,5 +130,50 @@ describe('createSidecarSubtitleService', () => {
 
     expect(track).toContain('Styled line');
     expect(track).not.toContain('\\pos');
+  });
+});
+
+describe('a subtitle directory holding a folder per video', () => {
+  it('finds the tracks in the folder named after the film', async () => {
+    const { service } = await library({ 'Subs/Arrival (2016)/English.srt': SUB_RIP });
+
+    const tracks = await service.list(MEDIA_ID);
+
+    expect(tracks?.map((track) => track.label)).toEqual(['English']);
+  });
+
+  it('leaves another video’s folder alone, which is what the folders are for', async () => {
+    const { service } = await library({ 'Subs/Dune (2021)/English.srt': SUB_RIP });
+
+    const tracks = await service.list(MEDIA_ID);
+
+    expect(tracks).toEqual([]);
+  });
+});
+
+describe('a subtitle Valence cannot draw', () => {
+  it('says why it is not offered, rather than leaving an empty menu unexplained', async () => {
+    const onProblem = vi.fn();
+    const { service } = await library(
+      { 'Arrival (2016).en.sup': 'not really a subtitle' },
+      onProblem,
+    );
+
+    await service.list(MEDIA_ID);
+
+    expect(onProblem).toHaveBeenCalledWith(
+      expect.stringContaining('Arrival (2016).en.sup'),
+      expect.stringContaining('pictures'),
+    );
+  });
+
+  it('says nothing about one belonging to a different film', async () => {
+    const onProblem = vi.fn();
+
+    await (
+      await library({ 'Dune (2021).en.sup': 'not really a subtitle' }, onProblem)
+    ).service.list(MEDIA_ID);
+
+    expect(onProblem).not.toHaveBeenCalled();
   });
 });
