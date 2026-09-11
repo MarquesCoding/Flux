@@ -6,7 +6,13 @@ import type { Library } from '@ValenceContracts/schemas/Library';
 
 const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [],
-  settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
+  settings: {
+    hasCatalogueKey: true,
+    cookieSecure: true,
+    hardwareAccel: '',
+    previewQuality: 'high' as const,
+    trustedOrigins: [],
+  },
   transcoder: {
     isReachable: true,
     address: 'unix:/tmp/valence-transcoder.sock',
@@ -469,6 +475,7 @@ describe('collectConcerns', () => {
             hasCatalogueKey: false,
             cookieSecure: true,
             hardwareAccel: '',
+            previewQuality: 'high' as const,
             trustedOrigins: [],
           },
         }),
@@ -655,6 +662,7 @@ describe('collectConcerns', () => {
           hasCatalogueKey: false,
           cookieSecure: true,
           hardwareAccel: '',
+          previewQuality: 'high' as const,
           trustedOrigins: [],
         },
       }),

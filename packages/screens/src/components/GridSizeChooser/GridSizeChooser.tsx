@@ -1,21 +1,21 @@
 import { Icon } from '@ValenceUI/Icon';
-import { GridFourIcon, SquaresFourIcon } from '@phosphor-icons/react';
+import { DashboardSquare01Icon, GridViewIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { SlidingMark } from '@ValenceUI/SlidingMark';
 import { cn } from '@ValenceUI/cn';
 import type { MediaGridSize } from '@ValenceScreens/components/MediaGrid/MediaGrid.types';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { IconGlyph } from '@ValenceUI/Icon.types';
 import type { GridSizeChooserProps } from './GridSizeChooser.types';
 
 const SIZES: readonly {
   id: MediaGridSize;
   label: string;
-  glyph: PhosphorIcon;
+  glyph: IconGlyph;
 }[] = [
-  { id: 'small', label: 'Small cards, more of them', glyph: GridFourIcon },
-  { id: 'medium', label: 'Medium cards', glyph: SquaresFourIcon },
-  { id: 'large', label: 'Large cards, fewer of them', glyph: GridFourIcon },
+  { id: 'small', label: 'Small cards, more of them', glyph: GridViewIcon },
+  { id: 'medium', label: 'Medium cards', glyph: DashboardSquare01Icon },
+  { id: 'large', label: 'Large cards, fewer of them', glyph: GridViewIcon },
 ];
 
 /**

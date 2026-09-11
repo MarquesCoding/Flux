@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowsClockwiseIcon, ImageSquareIcon } from '@phosphor-icons/react';
+import { Image01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { TextField } from '@ValenceUI/TextField';
@@ -215,7 +215,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }
             }}
           >
-            <Icon of={ArrowsClockwiseIcon} size={16} />
+            <Icon of={RefreshIcon} size={16} />
             Different faces
           </Button>
 
@@ -228,7 +228,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
               }}
             >
               <span className="inline-flex items-center gap-2 rounded-full px-3 py-1.5 text-sm text-text-muted transition-colors hover:bg-hover hover:text-text">
-                <Icon of={ImageSquareIcon} size={16} />
+                <Icon of={Image01Icon} size={16} />
                 {photo === null ? 'Upload a photo' : photo.name}
               </span>
             </FilePicker>

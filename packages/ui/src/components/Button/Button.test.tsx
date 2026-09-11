@@ -71,34 +71,66 @@ describe('Button', () => {
     expect(Button.displayName).toBe('Button');
   });
 
-  it('offers a pale treatment for the controls that matter most', () => {
+  it('offers a white treatment for the controls that matter most', () => {
     render(<Button variant="glossy">Play</Button>);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('valence-raise--pale');
+    const play = screen.getByRole('button', { name: 'Play' });
+
+    expect(play).toHaveClass('bg-white', 'text-black');
+    expect(play).not.toHaveClass('valence-raise');
   });
 
-  it('raises every filled control off the surface rather than painting it on', () => {
+  it('paints every filled control flat, with a hairline rather than a gradient', () => {
     render(<Button variant="secondary">Share</Button>);
 
-    expect(screen.getByRole('button', { name: 'Share' })).toHaveClass('valence-raise');
+    const share = screen.getByRole('button', { name: 'Share' });
+
+    expect(share).toHaveClass('border', 'bg-[var(--surface-hover)]');
+    expect(share).not.toHaveClass('valence-raise');
   });
 
-  it('leaves a control that is not meant to look like one flat', () => {
+  it('fills the main action and the dangerous one with their own colour, and nothing more', () => {
+    render(
+      <>
+        <Button variant="primary">Save</Button>
+        <Button variant="danger">Delete</Button>
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('bg-accent');
+    expect(screen.getByRole('button', { name: 'Delete' })).toHaveClass('bg-danger');
+  });
+
+  it('leaves a control that is not meant to look like one without a fill or an edge', () => {
     render(<Button variant="ghost">Dismiss</Button>);
 
-    expect(screen.getByRole('button', { name: 'Dismiss' })).not.toHaveClass('valence-raise');
+    expect(screen.getByRole('button', { name: 'Dismiss' })).not.toHaveClass('border');
   });
 
-  it('squares off a pill of text, since a lozenge reads as soft where this reads as precise', () => {
+  it('rounds a pill of text all the way, so it reads as one soft shape', () => {
     render(<Button isPill>Play</Button>);
 
-    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('rounded-md');
+    expect(screen.getByRole('button', { name: 'Play' })).toHaveClass('rounded-full');
   });
 
   it('is a rounded box otherwise', () => {
     render(<Button>Save</Button>);
 
-    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-md');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-lg');
+  });
+
+  it('offers a size small enough to sit in a strip of heading', () => {
+    render(
+      <>
+        <Button size="xs">Add a webhook</Button>
+        <Button size="xs" isIconOnly label="Reload">
+          <span aria-hidden>x</span>
+        </Button>
+      </>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Add a webhook' })).toHaveClass('h-7', 'text-xs');
+    expect(screen.getByRole('button', { name: 'Reload' })).toHaveClass('size-7');
   });
 
   it('offers a size for a hero control', () => {
@@ -144,7 +176,7 @@ describe('Button', () => {
 
       const button = screen.getByRole('button', { name: 'Mute' });
 
-      expect(button).toHaveClass('rounded-md');
+      expect(button).toHaveClass('rounded-lg');
       expect(button).not.toHaveClass('rounded-full');
     });
 

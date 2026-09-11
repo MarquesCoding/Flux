@@ -4,6 +4,7 @@ import { describePlaybackMode } from '@ValenceContracts/functions/describePlayba
 import { planToSessionSpec } from '@ValenceCore/functions/planToSessionSpec';
 import { segmentContainerFor } from '@ValenceCore/functions/segmentContainerFor';
 import { previewRequestFor } from '@ValenceServer/library/previewRequestFor';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import {
   SEGMENT_SECONDS,
   TRICKPLAY_INTERVAL_SECONDS,
@@ -142,6 +143,7 @@ type CreatePlaybackServiceOptions = {
   directUrlPrefix: string;
   trickplayUrlPrefix: string;
   forcedAccel?: () => Promise<string>;
+  previewQuality?: () => Promise<PreviewQuality>;
 };
 
 /**
@@ -160,6 +162,7 @@ const createPlaybackService = ({
   directUrlPrefix,
   trickplayUrlPrefix,
   forcedAccel = () => Promise.resolve(''),
+  previewQuality = (): Promise<PreviewQuality> => Promise.resolve('high'),
 }: CreatePlaybackServiceOptions): PlaybackService => {
   let cached: TranscoderCapabilities | null = null;
 
@@ -337,6 +340,7 @@ const createPlaybackService = ({
             { path: found.path, audioStreams: found.item.audioStreams },
             found.generation,
             found.defaultAudioLanguage,
+            await previewQuality(),
           ),
           ...(chosenAccel === '' ? {} : { hardwareAccel: chosenAccel }),
           wait: false,

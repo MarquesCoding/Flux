@@ -1,5 +1,7 @@
 import { readFromServer } from '@ValenceClient/query/readFromServer';
 import { z } from 'zod';
+import { PreviewQualitySchema } from '@ValenceContracts/schemas/PreviewQuality';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
 import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import { ScanJobSchema } from '@ValenceClient/library/fetchLibrary';
@@ -22,6 +24,7 @@ const AdminOverviewSchema = z.object({
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
     hardwareAccel: z.string().default(''),
+    previewQuality: PreviewQualitySchema.default('high'),
   }),
   transcoder: z.object({
     isReachable: z.boolean(),
@@ -604,6 +607,24 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
 };
 
 /**
+ * Sets how good the server makes its hover previews. Every preview is made again at the new preset in
+ * the background, so the change shows as clips are remade rather than all at once.
+ *
+ * @param previewQuality - The preset to make them at.
+ * @returns Whether the setting was written.
+ */
+const savePreviewQuality = async (previewQuality: PreviewQuality): Promise<boolean> => {
+  const response = await fetch('/api/admin/settings', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ previewQuality }),
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
+/**
  * Sets the key Valence reads metadata with. Without one, titles, artwork and years come from filenames
  * alone.
  *
@@ -644,6 +665,7 @@ export {
   watchMonitor,
   saveCatalogueKey,
   saveHardwareAccel,
+  savePreviewQuality,
   fetchActiveSessions,
   watchActiveSessions,
   stopSession,

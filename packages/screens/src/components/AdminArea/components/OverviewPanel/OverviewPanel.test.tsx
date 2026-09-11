@@ -27,7 +27,13 @@ const PLAN: PlaybackPlan = {
 
 const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
   users: [{ id: 'usr_1', name: 'Dan', email: 'dan@valence.local', role: 'admin', createdAt: '' }],
-  settings: { hasCatalogueKey: true, cookieSecure: true, hardwareAccel: '', trustedOrigins: [] },
+  settings: {
+    hasCatalogueKey: true,
+    cookieSecure: true,
+    hardwareAccel: '',
+    previewQuality: 'high' as const,
+    trustedOrigins: [],
+  },
   transcoder: {
     isReachable: true,
     address: 'unix:/tmp/valence-transcoder.sock',
@@ -144,7 +150,7 @@ describe('OverviewPanel', () => {
   it('shows every card even on a server with nothing wrong', () => {
     render(<OverviewPanel {...props} />);
 
-    for (const title of ['Watching now', 'Running now', 'Libraries', 'Server']) {
+    for (const title of ['Watching now', 'Running now', 'Libraries', 'Server', 'Recent jobs']) {
       expect(screen.getByRole('heading', { name: title })).toBeInTheDocument();
     }
   });

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowUUpLeftIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { ArrowTurnBackwardIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -126,7 +126,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
               void look(query);
             }}
           >
-            <Icon of={MagnifyingGlassIcon} size={16} />
+            <Icon of={Search01Icon} size={16} />
             Search
           </Button>
         </div>
@@ -184,7 +184,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
             void forget();
           }}
         >
-          <Icon of={ArrowUUpLeftIcon} size={16} />
+          <Icon of={ArrowTurnBackwardIcon} size={16} />
           Forget the correction
         </Button>
 

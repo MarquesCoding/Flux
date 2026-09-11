@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { PlaylistIcon } from '@phosphor-icons/react';
+import { Playlist01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { PopoverPanel } from '@ValenceUI/PopoverPanel';
 import { MediaCard } from '@ValenceUI/MediaCard';
@@ -66,7 +66,9 @@ const EpisodeMenu = ({
       isDisabled={isDisabled}
       isOpen={isOpen}
       onOpenChange={show}
-      trigger={isOpen ? <Icon of={PlaylistIcon} size={20} /> : <Icon of={PlaylistIcon} size={20} />}
+      trigger={
+        isOpen ? <Icon of={Playlist01Icon} size={20} /> : <Icon of={Playlist01Icon} size={20} />
+      }
       className="w-80 sm:w-96 mb-7.5"
     >
       <ul className="flex flex-col gap-3">

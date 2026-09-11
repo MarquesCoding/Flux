@@ -1,11 +1,11 @@
 import {
-  ArrowClockwiseIcon,
-  CheckCircleIcon,
-  DeviceMobileIcon,
+  CheckmarkCircle02Icon,
+  Delete02Icon,
   PauseIcon,
   PlayIcon,
-  TrashIcon,
-} from '@phosphor-icons/react';
+  ReloadIcon,
+  SmartPhone01Icon,
+} from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
@@ -36,7 +36,7 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
           void keepAFile(download);
         }}
       >
-        <Icon of={DeviceMobileIcon} size={15} />
+        <Icon of={SmartPhone01Icon} size={15} />
         Keep on this device
       </Button>
     );
@@ -46,7 +46,7 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
     return (
       <>
         <Badge size="sm" tone="success">
-          <Icon of={CheckCircleIcon} size={14} />
+          <Icon of={CheckmarkCircle02Icon} size={14} />
           On this device
         </Badge>
 
@@ -60,7 +60,7 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
             void dropAFile(download.id);
           }}
         >
-          <Icon of={TrashIcon} size={16} />
+          <Icon of={Delete02Icon} size={16} />
         </Button>
       </>
     );
@@ -76,7 +76,7 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
           void pauseAFile(download.id, false);
         }}
       >
-        <Icon of={ArrowClockwiseIcon} size={15} />
+        <Icon of={ReloadIcon} size={15} />
         Try again
       </Button>
     );

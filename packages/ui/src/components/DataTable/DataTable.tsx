@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CaretDownIcon, CaretUpDownIcon, CaretUpIcon } from '@phosphor-icons/react';
+import { ArrowDown01Icon, ArrowUp01Icon, UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { useTable } from '@tanstack/react-table';
 import { Button } from '@ValenceUI/Button';
@@ -122,11 +122,11 @@ const DataTable = <Row extends RowData>({
                           <table.FlexRender header={header} />
 
                           {direction === 'asc' ? (
-                            <Icon of={CaretUpIcon} size={13} />
+                            <Icon of={ArrowUp01Icon} size={13} />
                           ) : direction === 'desc' ? (
-                            <Icon of={CaretDownIcon} size={13} />
+                            <Icon of={ArrowDown01Icon} size={13} />
                           ) : (
-                            <Icon of={CaretUpDownIcon} size={13} className="opacity-40" />
+                            <Icon of={UnfoldMoreIcon} size={13} className="opacity-40" />
                           )}
                         </Button>
                       ) : (

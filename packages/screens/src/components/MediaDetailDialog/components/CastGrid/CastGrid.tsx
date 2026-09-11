@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { UserIcon } from '@phosphor-icons/react';
+import { UserIcon } from '@hugeicons/core-free-icons';
 import { PageDots } from '@ValenceUI/PageDots';
 import { Button } from '@ValenceUI/Button';
 import { cn } from '@ValenceUI/cn';

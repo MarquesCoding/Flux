@@ -5,12 +5,12 @@ import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/an
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
 import {
-  FilmSlateIcon,
+  FavouriteIcon,
+  Film01Icon,
   FireIcon,
   FolderOpenIcon,
-  HeartIcon,
-  TelevisionIcon,
-} from '@phosphor-icons/react';
+  Tv01Icon,
+} from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
@@ -18,7 +18,7 @@ import { collapseToShows } from '@ValenceClient/library/pickFeatured';
 import { MediaGrid } from '@ValenceScreens/components/MediaGrid/MediaGrid';
 import { GridSizeChooser } from '@ValenceScreens/components/GridSizeChooser/GridSizeChooser';
 import { readGridSize, saveGridSize } from '@ValenceScreens/library/gridSizePreference';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { IconGlyph } from '@ValenceUI/Icon.types';
 import type { BrowseAreaProps, BrowseKind } from './BrowseArea.types';
 
 const PAGE_SIZE = 120;
@@ -29,7 +29,7 @@ const PAGES: Record<
     title: string;
     standfirst: string;
     empty: string;
-    of: PhosphorIcon;
+    of: IconGlyph;
     emptyIsAbout: 'one library' | 'every library' | 'nothing anybody scanned';
   }
 > = {
@@ -38,14 +38,14 @@ const PAGES: Record<
     standfirst: 'Everything that comes in episodes.',
     empty: 'No shows yet',
     emptyIsAbout: 'one library',
-    of: TelevisionIcon,
+    of: Tv01Icon,
   },
   films: {
     title: 'Films',
     standfirst: 'Everything that stands on its own.',
     empty: 'No films yet',
     emptyIsAbout: 'one library',
-    of: FilmSlateIcon,
+    of: Film01Icon,
   },
   new: {
     title: 'New & Popular',
@@ -59,7 +59,7 @@ const PAGES: Record<
     standfirst: 'Everything you have kept.',
     empty: 'Nothing has been favourited yet',
     emptyIsAbout: 'nothing anybody scanned',
-    of: HeartIcon,
+    of: FavouriteIcon,
   },
 };
 

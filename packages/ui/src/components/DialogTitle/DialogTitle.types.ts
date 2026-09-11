@@ -6,6 +6,7 @@ type DialogTitleProps = {
   icon?: ReactNode;
   below?: ReactNode;
   children?: ReactNode;
+  size?: 'default' | 'compact';
   className?: string;
 };
 

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowUUpRightIcon, HeartIcon, PlayIcon } from '@phosphor-icons/react';
+import { ArrowTurnForwardIcon, FavouriteIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -243,7 +243,7 @@ const RailCard = ({
                 top: anchor.top,
                 width: anchor.width,
               }}
-              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg bg-surface-raised p-1.5 shadow-[var(--shadow-overlay)] ring-1 ring-[var(--surface-line)]"
+              className="fixed z-40 flex max-h-[calc(100svh_-_1.5rem)] flex-col overflow-hidden rounded-lg valence-float p-1.5"
             >
               <Button
                 variant="bare"
@@ -259,7 +259,6 @@ const RailCard = ({
                   backdropUrl={artworkUrl ?? null}
                   durationSeconds={media.durationSeconds}
                   settleMilliseconds={0}
-                  hasSubtitles
                   fills
                 />
               </div>
@@ -356,7 +355,7 @@ const RailCard = ({
                         onPlay(media, 0);
                       }}
                     >
-                      <Icon of={ArrowUUpRightIcon} size={17} />
+                      <Icon of={ArrowTurnForwardIcon} size={17} />
                     </Button>
                   )}
 
@@ -373,9 +372,9 @@ const RailCard = ({
                       }}
                     >
                       {isKept ? (
-                        <Icon of={HeartIcon} size={17} />
+                        <Icon of={FavouriteIcon} size={17} />
                       ) : (
-                        <Icon of={HeartIcon} size={17} />
+                        <Icon of={FavouriteIcon} size={17} />
                       )}
                     </Button>
                   )}

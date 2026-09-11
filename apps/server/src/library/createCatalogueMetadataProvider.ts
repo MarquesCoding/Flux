@@ -638,7 +638,7 @@ const createCatalogueMetadataProvider = ({
         })),
       );
 
-      return chosen === null ? null : imageUrl(imageBaseUrl, chosen.filePath, 'w500');
+      return chosen === null ? null : imageUrl(imageBaseUrl, chosen.filePath, 'original');
     },
 
     search: async (query, kind) => {

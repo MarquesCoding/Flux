@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { ListIcon, XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon, Menu01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
 import { OptionMenu } from '@ValenceUI/OptionMenu';
@@ -342,7 +342,7 @@ const PageReader = ({
         ].join(' ')}
       >
         <Button variant="ghost" size="sm" isPill onClick={onClose} aria-label="Close the reader">
-          <Icon of={XIcon} size={18} />
+          <Icon of={Cancel01Icon} size={18} />
         </Button>
 
         <span className="min-w-0 flex-1 truncate text-sm text-on-scrim">
@@ -353,7 +353,7 @@ const PageReader = ({
           label="How to read"
           trigger={
             <Button variant="ghost" size="sm" isPill>
-              <Icon of={ListIcon} size={18} />
+              <Icon of={Menu01Icon} size={18} />
             </Button>
           }
           groups={[

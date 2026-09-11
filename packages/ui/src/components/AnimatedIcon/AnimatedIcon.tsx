@@ -26,6 +26,10 @@ const GESTURES: Record<IconGesture, Variants> = {
     rest: { transform: 'translateY(0px)', transition: ANSWER },
     play: { transform: 'translateY(-2px)', transition: ANSWER },
   },
+  none: {
+    rest: {},
+    play: {},
+  },
 };
 
 const WIPES: Partial<Record<IconGesture, Variants>> = {
@@ -51,7 +55,9 @@ const WIPES: Partial<Record<IconGesture, Variants>> = {
  * one sweep, and a spring asked to go somewhere else mid-flight carries its speed into the new
  * answer, where a sequence starts again from the beginning and the row stutters.
  *
- * @param gesture - How it should move, defaulting to a small rise and nothing else.
+ * @param gesture - How it should move, defaulting to a small rise and nothing else. `none` holds
+ *   it still, for something that is not a glyph at all — a face, which rising reads as the person
+ *   hopping rather than as a control answering.
  * @param isPlaying - Whether the gesture should be running, which the surrounding control decides.
  * @param isStilled - Whether to put the icon back where it rests without animating it there. Merely
  *   stopping a gesture animates it back, and that return journey moves the icon as much as the

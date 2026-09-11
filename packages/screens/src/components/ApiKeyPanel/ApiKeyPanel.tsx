@@ -1,7 +1,7 @@
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { RequestFailed } from '@ValenceClient/query/RequestFailed';
 import { Icon } from '@ValenceUI/Icon';
-import { CopyIcon, TrashIcon, WarningIcon } from '@phosphor-icons/react';
+import { Alert02Icon, Copy01Icon, Delete02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { TextField } from '@ValenceUI/TextField';
@@ -126,7 +126,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
       {made === null ? null : (
         <div className="flex flex-col gap-2 rounded-lg border border-accent/40 bg-accent/10 p-3">
           <span className="flex items-center gap-2 text-sm font-medium text-text">
-            <Icon of={WarningIcon} size={16} />
+            <Icon of={Alert02Icon} size={16} />
             Copy {made.name} now — it will not be shown again.
           </span>
 
@@ -145,7 +145,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
                 });
               }}
             >
-              <Icon of={CopyIcon} size={15} />
+              <Icon of={Copy01Icon} size={15} />
               {hasCopied ? 'Copied' : 'Copy'}
             </Button>
           </span>
@@ -244,7 +244,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
                   void revokeApiKey(key.id).then(read);
                 }}
               >
-                <Icon of={TrashIcon} size={16} />
+                <Icon of={Delete02Icon} size={16} />
               </Button>
             </li>
           ))}

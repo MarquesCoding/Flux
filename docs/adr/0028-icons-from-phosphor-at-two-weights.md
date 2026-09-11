@@ -1,10 +1,10 @@
 # ADR-0028: Draw every icon from Phosphor, bold at rest and filled in force
 
-- **Status:** Accepted
+- **Status:** Superseded
 - **Date:** 2026-08-21
 - **Deciders:** Marques Scripps
 - **Supersedes:** [0020](0020-icons-from-hugeicons-through-one-component.md)
-- **Superseded by:** —
+- **Superseded by:** [ADR-0030](0030-icons-from-hugeicons-stroke-with-state-in-the-control.md)
 
 ## Context
 

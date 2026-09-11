@@ -18,7 +18,7 @@ import type { SegmentedRowProps } from './SegmentedRow.types';
  * @param tone - How the chosen one is lit: inverted where the row is where you are, and tinted
  *   where it is a setting inside a dialog rather than a place to go.
  * @param items - The choices, in the order they should be offered; one marked absent is drawn
- *   outlined, for a choice that can be made but which this server has nothing behind.
+ *   fainter, for a choice that can be made but which this server has nothing behind.
  * @param value - Which one is chosen, so the mark can travel to it.
  * @param onSelect - Told which one was pressed.
  * @param className - Extra classes for the caller's own layout.
@@ -53,7 +53,7 @@ const SegmentedRow = ({
           SEGMENTED.item,
           SEGMENTED.itemSizes[size],
           item.id === value ? SEGMENTED.tones[tone].chosen : '',
-          item.isAbsent === true ? 'border border-dashed border-[var(--surface-divider)]' : '',
+          item.isAbsent === true && item.id !== value ? 'text-text-muted/60' : '',
         )}
         onClick={() => {
           onSelect(item.id);

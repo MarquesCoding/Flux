@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeftIcon, PauseIcon, PlayIcon } from '@phosphor-icons/react';
+import { ArrowLeft02Icon, PauseIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
 import { Slider } from '@ValenceUI/Slider';
@@ -53,7 +53,7 @@ const OfflinePlayer = ({ file, startAtSeconds = 0, onLeave, onProgress }: Offlin
           label="Back to downloads"
           onClick={onLeave}
         >
-          <Icon of={ArrowLeftIcon} size={18} />
+          <Icon of={ArrowLeft02Icon} size={18} />
         </Button>
 
         <div className="flex min-w-0 flex-col">

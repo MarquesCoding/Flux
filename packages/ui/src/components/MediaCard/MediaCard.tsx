@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { PlayIcon } from '@phosphor-icons/react';
+import { PlayIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';

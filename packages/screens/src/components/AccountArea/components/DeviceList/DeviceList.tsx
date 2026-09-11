@@ -1,5 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
-import { DotsThreeIcon, SignOutIcon } from '@phosphor-icons/react';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
+import { Logout01Icon, MoreHorizontalIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
@@ -78,14 +79,14 @@ const DeviceList = () => {
             <span className="flex justify-end">
               <ActionMenu
                 label={`Actions for ${row.original.name}`}
-                trigger={<Icon of={DotsThreeIcon} size={16} />}
+                trigger={<Icon of={MoreHorizontalIcon} size={16} />}
                 groups={[
                   {
                     items: [
                       {
                         id: 'end',
                         label: 'Sign this out',
-                        icon: <Icon of={SignOutIcon} size={15} />,
+                        icon: <Icon of={Logout01Icon} size={15} />,
                         isDestructive: true,
                         onChoose: () => {
                           live.current.onEnd(row.original);
@@ -103,7 +104,25 @@ const DeviceList = () => {
   );
 
   return (
-    <section className="flex flex-col">
+    <PanelCard
+      title="Devices"
+      isFlush
+      actions={
+        elsewhere.length === 0 ? undefined : (
+          <Button
+            variant="soft"
+            size="xs"
+            isPill
+            onClick={() => {
+              setIsEndingRest(true);
+            }}
+          >
+            <Icon of={Logout01Icon} size={14} />
+            Sign out everywhere else
+          </Button>
+        )
+      }
+    >
       <ConfirmDialog
         title="Sign this device out?"
         detail={
@@ -151,22 +170,6 @@ const DeviceList = () => {
         }}
       />
 
-      {elsewhere.length === 0 ? null : (
-        <div className="flex justify-end px-5 py-3">
-          <Button
-            variant="soft"
-            size="sm"
-            isPill
-            onClick={() => {
-              setIsEndingRest(true);
-            }}
-          >
-            <Icon of={SignOutIcon} size={15} />
-            Sign out everywhere else
-          </Button>
-        </div>
-      )}
-
       {devices === null ? (
         <div className="p-4">
           <Spinner label="Reading your devices" size="sm" />
@@ -179,7 +182,7 @@ const DeviceList = () => {
           emptyMessage="Nothing is signed in, which cannot be true of the thing you are reading this on. Try again in a moment."
         />
       )}
-    </section>
+    </PanelCard>
   );
 };
 

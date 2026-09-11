@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { BellIcon } from '@phosphor-icons/react';
+import { Notification01Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { PopoverPanel } from '@ValenceUI/PopoverPanel';
@@ -47,7 +47,7 @@ const NotificationBell = ({
       }}
       trigger={
         <span className="relative flex size-9 items-center justify-center">
-          <Icon of={BellIcon} size={20} />
+          <Icon of={Notification01Icon} size={20} />
 
           {unread === 0 ? null : (
             <Badge tone="accent" size="sm" className="absolute -right-1 -top-1">

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { CloudSlashIcon, HardDrivesIcon, WifiHighIcon } from '@phosphor-icons/react';
+import { CloudOffIcon, HardDriveIcon, Wifi01Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
@@ -65,7 +65,7 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
     <main className="mx-auto flex min-h-screen w-full max-w-3xl flex-col gap-6 px-4 py-8">
       <header className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-3">
-          <Logo size={28} />
+          <Logo size={28} isSolid />
 
           <div className="flex flex-col">
             <h1 className="font-body text-lg text-text">{title}</h1>
@@ -80,7 +80,7 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
 
         <div className="flex items-center gap-3">
           <Badge size="sm" tone="quiet">
-            <Icon of={CloudSlashIcon} size={14} />
+            <Icon of={CloudOffIcon} size={14} />
             Offline
           </Badge>
 
@@ -91,7 +91,7 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
               isPill
               onClick={askForADifferentServer}
             >
-              <Icon of={HardDrivesIcon} size={15} />
+              <Icon of={HardDriveIcon} size={15} />
               Change server
             </Button>
           )}
@@ -105,7 +105,7 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
                 goOffline(false);
               }}
             >
-              <Icon of={WifiHighIcon} size={15} />
+              <Icon of={Wifi01Icon} size={15} />
               {isByChoice ? 'Go back online' : 'Reconnect'}
             </Button>
           )}

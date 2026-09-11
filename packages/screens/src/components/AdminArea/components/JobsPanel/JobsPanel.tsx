@@ -8,6 +8,7 @@ import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { JobRunner } from '@ValenceScreens/components/AdminArea/components/JobRunner/JobRunner';
 import { JobSchedulePage } from '@ValenceScreens/components/AdminArea/components/JobSchedulePage/JobSchedulePage';
 import type { JobsPanelProps } from './JobsPanel.types';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 /**
  * The Work tab: what can be started by hand, what is running because something started it earlier,
@@ -84,8 +85,10 @@ const JobsPanel = ({
         )}
       </Dialog>
 
-      <section className="flex flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
+      <PanelCard
+        title="Background jobs"
+        isFlush
+        actions={
           <span className="text-xs text-text-muted">
             {monitor === null
               ? '—'
@@ -93,12 +96,12 @@ const JobsPanel = ({
                   failures === 0 ? '' : ` · ${failures.toString()} failed`
                 }`}
           </span>
-        </div>
-
+        }
+      >
         <BackgroundJobs monitor={monitor} isUnreachable={isUnreachable} pageSize={10} />
-      </section>
+      </PanelCard>
 
-      <section className="flex flex-col overflow-hidden">
+      <PanelCard title="Run a job" isFlush>
         <JobRunner
           working={working}
           definitions={definitions}
@@ -108,7 +111,7 @@ const JobsPanel = ({
           onStop={onStop}
           onOpenSchedule={onOpenSchedule}
         />
-      </section>
+      </PanelCard>
     </div>
   );
 };

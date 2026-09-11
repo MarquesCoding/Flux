@@ -20,7 +20,7 @@ const DialogFooter = ({ children, className }: DialogFooterProps) => (
   <footer
     className={cn(
       'grid shrink-0 grid-flow-col gap-3 [grid-auto-columns:1fr]',
-      'border-t border-[var(--surface-line)] bg-surface p-4',
+      'border-t border-[var(--surface-line)] p-4',
       '[&>*]:w-full',
       className,
     )}

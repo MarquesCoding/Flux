@@ -50,6 +50,13 @@ afterEach(() => {
 });
 
 describe('readLights', () => {
+  it('reads the picture as a grid four across and three down, each light where its cell is', () => {
+    expect(ZONES).toHaveLength(12);
+    expect(ZONES[0]?.from).toEqual([0, 0, 0.25, 1 / 3]);
+    expect(ZONES[11]?.from).toEqual([0.75, 2 / 3, 0.25, 1 / 3]);
+    expect(new Set(ZONES.map((zone) => zone.at)).size).toBe(12);
+  });
+
   it('answers with one light per part of the picture', () => {
     withCanvas(() => painted());
 

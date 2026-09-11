@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CaretLeftIcon, CaretRightIcon, CheckIcon } from '@phosphor-icons/react';
+import { ArrowLeft01Icon, ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import * as RadixPopover from '@radix-ui/react-popover';
 import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
@@ -130,8 +130,8 @@ const SettingsMenu = ({
           collisionPadding={12}
           data-slot="settings-menu"
           className={cn(
-            'z-50 valence-glass valence-glass--popover flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
-            tone === 'overlay' ? 'valence-glass--film' : '',
+            'z-50 flex w-80 flex-col overflow-hidden rounded-lg p-1.5 text-text outline-none',
+            tone === 'overlay' ? 'valence-glass valence-glass--film' : 'valence-float',
             POPUP_MOTION,
           )}
         >
@@ -215,7 +215,7 @@ const SettingsMenu = ({
                           <span className="truncate" title={answer ?? undefined}>
                             {answer}
                           </span>
-                          <Icon of={CaretRightIcon} size={16} className="shrink-0" />
+                          <Icon of={ArrowRight01Icon} size={16} className="shrink-0" />
                         </span>
                       </Button>
                     );
@@ -231,7 +231,7 @@ const SettingsMenu = ({
                         'shrink-0 border-b border-[var(--surface-line)] font-medium ',
                       )}
                     >
-                      <Icon of={CaretLeftIcon} size={18} />
+                      <Icon of={ArrowLeft01Icon} size={18} />
                       {opened.label}
                     </Button>,
 
@@ -257,7 +257,7 @@ const SettingsMenu = ({
                           >
                             <span className="flex size-4 shrink-0 items-center justify-center">
                               {choice.id === opened.selectedId ? (
-                                <Icon of={CheckIcon} size={16} />
+                                <Icon of={Tick02Icon} size={16} />
                               ) : null}
                             </span>
 

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { WarningIcon } from '@phosphor-icons/react';
+import { Alert02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
@@ -533,7 +533,7 @@ const AdminArea = ({
           transition={revealTransition(prefersReducedMotion)}
           className="flex flex-wrap items-center gap-3 rounded-xl border border-danger/40 bg-danger/10 px-5 py-4 font-body text-sm text-text"
         >
-          <Icon of={WarningIcon} size={18} className="shrink-0 text-danger" />
+          <Icon of={Alert02Icon} size={18} className="shrink-0 text-danger" />
           Some of this could not be read from the server, so parts of the page may be missing rather
           than empty.
           <Button
@@ -652,6 +652,9 @@ const AdminArea = ({
                 void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
               }}
               onHardwareAccelSaved={() => {
+                void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
+              }}
+              onPreviewQualitySaved={() => {
                 void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
               }}
             />

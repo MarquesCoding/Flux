@@ -16,6 +16,7 @@ const OVERVIEW: AdminOverview = {
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
     hardwareAccel: '',
+    previewQuality: 'high' as const,
   },
   transcoder: {
     isReachable: true,
@@ -86,6 +87,37 @@ describe('AdminDialog', () => {
     });
 
     expect(await screen.findByText('Media service unreachable')).toBeInTheDocument();
+  });
+
+  it('names the version of Valence it is, which is the first thing a report is asked for', async () => {
+    fetchMock.mockImplementation((target: string) =>
+      Promise.resolve({
+        ok: true,
+        json: () =>
+          Promise.resolve(target.includes('/api/health') ? { version: '1.2.3' } : OVERVIEW),
+      }),
+    );
+
+    renderInAnAddress(
+      <AdminDialog
+        panel="overview"
+        job={null}
+        onPanel={vi.fn()}
+        onJob={vi.fn()}
+        onClose={vi.fn()}
+      />,
+    );
+
+    expect(await screen.findByText(/^Valence 1\.2\.3 · Media service up/)).toBeInTheDocument();
+  });
+
+  it('keeps its head to one line above the tabs, since the panels are the point', async () => {
+    draw();
+
+    const heading = await screen.findByRole('heading', { name: 'Server' });
+
+    expect(heading).toHaveClass('text-base');
+    expect(heading.parentElement).toHaveClass('items-baseline');
   });
 
   it('marks a backend this machine cannot actually do', async () => {

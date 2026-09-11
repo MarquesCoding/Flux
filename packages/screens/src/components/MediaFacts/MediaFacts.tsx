@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { StarIcon } from '@phosphor-icons/react';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import type { ReactNode } from 'react';
 import type { MediaFactsProps } from './MediaFacts.types';

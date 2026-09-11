@@ -78,8 +78,8 @@
       "@ValenceUI/MoodBackground.types": [
         "./packages/ui/src/components/MoodBackground/MoodBackground.types.ts"
       ],
-      "@ValenceUI/NavDock": ["./packages/ui/src/components/NavDock/NavDock.tsx"],
-      "@ValenceUI/NavDock.types": ["./packages/ui/src/components/NavDock/NavDock.types.ts"],
+      "@ValenceUI/NavBar": ["./packages/ui/src/components/NavBar/NavBar.tsx"],
+      "@ValenceUI/NavBar.types": ["./packages/ui/src/components/NavBar/NavBar.types.ts"],
       "@ValenceUI/OptionMenu": ["./packages/ui/src/components/OptionMenu/OptionMenu.tsx"],
       "@ValenceUI/PageDots": ["./packages/ui/src/components/PageDots/PageDots.tsx"],
       "@ValenceUI/PopoverPanel": ["./packages/ui/src/components/PopoverPanel/PopoverPanel.tsx"],

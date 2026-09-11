@@ -10,7 +10,6 @@ type MediaPreviewProps = {
   startFraction?: number;
   durationSeconds: number;
   hasSound?: boolean;
-  hasSubtitles?: boolean;
   controlsAtTop?: boolean;
   isHeld?: boolean;
   repeats?: boolean;

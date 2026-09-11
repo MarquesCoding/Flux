@@ -1,6 +1,6 @@
 import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { Refusal, WebhookChange } from '@ValenceClient/admin/fetchWebhooks';
-import type { WebhookFilterChoice } from '../WebhookFilterList/WebhookFilterList.types';
+import type { WebhookFilterChoice } from '@ValenceScreens/components/AdminArea/components/WebhooksPanel/components/WebhookFilterList/WebhookFilterList.types';
 
 type EditWebhookDialogProps = {
   webhook: WebhookSubscription | null;

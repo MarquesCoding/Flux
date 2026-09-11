@@ -32,9 +32,9 @@ const Toaster = ({ theme = 'system', id, position = 'bottom-right' }: ToasterPro
       duration: 5000,
       classNames: {
         toast: [
-          'group !valence-glass !rounded-xl !border !border-[var(--glass-edge)]',
-          '!bg-[var(--glass-tint)] !text-text',
-          '!shadow-[var(--glass-shadow)] !font-body',
+          'group valence-float !rounded-xl !border-0',
+          '!bg-surface-raised !text-text',
+          '!shadow-[0_0_0_1px_var(--surface-line),var(--shadow-overlay)] !font-body',
         ].join(' '),
         title: '!text-sm !font-medium',
         description: '!text-xs !text-[var(--color-muted-foreground)]',

@@ -1,6 +1,7 @@
 import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
 import { previewRequestFor } from './previewRequestFor';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 type PreviewStore = {
@@ -17,6 +18,7 @@ type RegeneratePreviewsOptions = {
   store: PreviewStore;
   transcoder: Transcoder;
   defaultAudioLanguage: string | null;
+  quality: PreviewQuality;
   hardwareAccel?: string;
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
@@ -30,7 +32,7 @@ type RegeneratePreviewsOptions = {
  * with sound.
  *
  * @param options - The library to work through, the transcoder that renders, the language to prefer,
- *   and where to report progress.
+ *   the preset to render at, and where to report progress.
  * @returns How many clips were rendered.
  */
 const regeneratePreviews = async ({
@@ -40,6 +42,7 @@ const regeneratePreviews = async ({
   store,
   transcoder,
   defaultAudioLanguage,
+  quality,
   hardwareAccel,
   atOnce = 1,
   onProblem,
@@ -58,7 +61,7 @@ const regeneratePreviews = async ({
 
     const rendered = await transcoder
       .requestPreview({
-        ...previewRequestFor(item, generation, defaultAudioLanguage),
+        ...previewRequestFor(item, generation, defaultAudioLanguage, quality),
         ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
         wait: true,
         ...(owner === undefined ? {} : { owner }),

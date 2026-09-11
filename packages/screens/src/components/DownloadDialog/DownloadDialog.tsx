@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@ValenceUI/Icon';
-import { DownloadSimpleIcon, WarningIcon } from '@phosphor-icons/react';
+import { Alert02Icon, Download04Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -169,7 +169,7 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
             }`}
           >
             {verdict === 'fits' ? null : (
-              <Icon of={WarningIcon} size={18} className="shrink-0 text-danger" />
+              <Icon of={Alert02Icon} size={18} className="shrink-0 text-danger" />
             )}
 
             {verdict === 'willNotFit'
@@ -223,7 +223,7 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
               });
           }}
         >
-          <Icon of={DownloadSimpleIcon} size={18} />
+          <Icon of={Download04Icon} size={18} />
           {series === null ? 'Prepare it' : `Queue ${episodes.toString()} episodes`}
         </Button>
       </DialogFooter>

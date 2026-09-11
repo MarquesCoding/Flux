@@ -1,10 +1,10 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowsClockwiseIcon, CaretRightIcon } from '@phosphor-icons/react';
+import { ArrowRight01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import type { ReactNode } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 import { cn } from '@ValenceUI/cn';
 import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
 import { CacheBreakdown } from '@ValenceScreens/components/AdminArea/components/CacheBreakdown/CacheBreakdown';
@@ -28,6 +28,7 @@ import type { OverviewPanelProps } from './OverviewPanel.types';
  * @param onAction - Called when that control is pressed.
  * @param actionIcon - The icon on that control.
  * @param isActionBusy - Whether that control's work is in flight.
+ * @param isFlush - Whether what it shows runs to the card's edges, for a table.
  * @param children - What the region shows.
  * @param className - Anything extra the layout needs of it.
  */
@@ -37,6 +38,7 @@ const Region = ({
   onAction,
   actionIcon,
   isActionBusy = false,
+  isFlush = false,
   children,
   className,
 }: {
@@ -45,31 +47,35 @@ const Region = ({
   onAction?: () => void;
   actionIcon?: ReactNode;
   isActionBusy?: boolean;
+  isFlush?: boolean;
   children: ReactNode;
   className?: string;
 }) => (
-  <Card as="section" padding="md" className={cn('flex h-full flex-col gap-4', className)}>
-    <header className="flex items-baseline justify-between gap-3">
-      <h3 className="text-xs uppercase tracking-[0.16em] text-text-muted">{title}</h3>
-
-      {action === undefined || onAction === undefined ? null : (
-        <Button
-          variant="ghost"
-          size="sm"
-          isPill
-          className="shrink-0 text-xs text-text-muted hover:text-text"
-          onClick={onAction}
-          disabled={isActionBusy}
-          isLoading={isActionBusy}
-        >
-          {action}
-          {actionIcon ?? <Icon of={CaretRightIcon} size={14} />}
-        </Button>
-      )}
-    </header>
-
+  <PanelCard
+    title={title}
+    isFlush={isFlush}
+    className={cn('h-full', className)}
+    {...(action === undefined || onAction === undefined
+      ? {}
+      : {
+          actions: (
+            <Button
+              variant="ghost"
+              size="xs"
+              isPill
+              className="shrink-0 text-xs text-text-muted hover:text-text"
+              onClick={onAction}
+              disabled={isActionBusy}
+              isLoading={isActionBusy}
+            >
+              {action}
+              {actionIcon ?? <Icon of={ArrowRight01Icon} size={14} />}
+            </Button>
+          ),
+        })}
+  >
     <div className="mt-auto">{children}</div>
-  </Card>
+  </PanelCard>
 );
 
 Region.displayName = 'Region';
@@ -323,7 +329,7 @@ const OverviewPanel = ({
           title="Storage Valence is using"
           className="lg:col-span-4"
           action="Refresh"
-          actionIcon={<Icon of={ArrowsClockwiseIcon} size={14} />}
+          actionIcon={<Icon of={RefreshIcon} size={14} />}
           isActionBusy={isCounting}
           onAction={() => {
             void recount();
@@ -344,24 +350,17 @@ const OverviewPanel = ({
           />
         </Region>
 
-        <section className="flex flex-col overflow-hidden lg:col-span-4">
-          <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
-            <Button
-              variant="ghost"
-              size="sm"
-              isPill
-              className="text-xs text-text-muted hover:text-text"
-              onClick={() => {
-                onOpenPanel('jobs');
-              }}
-            >
-              All work
-              <Icon of={CaretRightIcon} size={14} />
-            </Button>
-          </div>
-
+        <Region
+          title="Recent jobs"
+          action="All work"
+          onAction={() => {
+            onOpenPanel('jobs');
+          }}
+          isFlush
+          className="lg:col-span-4"
+        >
           <BackgroundJobs monitor={monitor} pageSize={5} />
-        </section>
+        </Region>
       </div>
     </div>
   );

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowsClockwiseIcon, ImageSquareIcon } from '@phosphor-icons/react';
+import { Image01Icon, RefreshIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { FilePicker } from '@ValenceUI/FilePicker';
 import { SettingRow } from '@ValenceUI/SettingRow';
@@ -7,6 +7,7 @@ import { TextField } from '@ValenceUI/TextField';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { useTheme } from '@ValenceClient/shell/useTheme';
 import { readTheme } from '@ValenceClient/shell/theme';
+import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
 import { Switch } from '@ValenceUI/Switch';
 import { PROFILE_COLOURS, AVATAR_STYLES } from '@ValenceContracts/schemas/ViewerProfile';
 import { STILL_WATCHING_OFF } from '@ValenceContracts/schemas/StillWatching';
@@ -21,12 +22,6 @@ const ASK_AFTER = [
   { id: '3', label: '3' },
   { id: '4', label: '4' },
   { id: '6', label: '6' },
-] as const;
-
-const THEMES = [
-  { id: 'system', label: 'System' },
-  { id: 'light', label: 'Light' },
-  { id: 'dark', label: 'Dark' },
 ] as const;
 
 /**
@@ -100,7 +95,7 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
           }}
         >
           <span className="inline-flex h-8 items-center gap-1.5 rounded-pill border border-accent/30 bg-accent/15 px-3.5 text-[0.8125rem] font-medium text-accent transition-colors hover:bg-accent/25">
-            <Icon of={ImageSquareIcon} size={15} />
+            <Icon of={Image01Icon} size={15} />
             Upload
           </span>
         </FilePicker>
@@ -147,7 +142,7 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
             onDraft({ avatar: { kind: 'initial' }, photo: null });
           }}
         >
-          <Icon of={ArrowsClockwiseIcon} size={16} />
+          <Icon of={RefreshIcon} size={16} />
         </Button>
       </SettingRow>
 
@@ -160,7 +155,7 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
           tone="accent"
           label="Theme"
           value={theme}
-          items={THEMES}
+          items={THEME_CHOICES}
           onSelect={(chosen) => {
             choose(readTheme(chosen));
           }}

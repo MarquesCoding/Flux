@@ -36,6 +36,7 @@ import { STILL_WATCHING_ANSWER_SECONDS } from '@ValenceContracts/schemas/StillWa
 import { resumeFor } from '@ValenceClient/playback/resumeFor';
 import { ACCOUNT_OPENS_ON, ADMIN_OPENS_ON } from '@ValenceClient/navigation/readLocation';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useSignOut } from '@ValenceScreens/session/useSignOut';
 import { useShell } from '@ValenceClient/shell/useShell';
 import type { ShowSummary } from '@ValenceContracts/schemas/Show';
 import type { Inbox } from '@ValenceClient/notifications/fetchNotifications';
@@ -66,6 +67,7 @@ const ValenceShell = () => {
 
   const favourites = useFavourites(user.id);
   const ratings = useRatings(user.id);
+  const leave = useSignOut();
 
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
   const [openRole, setOpenRole] = useState<string | null>(null);
@@ -217,6 +219,9 @@ const ValenceShell = () => {
           rememberItems([found.item]);
           go({ inspecting: found.item.id });
         });
+      }}
+      onSignOut={() => {
+        void leave();
       }}
       {...(watcher === null
         ? {}

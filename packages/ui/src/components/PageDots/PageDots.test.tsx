@@ -1,7 +1,19 @@
-import { render, screen } from '@testing-library/react';
+import { act, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { motionValue } from 'motion/react';
 import { describe, expect, it, vi } from 'vitest';
 import { PageDots } from './PageDots';
+
+/**
+ * The fill counting down the page that is showing, where there is one.
+ *
+ * @param container - What was rendered.
+ * @returns Every fill drawn.
+ */
+const fillsOf = (container: HTMLElement): HTMLElement[] =>
+  Array.from(container.querySelectorAll('[data-slot="page-dots-fill"]')).filter(
+    (found): found is HTMLElement => found instanceof HTMLElement,
+  );
 
 describe('PageDots', () => {
   it('draws one marker per thing there is', () => {
@@ -67,44 +79,63 @@ describe('PageDots', () => {
     expect(PageDots.displayName).toBe('PageDots');
   });
 
-  it('fills the marker as the time to the next one runs out', () => {
+  it('fills the marker as far through its turn as whatever advances the pages says', () => {
+    const progress = motionValue(0.4);
     const { container } = render(
-      <PageDots count={3} selectedIndex={1} onSelect={vi.fn()} fillMilliseconds={9000} />,
+      <PageDots count={3} selectedIndex={1} onSelect={vi.fn()} progress={progress} />,
     );
 
-    const fill = container.querySelector('.valence-dot-fill');
+    const [fill] = fillsOf(container);
 
-    expect(fill).toBeInTheDocument();
-    expect(fill).toHaveStyle({ animationDuration: '9000ms' });
+    expect(fill?.style.transform).toContain('scaleX(0.4)');
+  });
+
+  it('follows that count as it moves, rather than keeping a clock of its own', async () => {
+    const progress = motionValue(0.1);
+    const { container } = render(
+      <PageDots count={3} selectedIndex={1} onSelect={vi.fn()} progress={progress} />,
+    );
+
+    act(() => {
+      progress.set(0.8);
+    });
+
+    await waitFor(() => {
+      expect(fillsOf(container)[0]?.style.transform).toContain('scaleX(0.8)');
+    });
   });
 
   it('fills only the one being counted down, not the rest', () => {
     const { container } = render(
-      <PageDots count={4} selectedIndex={2} onSelect={vi.fn()} fillMilliseconds={9000} />,
+      <PageDots count={4} selectedIndex={2} onSelect={vi.fn()} progress={motionValue(0.5)} />,
     );
 
-    expect(container.querySelectorAll('.valence-dot-fill')).toHaveLength(1);
-  });
-
-  it('holds the fill still when whatever it was counting down has stopped', () => {
-    const { container } = render(
-      <PageDots
-        count={3}
-        selectedIndex={0}
-        onSelect={vi.fn()}
-        fillMilliseconds={9000}
-        isFillPaused
-      />,
-    );
-
-    expect(container.querySelector('.valence-dot-fill')).toHaveStyle({
-      animationPlayState: 'paused',
-    });
+    expect(fillsOf(container)).toHaveLength(1);
+    expect(fillsOf(container)[0]?.closest('button')).toHaveAttribute('aria-current', 'true');
   });
 
   it('fills nothing where the markers describe something that only moves when asked', () => {
     const { container } = render(<PageDots count={3} selectedIndex={0} onSelect={vi.fn()} />);
 
-    expect(container.querySelector('.valence-dot-fill')).toBeNull();
+    expect(fillsOf(container)).toHaveLength(0);
+  });
+
+  it('draws in the page colours by default', () => {
+    render(<PageDots count={2} selectedIndex={0} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Show page 1' }).firstElementChild).toHaveClass(
+      'bg-text',
+    );
+  });
+
+  it('draws light over a picture whatever the theme, where it sits over one', () => {
+    render(<PageDots count={2} selectedIndex={0} tone="overlay" onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: 'Show page 1' }).firstElementChild).toHaveClass(
+      'bg-on-scrim',
+    );
+    expect(screen.getByRole('button', { name: 'Show page 2' }).firstElementChild).toHaveClass(
+      'bg-on-scrim/45',
+    );
   });
 });

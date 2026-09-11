@@ -53,6 +53,41 @@ describe('SegmentedRow', () => {
     expect(document.querySelectorAll('[data-mark="segmented-Which library"]')).toHaveLength(1);
   });
 
+  it('draws a choice with nothing behind it fainter, rather than in a dashed outline', () => {
+    render(
+      <SegmentedRow
+        label="Which season"
+        items={[
+          { id: 's1', label: 'Season 1' },
+          { id: 's2', label: 'Season 2', isAbsent: true },
+        ]}
+        value="s1"
+        onSelect={() => {}}
+      />,
+    );
+
+    const missing = screen.getByRole('button', { name: 'Season 2' });
+
+    expect(missing).toHaveClass('text-text-muted/60');
+    expect(missing.className).not.toContain('border-dashed');
+  });
+
+  it('draws that choice in full once it is the one chosen', () => {
+    render(
+      <SegmentedRow
+        label="Which season"
+        items={[
+          { id: 's1', label: 'Season 1' },
+          { id: 's2', label: 'Season 2', isAbsent: true },
+        ]}
+        value="s2"
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Season 2' })).not.toHaveClass('text-text-muted/60');
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(SegmentedRow.displayName).toBe('SegmentedRow');
   });

@@ -1,5 +1,5 @@
-import { CompassIcon, GlobeIcon, TelevisionIcon } from '@phosphor-icons/react';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import { Compass01Icon, Globe02Icon, Tv01Icon } from '@hugeicons/core-free-icons';
+import type { IconGlyph } from '@ValenceUI/Icon.types';
 
 const BROWSERS = ['Edge', 'Opera', 'Chromium', 'Chrome', 'Firefox'] as const;
 
@@ -15,12 +15,12 @@ const BROWSERS = ['Edge', 'Opera', 'Chromium', 'Chrome', 'Firefox'] as const;
  * @param deviceLabel - What the session calls the device.
  * @returns The icon to draw.
  */
-const deviceIconFor = (deviceLabel: string): PhosphorIcon => {
+const deviceIconFor = (deviceLabel: string): IconGlyph => {
   if (deviceLabel.startsWith('Safari')) {
-    return CompassIcon;
+    return Compass01Icon;
   }
 
-  return BROWSERS.some((name) => deviceLabel.startsWith(name)) ? GlobeIcon : TelevisionIcon;
+  return BROWSERS.some((name) => deviceLabel.startsWith(name)) ? Globe02Icon : Tv01Icon;
 };
 
 export { deviceIconFor };

@@ -21,6 +21,7 @@ import {
   searchCatalogue,
   cancelJob,
   saveHardwareAccel,
+  savePreviewQuality,
   watchActiveSessions,
   measureStorage,
 } from './fetchAdmin';
@@ -49,6 +50,7 @@ const OVERVIEW = {
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
     hardwareAccel: '',
+    previewQuality: 'high',
   },
   transcoder: {
     isReachable: true,
@@ -721,6 +723,30 @@ describe('stopping a job and choosing a backend', () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 
     await expect(cancelJob('job-1')).resolves.toBe(false);
+  });
+
+  it('sends the preview preset an operator chose', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 200, json: () => Promise.resolve({}) });
+
+    await expect(savePreviewQuality('low')).resolves.toBe(true);
+
+    const [url, init] = fetchMock.mock.calls.at(-1) ?? [];
+
+    expect(url).toBe('/api/admin/settings');
+    expect(init?.method).toBe('PATCH');
+    expect(init?.body).toBe(JSON.stringify({ previewQuality: 'low' }));
+  });
+
+  it('reports a preview preset the server did not take', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve({}) });
+
+    await expect(savePreviewQuality('standard')).resolves.toBe(false);
+  });
+
+  it('reports a server it could not reach to change the preview preset', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    await expect(savePreviewQuality('high')).resolves.toBe(false);
   });
 
   it('sends the backend an operator insisted on', async () => {

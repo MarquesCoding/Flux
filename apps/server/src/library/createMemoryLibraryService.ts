@@ -322,6 +322,13 @@ const createMemoryLibraryService = (
         : null,
     ),
 
+  remakePreviews: (libraryId) =>
+    Promise.resolve(
+      state.libraries.some((entry) => entry.id === libraryId)
+        ? { jobId: `regenerate-previews-${libraryId}`, state: 'queued' }
+        : null,
+    ),
+
   fetchLogos: (libraryId) =>
     Promise.resolve(
       state.libraries.some((entry) => entry.id === libraryId)

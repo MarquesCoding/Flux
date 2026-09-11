@@ -34,7 +34,7 @@ const PANEL_MOTION = [
 ].join(' ');
 
 const PRESS_MOTION = [
-  'transition-[transform,background-color,border-color,color,box-shadow]',
+  'transition-[transform,background-color,border-color,color,box-shadow,filter]',
   'duration-[var(--duration-instant)] ease-[var(--ease-out)]',
   'active:scale-[0.97]',
   'motion-reduce:transition-none motion-reduce:active:scale-100',

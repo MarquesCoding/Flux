@@ -1,5 +1,5 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { BooksIcon } from '@phosphor-icons/react';
+import { Books01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
 import { bookQueries } from '@ValenceClient/query/bookQueries';
@@ -32,7 +32,7 @@ const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
   if (asked.data !== undefined && shelves.length === 0) {
     return (
       <NothingHere
-        of={BooksIcon}
+        of={Books01Icon}
         title="No book libraries yet"
         detail={
           onAddLibrary === undefined
@@ -55,7 +55,7 @@ const BookShelf = ({ onOpen, onAddLibrary }: BookShelfProps) => {
   if (hasNothingOnAnyShelf) {
     return (
       <NothingHere
-        of={BooksIcon}
+        of={Books01Icon}
         title="Nothing to read yet"
         detail={
           onAddLibrary === undefined

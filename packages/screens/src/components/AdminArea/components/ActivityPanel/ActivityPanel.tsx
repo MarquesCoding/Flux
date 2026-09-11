@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SessionCard } from '@ValenceScreens/components/AdminArea/components/SessionCard/SessionCard';
 import { SessionMessageDialog } from '@ValenceScreens/components/AdminArea/components/SessionMessageDialog/SessionMessageDialog';
 import { groupSessionsByViewer } from '@ValenceScreens/components/AdminArea/groupSessionsByViewer';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 import type { ActivityPanelProps } from './ActivityPanel.types';
 
 /**
@@ -31,15 +32,16 @@ const ActivityPanel = ({
   const watcher = sessions.find((session) => session.clientId === messaging);
 
   return (
-    <section className="flex flex-col">
-      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
+    <PanelCard
+      title="Sessions"
+      actions={
         <span className="flex items-center gap-1.5 text-xs text-text-muted">
           <span aria-hidden className="size-1.5 rounded-full bg-accent" />
           Live
         </span>
-      </div>
-
-      <div className="flex flex-col gap-4 p-4">
+      }
+    >
+      <div className="flex flex-col gap-4">
         {sessions.length === 0 ? (
           <p className="text-sm text-text-muted">Nobody has the app open right now.</p>
         ) : (
@@ -84,7 +86,7 @@ const ActivityPanel = ({
           setMessaging(null);
         }}
       />
-    </section>
+    </PanelCard>
   );
 };
 

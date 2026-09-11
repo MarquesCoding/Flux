@@ -25,6 +25,11 @@ const POPUP_MOTION = [
  * It grows from the edge nearest the control rather than from its own middle, which is what makes it
  * read as belonging to that control rather than as a card that happened to appear.
  *
+ * It is drawn in the page's colours turned over — ink for a ground, the ground for its words — and
+ * flat, with no glass, edge or gloss. Those are what the controls themselves are made of, so a name
+ * drawn with them looked like one more button hovering beside the first; a solid chip in the
+ * opposite colours reads as a label on every surface and in either theme.
+ *
  * The pause before it appears is there so that crossing a row of icons does not flash a name on each
  * one. But once any name is showing, the next is instant: the pause exists to establish that the
  * pointer has stopped, and that has already been established. Skipping it is what makes a bar of
@@ -69,7 +74,8 @@ const Tooltip = ({
           collisionPadding={8}
           data-slot="tooltip-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover rounded-md px-2 py-1 text-xs font-medium text-text shadow-[var(--shadow-lifted)]',
+            'z-50 max-w-[18rem] rounded-sm bg-text px-2.5 py-1.5 text-xs font-medium leading-4 text-balance text-surface',
+            'shadow-[var(--shadow-raised)]',
             POPUP_MOTION,
           )}
         >

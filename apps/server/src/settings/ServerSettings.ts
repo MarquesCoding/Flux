@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { PreviewQualitySchema } from '@ValenceContracts/schemas/PreviewQuality';
 
 const ServerSettingsSchema = z.object({
   trustedOrigins: z.array(z.string().url()),
@@ -6,6 +7,7 @@ const ServerSettingsSchema = z.object({
   setupCompletedAt: z.string().datetime().nullable(),
   catalogueApiKey: z.string().default(''),
   hardwareAccel: z.string().default(''),
+  previewQuality: PreviewQualitySchema.default('high'),
   seededJobTriggerKinds: z.array(z.string()).default([]),
   seededRoleNames: z.array(z.string()).default([]),
   pushPublicKey: z.string().default(''),

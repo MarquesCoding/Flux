@@ -44,6 +44,7 @@ const build = (
   const permissions = createMemoryPermissionService();
   const presence = createPresenceService();
   const playback = createMemoryPlaybackService();
+  const library = createMemoryLibraryService({ libraries: [LIBRARY], media: [] });
 
   const app = createApp({
     ...(waiting.isTranscoderReachable === undefined
@@ -65,7 +66,7 @@ const build = (
           createdAt: '2026-01-01T00:00:00.000Z',
         },
       ]),
-    library: createMemoryLibraryService({ libraries: [LIBRARY], media: [] }),
+    library,
     playback,
     segments: createMemorySegmentService(),
     subtitles: createMemorySubtitleService({}),
@@ -76,7 +77,7 @@ const build = (
     presence,
   });
 
-  return { app, settings, store, permissions, presence, playback };
+  return { app, settings, store, permissions, presence, playback, library };
 };
 
 const signedIn = (app: ReturnType<typeof build>['app']): Promise<string> =>
@@ -1222,6 +1223,51 @@ describe('what the caches are holding', () => {
 });
 
 describe('changing one setting without disturbing the others', () => {
+  it('changes the preview preset, and remakes the previews of every library at it', async () => {
+    const { app, store, permissions, settings, library } = build();
+    const remake = vi.spyOn(library, 'remakePreviews');
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ previewQuality: 'low' }),
+    });
+
+    expect(response.status).toBe(200);
+    await expect(response.json()).resolves.toMatchObject({ previewQuality: 'low' });
+    expect((await settings.read()).previewQuality).toBe('low');
+    expect(remake).toHaveBeenCalledWith(LIBRARY.id);
+  });
+
+  it('remakes nothing when the preset is set to what it already was', async () => {
+    const { app, store, permissions, library } = build();
+    const remake = vi.spyOn(library, 'remakePreviews');
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ previewQuality: 'high' }),
+    });
+
+    expect(remake).not.toHaveBeenCalled();
+  });
+
+  it('refuses a preview preset that does not exist', async () => {
+    const { app, store, permissions, settings } = build();
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const response = await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ previewQuality: 'ultra' }),
+    });
+
+    expect(response.status).toBe(400);
+    expect((await settings.read()).previewQuality).toBe('high');
+  });
+
   it('changes the catalogue key alone', async () => {
     const { app, store, permissions, settings } = build();
     const cookie = await signedInAsAdmin(app, store, permissions);

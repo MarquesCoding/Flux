@@ -207,6 +207,7 @@ const settings = createDatabaseSettingsStore({
     setupCompletedAt: null,
     catalogueApiKey: env.CATALOGUE_API_KEY,
     hardwareAccel: '',
+    previewQuality: 'high',
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',
@@ -943,6 +944,7 @@ const jobs = await createJobQueue({
       },
       [CLEANUP_ARTEFACT_CACHE_JOB]: async () => {
         const swept = await sweepArtefactCache({
+          quality: (await settings.read()).previewQuality,
           listLiveItems: async () => {
             const rows = await db
               .select({
@@ -1236,6 +1238,7 @@ const libraryService = createDatabaseLibraryService({
   providers: [catalogueProvider, createFilenameMetadataProvider()],
   books: bookService,
   atOnce: env.MEDIA_JOBS,
+  previewQuality: async () => (await settings.read()).previewQuality,
   onProblem: (path, reason) => {
     log.warn('scanner', `skipped ${path}: ${reason}`);
   },
@@ -1355,6 +1358,7 @@ const playbackService = createPlaybackService({
   directUrlPrefix: '/api/playback',
   trickplayUrlPrefix: '/api/playback/trickplay',
   forcedAccel: async () => (await settings.read()).hardwareAccel,
+  previewQuality: async () => (await settings.read()).previewQuality,
 });
 
 const downloadService = createDownloadService({

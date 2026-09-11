@@ -431,7 +431,7 @@ describe('MediaPreview', () => {
     expect(play).not.toHaveBeenCalled();
   });
 
-  it('does not ask for subtitles it was not asked to show', async () => {
+  it('never asks for subtitles, since a preview shows none', async () => {
     render(
       <MediaPreview
         mediaId={MEDIA_ID}
@@ -450,22 +450,6 @@ describe('MediaPreview', () => {
     expect(vi.mocked(fetch).mock.calls.map(([url]) => urlOf(url))).not.toContain(
       `/api/media/${MEDIA_ID}/subtitles`,
     );
-  });
-
-  it('asks what a viewer would be reading if they pressed play', async () => {
-    render(
-      <MediaPreview
-        mediaId={MEDIA_ID}
-        backdropUrl="/artwork.jpg"
-        durationSeconds={7200}
-        settleMilliseconds={0}
-        hasSubtitles
-      />,
-    );
-
-    await waitFor(() => {
-      expect(fetch).toHaveBeenCalled();
-    });
   });
 
   it('gives sound back to somebody who asked for it last time', async () => {

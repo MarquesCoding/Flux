@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { LinkBreakIcon } from '@phosphor-icons/react';
+import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
@@ -16,6 +16,7 @@ import { untilWhen } from '@ValenceClient/sharing/untilWhen';
 import { saidOpened } from '@ValenceClient/sharing/saidOpened';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { AdminShare } from '@ValenceContracts/schemas/Share';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 /**
  * Every link this server has handed out, whoever handed it out: what each points at, who made it,
@@ -105,7 +106,7 @@ const SharesPanel = () => {
                   setWithdrawing(row.original);
                 }}
               >
-                <Icon of={LinkBreakIcon} size={16} />
+                <Icon of={Unlink01Icon} size={16} />
               </Button>
             </span>
           ),
@@ -115,7 +116,7 @@ const SharesPanel = () => {
   );
 
   return (
-    <section className="flex flex-col">
+    <PanelCard title="Shared links" isFlush>
       <ConfirmDialog
         title="Withdraw this link?"
         detail={
@@ -173,7 +174,7 @@ const SharesPanel = () => {
           emptyMessage="Nobody has handed out a link."
         />
       )}
-    </section>
+    </PanelCard>
   );
 };
 

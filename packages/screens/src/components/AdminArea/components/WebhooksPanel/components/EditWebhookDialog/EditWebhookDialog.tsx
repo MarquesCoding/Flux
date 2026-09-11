@@ -5,8 +5,8 @@ import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { isSubscribableEvent } from '@ValenceContracts/schemas/Webhook';
-import { WebhookFields } from '../../../WebhookFields/WebhookFields';
-import type { WebhookDraft } from '../../../WebhookFields/WebhookFields.types';
+import { WebhookFields } from '@ValenceScreens/components/AdminArea/components/WebhookFields/WebhookFields';
+import type { WebhookDraft } from '@ValenceScreens/components/AdminArea/components/WebhookFields/WebhookFields.types';
 import type { EditWebhookDialogProps } from './EditWebhookDialog.types';
 
 /**

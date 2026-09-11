@@ -1,14 +1,14 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
-  ArrowClockwiseIcon,
-  ArrowsClockwiseIcon,
-  DotsThreeIcon,
-  GearSixIcon,
-  ImageIcon,
-  InfoIcon,
-  PlusIcon,
-  TrashIcon,
-} from '@phosphor-icons/react';
+  Add01Icon,
+  Delete02Icon,
+  Image02Icon,
+  InformationCircleIcon,
+  MoreHorizontalIcon,
+  RefreshIcon,
+  ReloadIcon,
+  Settings02Icon,
+} from '@hugeicons/core-free-icons';
 import { useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
@@ -26,6 +26,7 @@ import { describeSince } from '@ValenceScreens/components/AdminArea/describeSinc
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { Library } from '@ValenceContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 /**
  * The folders Valence reads and what it is doing to them: adding one, scanning one or all of them,
@@ -158,7 +159,7 @@ const LibrariesPanel = ({
                 Reading
               </Badge>
 
-              <Icon of={InfoIcon} size={15} className="shrink-0 text-text-muted" />
+              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -171,14 +172,14 @@ const LibrariesPanel = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<Icon of={DotsThreeIcon} size={16} />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'scan',
                       label: 'Scan for changes',
-                      icon: <Icon of={ArrowsClockwiseIcon} size={15} />,
+                      icon: <Icon of={RefreshIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id);
@@ -187,7 +188,7 @@ const LibrariesPanel = ({
                     {
                       id: 'reread',
                       label: 'Read every file again',
-                      icon: <Icon of={ArrowClockwiseIcon} size={15} />,
+                      icon: <Icon of={ReloadIcon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id, true);
@@ -196,7 +197,7 @@ const LibrariesPanel = ({
                     {
                       id: 'previews',
                       label: 'Generate missing previews',
-                      icon: <Icon of={ImageIcon} size={15} />,
+                      icon: <Icon of={Image02Icon} size={15} />,
                       isDisabled: live.current.progress.get(row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onRegeneratePreviews(row.original.id);
@@ -209,7 +210,7 @@ const LibrariesPanel = ({
                     {
                       id: 'settings',
                       label: 'Library settings',
-                      icon: <Icon of={GearSixIcon} size={15} />,
+                      icon: <Icon of={Settings02Icon} size={15} />,
                       onChoose: () => {
                         live.current.setSettingsLibraryId(row.original.id);
                       },
@@ -226,24 +227,26 @@ const LibrariesPanel = ({
   );
 
   return (
-    <section className="flex flex-col overflow-hidden">
-      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
-        <div className="flex shrink-0 items-center gap-2">
+    <PanelCard
+      title="Libraries"
+      isFlush
+      actions={
+        <>
           <Button
             variant="ghost"
-            size="sm"
+            size="xs"
             isPill
             isLoading={isScanningAll}
             disabled={isBusy}
             onClick={onScanAll}
           >
-            <Icon of={ArrowClockwiseIcon} size={16} />
+            <Icon of={ReloadIcon} size={16} />
             Scan all libraries
           </Button>
 
           <Button
             variant="danger"
-            size="sm"
+            size="xs"
             isPill
             isLoading={isResettingAll}
             disabled={isBusy}
@@ -251,24 +254,24 @@ const LibrariesPanel = ({
               setIsConfirmingReset(true);
             }}
           >
-            <Icon of={TrashIcon} size={16} />
+            <Icon of={Delete02Icon} size={16} />
             Reset and rebuild
           </Button>
 
           <Button
             variant="glossy"
-            size="sm"
+            size="xs"
             isPill
             onClick={() => {
               setIsAdding(true);
             }}
           >
-            <Icon of={PlusIcon} size={16} />
+            <Icon of={Add01Icon} size={16} />
             Add library
           </Button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       {isUnreachable ? (
         <p className="p-6 text-sm text-text-muted">
           The libraries could not be read from the server. This is not the same as having none — do
@@ -315,7 +318,7 @@ const LibrariesPanel = ({
         onUpdated={onLibraryUpdated}
         onRegenerate={onRegeneratePreviews}
       />
-    </section>
+    </PanelCard>
   );
 };
 

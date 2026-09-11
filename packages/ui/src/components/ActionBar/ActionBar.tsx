@@ -1,4 +1,4 @@
-import { DotsThreeIcon } from '@phosphor-icons/react';
+import { MoreHorizontalIcon } from '@hugeicons/core-free-icons';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
@@ -49,7 +49,7 @@ const ActionBar = ({ label, primary, actions, className }: ActionBarProps) => (
           label={label}
           align="end"
           className="size-12 rounded-full border border-[var(--surface-line)] bg-secondary sm:hidden"
-          trigger={<Icon of={DotsThreeIcon} size={22} />}
+          trigger={<Icon of={MoreHorizontalIcon} size={22} />}
           groups={[
             {
               items: actions.map((action) => ({

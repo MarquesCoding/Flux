@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CheckIcon } from '@phosphor-icons/react';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
 import { useId } from 'react';
 import * as RadixCheckbox from '@radix-ui/react-checkbox';
 import { cn } from '@ValenceUI/cn';
@@ -58,7 +58,7 @@ const Checkbox = ({
         )}
       >
         <RadixCheckbox.Indicator className="flex text-primary-foreground animate-in zoom-in-75 duration-[var(--duration-instant)] motion-reduce:animate-none">
-          <Icon of={CheckIcon} size={14} />
+          <Icon of={Tick02Icon} size={14} />
         </RadixCheckbox.Indicator>
       </RadixCheckbox.Root>
       {description === undefined ? (

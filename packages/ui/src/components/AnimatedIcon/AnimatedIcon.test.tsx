@@ -133,6 +133,18 @@ describe('AnimatedIcon', () => {
     expect(screen.getByTestId('trigger')).toBe(before);
   });
 
+  it('holds still under a pointer where it is asked for no gesture at all, as a face is', async () => {
+    render(<AnimatedIcon gesture="none" isPlaying icon={<span data-testid="face">face</span>} />);
+
+    await new Promise((settle) => {
+      setTimeout(settle, 50);
+    });
+
+    expect(screen.getByTestId('face').parentElement?.style.transform ?? '').not.toContain(
+      'translate',
+    );
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(AnimatedIcon.displayName).toBe('AnimatedIcon');
   });

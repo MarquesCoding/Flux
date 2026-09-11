@@ -65,11 +65,29 @@ describe('MoodBackground', () => {
           { color: '#444444' },
           { color: '#555555' },
           { color: '#666666' },
+          { color: '#777777' },
+          { color: '#888888' },
+          { color: '#999999' },
+          { color: '#aaaaaa' },
+          { color: '#bbbbbb' },
+          { color: '#cccccc' },
+          { color: '#dddddd' },
+          { color: '#eeeeee' },
         ]}
       />,
     );
 
-    expect(blooms(container).length).toBeLessThanOrEqual(5);
+    expect(blooms(container)).toHaveLength(12);
+  });
+
+  it('has a place for a light from each cell of the grid a picture is read in', () => {
+    const lights = Array.from({ length: 12 }, (_, at) => ({
+      color: `rgb(${at.toString()} 0 0)`,
+    }));
+
+    const { container } = render(<MoodBackground lights={lights} />);
+
+    expect(blooms(container)).toHaveLength(12);
   });
 
   it('keeps the page under the light, so the foot of the screen is the page', () => {

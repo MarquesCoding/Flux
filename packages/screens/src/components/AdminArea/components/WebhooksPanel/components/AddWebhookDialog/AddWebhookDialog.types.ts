@@ -1,5 +1,5 @@
 import type { NewWebhook, Refusal } from '@ValenceClient/admin/fetchWebhooks';
-import type { WebhookFilterChoice } from '../WebhookFilterList/WebhookFilterList.types';
+import type { WebhookFilterChoice } from '@ValenceScreens/components/AdminArea/components/WebhooksPanel/components/WebhookFilterList/WebhookFilterList.types';
 
 type AddWebhookDialogProps = {
   isOpen: boolean;

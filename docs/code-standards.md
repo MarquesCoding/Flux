@@ -436,7 +436,7 @@ only when a new primitive gets an owner.
 ## 10. Icons
 
 **All icons come from `@hugeicons/core-free-icons`, and are drawn by
-`@ValenceUI/Icon`.** Remix Icon, Tabler and Lucide are all banned in ESLint, so a
+`@ValenceUI/Icon`.** Phosphor, Remix Icon, Tabler and Lucide are all banned in ESLint, so a
 second set cannot come back a file at a time. The renderer, `HugeiconsIcon`, is
 banned too: a call site names the icon it wants and `Icon` decides how it is
 drawn, which is what keeps the set swappable in one file.

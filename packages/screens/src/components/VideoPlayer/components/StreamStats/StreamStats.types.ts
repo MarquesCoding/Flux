@@ -1,3 +1,4 @@
+import type { PointerEvent } from 'react';
 import type { DeliveredFormat } from '@ValenceScreens/playback/attachShaka';
 import type { StartedSession } from '@ValenceClient/playback/startPlaybackSession';
 import type { MediaDetail, MediaSummary } from '@ValenceContracts/schemas/Library';
@@ -32,6 +33,7 @@ type StreamStatsProps = {
   sessionStartSeconds: number;
   party?: PartyHealth;
   onClose: () => void;
+  onGrab?: (event: PointerEvent<HTMLElement>) => void;
 };
 
 export type { PlaybackHealth, PartyHealth, StreamStatsProps };

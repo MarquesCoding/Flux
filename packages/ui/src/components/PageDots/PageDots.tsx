@@ -1,20 +1,41 @@
+import { motion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { Tooltip } from '@ValenceUI/Tooltip';
 import { cn } from '@ValenceUI/cn';
 import type { PageDotsProps } from './PageDots.types';
 
+const TONES = {
+  page: {
+    lit: 'bg-text',
+    track: 'bg-text/25',
+    rest: 'bg-text-muted/40 group-hover:bg-text-muted',
+  },
+  overlay: {
+    lit: 'bg-on-scrim',
+    track: 'bg-on-scrim/30',
+    rest: 'bg-on-scrim/45 group-hover:bg-on-scrim/80',
+  },
+} as const;
+
 /**
  * Shows which of several pages is on screen and offers a way to each of the others. Where the pages
- * advance on their own, a dot can fill over the time each one is shown, so the row says how long is
- * left as well as where you are — and stops filling while something is paused.
+ * advance on their own, the chosen dot fills over the time each one is shown, so the row says how
+ * long is left as well as where you are.
+ *
+ * How far it has filled is handed in rather than timed here. Whatever advances the pages already
+ * keeps that count, and a second clock beside it — a fill left to run on its own — drifts from the
+ * first the moment either is paused, restarted or skipped, so the dot says one thing and the page
+ * does another.
  *
  * @param count - How many pages there are.
  * @param selectedIndex - Which page is showing, counting from zero.
  * @param onSelect - Told which page was asked for.
  * @param labels - What each page is, where they have names worth reading out.
  * @param label - What the row of dots is for, as a whole.
- * @param fillMilliseconds - How long each page is shown, where they advance on their own.
- * @param isFillPaused - Whether to hold the fill where it is.
+ * @param progress - How far through its turn the page showing is, from nothing to one, where the
+ *   pages advance on their own.
+ * @param tone - What the dots are drawn over: the page, or a picture, where they are drawn light
+ *   whatever the theme.
  * @param className - Extra classes for the caller's own layout.
  */
 const PageDots = ({
@@ -24,12 +45,14 @@ const PageDots = ({
   labels,
   label,
   className,
-  fillMilliseconds,
-  isFillPaused = false,
+  progress,
+  tone = 'page',
 }: PageDotsProps) => {
   if (count <= 1) {
     return null;
   }
+
+  const ink = TONES[tone];
 
   return (
     <ul aria-label={label} className={cn('flex items-center gap-1.5', className)}>
@@ -53,20 +76,15 @@ const PageDots = ({
                 'transition-[width,background-color] duration-[var(--duration-base)] ease-[var(--ease-out)]',
                 'motion-reduce:transition-none',
                 selectedIndex === index
-                  ? fillMilliseconds === undefined
-                    ? 'w-6 bg-text'
-                    : 'w-6 bg-text/25'
-                  : 'w-1.5 bg-text-muted/40 group-hover:bg-text-muted',
+                  ? cn('w-6', progress === undefined ? ink.lit : ink.track)
+                  : cn('w-1.5', ink.rest),
               )}
             >
-              {selectedIndex === index && fillMilliseconds !== undefined ? (
-                <span
-                  key={selectedIndex}
-                  className="valence-dot-fill block h-full w-full origin-left rounded-full bg-text"
-                  style={{
-                    animationDuration: `${fillMilliseconds.toString()}ms`,
-                    animationPlayState: isFillPaused ? 'paused' : 'running',
-                  }}
+              {selectedIndex === index && progress !== undefined ? (
+                <motion.span
+                  data-slot="page-dots-fill"
+                  style={{ scaleX: progress }}
+                  className={cn('block h-full w-full origin-left rounded-full', ink.lit)}
                 />
               ) : null}
             </span>

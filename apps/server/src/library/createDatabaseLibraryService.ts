@@ -28,6 +28,7 @@ import {
 import { fetchLogos } from './fetchLogos';
 import { scanLibrary } from './scanLibrary';
 import { scanBookLibrary } from '@ValenceServer/books/scanBookLibrary';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import type { BookStore } from '@ValenceServer/books/scanBookLibrary';
 import { groupIntoShows, buildShowDetail } from './groupIntoShows';
 import { resolveSeriesShape } from './MetadataProvider';
@@ -73,6 +74,7 @@ type CreateDatabaseLibraryServiceOptions = {
   transcoder: Transcoder;
   forcedAccel?: () => Promise<string>;
   jobs: JobQueue;
+  previewQuality?: () => Promise<PreviewQuality>;
   providers?: MetadataProvider[];
   books?: BookStore;
   onProblem?: (path: string, reason: string) => void;
@@ -183,6 +185,7 @@ const createDatabaseLibraryService = ({
   providers,
   books,
   atOnce = 1,
+  previewQuality = (): Promise<PreviewQuality> => Promise.resolve('high'),
   onProblem,
   onArrived,
   onDeparted,
@@ -751,6 +754,7 @@ const createDatabaseLibraryService = ({
       }
 
       return rebuildItemArtefacts({
+        quality: await previewQuality(),
         item: {
           path: row.path,
           audioStreams: z.array(AudioStreamSchema).parse(row.audioStreams),
@@ -1070,6 +1074,12 @@ const createDatabaseLibraryService = ({
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
     },
 
+    remakePreviews: async (libraryId) => {
+      await clearJobCompletions(db, libraryId, REGENERATE_PREVIEWS_JOB);
+
+      return service.regeneratePreviews(libraryId);
+    },
+
     regenerateTrickplay: async (libraryId) => {
       if ((await findLibrary(libraryId)) === null) {
         return null;
@@ -1150,6 +1160,7 @@ const createDatabaseLibraryService = ({
         },
         transcoder,
         defaultAudioLanguage,
+        quality: await previewQuality(),
         ...(chosenAccel === undefined ? {} : { hardwareAccel: chosenAccel }),
         ...(onProblem === undefined ? {} : { onProblem }),
         ...(jobId === undefined

@@ -6,6 +6,7 @@ import { coverPage, forgetPageCovers } from '@ValenceUI/pageCover';
 import { Hero } from './Hero';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaPreviewProps } from '@ValenceScreens/components/MediaPreview/MediaPreview.types';
+import type * as MotionModule from 'motion/react';
 
 const { previewMock } = vi.hoisted(() => ({ previewMock: vi.fn() }));
 
@@ -14,6 +15,16 @@ vi.mock('@ValenceScreens/components/MediaPreview/MediaPreview', () => ({
     previewMock(props);
 
     return <div>preview</div>;
+  },
+}));
+
+const { ticks } = vi.hoisted(() => ({ ticks: new Set<(time: number, delta: number) => void>() }));
+
+vi.mock('motion/react', async (importOriginal) => ({
+  ...(await importOriginal<typeof MotionModule>()),
+  useAnimationFrame: (callback: (time: number, delta: number) => void) => {
+    ticks.clear();
+    ticks.add(callback);
   },
 }));
 
@@ -48,63 +59,75 @@ beforeEach(() => {
 });
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.useRealTimers();
   forgetPageCovers();
 });
 
+/**
+ * Runs the frames that would be drawn over a stretch of time, since the turning is counted in
+ * frames rather than by a timer.
+ */
+const frames = (milliseconds: number) => {
+  act(() => {
+    for (let passed = 0; passed < milliseconds; passed += 16) {
+      for (const tick of ticks) {
+        tick(passed, 16);
+      }
+    }
+  });
+};
+
 describe('Hero', () => {
-  it('offers the featured clip sound, and reads it aloud in writing either way', () => {
+  it('offers the featured clip sound, with nothing to read laid over it', () => {
     renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
 
-    expect(previewMock).toHaveBeenCalledWith(
-      expect.objectContaining({ hasSound: true, hasSubtitles: true }),
-    );
+    expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ hasSound: true }));
+    expect(previewMock.mock.calls[0]?.[0]).not.toHaveProperty('hasSubtitles');
   });
 
-  it('stands in a runway by default, so the page can scroll beneath it', () => {
+  it('stands as a card beneath the bar rather than filling the page', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(screen.getByRole('region', { name: 'Featured' })).toHaveClass('rounded-[20px]');
+  });
+
+  it('holds its place while the page scrolls over it, where it is asked to stay behind', () => {
+    const { container } = renderInAnAddress(
+      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} staysBehind />,
+    );
+
+    expect(container.querySelector('.sticky')).not.toBeNull();
+  });
+
+  it('scrolls away with the page where it is not', () => {
     const { container } = renderInAnAddress(
       <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />,
     );
-    const runway = container.firstElementChild;
 
-    expect(runway).toHaveStyle({ marginBottom: '-24svh' });
-    expect(container.querySelector('.sticky')).not.toBeNull();
+    expect(container.querySelector('.sticky')).toBeNull();
+  });
+
+  it('recedes as it is covered rather than being scrolled off the top, where it stays behind', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} staysBehind />);
+
+    expect(screen.getByRole('region', { name: 'Featured' }).style.opacity).toBe('1');
+  });
+
+  it('leaves itself alone where it is not staying behind', () => {
+    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />);
+
+    expect(screen.getByRole('region', { name: 'Featured' }).style.opacity).toBe('');
   });
 
   it('fills what it is put in where there is nothing to scroll', () => {
     const { container } = renderInAnAddress(
-      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />,
+      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills staysBehind />,
     );
-    const runway = container.firstElementChild;
 
-    expect(runway).toHaveStyle({ height: 'calc(100svh - var(--valence-window-bar))' });
-    expect(runway).not.toHaveStyle({ marginBottom: '-24svh' });
+    expect(container.firstElementChild).toHaveClass('h-[calc(100svh-var(--valence-window-bar))]');
     expect(container.querySelector('.sticky')).toBeNull();
-  });
-
-  it('says there is more underneath, where there is', () => {
-    const { container } = renderInAnAddress(
-      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />,
-    );
-
-    expect(container.querySelector('[aria-hidden] svg')).not.toBeNull();
-  });
-
-  it('stands clear of whatever the shell puts along the bottom', () => {
-    const { container } = renderInAnAddress(
-      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} />,
-    );
-    const mark = container.querySelector('[aria-hidden] svg')?.parentElement;
-
-    expect(mark?.className).toContain('var(--dock-clearance,0px)');
-  });
-
-  it('says nothing of the sort when it fills what it is in and nothing is below', () => {
-    const { container } = renderInAnAddress(
-      <Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} fills />,
-    );
-
-    expect(container.querySelector('[aria-hidden] svg')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Featured' })).not.toHaveClass('rounded-[20px]');
   });
 
   it('shows nothing at all when there is nothing to feature', () => {
@@ -172,9 +195,7 @@ describe('Hero', () => {
 
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
+    frames(500);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
 
@@ -182,9 +203,7 @@ describe('Hero', () => {
       uncover();
     });
 
-    act(() => {
-      vi.advanceTimersByTime(150);
-    });
+    frames(150);
 
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
   });
@@ -192,34 +211,73 @@ describe('Hero', () => {
   it('moves on after a while', () => {
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    act(() => {
-      vi.advanceTimersByTime(150);
-    });
+    frames(150);
 
     expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
   });
 
-  it('comes back round to the beginning', async () => {
+  it('comes back round to the beginning', () => {
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    for (let turn = 0; turn < items.length; turn += 1) {
-      act(() => {
-        vi.advanceTimersByTime(150);
-      });
-    }
+    frames(150);
 
-    expect(await screen.findByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+
+    frames(150);
+    frames(150);
+
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
 
-  it('holds still while someone is reading it', async () => {
+  it('holds still while someone is pointing at what it says', async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
-    await user.hover(screen.getByRole('region', { name: 'Featured' }));
+    await user.hover(screen.getByRole('button', { name: /Play/ }));
+    frames(500);
 
-    act(() => {
-      vi.advanceTimersByTime(500);
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+  });
+
+  it('keeps turning while the pointer only rests on the picture', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+
+    await user.hover(screen.getByText('preview'));
+
+    frames(150);
+
+    expect(screen.getByRole('heading', { name: 'Dune' })).toBeInTheDocument();
+  });
+
+  it('counts down to the next one on the dots, drawn light over the picture', () => {
+    renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+
+    const dots = screen.getByRole('list', { name: 'Featured items' });
+
+    expect(dots.querySelector('[data-slot="page-dots-fill"]')).not.toBeNull();
+    expect(dots.querySelector('.bg-on-scrim')).not.toBeNull();
+  });
+
+  it('carries on turning after a dot is chosen, rather than stopping there', async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    // eslint-disable-next-line @typescript-eslint/unbound-method -- called back on its own element below
+    const matches = Element.prototype.matches;
+
+    vi.spyOn(Element.prototype, 'matches').mockImplementation(function (
+      this: Element,
+      selector: string,
+    ) {
+      return selector === ':focus-visible' ? false : matches.call(this, selector);
     });
+
+    renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
+
+    await user.click(screen.getByRole('button', { name: 'Show Sicario' }));
+
+    expect(await screen.findByRole('heading', { name: 'Sicario' })).toBeInTheDocument();
+
+    frames(150);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
@@ -231,9 +289,7 @@ describe('Hero', () => {
       screen.getByRole('button', { name: /Play/ }).focus();
     });
 
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
+    frames(500);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
   });
@@ -248,9 +304,7 @@ describe('Hero', () => {
       />,
     );
 
-    act(() => {
-      vi.advanceTimersByTime(500);
-    });
+    frames(500);
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /^Show / })).not.toBeInTheDocument();
@@ -278,7 +332,7 @@ describe('Hero', () => {
 
     expect(within(heading).getByRole('img', { name: 'Arrival' })).toHaveAttribute(
       'src',
-      '/api/media/a/image/logo',
+      '/api/media/a/image/logo?at=full',
     );
   });
 
@@ -349,14 +403,5 @@ describe('Hero', () => {
     });
 
     expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
-  });
-  it('does not take the pointer for the page it is pulled up over', () => {
-    renderInAnAddress(<Hero items={[item('a', 'Arrival')]} onPlay={vi.fn()} onInspect={vi.fn()} />);
-
-    const card = screen.getByLabelText('Featured');
-    const runway = card.parentElement?.parentElement;
-
-    expect(runway).toHaveClass('pointer-events-none');
-    expect(card).toHaveClass('pointer-events-auto');
   });
 });

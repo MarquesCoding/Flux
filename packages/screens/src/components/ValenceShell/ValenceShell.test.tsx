@@ -156,12 +156,16 @@ describe('ValenceShell', () => {
     expect(await screen.findByRole('button', { name: /Notifications/ })).toBeInTheDocument();
   });
 
-  it('offers the admin page to an administrator', async () => {
+  it('offers the admin page to an administrator, from the menu on their face', async () => {
+    const actor = userEvent.setup();
+
     renderTheApp();
 
-    const dock = await screen.findByRole('navigation', { name: 'Sections' });
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
 
-    expect(within(dock).getByRole('button', { name: 'Admin' })).toBeInTheDocument();
+    await actor.click(within(bar).getByRole('button', { name: 'Account' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Admin' })).toBeInTheDocument();
   });
 
   it('asks what is waiting again when the bell is opened', async () => {

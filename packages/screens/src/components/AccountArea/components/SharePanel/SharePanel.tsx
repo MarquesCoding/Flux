@@ -1,5 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
-import { LinkBreakIcon } from '@phosphor-icons/react';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
+import { Unlink01Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
@@ -96,7 +97,7 @@ const SharePanel = () => {
                   setWithdrawing(row.original);
                 }}
               >
-                <Icon of={LinkBreakIcon} size={16} />
+                <Icon of={Unlink01Icon} size={16} />
               </Button>
             </span>
           ),
@@ -106,7 +107,7 @@ const SharePanel = () => {
   );
 
   return (
-    <section className="flex flex-col">
+    <PanelCard title="Your links" isFlush>
       <ConfirmDialog
         title="Withdraw this link?"
         detail={
@@ -164,7 +165,7 @@ const SharePanel = () => {
           emptyMessage="You have not handed out any links. Sharing something from its page makes one."
         />
       )}
-    </section>
+    </PanelCard>
   );
 };
 

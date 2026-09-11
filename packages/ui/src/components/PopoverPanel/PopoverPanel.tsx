@@ -6,7 +6,7 @@ import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import type { PopoverPanelProps } from './PopoverPanel.types';
 
 /**
- * A panel of glass hung off the control that opened it, positioned to stay on screen wherever that
+ * A panel hung off the control that opened it, positioned to stay on screen wherever that
  * control happens to be. For anything richer than a menu — a form, a chart, a list with its own
  * controls — where a menu's row-per-item shape would be wrong.
  *
@@ -75,8 +75,8 @@ const PopoverPanel = ({
           collisionPadding={12}
           data-slot="popover-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-text',
-            tone === 'overlay' ? 'valence-glass--film' : '',
+            'z-50 flex max-h-[70vh] flex-col overflow-hidden rounded-lg p-3 text-text',
+            tone === 'overlay' ? 'valence-glass valence-glass--film' : 'valence-float',
             'outline-none',
             POPUP_MOTION,
             className,

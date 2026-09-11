@@ -329,6 +329,7 @@ describe('App routing', () => {
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
+    await actor.click(await screen.findByRole('menuitem', { name: 'Account' }));
 
     expect(await screen.findByRole('heading', { name: 'Operator' })).toBeInTheDocument();
   });
@@ -362,6 +363,7 @@ describe('App routing', () => {
 
     await arrive();
     await actor.click(await screen.findByRole('button', { name: 'Account' }));
+    await actor.click(await screen.findByRole('menuitem', { name: 'Account' }));
     await screen.findByText('admin@valence.test');
 
     serverState({ setup: setupComplete, session: null });

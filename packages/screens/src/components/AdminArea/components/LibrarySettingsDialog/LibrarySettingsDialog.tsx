@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CaretUpDownIcon } from '@phosphor-icons/react';
+import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -166,7 +166,7 @@ const LibrarySettingsDialog = ({
                 trigger={
                   <>
                     <span className="truncate">{selectedLabel}</span>
-                    <Icon of={CaretUpDownIcon} size={15} className="shrink-0 text-text-muted" />
+                    <Icon of={UnfoldMoreIcon} size={15} className="shrink-0 text-text-muted" />
                   </>
                 }
                 triggerShape="field"
@@ -197,7 +197,7 @@ const LibrarySettingsDialog = ({
                 trigger={
                   <>
                     <span className="truncate">{atOnceLabel}</span>
-                    <Icon of={CaretUpDownIcon} size={15} className="shrink-0 text-text-muted" />
+                    <Icon of={UnfoldMoreIcon} size={15} className="shrink-0 text-text-muted" />
                   </>
                 }
                 triggerShape="field"

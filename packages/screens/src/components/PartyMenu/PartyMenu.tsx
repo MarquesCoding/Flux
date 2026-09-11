@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { UsersThreeIcon } from '@phosphor-icons/react';
+import { UserGroupIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { PopoverPanel } from '@ValenceUI/PopoverPanel';
 import { Button } from '@ValenceUI/Button';
@@ -73,9 +73,9 @@ const PartyMenu = ({
       onOpenChange={show}
       trigger={
         party === null ? (
-          <Icon of={UsersThreeIcon} size={20} />
+          <Icon of={UserGroupIcon} size={20} />
         ) : (
-          <Icon of={UsersThreeIcon} size={20} />
+          <Icon of={UserGroupIcon} size={20} />
         )
       }
       className="mb-7.5"

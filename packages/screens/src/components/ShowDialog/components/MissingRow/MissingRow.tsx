@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { DownloadSimpleIcon } from '@phosphor-icons/react';
+import { Download04Icon } from '@hugeicons/core-free-icons';
 import type { MissingRowProps } from './MissingRow.types';
 
 /**
@@ -28,7 +28,7 @@ const MissingRow = ({ episodeNumber, title, stillUrl }: MissingRowProps) => (
         )}
 
         <span className="absolute inset-0 flex items-center justify-center text-text-muted">
-          <Icon of={DownloadSimpleIcon} size={20} />
+          <Icon of={Download04Icon} size={20} />
         </span>
       </span>
 

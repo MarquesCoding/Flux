@@ -1,13 +1,13 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
-  CaretUpDownIcon,
-  DotsThreeIcon,
-  PlusIcon,
-  TrashIcon,
-  UserGearIcon,
-  WarningIcon,
-  XCircleIcon,
-} from '@phosphor-icons/react';
+  Add01Icon,
+  Alert02Icon,
+  CancelCircleIcon,
+  Delete02Icon,
+  MoreHorizontalIcon,
+  UnfoldMoreIcon,
+  UserSettings01Icon,
+} from '@hugeicons/core-free-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
@@ -41,6 +41,7 @@ import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { Account } from '@ValenceClient/admin/fetchAccounts';
 import type { Refusal } from '@ValenceClient/admin/fetchRoles';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
@@ -165,14 +166,14 @@ const AccountsPanel = () => {
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<Icon of={DotsThreeIcon} size={16} />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'roles',
                       label: 'Edit roles',
-                      icon: <Icon of={UserGearIcon} size={15} />,
+                      icon: <Icon of={UserSettings01Icon} size={15} />,
                       onChoose: () => {
                         setAccountId(row.original.id);
                         setRefusal(null);
@@ -181,7 +182,7 @@ const AccountsPanel = () => {
                     {
                       id: 'ban',
                       label: row.original.isBanned ? 'Let back in' : 'Ban',
-                      icon: <Icon of={XCircleIcon} size={15} />,
+                      icon: <Icon of={CancelCircleIcon} size={15} />,
                       onChoose: () => {
                         if (row.original.isBanned) {
                           void act(() => unbanAccount(row.original.id));
@@ -199,7 +200,7 @@ const AccountsPanel = () => {
                     {
                       id: 'remove',
                       label: 'Delete account',
-                      icon: <Icon of={TrashIcon} size={15} />,
+                      icon: <Icon of={Delete02Icon} size={15} />,
                       isDestructive: true,
                       onChoose: () => {
                         setAsking({ kind: 'remove', account: row.original });
@@ -327,38 +328,42 @@ const AccountsPanel = () => {
           role="alert"
           className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
-          <Icon of={WarningIcon} size={18} className="mt-0.5 shrink-0 text-danger" />
+          <Icon of={Alert02Icon} size={18} className="mt-0.5 shrink-0 text-danger" />
           {refusal.message}
         </p>
       )}
 
-      <section className="flex flex-col">
-        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
-          <TextField
-            label="Find somebody"
-            isLabelHidden
-            size="sm"
-            isPill
-            type="search"
-            placeholder="Find somebody"
-            value={search}
-            onValueChange={setSearch}
-            className="w-56 max-w-full"
-          />
+      <PanelCard
+        title="Accounts"
+        isFlush
+        actions={
+          <>
+            <TextField
+              label="Find somebody"
+              isLabelHidden
+              size="sm"
+              isPill
+              type="search"
+              placeholder="Find somebody"
+              value={search}
+              onValueChange={setSearch}
+              className="w-56 max-w-full"
+            />
 
-          <Button
-            variant="soft"
-            size="sm"
-            isPill
-            onClick={() => {
-              setIsInviting(true);
-            }}
-          >
-            <Icon of={PlusIcon} size={15} />
-            Add user
-          </Button>
-        </div>
-
+            <Button
+              variant="soft"
+              size="xs"
+              isPill
+              onClick={() => {
+                setIsInviting(true);
+              }}
+            >
+              <Icon of={Add01Icon} size={15} />
+              Add user
+            </Button>
+          </>
+        }
+      >
         {askedAccounts.isError ? (
           <CouldNotRead
             what="The accounts"
@@ -380,7 +385,7 @@ const AccountsPanel = () => {
             }
           />
         )}
-      </section>
+      </PanelCard>
 
       <Dialog
         label={picked === null ? 'Roles' : `What ${picked.name} may do`}
@@ -410,7 +415,7 @@ const AccountsPanel = () => {
                   role="alert"
                   className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
                 >
-                  <Icon of={WarningIcon} size={16} className="mt-0.5 shrink-0 text-danger" />
+                  <Icon of={Alert02Icon} size={16} className="mt-0.5 shrink-0 text-danger" />
                   {refusal.message}
                 </p>
               )}
@@ -471,7 +476,7 @@ const AccountsPanel = () => {
                             void act(() => clearOverride(accountId, grant.permission));
                           }}
                         >
-                          <Icon of={TrashIcon} size={14} />
+                          <Icon of={Delete02Icon} size={14} />
                         </Button>
                       </li>
                     ))}
@@ -491,7 +496,7 @@ const AccountsPanel = () => {
                             ? 'Pick a permission'
                             : describePermission(addingPermission)}
                         </span>
-                        <Icon of={CaretUpDownIcon} size={16} className="shrink-0 text-text-muted" />
+                        <Icon of={UnfoldMoreIcon} size={16} className="shrink-0 text-text-muted" />
                       </span>
                     }
                     groups={[

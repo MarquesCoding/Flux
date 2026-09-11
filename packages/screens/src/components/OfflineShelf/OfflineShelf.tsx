@@ -1,4 +1,4 @@
-import { CloudSlashIcon, PauseIcon, PlayIcon, TrashIcon } from '@phosphor-icons/react';
+import { CloudOffIcon, Delete02Icon, PauseIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Icon } from '@ValenceUI/Icon';
@@ -51,7 +51,7 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
   if (held.length === 0) {
     return (
       <div className="flex flex-col items-center gap-3 px-6 py-16 text-center">
-        <Icon of={CloudSlashIcon} size={32} className="text-text-muted" />
+        <Icon of={CloudOffIcon} size={32} className="text-text-muted" />
 
         <h2 className="font-body text-base text-text">Nothing is on this device</h2>
 
@@ -153,7 +153,7 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                     onDrop(file);
                   }}
                 >
-                  <Icon of={TrashIcon} size={16} />
+                  <Icon of={Delete02Icon} size={16} />
                 </Button>
               </SettingRow>
             ))}

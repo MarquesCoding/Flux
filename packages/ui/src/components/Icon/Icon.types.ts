@@ -1,13 +1,15 @@
-import type { Icon as PhosphorIcon, IconWeight } from '@phosphor-icons/react';
+// eslint-disable-next-line no-restricted-imports -- Icon is the one place the set's own types are named, so it stays swappable in one file
+import type { IconSvgElement } from '@hugeicons/react';
+
+type IconGlyph = IconSvgElement;
 
 type IconProps = {
-  of: PhosphorIcon;
-  whenActive?: PhosphorIcon;
+  of: IconGlyph;
+  whenActive?: IconGlyph;
   isActive?: boolean;
   size?: number;
-  weight?: IconWeight;
   className?: string;
   label?: string;
 };
 
-export type { IconProps };
+export type { IconGlyph, IconProps };

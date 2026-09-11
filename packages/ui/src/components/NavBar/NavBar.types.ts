@@ -1,7 +1,8 @@
 import type { ReactNode } from 'react';
+import type { MotionValue } from 'motion/react';
 import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
 
-type NavDockItem = {
+type NavBarItem = {
   id: string;
   label: string;
   icon?: ReactNode;
@@ -9,7 +10,7 @@ type NavDockItem = {
   gesture?: IconGesture;
 };
 
-type NavDockAction = {
+type NavBarAction = {
   id: string;
   label: string;
   icon: ReactNode;
@@ -28,13 +29,14 @@ type NavDockAction = {
     }
 );
 
-type NavDockProps = {
+type NavBarProps = {
   brand?: ReactNode;
-  items: NavDockItem[];
+  items: NavBarItem[];
   selectedId: string;
   onSelect: (id: string) => void;
-  actions?: NavDockAction[];
+  actions?: NavBarAction[];
+  solidity?: MotionValue<number> | number;
   className?: string;
 };
 
-export type { NavDockAction, NavDockItem, NavDockProps };
+export type { NavBarAction, NavBarItem, NavBarProps };

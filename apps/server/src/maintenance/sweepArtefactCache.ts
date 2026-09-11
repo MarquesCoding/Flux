@@ -1,5 +1,6 @@
 import { previewRequestFor } from '@ValenceServer/library/previewRequestFor';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import type {
   PreviewSweepSubject,
   SweepReport,
@@ -23,6 +24,7 @@ type TrickplayGeometry = {
 type SweepArtefactCacheOptions = {
   listLiveItems: () => Promise<LiveItem[]>;
   trickplay: TrickplayGeometry;
+  quality: PreviewQuality;
   transcoder: {
     sweepPreviews: (keep: PreviewSweepSubject[]) => Promise<SweepReport>;
     sweepTrickplay: (keep: TrickplayRequest[]) => Promise<SweepReport>;
@@ -51,13 +53,14 @@ const add = (left: SweepReport, right: SweepReport): SweepReport => ({
  * These are rendered on demand and cost real time to make, so they are kept until the thing they
  * were made for has gone.
  *
- * @param options - The transcoder holding the artefacts, and the libraries saying what is still
- *   addressed.
+ * @param options - The transcoder holding the artefacts, the libraries saying what is still
+ *   addressed, and the preset previews are made at now — a clip made at another is not addressed.
  * @returns What was removed, counted and measured.
  */
 const sweepArtefactCache = async ({
   listLiveItems,
   trickplay,
+  quality,
   transcoder,
   onProblem,
 }: SweepArtefactCacheOptions): Promise<SweepReport> => {
@@ -65,7 +68,9 @@ const sweepArtefactCache = async ({
 
   const previews = await transcoder
     .sweepPreviews(
-      items.map((item) => previewRequestFor(item, item.generation, item.defaultAudioLanguage)),
+      items.map((item) =>
+        previewRequestFor(item, item.generation, item.defaultAudioLanguage, quality),
+      ),
     )
     .catch((error: Error) => {
       onProblem?.('previews', error.message);

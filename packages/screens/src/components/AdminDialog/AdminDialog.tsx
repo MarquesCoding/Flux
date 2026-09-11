@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Icon } from '@ValenceUI/Icon';
-import { CheckCircleIcon, WarningIcon, XIcon } from '@phosphor-icons/react';
+import { Alert02Icon, Cancel01Icon, CheckmarkCircle02Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -10,6 +10,7 @@ import { HoverCard } from '@ValenceUI/HoverCard';
 import { TabRow } from '@ValenceUI/TabRow';
 import { Tabs } from '@ValenceUI/Tabs';
 import { adminQueries } from '@ValenceClient/query/adminQueries';
+import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 import { AdminArea } from '@ValenceScreens/components/AdminArea/AdminArea';
 import { ADMIN_PANELS, ADMIN_SECTIONS } from '@ValenceScreens/components/AdminArea/adminSections';
 import { describeAcceleration } from '@ValenceScreens/components/AdminArea/describeAcceleration';
@@ -24,7 +25,11 @@ import type { AdminDialogProps } from './AdminDialog.types';
  *
  * Whether the media service is up is said in the head, beside the title, because it is true of the
  * whole dialog rather than of any one panel and it is the first thing anybody opening this wants to
- * know.
+ * know. So is which version of Valence it is, which is the first thing anybody reporting a problem
+ * with it is asked.
+ *
+ * The head is kept to a single line above the tabs. This is somewhere an operator works rather than
+ * somewhere they arrive, and a banner-height head was room taken from every panel beneath it.
  *
  * Which panel is open, and which job's schedule within it, are in the address, so a particular one
  * can be linked to and the back button moves between them.
@@ -38,6 +43,8 @@ import type { AdminDialogProps } from './AdminDialog.types';
 const AdminDialog = ({ panel, job, onPanel, onJob, onClose }: AdminDialogProps) => {
   const asked = useQuery({ ...adminQueries.overview(), enabled: panel !== null });
   const overview = asked.data ?? null;
+  const build = useQuery({ ...sessionQueries.version(), enabled: panel !== null });
+  const version = build.data ?? null;
 
   const acceleration =
     overview === null
@@ -55,32 +62,34 @@ const AdminDialog = ({ panel, job, onPanel, onJob, onClose }: AdminDialogProps) 
     >
       <Tabs value={showing} onValueChange={onPanel}>
         <DialogTitle
-          className="gap-5 pb-0"
+          size="compact"
           title="Server"
-          detail={
+          detail={[
+            ...(version === null ? [] : [`Valence ${version}`]),
             overview === null
               ? 'Reading the server…'
               : overview.transcoder.isReachable
                 ? `Media service up · ${describeFfmpeg(overview.transcoder.ffmpegVersion)}`
-                : 'Media service unreachable'
-          }
+                : 'Media service unreachable',
+          ].join(' · ')}
           icon={
             overview?.transcoder.isReachable === true ? (
-              <Icon of={CheckCircleIcon} size={22} className="text-accent" />
+              <Icon of={CheckmarkCircle02Icon} size={16} className="text-accent" />
             ) : (
-              <Icon of={WarningIcon} size={22} className="text-danger" />
+              <Icon of={Alert02Icon} size={16} className="text-danger" />
             )
           }
           below={
             <TabRow
               tone="underlined"
+              size="sm"
               groups={ADMIN_SECTIONS.map((section) => ({
                 ...(section.label === null ? {} : { label: section.label }),
                 items: section.items,
               }))}
               label="What to look at"
               value={showing}
-              className="-mx-6 px-6"
+              className="-mx-5 px-5"
             />
           }
         >
@@ -99,7 +108,7 @@ const AdminDialog = ({ panel, job, onPanel, onJob, onClose }: AdminDialogProps) 
           )}
 
           <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
-            <Icon of={XIcon} size={16} />
+            <Icon of={Cancel01Icon} size={16} />
           </Button>
         </DialogTitle>
 

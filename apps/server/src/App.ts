@@ -1659,6 +1659,7 @@ const createApp = ({
         settings: {
           hasCatalogueKey: current.catalogueApiKey !== '',
           hardwareAccel: current.hardwareAccel,
+          previewQuality: current.previewQuality,
           trustedOrigins: current.trustedOrigins,
           cookieSecure: current.cookieSecure,
         },
@@ -1690,11 +1691,23 @@ const createApp = ({
     }
 
     const patch = context.req.valid('json');
+    const before = await settings.read();
 
     const updated = await settings.write({
       ...(patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey }),
       ...(patch.hardwareAccel === undefined ? {} : { hardwareAccel: patch.hardwareAccel }),
+      ...(patch.previewQuality === undefined ? {} : { previewQuality: patch.previewQuality }),
     });
+
+    if (updated.previewQuality !== before.previewQuality) {
+      const libraries = await library.list();
+
+      await Promise.all(
+        libraries
+          .filter((entry) => entry.kind !== 'books')
+          .map((entry) => library.remakePreviews(entry.id)),
+      );
+    }
 
     return context.json(
       {
@@ -1702,6 +1715,7 @@ const createApp = ({
         trustedOrigins: updated.trustedOrigins,
         cookieSecure: updated.cookieSecure,
         hardwareAccel: updated.hardwareAccel,
+        previewQuality: updated.previewQuality,
       },
       200,
     );

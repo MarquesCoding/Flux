@@ -6,8 +6,15 @@ import type { AdminOverview } from '@ValenceClient/admin/fetchAdmin';
 
 const saveCatalogueKey = vi.hoisted(() => vi.fn());
 const saveHardwareAccel = vi.hoisted(() => vi.fn(() => Promise.resolve(true)));
+const savePreviewQuality = vi.hoisted(() =>
+  vi.fn<(quality: string) => Promise<boolean>>(() => Promise.resolve(true)),
+);
 
-vi.mock('@ValenceClient/admin/fetchAdmin', () => ({ saveCatalogueKey, saveHardwareAccel }));
+vi.mock('@ValenceClient/admin/fetchAdmin', () => ({
+  saveCatalogueKey,
+  saveHardwareAccel,
+  savePreviewQuality,
+}));
 
 const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOverview => ({
   users: [{ id: 'usr_1', name: 'Dan', email: 'dan@valence.local', role: 'admin', createdAt: '' }],
@@ -16,6 +23,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     cookieSecure: false,
     trustedOrigins: ['http://localhost:8420'],
     hardwareAccel: '',
+    previewQuality: 'high' as const,
     ...overrides,
   },
   transcoder: {
@@ -45,6 +53,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -57,6 +66,7 @@ describe('SettingsPanel', () => {
         overview={overview({ hasCatalogueKey: true })}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -70,6 +80,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -83,6 +94,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -99,6 +111,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -118,6 +131,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={onCatalogueKeySaved}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -139,6 +153,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={onCatalogueKeySaved}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -158,6 +173,7 @@ describe('SettingsPanel', () => {
         overview={null}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -170,6 +186,7 @@ describe('SettingsPanel', () => {
         overview={overview({ cookieSecure: true })}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -190,6 +207,7 @@ describe('SettingsPanel', () => {
         overview={overview()}
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={saved}
+        onPreviewQualitySaved={vi.fn()}
       />,
     );
 
@@ -199,5 +217,68 @@ describe('SettingsPanel', () => {
     await waitFor(() => {
       expect(saved).toHaveBeenCalled();
     });
+  });
+
+  it('offers the preview presets as one choice', () => {
+    render(
+      <SettingsPanel
+        overview={overview({ previewQuality: 'standard' })}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={vi.fn()}
+      />,
+    );
+
+    const presets = screen.getByRole('group', { name: 'Preview quality' });
+
+    expect(presets).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Low' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'High' })).toBeInTheDocument();
+  });
+
+  it('saves the preview preset chosen and tells whoever owns the overview', async () => {
+    const saved = vi.fn();
+    const actor = userEvent.setup();
+
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={saved}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Low' }));
+
+    expect(savePreviewQuality).toHaveBeenCalledWith('low');
+
+    await waitFor(() => {
+      expect(saved).toHaveBeenCalled();
+    });
+  });
+
+  it('says nothing changed when the server would not take the preset', async () => {
+    savePreviewQuality.mockResolvedValueOnce(false);
+
+    const saved = vi.fn();
+    const actor = userEvent.setup();
+
+    render(
+      <SettingsPanel
+        overview={overview()}
+        onCatalogueKeySaved={vi.fn()}
+        onHardwareAccelSaved={vi.fn()}
+        onPreviewQualitySaved={saved}
+      />,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Standard' }));
+
+    await waitFor(() => {
+      expect(savePreviewQuality).toHaveBeenCalledWith('standard');
+    });
+
+    expect(saved).not.toHaveBeenCalled();
   });
 });

@@ -76,6 +76,7 @@ type LibraryService = ShowService & {
   forgetCorrection: (mediaId: string) => Promise<Correction | null>;
   rebuildArtefacts: (mediaId: string) => Promise<{ preview: boolean; trickplay: boolean } | null>;
   regeneratePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  remakePreviews: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   regenerateTrickplay: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   fetchLogos: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
   detectSegments: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;

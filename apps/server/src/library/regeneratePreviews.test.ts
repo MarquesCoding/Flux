@@ -57,7 +57,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
 });
 
 const harness = (items: { path: string; audioStreams: AudioStream[] }[]) => {
-  const previewRequests: { inputPath: string; audioStreamIndex?: number }[] = [];
+  const previewRequests: Parameters<Transcoder['requestPreview']>[0][] = [];
   const completed: string[] = [];
   const withIds = items.map((item, index) => ({ id: `item-${index.toString()}`, ...item }));
 
@@ -92,6 +92,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
     });
 
     expect(completed).toEqual(['item-0', 'item-1']);
@@ -123,6 +124,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
       onProblem: () => {},
     });
 
@@ -138,6 +140,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
     });
 
     expect(previewRequests).toEqual([]);
@@ -155,6 +158,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: 'en',
+      quality: 'high',
     });
 
     expect(previewRequests).toMatchObject([
@@ -174,6 +178,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
     });
 
     expect(previewRequests[0]).not.toHaveProperty('audioStreamIndex');
@@ -190,6 +195,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: 'fr',
+      quality: 'high',
     });
 
     expect(previewRequests).toMatchObject([{ audioStreamIndex: 1 }]);
@@ -208,6 +214,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: 'en',
+      quality: 'high',
       onProgress: (processed, total) => progress.push([processed, total]),
     });
 
@@ -245,6 +252,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: 'en',
+      quality: 'high',
       onProblem: (path, reason) => problems.push(`${path}: ${reason}`),
     });
 
@@ -274,6 +282,7 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
       atOnce: 3,
     });
 
@@ -303,10 +312,29 @@ describe('regeneratePreviews', () => {
       store,
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
     });
 
     expect(most).toBe(1);
   });
+
+  it('renders at the preset the server is set to', async () => {
+    const { store, transcoder, previewRequests } = harness([
+      { path: '/media/a.mkv', audioStreams: multilingual },
+    ]);
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store,
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'low',
+    });
+
+    expect(previewRequests[0]).toMatchObject({ quality: 'low' });
+  });
+
   it('draws on the backend the operator chose, which previews used to ignore', async () => {
     const asked: { hardwareAccel?: string }[] = [];
     const transcoder = stubTranscoder((request) => {
@@ -325,6 +353,7 @@ describe('regeneratePreviews', () => {
       },
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
       hardwareAccel: 'vaapi',
     });
 
@@ -349,6 +378,7 @@ describe('regeneratePreviews', () => {
       },
       transcoder,
       defaultAudioLanguage: null,
+      quality: 'high',
       hardwareAccel: '',
     });
 

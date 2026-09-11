@@ -21,6 +21,7 @@ use http_body_util::BodyExt;
 use tower::ServiceExt;
 
 use valence_transcoder::monitor::{Journal, Monitor};
+use valence_transcoder::preview::PreviewQuality;
 use valence_transcoder::preview::PreviewRegistry;
 use valence_transcoder::preview::PreviewRequest;
 use valence_transcoder::queue::WorkQueue;
@@ -100,7 +101,8 @@ fn preview_request() -> PreviewRequest {
         generation: 0,
         at_seconds: None,
         duration_seconds: 24,
-        width: 1920,
+        width: None,
+        quality: PreviewQuality::High,
         hardware_accel: None,
         wait: false,
         audio_stream_index: None,

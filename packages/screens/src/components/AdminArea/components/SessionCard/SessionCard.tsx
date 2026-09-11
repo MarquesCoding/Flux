@@ -1,12 +1,12 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
-  ChatCircleIcon,
-  InfoIcon,
+  InformationCircleIcon,
+  Message01Icon,
   PauseIcon,
   PlayIcon,
   StopIcon,
-  TelevisionIcon,
-} from '@phosphor-icons/react';
+  Tv01Icon,
+} from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
@@ -53,7 +53,7 @@ const SessionCard = ({
             className="h-full w-full object-cover"
           />
         ) : (
-          <Icon of={TelevisionIcon} size={20} className="text-text-muted" />
+          <Icon of={Tv01Icon} size={20} className="text-text-muted" />
         )}
       </span>
 
@@ -168,7 +168,7 @@ const SessionCard = ({
               disabled={isBusy}
               onClick={onMessage}
             >
-              <Icon of={ChatCircleIcon} size={15} />
+              <Icon of={Message01Icon} size={15} />
             </Button>
           </>
         )}
@@ -182,7 +182,7 @@ const SessionCard = ({
             setIsShowingStats(true);
           }}
         >
-          <Icon of={InfoIcon} size={15} />
+          <Icon of={InformationCircleIcon} size={15} />
         </Button>
       </div>
 

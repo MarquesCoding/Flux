@@ -3,6 +3,7 @@ type LogoProps = {
   isDotted?: boolean;
   hasEdge?: boolean;
   isAnimated?: boolean;
+  isSolid?: boolean;
   label?: string;
   className?: string;
   src?: string;

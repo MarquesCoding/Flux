@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { IconGlyph } from '@ValenceUI/Icon.types';
 
 type NothingHereProps = {
-  of: PhosphorIcon;
+  of: IconGlyph;
   title: string;
   detail?: string;
   action?: ReactNode;
