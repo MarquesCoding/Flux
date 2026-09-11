@@ -180,3 +180,42 @@ describe('BrowseArea', () => {
     expect(await screen.findByText('Scan it, or add files to its folder.')).toBeInTheDocument();
   });
 });
+
+describe('how a page of the library is laid out', () => {
+  it('names the page for anybody reading it, without a banner saying it again', async () => {
+    renderInAnAddress(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    expect(await screen.findByRole('heading', { level: 1, name: 'Films' })).toHaveClass('sr-only');
+    expect(screen.queryByText('Everything that stands on its own.')).not.toBeInTheDocument();
+  });
+
+  it('stands films upright on their posters', async () => {
+    const { container } = renderInAnAddress(
+      <BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    await screen.findByRole('button', { name: /Arrival/ });
+
+    expect(container.querySelector('.aspect-\\[2\\/3\\]')).not.toBeNull();
+    expect(container.querySelector('.aspect-video')).toBeNull();
+  });
+
+  it.each(['shows', 'new'] as const)('lays the %s page flat, on backdrops', async (kind) => {
+    const { container } = renderInAnAddress(
+      <BrowseArea kind={kind} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    await screen.findByRole('button', { name: /Arrival/ });
+
+    expect(container.querySelector('.aspect-video')).not.toBeNull();
+    expect(container.querySelector('.aspect-\\[2\\/3\\]')).toBeNull();
+  });
+
+  it('still offers a choice of how large the cards are', async () => {
+    renderInAnAddress(<BrowseArea kind="films" onPlay={vi.fn()} onInspect={vi.fn()} />);
+
+    expect(
+      await screen.findByRole('group', { name: 'How large the cards are' }),
+    ).toBeInTheDocument();
+  });
+});

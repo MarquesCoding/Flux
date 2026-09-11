@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavBar } from './NavBar';
@@ -462,5 +462,64 @@ describe('what the bar can carry besides places', () => {
         transform: 'scale(1)',
       });
     });
+  });
+});
+
+describe('the place being stood on', () => {
+  const WITH_ICONS = [
+    {
+      id: 'home',
+      label: 'Home',
+      icon: <span data-testid="home-icon" />,
+      activeIcon: <span data-testid="home-icon-on" />,
+      gesture: 'fill' as const,
+    },
+    {
+      id: 'films',
+      label: 'Films',
+      icon: <span data-testid="films-icon" />,
+      activeIcon: <span data-testid="films-icon-on" />,
+      gesture: 'fill' as const,
+    },
+  ];
+
+  it('carries its icon beside its word, where every other place keeps to its word', () => {
+    render(<NavBar items={WITH_ICONS} selectedId="home" onSelect={vi.fn()} />);
+
+    expect(screen.getByTestId('home-icon-on').closest('span.z-10')).not.toHaveClass('md:hidden');
+    expect(screen.getByTestId('films-icon').closest('span.z-10')).toHaveClass('md:hidden');
+  });
+
+  it('holds its icon still, with nothing wiped over it when a pointer rests there', async () => {
+    const actor = userEvent.setup();
+
+    render(<NavBar items={WITH_ICONS} selectedId="home" onSelect={vi.fn()} />);
+
+    const here = screen.getByRole('button', { name: 'Home' });
+    const elsewhere = screen.getByRole('button', { name: 'Films' });
+
+    await actor.hover(here);
+
+    expect(within(here).queryByTestId('home-icon')).not.toBeInTheDocument();
+    expect(within(here).getAllByTestId(/home-icon/)).toHaveLength(1);
+    expect(within(elsewhere).getAllByTestId(/films-icon/)).toHaveLength(2);
+  });
+
+  it('keeps the mark on a place just pressed until the page says it is the one stood on', async () => {
+    const actor = userEvent.setup();
+    const { container, rerender } = render(<NavBar {...props} />);
+
+    const films = screen.getByRole('button', { name: 'Films' });
+
+    await actor.click(films);
+    await actor.unhover(screen.getByRole('navigation', { name: 'Sections' }));
+    fireEvent.focusOut(films);
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
+
+    rerender(<NavBar {...props} selectedId="films" />);
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
+    expect(films).toHaveAttribute('aria-current', 'page');
   });
 });

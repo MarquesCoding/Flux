@@ -28,10 +28,11 @@ describe('BooksPage', () => {
     expect(screen.getByRole('heading', { name: 'Books', level: 1 })).toBeInTheDocument();
   });
 
-  it('says what the section is for beneath its name', () => {
+  it('names the section for anybody reading the page, without a banner saying it again', () => {
     renderInAShell(<BooksPage />);
 
-    expect(screen.getByText('Everything there is to read.')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Books' })).toHaveClass('sr-only');
+    expect(screen.queryByText('Everything there is to read.')).not.toBeInTheDocument();
   });
 
   it('offers an administrator somewhere to add a library of books', async () => {

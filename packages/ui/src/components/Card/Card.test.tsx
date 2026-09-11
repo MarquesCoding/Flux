@@ -13,20 +13,20 @@ describe('Card', () => {
     const { container } = render(<Card>Figures</Card>);
 
     expect(container.firstChild).toHaveClass('valence-surface');
-    expect(container.firstChild).not.toHaveClass('valence-glass');
+    expect(container.firstChild).not.toHaveClass('valence-float');
   });
 
-  it('can be glass, for a surface floating over artwork', () => {
+  it('can float, for a surface lifted over what is beneath it', () => {
     const { container } = render(<Card tone="glass">Figures</Card>);
 
-    expect(container.firstChild).toHaveClass('valence-glass');
+    expect(container.firstChild).toHaveClass('valence-float');
   });
 
   it('carries no material at all when its contents supply their own', () => {
     const { container } = render(<Card tone="plain">Figures</Card>);
 
     expect(container.firstChild).not.toHaveClass('valence-surface');
-    expect(container.firstChild).not.toHaveClass('valence-glass');
+    expect(container.firstChild).not.toHaveClass('valence-float');
   });
 
   it('lifts under a pointer only when it is a way somewhere', () => {

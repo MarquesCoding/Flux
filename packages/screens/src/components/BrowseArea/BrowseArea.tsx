@@ -27,7 +27,6 @@ const PAGES: Record<
   BrowseKind,
   {
     title: string;
-    standfirst: string;
     empty: string;
     of: IconGlyph;
     emptyIsAbout: 'one library' | 'every library' | 'nothing anybody scanned';
@@ -35,28 +34,24 @@ const PAGES: Record<
 > = {
   shows: {
     title: 'Shows',
-    standfirst: 'Everything that comes in episodes.',
     empty: 'No shows yet',
     emptyIsAbout: 'one library',
     of: Tv01Icon,
   },
   films: {
     title: 'Films',
-    standfirst: 'Everything that stands on its own.',
     empty: 'No films yet',
     emptyIsAbout: 'one library',
     of: Film01Icon,
   },
   new: {
     title: 'New & Popular',
-    standfirst: 'The most recent arrivals, newest first.',
     empty: 'Nothing new yet',
     emptyIsAbout: 'every library',
     of: FireIcon,
   },
   favourites: {
     title: 'Favourites',
-    standfirst: 'Everything you have kept.',
     empty: 'Nothing has been favourited yet',
     emptyIsAbout: 'nothing anybody scanned',
     of: FavouriteIcon,
@@ -135,28 +130,24 @@ const BrowseArea = ({
       initial="hidden"
       animate="shown"
       exit="gone"
-      className="flex flex-col gap-8 px-5 pb-16 pt-24 sm:px-10"
+      className="flex flex-col gap-6 px-5 pb-16 pt-6 sm:px-10"
     >
       <motion.header
         variants={revealVariants(prefersReducedMotion)}
         transition={revealTransition(prefersReducedMotion, 'heavy')}
-        className="flex flex-col gap-2"
+        className="flex min-h-10 items-center justify-end gap-4"
       >
-        <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">{page.title}</h1>
+        <h1 className="sr-only">{page.title}</h1>
 
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <p className="text-text-muted">{page.standfirst}</p>
-
-          {isReading || items.length === 0 ? null : (
-            <GridSizeChooser
-              value={size}
-              onValueChange={(next) => {
-                setSize(next);
-                saveGridSize(next);
-              }}
-            />
-          )}
-        </div>
+        {isReading || items.length === 0 ? null : (
+          <GridSizeChooser
+            value={size}
+            onValueChange={(next) => {
+              setSize(next);
+              saveGridSize(next);
+            }}
+          />
+        )}
       </motion.header>
 
       <motion.section
@@ -227,6 +218,7 @@ const BrowseArea = ({
             items={items}
             size={size}
             isSeries={kind === 'shows'}
+            shape={kind === 'films' ? 'poster' : 'wide'}
             {...(onOpenShow === undefined ? {} : { onOpenShow })}
             onPlay={onPlay}
             onInspect={onInspect}

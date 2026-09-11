@@ -2,7 +2,7 @@ import { cn } from '@ValenceUI/cn';
 import type { GlassElevation, GlassPanelProps } from './GlassPanel.types';
 
 const ELEVATION_CLASSES: Record<GlassElevation, string> = {
-  floating: 'valence-glass',
+  floating: 'valence-float',
   inset: 'border border-line bg-subtle backdrop-blur-xl',
 };
 

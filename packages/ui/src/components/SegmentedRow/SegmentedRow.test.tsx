@@ -44,7 +44,9 @@ describe('SegmentedRow', () => {
   it('is one track rather than a row of separate pills', () => {
     render(<SegmentedRow label="Which library" items={ITEMS} value="books" onSelect={() => {}} />);
 
-    expect(screen.getByRole('group', { name: 'Which library' })).toHaveClass('valence-glass');
+    expect(screen.getByRole('group', { name: 'Which library' })).toHaveClass(
+      'bg-[var(--surface-hover)]',
+    );
   });
 
   it('carries one mark, which is what lets it travel between the choices', () => {

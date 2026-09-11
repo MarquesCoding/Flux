@@ -22,6 +22,8 @@ const GROWTH = 1.18;
 
 const MARGIN = 12;
 
+const POSTER_POPOUT_REM = 22;
+
 const GENRE_LIMIT = 3;
 
 type Anchor = { left: number; top: number; width: number };
@@ -32,9 +34,10 @@ type Anchor = { left: number; top: number; width: number };
  *
  * @param rect - Where the resting card sits.
  * @returns Where to put the opened one.
+ * @param fewest - The narrowest it may be, for a card too narrow to hold a picture that lies flat.
  */
-const placeOver = (rect: DOMRect): Anchor => {
-  const width = rect.width * GROWTH;
+const placeOver = (rect: DOMRect, fewest = 0): Anchor => {
+  const width = Math.max(rect.width * GROWTH, fewest);
   const centred = rect.left + rect.width / 2 - width / 2;
   const furthest = window.innerWidth - width - MARGIN;
 
@@ -76,6 +79,8 @@ const fitInside = (top: number, height: number): number => {
  * @param isSeries - Whether this card stands for a whole programme rather than for the episode that
  *   happens to represent it, in which case the episode's own name and number are not what a reader
  *   is looking at — and pressing it opens the programme rather than that one episode.
+ * @param shape - Whether the card stands upright on the film's poster or lies flat on its backdrop.
+ *   Either way, what opens over it is the wide preview, grown wide enough to be watched.
  */
 const RailCard = ({
   media,
@@ -88,6 +93,7 @@ const RailCard = ({
   isKept = false,
   onToggleKept,
   isSeries = false,
+  shape = 'wide',
 }: RailCardProps) => {
   const inspect = () => {
     if (isSeries && onOpenShow !== undefined) {
@@ -173,8 +179,12 @@ const RailCard = ({
       return;
     }
 
-    setAnchor(placeOver(holder.getBoundingClientRect()));
-  }, [prefersReducedMotion]);
+    const rem = Number.parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+
+    setAnchor(
+      placeOver(holder.getBoundingClientRect(), shape === 'poster' ? POSTER_POPOUT_REM * rem : 0),
+    );
+  }, [prefersReducedMotion, shape]);
 
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -192,6 +202,9 @@ const RailCard = ({
     : media.hasPoster
       ? `/api/media/${media.id}/image/poster`
       : undefined;
+
+  const restingUrl =
+    shape === 'poster' && media.hasPoster ? `/api/media/${media.id}/image/poster` : artworkUrl;
 
   return (
     <div
@@ -220,9 +233,9 @@ const RailCard = ({
             className="flex flex-wrap items-center gap-2"
           />
         }
-        shape="wide"
+        shape={shape}
         {...(watchedFraction === undefined ? {} : { watchedFraction })}
-        {...(artworkUrl === undefined ? {} : { imageUrl: artworkUrl })}
+        {...(restingUrl === undefined ? {} : { imageUrl: restingUrl })}
         onSelect={inspect}
         className="w-full"
       />

@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
-import { DialogTitle } from '@ValenceUI/DialogTitle';
+import { BackdropScrim } from '@ValenceUI/BackdropScrim';
+import { TitleLogo } from '@ValenceScreens/components/TitleLogo/TitleLogo';
+import { titleLogoUrl } from '@ValenceScreens/library/titleLogoUrl';
 import { TextField } from '@ValenceUI/TextField';
 import { Choice } from './components/Choice/Choice';
 import { createShare, shareAddress } from '@ValenceClient/sharing/fetchShares';
@@ -71,6 +73,7 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
   const [isWorking, setIsWorking] = useState(false);
   const [refusal, setRefusal] = useState<string | null>(null);
   const [isCopied, setIsCopied] = useState(false);
+  const [isUnlettered, setIsUnlettered] = useState(false);
 
   useEffect(() => {
     if (!isOpen) {
@@ -80,6 +83,7 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
     setLink(null);
     setRefusal(null);
     setIsCopied(false);
+    setIsUnlettered(false);
     setKind('item');
   }, [isOpen, subject]);
 
@@ -88,6 +92,17 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
 
   const named =
     subject?.kind === 'series' ? subject.title : (media?.seriesTitle ?? media?.title ?? 'this');
+
+  const backdrop =
+    media === null
+      ? null
+      : media.hasBackdrop
+        ? `/api/media/${media.id}/image/backdrop`
+        : media.hasPoster
+          ? `/api/media/${media.id}/image/poster`
+          : null;
+
+  const isLettered = media !== null && media.hasLogo && !isUnlettered;
 
   const hand = async () => {
     if (subject === null) {
@@ -123,15 +138,48 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
 
   return (
     <Dialog label="Share" isOpen={isOpen} onClose={onClose}>
-      <DialogContent>
-        <DialogTitle title={`Share ${named}`}>
-          <Button isIconOnly variant="ghost" label="Close" onClick={onClose}>
-            <Icon of={Cancel01Icon} size={20} />
-          </Button>
-        </DialogTitle>
+      <DialogContent className="p-3 sm:p-4">
+        <div className="relative overflow-hidden rounded-2xl">
+          <div className="relative h-48 sm:h-56">
+            {backdrop === null ? (
+              <div aria-hidden className="absolute inset-0 bg-surface-raised" />
+            ) : (
+              <img src={backdrop} alt="" className="absolute inset-0 h-full w-full object-cover" />
+            )}
+
+            <BackdropScrim />
+          </div>
+
+          <div className="absolute right-4 top-4">
+            <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
+              <Icon of={Cancel01Icon} size={20} />
+            </Button>
+          </div>
+
+          <div className="absolute inset-x-0 bottom-0 flex flex-col gap-2 p-5 sm:p-6">
+            <span className="text-sm font-medium uppercase tracking-[0.2em] text-on-scrim/75">
+              Share
+            </span>
+
+            <h2 className="max-w-[18ch] text-[clamp(1.5rem,4vw,2.5rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-on-scrim">
+              {isLettered ? (
+                <TitleLogo
+                  src={titleLogoUrl(media.id)}
+                  alt={named}
+                  className="max-h-[6svh] w-auto max-w-[min(55vw,13rem)] object-contain object-left"
+                  onError={() => {
+                    setIsUnlettered(true);
+                  }}
+                />
+              ) : (
+                named
+              )}
+            </h2>
+          </div>
+        </div>
 
         {link === null ? (
-          <div className="flex flex-col gap-5 pt-2">
+          <div className="flex flex-col gap-5 px-2 pb-2 pt-6 sm:px-3">
             {subject?.kind === 'series' ? (
               <span className="flex items-center justify-between gap-4">
                 <span className="shrink-0 text-sm text-text-muted">What to share</span>
@@ -178,7 +226,7 @@ const ShareDialog = ({ subject, isOpen, onClose, origin }: ShareDialogProps) => 
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col gap-4 pt-2">
+          <div className="flex flex-col gap-4 px-2 pb-2 pt-6 sm:px-3">
             <p className="font-body text-sm text-text-muted">
               Copy it now — this is the only time it is shown.
             </p>

@@ -4,6 +4,12 @@ import { groupVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
 import type { MediaGridProps, MediaGridSize } from './MediaGrid.types';
 
+const POSTER_COLUMNS: Record<MediaGridSize, string> = {
+  small: 'grid-cols-3 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8',
+  medium: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
+  large: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5',
+};
+
 const COLUMNS: Record<MediaGridSize, string> = {
   small: 'grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 xl:grid-cols-6',
   medium: 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4',
@@ -23,6 +29,7 @@ const COLUMNS: Record<MediaGridSize, string> = {
  * @param isKept - Whether each item is kept.
  * @param onToggleKept - Told to keep something, or stop.
  * @param size - How large the cards are.
+ * @param shape - Whether each card stands upright as a poster or lies flat; posters sit more to a row.
  */
 const MediaGrid = ({
   items,
@@ -35,12 +42,13 @@ const MediaGrid = ({
   size = 'medium',
   isSeries = false,
   onOpenShow,
+  shape = 'wide',
 }: MediaGridProps) => (
   <motion.ul
     variants={groupVariants}
     initial="hidden"
     animate="shown"
-    className={`grid gap-x-4 gap-y-8 ${COLUMNS[size]}`}
+    className={`grid gap-x-4 gap-y-8 ${(shape === 'poster' ? POSTER_COLUMNS : COLUMNS)[size]}`}
   >
     {items.map((media, at) => (
       <RevealItem key={media.id} index={at}>
@@ -55,6 +63,7 @@ const MediaGrid = ({
           onPlay={onPlay}
           onInspect={onInspect}
           isSeries={isSeries}
+          shape={shape}
           {...(onOpenShow === undefined ? {} : { onOpenShow })}
           {...(isKept === undefined ? {} : { isKept: isKept(media.id) })}
           {...(onToggleKept === undefined ? {} : { onToggleKept })}

@@ -295,3 +295,187 @@ describe('ValenceShell', () => {
     });
   });
 });
+
+const A_FILM = {
+  id: 'aa0e8400-e29b-41d4-a716-446655440000',
+  libraryId: LIBRARY_ID,
+  title: 'Arrival',
+  year: 2016,
+  durationSeconds: 7200,
+  width: 1920,
+  height: 1080,
+  videoCodec: 'hevc',
+  videoRange: 'SDR',
+  addedAt: '2026-08-10T00:00:00.000Z',
+  hasPoster: true,
+  hasBackdrop: true,
+  hasLogo: false,
+  seriesId: null,
+};
+
+/**
+ * Answers for the libraries this test needs, and the films in them, leaving everything else as
+ * the suite answers it.
+ */
+const serveLibraries = (libraries: object[], films: object[] = []) => {
+  const underneath = fetchMock.getMockImplementation();
+
+  fetchMock.mockImplementation((target: string, init?: RequestInit) => {
+    const url = new URL(target, 'http://localhost:3000');
+
+    if (url.pathname.startsWith('/api/libraries/') && url.pathname.includes('/items')) {
+      const found = url.searchParams.get('kind') === 'films' ? films : [];
+
+      return Promise.resolve(ok({ items: found, total: found.length }));
+    }
+
+    if (url.pathname === '/api/libraries') {
+      return Promise.resolve(ok(libraries));
+    }
+
+    if (url.pathname === '/api/library-facets') {
+      return Promise.resolve(ok({ genres: ['Drama', 'Comedy'], decades: [], maxRating: 10 }));
+    }
+
+    return underneath === undefined ? Promise.resolve(ok({})) : underneath(target, init);
+  });
+};
+
+const A_BOOK_LIBRARY = {
+  ...A_LIBRARY,
+  id: '4f2504e0-4f89-41d3-9a0c-0305e82c3302',
+  name: 'Books',
+  kind: 'books',
+  itemCount: 2,
+};
+
+const A_FILM_LIBRARY = {
+  ...A_LIBRARY,
+  id: '5f2504e0-4f89-41d3-9a0c-0305e82c3303',
+  name: 'Films',
+  kind: 'movies',
+};
+
+describe('the places a server with little in it offers', () => {
+  it('offers programmes once a library of them holds something', async () => {
+    serveLibraries([A_LIBRARY]);
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await waitFor(() => {
+      expect(within(bar).queryByRole('button', { name: 'Films' })).not.toBeInTheDocument();
+    });
+
+    expect(within(bar).getByRole('button', { name: 'Shows' })).toBeInTheDocument();
+  });
+
+  it('offers no programmes while their library is empty', async () => {
+    serveLibraries([{ ...A_LIBRARY, itemCount: 0 }]);
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await waitFor(() => {
+      expect(within(bar).queryByRole('button', { name: 'Shows' })).not.toBeInTheDocument();
+    });
+  });
+
+  it('offers films once there is a film to find', async () => {
+    serveLibraries([A_FILM_LIBRARY], [A_FILM]);
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await waitFor(() => {
+      expect(within(bar).queryByRole('button', { name: 'Books' })).not.toBeInTheDocument();
+    });
+
+    expect(within(bar).getByRole('button', { name: 'Films' })).toBeInTheDocument();
+  });
+
+  it('offers books once a library of them holds one', async () => {
+    serveLibraries([A_BOOK_LIBRARY]);
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await waitFor(() => {
+      expect(within(bar).queryByRole('button', { name: 'Shows' })).not.toBeInTheDocument();
+    });
+
+    expect(within(bar).getByRole('button', { name: 'Books' })).toBeInTheDocument();
+  });
+
+  it('offers no books while their library is empty', async () => {
+    serveLibraries([{ ...A_BOOK_LIBRARY, itemCount: 0 }]);
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await waitFor(() => {
+      expect(within(bar).queryByRole('button', { name: 'Books' })).not.toBeInTheDocument();
+    });
+  });
+});
+
+describe('the foot of every page', () => {
+  it('looks through a genre when one is pressed', async () => {
+    const actor = userEvent.setup();
+
+    serveLibraries([A_LIBRARY]);
+
+    renderTheApp();
+
+    const footer = await screen.findByRole('contentinfo');
+
+    await actor.click(await within(footer).findByRole('button', { name: 'Drama' }));
+
+    await waitFor(() => {
+      expect(window.location.pathname).toBe('/search');
+    });
+
+    expect(window.location.search).toContain('genre=Drama');
+  });
+
+  it('opens the part of the account it names', async () => {
+    const actor = userEvent.setup();
+
+    renderTheApp();
+
+    const footer = await screen.findByRole('contentinfo');
+
+    await actor.click(within(footer).getByRole('button', { name: 'Password and sign-in' }));
+
+    await waitFor(() => {
+      expect(window.location.href).toContain('security');
+    });
+  });
+
+  it('offers the server settings to an administrator', async () => {
+    renderTheApp();
+
+    const footer = await screen.findByRole('contentinfo');
+
+    expect(within(footer).getByRole('button', { name: 'Server settings' })).toBeInTheDocument();
+  });
+
+  it('signs out', async () => {
+    const actor = userEvent.setup();
+
+    renderTheApp();
+
+    const footer = await screen.findByRole('contentinfo');
+
+    await actor.click(within(footer).getByRole('button', { name: 'Sign out' }));
+
+    await waitFor(() => {
+      expect(sentTo('/api/auth/sign-out').length).toBeGreaterThan(0);
+    });
+  });
+});

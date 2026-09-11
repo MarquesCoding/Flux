@@ -92,7 +92,8 @@ describe('handing out a link', () => {
   it('names what is being shared', () => {
     draw();
 
-    expect(screen.getByText('Share Arrival')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Arrival' })).toBeInTheDocument();
+    expect(screen.getByText('Share', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('says plainly what the link lets somebody do', () => {
@@ -178,7 +179,8 @@ describe('sharing an episode', () => {
   it('names the programme rather than whichever episode stands for it', () => {
     drawProgramme();
 
-    expect(screen.getByText('Share The Bear')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'The Bear' })).toBeInTheDocument();
+    expect(screen.getByText('Share', { selector: 'span' })).toBeInTheDocument();
   });
 
   it('shares the whole programme, without an episode being involved at all', async () => {

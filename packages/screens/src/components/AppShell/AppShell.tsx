@@ -58,6 +58,9 @@ const SOLID_WITHIN = 64;
  * all of it. Where the content begins is read from the element that says it meets the bar; a page
  * without one begins its content just below the bar, and fills over the first few pixels instead.
  *
+ * The same answer is put on the shell as `--content-reach`, so the sheet the rows ride up on can fade
+ * in by it too — clear over the hero at the top of the page, solid by the time it reaches the bar.
+ *
  * @param travelled - How far the page has scrolled.
  * @returns How solid, from nothing to one.
  */
@@ -78,6 +81,8 @@ const THEME_ICONS: Record<Theme, ReactNode> = {
   light: <Icon of={Sun01Icon} size={16} />,
   dark: <Icon of={Moon02Icon} size={16} />,
 };
+
+const STOCKED_ONLY: ReadonlySet<ShellSection> = new Set(['shows', 'films', 'read']);
 
 const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
@@ -155,9 +160,14 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param avatar - The face to draw on the account control.
  * @param onSignOut - Told to end the session.
  * @param onSurprise - Told to choose something at random, optionally from one kind of library.
- * @param surpriseKinds - Which kinds of library there are, which decides whether the dice offer a
+ * @param libraryKinds - Which kinds of library there are, which decides whether the dice offer a
  *   menu or simply act.
+ * @param stocked - Which of films, programmes and books have anything in them, once known. A place
+ *   in the bar is offered only where there is something to find there — an empty library is not a
+ *   place to go — and every place is offered until the answer arrives, rather than places
+ *   appearing one by one as it does.
  * @param notifications - The bell and what is behind it.
+ * @param footer - What closes every page, given the places the bar offers so it can offer them too.
  */
 const AppShell = ({
   section,
@@ -174,7 +184,9 @@ const AppShell = ({
   avatar,
   onSignOut,
   onSurprise,
-  surpriseKinds = [],
+  libraryKinds,
+  stocked,
+  footer,
   notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
@@ -183,9 +195,23 @@ const AppShell = ({
   const solidity = useMotionValue(0);
   const { theme, choose } = useTheme();
 
-  useMotionValueEvent(scrollY, 'change', (travelled) => {
-    solidity.set(howSolid(travelled));
-  });
+  const shellRef = useRef<HTMLDivElement>(null);
+
+  const reach = useCallback(
+    (travelled: number) => {
+      const reached = howSolid(travelled);
+
+      solidity.set(reached);
+      shellRef.current?.style.setProperty('--content-reach', reached.toString());
+    },
+    [solidity],
+  );
+
+  useMotionValueEvent(scrollY, 'change', reach);
+
+  useEffect(() => {
+    reach(window.scrollY);
+  }, [reach, section]);
 
   useKonamiCode(() => {
     if (section === 'home' && prefersReducedMotion !== true) {
@@ -241,7 +267,13 @@ const AppShell = ({
     };
   }, [section]);
 
-  const items: NavBarItem[] = BROWSE_SECTIONS.map((id) => ({
+  const kinds = libraryKinds ?? [];
+
+  const places = BROWSE_SECTIONS.filter(
+    (id) => stocked === undefined || !STOCKED_ONLY.has(id) || stocked.includes(id),
+  );
+
+  const items: NavBarItem[] = places.map((id) => ({
     id,
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
@@ -284,7 +316,7 @@ const AppShell = ({
             label: 'Randomiser',
             icon: <Icon of={DiceFaces05Icon} size={20} />,
             gesture: 'tumble' as const,
-            ...(surpriseKinds.length > 1
+            ...(kinds.length > 1
               ? {
                   control: (
                     <ActionMenu
@@ -302,7 +334,7 @@ const AppShell = ({
                                 onSurprise();
                               },
                             },
-                            ...surpriseKinds.map((kind) => ({
+                            ...kinds.map((kind) => ({
                               id: kind,
                               label: SURPRISE_LABELS[kind],
                               onChoose: () => {
@@ -398,7 +430,10 @@ const AppShell = ({
   ];
 
   return (
-    <div className="valence-shell relative min-h-[calc(100vh-var(--valence-window-bar))] text-text">
+    <div
+      ref={shellRef}
+      className="valence-shell relative min-h-[calc(100vh-var(--valence-window-bar))] text-text"
+    >
       <MoodBackground lights={moodLights} film={film} />
 
       <AnimatePresence>
@@ -455,6 +490,8 @@ const AppShell = ({
             {children}
           </motion.div>
         </motion.main>
+
+        {footer?.(places.map((id) => ({ id, label: SECTION_LABELS[id] })))}
       </motion.div>
     </div>
   );

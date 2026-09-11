@@ -22,7 +22,9 @@ type AppShellProps = {
   isDownloadsOpen: boolean;
   onOpenDownloads: () => void;
   onSurprise?: (only?: LibraryKind) => void;
-  surpriseKinds?: LibraryKind[];
+  libraryKinds?: LibraryKind[];
+  stocked?: ShellSection[];
+  footer?: (places: { id: ShellSection; label: string }[]) => ReactNode;
   notifications?: ReactNode;
 };
 
