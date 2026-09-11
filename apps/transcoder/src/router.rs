@@ -1094,7 +1094,6 @@ fn draw_in_the_background(
     request: &TrickplayRequest,
     path: &Path,
     source: SheetSource,
-    accel: Option<&'static str>,
     claimed: String,
 ) {
     let config = state.registry.config();
@@ -1112,7 +1111,7 @@ fn draw_in_the_background(
                 "thumbnails",
                 &subject,
                 owner.as_deref(),
-                trickplay.generate(&ffmpeg, &cache_root, &queued, source, accel),
+                trickplay.generate(&ffmpeg, &cache_root, &queued, source),
             )
             .await;
 
@@ -1143,10 +1142,6 @@ async fn start_trickplay(
     };
 
     let config = state.registry.config();
-    let accel = detect_capabilities(&config.ffmpeg, &config.device)
-        .await
-        .best_encoder("h264")
-        .and_then(|found| found.accel.ffmpeg_flag());
 
     let source = SheetSource {
         width: video.width,
@@ -1165,14 +1160,14 @@ async fn start_trickplay(
                 return (StatusCode::ACCEPTED, Json(pending)).into_response();
             }
 
-            draw_in_the_background(&state, &request, &path, source, accel, id);
+            draw_in_the_background(&state, &request, &path, source, id);
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
 
         return match state
             .trickplay
-            .generate(&config.ffmpeg, &config.cache_root, &request, source, accel)
+            .generate(&config.ffmpeg, &config.cache_root, &request, source)
             .await
         {
             Ok(index) => (StatusCode::OK, Json(index)).into_response(),
@@ -1188,7 +1183,7 @@ async fn start_trickplay(
             request.owner.as_deref(),
             state
                 .trickplay
-                .generate(&config.ffmpeg, &config.cache_root, &request, source, accel),
+                .generate(&config.ffmpeg, &config.cache_root, &request, source),
         )
         .await
     {

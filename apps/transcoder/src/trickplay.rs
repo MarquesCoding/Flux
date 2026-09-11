@@ -21,7 +21,6 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 
 use crate::integrity::decodes;
-use crate::monitor::{record, LogLevel};
 
 /// Written only when every sheet is on disk.
 ///
@@ -248,7 +247,6 @@ const RENDER_THREADS: u32 = 2;
 pub fn sheet_arguments(
     request: &TrickplayRequest,
     tile_height: u32,
-    accel: Option<&str>,
     directory: &Path,
 ) -> Vec<String> {
     let filter = format!(
@@ -268,11 +266,6 @@ pub fn sheet_arguments(
         "-threads".to_owned(),
         RENDER_THREADS.to_string(),
     ];
-
-    if let Some(flag) = accel {
-        arguments.push("-hwaccel".to_owned());
-        arguments.push(flag.to_owned());
-    }
 
     arguments.extend([
         "-skip_frame".to_owned(),
@@ -470,13 +463,12 @@ impl TrickplayRegistry {
         cache_root: &Path,
         request: &TrickplayRequest,
         source: SheetSource,
-        accel: Option<&str>,
     ) -> Result<TrickplayIndex, TrickplayError> {
         let id = request.id();
         let gate = self.gate(&id).await;
         let permit = gate.lock().await;
 
-        let outcome = generate(ffmpeg, cache_root, request, source, accel).await;
+        let outcome = generate(ffmpeg, cache_root, request, source).await;
 
         drop(permit);
         self.release(&id).await;
@@ -505,7 +497,6 @@ pub async fn generate(
     cache_root: &Path,
     request: &TrickplayRequest,
     source: SheetSource,
-    accel: Option<&str>,
 ) -> Result<TrickplayIndex, TrickplayError> {
     let tile_height = tile_height_for(request.tile_width, source.width, source.height);
     let count = thumbnail_count(source.duration_seconds, request.interval_seconds);
@@ -537,46 +528,23 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Directory)?;
 
-    let mut attempt = accel;
+    let output = Command::new(ffmpeg)
+        .args(sheet_arguments(request, tile_height, &directory))
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
 
-    let sheets = loop {
-        let output = Command::new(ffmpeg)
-            .args(sheet_arguments(request, tile_height, attempt, &directory))
-            .output()
-            .await
-            .map_err(TrickplayError::Spawn)?;
+    let sheets = list_sheets(&directory).await;
 
-        let sheets = list_sheets(&directory).await;
+    if sheets.is_empty() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+        ));
+    }
 
-        let failure = if sheets.is_empty() {
-            Some(TrickplayError::NoOutput(
-                String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-            ))
-        } else {
-            unreadable_sheet(ffmpeg, &directory, &sheets)
-                .await
-                .map(TrickplayError::Corrupt)
-        };
-
-        let Some(failure) = failure else {
-            break sheets;
-        };
-
-        if attempt.is_none() {
-            return Err(failure);
-        }
-
-        record(
-            LogLevel::Warn,
-            "trickplay",
-            &format!(
-                "accelerated sheets for {} failed, retrying in software: {failure}",
-                request.input_path
-            ),
-        );
-
-        attempt = None;
-    };
+    if let Some(corrupt) = unreadable_sheet(ffmpeg, &directory, &sheets).await {
+        return Err(TrickplayError::Corrupt(corrupt));
+    }
 
     tokio::fs::write(
         directory.join(INDEX_NAME),
@@ -784,25 +752,19 @@ otherwise start a second one"
         assert_ne!(request().id(), coarse.id());
     }
 
+    /// Every filter drawing a sheet works in system memory, so the decode does
+    /// too. Asking the hardware for frames it cannot take is a graph ffmpeg
+    /// will not configure, and sheets that are never written.
     #[test]
-    fn decodes_on_the_hardware_when_there_is_some() {
-        let arguments = sheet_arguments(&request(), 180, Some("videotoolbox"), Path::new("/cache"));
-
-        assert!(arguments
-            .windows(2)
-            .any(|pair| pair == ["-hwaccel", "videotoolbox"]));
-    }
-
-    #[test]
-    fn asks_for_no_acceleration_on_a_machine_with_none() {
-        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
+    fn never_decodes_on_the_device() {
+        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
 
         assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
     }
 
     #[test]
-    fn still_only_decodes_keyframes_on_the_hardware() {
-        let arguments = sheet_arguments(&request(), 180, Some("cuda"), Path::new("/cache"));
+    fn still_only_decodes_keyframes() {
+        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
 
         assert!(arguments
             .windows(2)
@@ -811,7 +773,7 @@ otherwise start a second one"
 
     #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
@@ -823,7 +785,7 @@ otherwise start a second one"
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, None, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));
