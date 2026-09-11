@@ -447,17 +447,6 @@ describe('the places the bar offers', () => {
     expect(offered()).toEqual(['Home', 'New & Popular', 'Favourites']);
   });
 
-  it('hands its foot the places it offers, so the footer offers the same ones', () => {
-    draw({
-      stocked: ['films', 'read'],
-      footer: (places) => <footer>{places.map((place) => place.label).join(', ')}</footer>,
-    });
-
-    expect(screen.getByRole('contentinfo')).toHaveTextContent(
-      'Home, Films, Books, New & Popular, Favourites',
-    );
-  });
-
   it('says how far the page has come up towards the bar, so the sheet can fade in by it', () => {
     Object.defineProperty(window, 'scrollY', { value: 32, configurable: true });
 

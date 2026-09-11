@@ -167,7 +167,6 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  *   place to go — and every place is offered until the answer arrives, rather than places
  *   appearing one by one as it does.
  * @param notifications - The bell and what is behind it.
- * @param footer - What closes every page, given the places the bar offers so it can offer them too.
  */
 const AppShell = ({
   section,
@@ -186,7 +185,6 @@ const AppShell = ({
   onSurprise,
   libraryKinds,
   stocked,
-  footer,
   notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
@@ -490,8 +488,6 @@ const AppShell = ({
             {children}
           </motion.div>
         </motion.main>
-
-        {footer?.(places.map((id) => ({ id, label: SECTION_LABELS[id] })))}
       </motion.div>
     </div>
   );
