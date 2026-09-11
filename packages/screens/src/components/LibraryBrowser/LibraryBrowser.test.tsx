@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { LibraryBrowser } from './LibraryBrowser';
 import type { Library, MediaSummary } from '@ValenceContracts/schemas/Library';
 
+const RECENTLY = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
 const fetchLibrariesMock = vi.hoisted(() => vi.fn());
 const fetchItemsMock = vi.hoisted(() => vi.fn());
 const fetchDetailMock = vi.hoisted(() => vi.fn(() => Promise.resolve(null)));
@@ -51,7 +53,7 @@ const arrival: MediaSummary = {
   height: 2160,
   videoCodec: 'hevc',
   videoRange: 'HDR10',
-  addedAt: '2026-08-10T00:00:00.000Z',
+  addedAt: RECENTLY,
   hasPoster: false,
   hasBackdrop: false,
   hasLogo: false,
