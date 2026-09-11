@@ -365,6 +365,13 @@
       "when": 1789090369652,
       "tag": "0051_media_item_version_label",
       "breakpoints": true
+    },
+    {
+      "idx": 52,
+      "version": "7",
+      "when": 1789153836478,
+      "tag": "0052_logo_at_full_size",
+      "breakpoints": true
     }
   ]
 }

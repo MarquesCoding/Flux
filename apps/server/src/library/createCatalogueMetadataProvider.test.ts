@@ -691,7 +691,7 @@ describe('reading the lettering a title is written in', () => {
 
     const url = await instance.readLogoUrl?.({ externalId: '329', isSeries: false });
 
-    expect(url).toBe('https://image.tmdb.org/t/p/w500/en.png');
+    expect(url).toBe('https://image.tmdb.org/t/p/original/en.png');
     expect(calls[0]).toContain('/movie/329/images');
   });
 
@@ -734,7 +734,7 @@ describe('reading the lettering a title is written in', () => {
 
     const url = await instance.readLogoUrl?.({ externalId: '208067', isSeries: true });
 
-    expect(url).toBe('https://image.tmdb.org/t/p/w500/ja.png');
+    expect(url).toBe('https://image.tmdb.org/t/p/original/ja.png');
     expect(calls).toHaveLength(2);
     expect(calls[1]).not.toContain('include_image_language');
   });
