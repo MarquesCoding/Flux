@@ -1,16 +1,20 @@
 name: CI
 
-# Run by hand, from the Actions tab, and never on its own.
+# Runs on every pull request, and by hand from the Actions tab.
 #
-# This is a private repository, so every minute a runner spends is billed, and this workflow is not
-# cheap: a Debian container, a Rust build, and three minutes of encoding to generate the corpus. Run
-# automatically on every push it would cost real money to tell us what the pre-push hook already
-# said locally for nothing.
+# It was manual only, and the reason was cost: this workflow is not cheap — a Debian container, a
+# Rust build, and three minutes of encoding to generate the corpus — and a private repository is
+# billed for every minute of it. The repository is public now, so those minutes are free, and
+# publish.yml already says as much about itself.
 #
-# The hooks stay the everyday gate. This is the deeper check — the whole corpus, against the FFmpeg
-# Valence ships — for when it is worth asking: before a release, after touching the media pipeline, or
-# when a rule's behaviour is in question.
+# What the cost was buying was silence. The hooks are the everyday gate and they run on the
+# developer's own machine, against whatever FFmpeg that machine happens to have. This runs against
+# the build Valence ships. The difference is not academic: a preview argument one build accepts and
+# another rejects took down every VideoToolbox render and was caught by the one test that starts a
+# real FFmpeg. A check that only runs when somebody remembers to press a button is a check that does
+# not run on the change that needed it.
 on:
+  pull_request:
   workflow_dispatch:
 
 concurrency:
