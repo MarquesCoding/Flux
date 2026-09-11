@@ -709,6 +709,7 @@ async fn start_preview(
     };
 
     let range = video.range;
+    let bit_depth = video.bit_depth;
     let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
     let duration = probe.duration_seconds;
 
@@ -736,7 +737,7 @@ async fn start_preview(
                         },
                         &cache_root,
                         &queued,
-                        range,
+                        crate::preview::Source { range, bit_depth },
                         &found,
                         duration,
                     ),
@@ -768,7 +769,7 @@ async fn start_preview(
                 },
                 &config.cache_root,
                 &request,
-                range,
+                crate::preview::Source { range, bit_depth },
                 &capabilities,
                 duration,
             ),
@@ -1167,6 +1168,7 @@ async fn start_trickplay(
     let source = SheetSource {
         width: video.width,
         height: video.height,
+        bit_depth: video.bit_depth,
         duration_seconds: probe.duration_seconds,
     };
 

@@ -243,6 +243,15 @@ pub struct Tools<'a> {
 /// A backend to decode on, and the device to open for it.
 pub type OnDevice<'a> = Option<(HardwareAccel, &'a str)>;
 
+/// What the source picture is, as far as the filters need to know.
+#[derive(Clone, Copy)]
+pub struct Source {
+    /// Whether it needs converting to something a browser draws.
+    pub range: VideoRange,
+    /// What its frames come down as, which a ten-bit film answers differently.
+    pub bit_depth: Option<u8>,
+}
+
 /// The ffmpeg arguments that cut and encode the clip.
 ///
 /// Encoded rather than copied, and to something every browser plays without
@@ -267,7 +276,7 @@ pub type OnDevice<'a> = Option<(HardwareAccel, &'a str)>;
 pub fn preview_arguments(
     request: &PreviewRequest,
     start_seconds: u32,
-    range: VideoRange,
+    source: Source,
     tone_mapping: ToneMapping,
     encoder: &PreviewEncoder,
     on_device: OnDevice<'_>,
@@ -278,10 +287,13 @@ pub fn preview_arguments(
         .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
 
     if let Some((_, pipeline, _)) = onto_the_device {
-        filters.push(format!("hwdownload,format={}", pipeline.download_format));
+        filters.push(format!(
+            "hwdownload,format={}",
+            pipeline.download_format_for(source.bit_depth)
+        ));
     }
 
-    if range != VideoRange::Sdr {
+    if source.range != VideoRange::Sdr {
         if let Some(filter) = tone_map_filter(tone_mapping) {
             filters.push(filter.to_owned());
         }
@@ -382,7 +394,7 @@ pub async fn generate(
     tools: Tools<'_>,
     cache_root: &Path,
     request: &PreviewRequest,
-    range: VideoRange,
+    source: Source,
     capabilities: &Capabilities,
     duration_seconds: f64,
 ) -> Result<PreviewClip, PreviewError> {
@@ -420,7 +432,7 @@ pub async fn generate(
             .args(preview_arguments(
                 request,
                 start,
-                range,
+                source,
                 tone_mapping,
                 &chosen,
                 accel.map(|found| (found, tools.device)),
@@ -529,7 +541,7 @@ impl PreviewRegistry {
         tools: Tools<'_>,
         cache_root: &Path,
         request: &PreviewRequest,
-        range: VideoRange,
+        source: Source,
         capabilities: &Capabilities,
         duration_seconds: f64,
     ) -> Result<PreviewClip, PreviewError> {
@@ -541,7 +553,7 @@ impl PreviewRegistry {
             tools,
             cache_root,
             request,
-            range,
+            source,
             capabilities,
             duration_seconds,
         )
@@ -556,7 +568,7 @@ impl PreviewRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::{preview_arguments, preview_encoder, PreviewEncoder, PreviewRequest};
+    use super::{preview_arguments, preview_encoder, PreviewEncoder, PreviewRequest, Source};
     use crate::capability::{Capabilities, VerifiedEncoder};
     use crate::media::VideoRange;
     use crate::transcode_plan::HardwareAccel;
@@ -623,7 +635,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
             Some((HardwareAccel::VideoToolbox, "/dev/dri/renderD128")),
@@ -645,7 +660,10 @@ mod tests {
             let arguments = preview_arguments(
                 &request(),
                 600,
-                range,
+                Source {
+                    range,
+                    bit_depth: Some(8),
+                },
                 ToneMapping::Zscale,
                 &PreviewEncoder::Hardware("h264_qsv".to_owned()),
                 Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
@@ -680,7 +698,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -698,7 +719,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -720,7 +744,10 @@ mod tests {
             let arguments = preview_arguments(
                 &request(),
                 600,
-                VideoRange::Sdr,
+                Source {
+                    range: VideoRange::Sdr,
+                    bit_depth: Some(8),
+                },
                 ToneMapping::Zscale,
                 &encoder,
                 None,
@@ -744,7 +771,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -762,7 +792,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Hdr10,
+            Source {
+                range: VideoRange::Hdr10,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -786,7 +819,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -876,7 +912,10 @@ mod tests {
         let arguments = preview_arguments(
             &request(),
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,
@@ -896,7 +935,10 @@ mod tests {
         let arguments = preview_arguments(
             &forced,
             600,
-            VideoRange::Sdr,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
             None,

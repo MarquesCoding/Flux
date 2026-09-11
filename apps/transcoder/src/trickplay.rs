@@ -215,6 +215,8 @@ pub struct SheetSource {
     pub width: u32,
     pub height: u32,
     pub duration_seconds: f64,
+    /// What the source says it is, which decides what its frames come down as.
+    pub bit_depth: Option<u8>,
 }
 
 /// How many threads a thumbnail render may use.
@@ -250,6 +252,7 @@ pub fn sheet_arguments(
     tile_height: u32,
     accel: Option<HardwareAccel>,
     device: &str,
+    bit_depth: Option<u8>,
     directory: &Path,
 ) -> Vec<String> {
     let onto_the_device =
@@ -262,7 +265,7 @@ pub fn sheet_arguments(
             scaler = pipeline.scaler,
             width = request.tile_width,
             height = tile_height,
-            down = pipeline.download_format,
+            down = pipeline.download_format_for(bit_depth),
             columns = request.columns,
             rows = request.rows,
         ),
@@ -567,6 +570,7 @@ pub async fn generate(
             tile_height,
             accel,
             device,
+            source.bit_depth,
             &directory,
         ))
         .output()
@@ -800,6 +804,7 @@ otherwise start a second one"
             180,
             Some(HardwareAccel::Qsv),
             "/dev/dri/renderD128",
+            Some(8),
             Path::new("/cache"),
         );
 
@@ -821,7 +826,7 @@ otherwise start a second one"
 
     #[test]
     fn draws_entirely_in_software_on_a_machine_with_no_device() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
 
         assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
         assert!(!arguments
@@ -831,7 +836,7 @@ otherwise start a second one"
 
     #[test]
     fn still_only_decodes_keyframes() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
 
         assert!(arguments
             .windows(2)
@@ -840,7 +845,7 @@ otherwise start a second one"
 
     #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
@@ -852,7 +857,7 @@ otherwise start a second one"
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));

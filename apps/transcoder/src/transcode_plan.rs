@@ -758,6 +758,14 @@ pub struct HardwarePipeline {
     /// backend. Measured: a Vulkan context rejects `nv12` and wants `yuv420p`,
     /// where every backend here is the other way round.
     pub download_format: &'static str,
+    /// What a ten-bit frame becomes on its way down to system memory.
+    ///
+    /// A frames context holds one format, and `hwdownload` can only produce
+    /// that one. A ten-bit source decodes to `p010` surfaces, so asking for
+    /// `nv12` is refused outright — "Invalid output format nv12 for hwframe
+    /// download" — and the graph does not configure. Measured on an Intel iGPU
+    /// against a ten-bit source.
+    pub wide_download_format: &'static str,
     /// The compositor that draws a second picture onto this backend's frames.
     ///
     /// Burning subtitles in does not have to bring the video down. The overlay
@@ -798,6 +806,25 @@ pub struct HardwarePipeline {
     pub tone_map: Option<&'static str>,
 }
 
+impl HardwarePipeline {
+    /// What frames of this depth become on their way down to system memory.
+    ///
+    /// A frames context holds one format and `hwdownload` can produce only that
+    /// one, so the answer follows the source rather than being fixed: a ten-bit
+    /// film decodes to `p010` surfaces and asking those for `nv12` is refused.
+    ///
+    /// A source that does not say what depth it is is taken as eight bits,
+    /// which is what the great majority of them are.
+    #[must_use]
+    pub fn download_format_for(&self, bit_depth: Option<u8>) -> &'static str {
+        if bit_depth.is_some_and(|depth| depth > 8) {
+            return self.wide_download_format;
+        }
+
+        self.download_format
+    }
+}
+
 impl HardwareAccel {
     /// The pipeline this backend can run end to end, if it can run one.
     ///
@@ -824,6 +851,7 @@ impl HardwareAccel {
                 output_format: "videotoolbox_vld",
                 scaler: "scale_vt",
                 download_format: "nv12",
+                wide_download_format: "p010le",
                 overlay: "overlay_videotoolbox",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload",
@@ -835,6 +863,7 @@ impl HardwareAccel {
                 output_format: "cuda",
                 scaler: "scale_cuda",
                 download_format: "nv12",
+                wide_download_format: "p010le",
                 overlay: "overlay_cuda",
                 overlay_format: "yuva420p",
                 overlay_upload: "hwupload=derive_device=cuda",
@@ -846,6 +875,7 @@ impl HardwareAccel {
                 output_format: "qsv",
                 scaler: "vpp_qsv",
                 download_format: "nv12",
+                wide_download_format: "p010le",
                 overlay: "overlay_qsv",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
@@ -855,6 +885,7 @@ impl HardwareAccel {
                 output_format: "vaapi",
                 scaler: "scale_vaapi",
                 download_format: "nv12",
+                wide_download_format: "p010le",
                 overlay: "overlay_vaapi",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=vaapi",
@@ -864,6 +895,7 @@ impl HardwareAccel {
                 output_format: "drm_prime",
                 scaler: "scale_rkrga",
                 download_format: "nv12",
+                wide_download_format: "p010le",
                 overlay: "overlay_rkrga",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=rkmpp",
