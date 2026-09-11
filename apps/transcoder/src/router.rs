@@ -704,6 +704,10 @@ async fn start_preview(
         return already_drawn(id);
     }
 
+    if let Some(failure) = state.previews.take_failure(&id).await {
+        return error(StatusCode::INTERNAL_SERVER_ERROR, &failure);
+    }
+
     let probe = match probe_media(&state.ffprobe, &path).await {
         Ok(probe) => probe,
         Err(failure) => return error(StatusCode::BAD_REQUEST, &failure.to_string()),
@@ -720,40 +724,21 @@ async fn start_preview(
     let duration = probe.duration_seconds;
 
     if !request.wait {
-        let queue = state.queue.clone();
-        let subject = name_of(&path);
-        let queued = request.clone();
-        let ffmpeg = config.ffmpeg.clone();
-        let device = config.device.clone();
-        let cache_root = config.cache_root.clone();
-        let found = capabilities.clone();
-        let previews = state.previews.clone();
-        let owner = request.owner.clone();
-
-        tokio::spawn(async move {
-            let _ = queue
-                .run(
-                    "preview",
-                    &subject,
-                    owner.as_deref(),
-                    previews.generate(
-                        crate::preview::Tools {
-                            ffmpeg: &ffmpeg,
-                            device: &device,
-                        },
-                        &cache_root,
-                        &queued,
-                        crate::preview::Source {
-                            range,
-                            bit_depth,
-                            size,
-                        },
-                        &found,
-                        duration,
-                    ),
-                )
-                .await;
-        });
+        if state.previews.claim(&id).await {
+            cut_in_the_background(
+                &state,
+                &request,
+                &path,
+                crate::preview::Source {
+                    range,
+                    bit_depth,
+                    size,
+                },
+                &capabilities,
+                duration,
+                id.clone(),
+            );
+        }
 
         return (
             StatusCode::ACCEPTED,
@@ -1116,6 +1101,61 @@ fn prepare_in_the_background(state: &AppState, request: &DownloadRequest, path: 
             .await;
 
         downloads.release(&id).await;
+    });
+}
+
+/// Cuts a clip without holding the asker, and remembers what went wrong.
+///
+/// The same shape sheets use. A caller that will not wait is answered at once
+/// and asks again; the failure that would otherwise have nobody to tell is kept
+/// against the address until somebody does.
+fn cut_in_the_background(
+    state: &AppState,
+    request: &PreviewRequest,
+    path: &Path,
+    source: crate::preview::Source,
+    capabilities: &Capabilities,
+    duration_seconds: f64,
+    claimed: String,
+) {
+    let config = state.registry.config();
+    let previews = state.previews.clone();
+    let queue = state.queue.clone();
+    let ffmpeg = config.ffmpeg.clone();
+    let device = config.device.clone();
+    let cache_root = config.cache_root.clone();
+    let queued = request.clone();
+    let owner = request.owner.clone();
+    let subject = name_of(path);
+    let found = capabilities.clone();
+
+    let id = claimed.clone();
+
+    tokio::spawn(async move {
+        let outcome = queue
+            .run(
+                "preview",
+                &subject,
+                owner.as_deref(),
+                previews.generate(
+                    crate::preview::Tools {
+                        ffmpeg: &ffmpeg,
+                        device: &device,
+                    },
+                    &cache_root,
+                    &queued,
+                    source,
+                    &found,
+                    duration_seconds,
+                ),
+            )
+            .await;
+
+        if let Err(failure) = outcome {
+            previews.remember_failure(&id, failure.to_string()).await;
+        }
+
+        previews.give_up(&claimed).await;
     });
 }
 
