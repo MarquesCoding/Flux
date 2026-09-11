@@ -590,6 +590,26 @@ const scheduleAcrossLibraries =
 
 const libraryWork = createWorkLock();
 
+/**
+ * Names the lock a piece of work takes out on a library.
+ *
+ * Reading and re-reading share one, because they are the two things that decide which items a
+ * library has and two of them at once would fight over that. Everything else — clips, thumbnails,
+ * lettering, intros — makes artefacts for items that already exist, works from what is outstanding
+ * rather than from a list it was handed, and so has a lock of its own.
+ *
+ * It used to be the bare library id for all of them. That is what made a scan wait for the
+ * thumbnails: not the job queue, which was happy to run both, but this lock inside the process.
+ *
+ * @param kind - The job asking.
+ * @param libraryId - The library it is working on.
+ * @returns The key to serialise it under.
+ */
+const lockFor = (kind: string, libraryId: string): string =>
+  kind === SCAN_LIBRARY_JOB || kind === READ_AGAIN_JOB
+    ? `reading:${libraryId}`
+    : `${kind}:${libraryId}`;
+
 const webhookSubscriptions = createDatabaseWebhookStore(db);
 
 let openDeliveries: ((subscriptionId: string, payload: string) => Promise<void>) | null = null;
@@ -774,21 +794,21 @@ const jobs = await createJobQueue({
 
         const { libraryId, force, runId, runOf } = parsed.data;
 
-        await libraryWork.run(libraryId, async () => {
+        await libraryWork.run(lockFor(SCAN_LIBRARY_JOB, libraryId), async () => {
           const libraries = await libraryService.list();
           const scanned = libraries.find((entry) => entry.id === libraryId);
-          const language = scanned?.defaultAudioLanguage;
 
           await runScanPhases({
             work: {
               scan: () => libraryService.runScan(libraryId, force, jobId),
               fetchLogos: () => libraryService.runFetchLogos(libraryId, jobId),
-              regeneratePreviews: () =>
-                libraryService.runRegeneratePreviews(libraryId, language ?? null, jobId),
-              regenerateTrickplay: () => libraryService.runRegenerateTrickplay(libraryId, jobId),
               detectSegments: () => runDetectSegments(libraryId, jobId),
             },
             isCancelled: () => jobs.isCancelled(jobId),
+            onRead: async () => {
+              await libraryService.regeneratePreviews(libraryId);
+              await libraryService.regenerateTrickplay(libraryId);
+            },
             onScanned: async (result) => {
               jobs.reportProgress(
                 jobId,
@@ -842,7 +862,7 @@ const jobs = await createJobQueue({
 
         const { libraryId, paths } = parsed.data;
 
-        await libraryWork.run(libraryId, async () => {
+        await libraryWork.run(lockFor(READ_AGAIN_JOB, libraryId), async () => {
           await libraryService.runReadAgain(libraryId, paths, jobId);
         });
       },
@@ -858,7 +878,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(parsed.data.libraryId, () =>
+        await libraryWork.run(lockFor(REGENERATE_PREVIEWS_JOB, parsed.data.libraryId), () =>
           libraryService.runRegeneratePreviews(
             parsed.data.libraryId,
             parsed.data.defaultAudioLanguage,
@@ -875,7 +895,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(parsed.data.libraryId, () =>
+        await libraryWork.run(lockFor(REGENERATE_TRICKPLAY_JOB, parsed.data.libraryId), () =>
           libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
         );
       },
@@ -888,7 +908,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(parsed.data.libraryId, () =>
+        await libraryWork.run(lockFor(FETCH_LOGOS_JOB, parsed.data.libraryId), () =>
           libraryService.runFetchLogos(parsed.data.libraryId, jobId),
         );
       },
@@ -904,7 +924,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(parsed.data.libraryId, () =>
+        await libraryWork.run(lockFor(DETECT_SEGMENTS_JOB, parsed.data.libraryId), () =>
           runDetectSegments(parsed.data.libraryId, jobId),
         );
       },
