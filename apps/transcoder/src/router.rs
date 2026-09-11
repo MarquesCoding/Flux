@@ -1164,7 +1164,7 @@ fn draw_in_the_background(
     request: &TrickplayRequest,
     path: &Path,
     source: SheetSource,
-    accel: Option<HardwareAccel>,
+    on_device: (Option<HardwareAccel>, Capabilities),
     claimed: String,
 ) {
     let config = state.registry.config();
@@ -1176,6 +1176,7 @@ fn draw_in_the_background(
     let queued = request.clone();
     let owner = request.owner.clone();
     let subject = name_of(path);
+    let (accel, found) = on_device;
 
     let id = claimed.clone();
 
@@ -1185,7 +1186,17 @@ fn draw_in_the_background(
                 "thumbnails",
                 &subject,
                 owner.as_deref(),
-                trickplay.generate(&ffmpeg, &device, &cache_root, &queued, source, accel),
+                trickplay.generate(
+                    crate::trickplay::Tools {
+                        ffmpeg: &ffmpeg,
+                        device: &device,
+                        capabilities: &found,
+                    },
+                    &cache_root,
+                    &queued,
+                    source,
+                    accel,
+                ),
             )
             .await;
 
@@ -1236,6 +1247,7 @@ async fn start_trickplay(
     let source = SheetSource {
         width: video.width,
         height: video.height,
+        range: video.range,
         bit_depth: video.bit_depth,
         duration_seconds: probe.duration_seconds,
     };
@@ -1255,7 +1267,14 @@ async fn start_trickplay(
                 return (StatusCode::ACCEPTED, Json(pending)).into_response();
             }
 
-            draw_in_the_background(&state, &request, &path, source, accel, id);
+            draw_in_the_background(
+                &state,
+                &request,
+                &path,
+                source,
+                (accel, capabilities.clone()),
+                id,
+            );
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
@@ -1263,8 +1282,11 @@ async fn start_trickplay(
         return match state
             .trickplay
             .generate(
-                &config.ffmpeg,
-                &config.device,
+                crate::trickplay::Tools {
+                    ffmpeg: &config.ffmpeg,
+                    device: &config.device,
+                    capabilities: &capabilities,
+                },
                 &config.cache_root,
                 &request,
                 source,
@@ -1284,8 +1306,11 @@ async fn start_trickplay(
             &name_of(&path),
             request.owner.as_deref(),
             state.trickplay.generate(
-                &config.ffmpeg,
-                &config.device,
+                crate::trickplay::Tools {
+                    ffmpeg: &config.ffmpeg,
+                    device: &config.device,
+                    capabilities: &capabilities,
+                },
                 &config.cache_root,
                 &request,
                 source,

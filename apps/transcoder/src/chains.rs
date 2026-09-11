@@ -75,8 +75,15 @@ fn software_format(bit_depth: u8) -> &'static str {
 ///
 /// Built to mirror what `preview`, `trickplay` and `transcode_plan` emit rather
 /// than to exercise ffmpeg generally. A probe that tests something else proves
-/// something else.
-fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> String {
+/// something else — which is not hypothetical: this shape said a sheet came
+/// down and was tiled by ffmpeg long after it stopped doing either, and a
+/// preview chain it never tested shipped unproven.
+fn chain_for(
+    shape: ChainShape,
+    pipeline: HardwarePipeline,
+    bit_depth: u8,
+    draws_on_device: bool,
+) -> String {
     let down = pipeline.download_format_for(Some(bit_depth));
     let (width, height) = PROBE_SIZE;
     let half = (width / 2, height / 2);
@@ -95,12 +102,23 @@ fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> St
                 half.0, half.1
             )
         }
-        ChainShape::Sheet => format!(
-            "fps=1/1,{scaler}=w={}:h={},hwdownload,format={down},tile=2x2",
-            half.0,
-            half.1,
-            scaler = pipeline.scaler,
-        ),
+        ChainShape::Sheet => {
+            let mapping = pipeline
+                .maps_onto_device
+                .map_or_else(String::new, |filter| format!("{filter},"));
+            let coming_down = if draws_on_device {
+                String::new()
+            } else {
+                format!(",hwdownload,format={down}")
+            };
+
+            format!(
+                "fps=1/1,{mapping}{scaler}=w={}:h={}{coming_down}",
+                half.0,
+                half.1,
+                scaler = pipeline.scaler,
+            )
+        }
         ChainShape::Transcode => {
             let narrow = match pipeline.narrows_to_eight_bit {
                 Some(option) => format!(":{option}"),
@@ -146,8 +164,9 @@ pub fn chain_probe_arguments(
 
     arguments.extend(accel.filter_device_arguments(device));
 
+    let draws_on_device = shape == ChainShape::Sheet && encoder.starts_with("mjpeg_");
     let chain = accel.pipeline().map_or_else(String::new, |pipeline| {
-        chain_for(shape, pipeline, bit_depth)
+        chain_for(shape, pipeline, bit_depth, draws_on_device)
     });
 
     arguments.extend([
@@ -160,12 +179,6 @@ pub fn chain_probe_arguments(
         "-vf".to_owned(),
         format!("format={},hwupload,{chain}", software_format(bit_depth)),
     ]);
-
-    if shape == ChainShape::Sheet {
-        arguments.extend(["-f".to_owned(), "null".to_owned(), "-".to_owned()]);
-
-        return arguments;
-    }
 
     arguments.extend(["-c:v".to_owned(), encoder.to_owned()]);
 
@@ -223,6 +236,23 @@ async fn verify_chain(
     }
 }
 
+/// Which encoder a shape ends at, which is not the same one for every shape.
+///
+/// Sheets end at a JPEG encoder and the other two at the video encoder. Where
+/// the device has no JPEG encoder of its own — NVIDIA and AMD have none — the
+/// shape ends in software and the frames come down for it, which is what the
+/// chain then has to prove.
+fn drawn_by(shape: ChainShape, encoder: &VerifiedEncoder, every: &[VerifiedEncoder]) -> String {
+    if shape != ChainShape::Sheet {
+        return encoder.encoder.clone();
+    }
+
+    every
+        .iter()
+        .find(|found| found.codec == "mjpeg" && found.accel == encoder.accel)
+        .map_or_else(|| "mjpeg".to_owned(), |found| found.encoder.clone())
+}
+
 /// Proves every chain this machine could be asked to run, before anything asks.
 ///
 /// The filters being present is not the question, and neither is the encoder
@@ -247,16 +277,11 @@ pub async fn verify_chains(
         }
 
         for shape in ChainShape::every() {
+            let drawn_by = drawn_by(shape, encoder, encoders);
+
             for bit_depth in [8_u8, 10_u8] {
-                let outcome = verify_chain(
-                    ffmpeg,
-                    encoder.accel,
-                    shape,
-                    bit_depth,
-                    &encoder.encoder,
-                    device,
-                )
-                .await;
+                let outcome =
+                    verify_chain(ffmpeg, encoder.accel, shape, bit_depth, &drawn_by, device).await;
 
                 if !outcome.works {
                     eprintln!(
@@ -408,18 +433,34 @@ mod tests {
         );
     }
 
-    /// A sheet has no encoder, so asking for one would prove something else.
+    /// A sheet ends at a JPEG encoder now, and on the device where there is
+    /// one — so the probe has to end there too or it proves a chain nobody
+    /// runs.
     #[test]
-    fn does_not_ask_a_sheet_to_encode_anything() {
+    fn proves_a_sheet_all_the_way_to_the_encoder_that_draws_it() {
         let arguments = chain_probe_arguments(
             HardwareAccel::Qsv,
             ChainShape::Sheet,
             8,
-            "h264_qsv",
+            "mjpeg_qsv",
             "/dev/dri/renderD128",
         );
 
-        assert!(!arguments.iter().any(|argument| argument == "-c:v"));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-c:v", "mjpeg_qsv"]));
+        assert!(!chain_of(&arguments).contains("hwdownload"), "it stays up");
+        assert!(!chain_of(&arguments).contains("tile="), "no grid here");
+    }
+
+    /// NVIDIA has no JPEG encoder, so that chain really does come down.
+    #[test]
+    fn proves_a_sheet_coming_down_where_the_device_cannot_draw_it() {
+        let arguments =
+            chain_probe_arguments(HardwareAccel::Nvenc, ChainShape::Sheet, 8, "mjpeg", "");
+
+        assert!(chain_of(&arguments).contains("hwdownload"), "it comes down");
+        assert!(arguments.windows(2).any(|pair| pair == ["-c:v", "mjpeg"]));
     }
 
     #[test]

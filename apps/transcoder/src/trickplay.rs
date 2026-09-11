@@ -17,7 +17,9 @@ use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
 
+use crate::capability::Capabilities;
 use crate::integrity::decodes;
+use crate::media::VideoRange;
 use crate::render_registry::RenderRegistry;
 use crate::transcode_plan::HardwareAccel;
 
@@ -222,7 +224,30 @@ pub struct SheetSource {
     pub duration_seconds: f64,
     /// What the source says it is, which decides what its frames come down as.
     pub bit_depth: Option<u8>,
+    /// Whether it needs converting to something a browser draws.
+    ///
+    /// Sheets were never converted at all, on any path, so every HDR film in a
+    /// library had washed-out thumbnails under its scrub bar while its preview
+    /// clip beside them was converted properly.
+    pub range: VideoRange,
 }
+
+/// What a render is drawn with, and what the machine proved it can do.
+#[derive(Clone, Copy)]
+pub struct Tools<'a> {
+    pub ffmpeg: &'a str,
+    pub device: &'a str,
+    pub capabilities: &'a Capabilities,
+}
+
+/// What the first pass writes, one image per interval.
+const THUMBNAIL_PATTERN: &str = "frame-%08d.jpg";
+
+/// What the second pass writes, a grid of them.
+const SHEET_PATTERN: &str = "sheet-%03d.jpg";
+
+/// How hard the JPEG encoder tries, on whichever scale it reads.
+const JPEG_QUALITY: u32 = 4;
 
 /// How many threads a thumbnail render may use.
 ///
@@ -232,67 +257,122 @@ pub struct SheetSource {
 /// is a stalled film in exchange for seek previews of a different one.
 const RENDER_THREADS: u32 = 2;
 
-/// The ffmpeg arguments that render the sheets.
+/// Which encoder draws the thumbnails, and therefore where the frames go.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SheetEncoder {
+    /// The device draws them, so the frames never come down.
+    Hardware(String),
+    /// The processor draws them, so the frames come down first.
+    Software,
+}
+
+/// Picks the encoder that draws a film's thumbnails.
 ///
-/// One decode pass drives both the sampling and the tiling, so the file is
-/// read once. `fps` before `scale` means the expensive resize only runs on the
-/// frames that survive.
+/// JPEG is something four of these backends make — `mjpeg_vaapi`, `mjpeg_qsv`,
+/// `mjpeg_videotoolbox`, `mjpeg_rkmpp` — which this build denied for a long
+/// time, so every thumbnail in a library was drawn by the processor and every
+/// frame had to leave the device to reach it.
 ///
-/// Only keyframes are decoded, and only in software. A seek preview is a rough
-/// idea of where the timeline is about to land, and the nearest keyframe
-/// answers that as well as the exact frame does — at a fraction of the cost,
-/// because the decoder skips everything between them. Measured on a ninety
-/// minute film: fifteen seconds against several minutes. The `fps` filter still
-/// emits one image per interval, so the index and the sheets line up as before.
-///
-/// `-skip_frame` is not asked of a decoder on the device. Telling a hardware
-/// decoder to throw away everything between keyframes is not a thing every one
-/// of them will do, and QSV does not merely refuse it: an Intel iGPU reading
-/// this library returned "Error during QSV decoding: GPU Hang (-21)" over and
-/// over, which resets the device and takes down whatever else was using it.
-/// Jellyfin draws the same line — its keyframe-only setting says it will fall
-/// back to the software decoder where the hardware one does not support the
-/// mode, and it ships with that setting off.
-///
-/// So the choice is one or the other, and on the device wins. Decoding is the
-/// expensive half: a 10-bit HEVC keyframe costs plenty in software, and handing
-/// the pass to the decoder already in the machine took a fifty minute episode
-/// from thirteen processor-seconds to two and a half.
+/// The encoder has to sit on the same backend the frames are already on. A
+/// machine with both Intel paths verified could otherwise be handed VAAPI
+/// surfaces and a QSV encoder, which is not a chain, so anything that does not
+/// match falls to the processor rather than being forced.
 #[must_use]
-pub fn sheet_arguments(
+pub fn sheet_encoder(capabilities: &Capabilities, accel: Option<HardwareAccel>) -> SheetEncoder {
+    let Some(wanted) = accel.filter(|found| *found != HardwareAccel::None) else {
+        return SheetEncoder::Software;
+    };
+
+    match capabilities.encoder_for("mjpeg", Some(wanted)) {
+        Some(found) if found.accel == wanted => SheetEncoder::Hardware(found.encoder.clone()),
+        _ => SheetEncoder::Software,
+    }
+}
+
+/// How this encoder is told how hard to try.
+///
+/// The scales are not the same and neither are the flags. `VAAPI` and `QSV`
+/// take a global quality, Rockchip an initial quantiser, and everything else
+/// the JPEG quality scale — so a number written for one of them means something
+/// else to another, and the flag it is written under is simply ignored.
+fn quality_arguments(encoder: &str) -> [String; 2] {
+    let flag = if encoder.ends_with("_vaapi") || encoder.ends_with("_qsv") {
+        "-global_quality:v"
+    } else if encoder.ends_with("_rkmpp") {
+        "-qp_init:v"
+    } else {
+        "-qscale:v"
+    };
+
+    [flag.to_owned(), JPEG_QUALITY.to_string()]
+}
+
+/// The ffmpeg arguments that draw one thumbnail per interval.
+///
+/// The first of two passes, and the one that costs anything. It writes single
+/// images rather than a grid, which is the whole reason the frames can stay on
+/// the device: `tile` is a software filter, so asking for a grid here forced
+/// every frame down to system memory and made a hardware JPEG encoder
+/// unreachable. Jellyfin writes single images for the same reason and tiles
+/// them afterwards.
+///
+/// `fps` comes first so the expensive filters only run on the frames that
+/// survive it. Conversion comes before the scale, because converting an
+/// already-resampled picture loses highlight detail, and before the mapping
+/// onto the backend's own frames, because on `QSV` the converter is `VAAPI`'s
+/// and the decoder is handing over `VAAPI` surfaces.
+///
+/// `-skip_frame nokey` is asked only of a decoder in software. Telling a
+/// hardware decoder to throw away everything between keyframes is not a thing
+/// every one of them will do, and `QSV` does not merely refuse it: it hangs the
+/// device, which resets it and takes down whatever else was using it.
+#[must_use]
+pub fn extract_arguments(
     request: &TrickplayRequest,
     tile_height: u32,
-    accel: Option<HardwareAccel>,
-    device: &str,
-    bit_depth: Option<u8>,
+    source: SheetSource,
+    on_device: Option<(HardwareAccel, &str)>,
+    encoder: &SheetEncoder,
     directory: &Path,
 ) -> Vec<String> {
-    let onto_the_device =
-        accel.and_then(|found| found.pipeline().map(|pipeline| (found, pipeline)));
+    let onto_the_device = on_device
+        .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
+    let draws_on_the_device = matches!(encoder, SheetEncoder::Hardware(_));
 
-    let filter = match onto_the_device {
-        Some((_, pipeline)) => format!(
-            "{mapping}fps=1/{interval},{scaler}=w={width}:h={height},hwdownload,format={down},tile={columns}x{rows}",
-            mapping = pipeline
-                .maps_onto_device
-                .map_or_else(String::new, |filter| format!("{filter},")),
-            interval = request.interval_seconds,
-            scaler = pipeline.scaler,
+    let mut filters = vec![format!("fps=1/{}", request.interval_seconds)];
+
+    match onto_the_device {
+        Some((_, pipeline, _)) => {
+            if source.range != VideoRange::Sdr {
+                if let Some(mapper) = pipeline.tone_map {
+                    filters.push(mapper.to_owned());
+                }
+            }
+
+            if let Some(mapping) = pipeline.maps_onto_device {
+                filters.push(mapping.to_owned());
+            }
+
+            filters.push(format!(
+                "{scaler}=w={width}:h={height}",
+                scaler = pipeline.scaler,
+                width = request.tile_width,
+                height = tile_height,
+            ));
+
+            if !draws_on_the_device {
+                filters.push(format!(
+                    "hwdownload,format={}",
+                    pipeline.download_format_for(source.bit_depth)
+                ));
+            }
+        }
+        None => filters.push(format!(
+            "scale={width}:{height}",
             width = request.tile_width,
             height = tile_height,
-            down = pipeline.download_format_for(bit_depth),
-            columns = request.columns,
-            rows = request.rows,
-        ),
-        None => format!(
-            "fps=1/{interval},scale={width}:{height},tile={columns}x{rows}",
-            interval = request.interval_seconds,
-            width = request.tile_width,
-            height = tile_height,
-            columns = request.columns,
-            rows = request.rows,
-        ),
-    };
+        )),
+    }
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),
@@ -303,7 +383,7 @@ pub fn sheet_arguments(
         RENDER_THREADS.to_string(),
     ];
 
-    if let Some((found, pipeline)) = onto_the_device {
+    if let Some((found, pipeline, device)) = onto_the_device {
         arguments.extend(found.filter_device_arguments(device));
 
         if found.ffmpeg_flag().is_some() {
@@ -311,26 +391,76 @@ pub fn sheet_arguments(
             arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
             arguments.push(pipeline.decoded_format.to_owned());
+            arguments.push("-noautorotate".to_owned());
         }
-    }
-
-    if onto_the_device.is_none() {
+    } else {
         arguments.extend(["-skip_frame".to_owned(), "nokey".to_owned()]);
     }
+
+    let drawn_by = match encoder {
+        SheetEncoder::Hardware(name) => name.clone(),
+        SheetEncoder::Software => "mjpeg".to_owned(),
+    };
 
     arguments.extend([
         "-i".to_owned(),
         request.input_path.clone(),
         "-vf".to_owned(),
-        filter,
+        filters.join(","),
         "-an".to_owned(),
         "-sn".to_owned(),
-        "-qscale:v".to_owned(),
-        "5".to_owned(),
-        directory.join("sheet-%03d.jpg").to_string_lossy().into(),
+        "-c:v".to_owned(),
+        drawn_by.clone(),
+    ]);
+
+    arguments.extend(quality_arguments(&drawn_by));
+
+    arguments.extend([
+        "-f".to_owned(),
+        "image2".to_owned(),
+        directory.join(THUMBNAIL_PATTERN).to_string_lossy().into(),
     ]);
 
     arguments
+}
+
+/// The ffmpeg arguments that gather the thumbnails into sheets.
+///
+/// The second pass, and a cheap one: it reads images a few hundred pixels wide
+/// and writes them back in a grid. Nothing here touches the device, and nothing
+/// needs to — the work that was worth accelerating happened in the first pass.
+#[must_use]
+pub fn tile_arguments(request: &TrickplayRequest, directory: &Path) -> Vec<String> {
+    vec![
+        "-hide_banner".to_owned(),
+        "-loglevel".to_owned(),
+        "error".to_owned(),
+        "-nostdin".to_owned(),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
+        "-i".to_owned(),
+        directory.join(THUMBNAIL_PATTERN).to_string_lossy().into(),
+        "-vf".to_owned(),
+        format!("tile={}x{}", request.columns, request.rows),
+        "-qscale:v".to_owned(),
+        JPEG_QUALITY.to_string(),
+        directory.join(SHEET_PATTERN).to_string_lossy().into(),
+    ]
+}
+
+/// Clears the single thumbnails away once they have been gathered into sheets.
+///
+/// A two hour film leaves seven hundred of them, and nothing reads them again.
+async fn forget_thumbnails(directory: &Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return;
+    };
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if entry.file_name().to_string_lossy().starts_with("frame-") {
+            let _ = tokio::fs::remove_file(entry.path()).await;
+        }
+    }
 }
 
 /// Builds the `WebVTT` index.
@@ -478,8 +608,7 @@ impl TrickplayRegistry {
     /// cannot be started, it writes no sheets, or the index cannot be saved.
     pub async fn generate(
         &self,
-        ffmpeg: &str,
-        device: &str,
+        tools: Tools<'_>,
         cache_root: &Path,
         request: &TrickplayRequest,
         source: SheetSource,
@@ -489,7 +618,7 @@ impl TrickplayRegistry {
         let gate = self.renders.gate(&id).await;
         let permit = gate.lock().await;
 
-        let outcome = generate(ffmpeg, device, cache_root, request, source, accel).await;
+        let outcome = generate(tools, cache_root, request, source, accel).await;
 
         drop(permit);
         self.renders.release(&id).await;
@@ -514,13 +643,17 @@ impl TrickplayRegistry {
 /// be started, it writes no sheets, the sheets it wrote will not open even in
 /// software, or the index cannot be saved.
 pub async fn generate(
-    ffmpeg: &str,
-    device: &str,
+    tools: Tools<'_>,
     cache_root: &Path,
     request: &TrickplayRequest,
     source: SheetSource,
     accel: Option<HardwareAccel>,
 ) -> Result<TrickplayIndex, TrickplayError> {
+    let Tools {
+        ffmpeg,
+        device,
+        capabilities,
+    } = tools;
     let tile_height = tile_height_for(request.tile_width, source.width, source.height);
     let count = thumbnail_count(source.duration_seconds, request.interval_seconds);
 
@@ -551,13 +684,14 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Directory)?;
 
-    let output = Command::new(ffmpeg)
-        .args(sheet_arguments(
+    let drawn_by = sheet_encoder(capabilities, accel);
+    let extracted = Command::new(ffmpeg)
+        .args(extract_arguments(
             request,
             tile_height,
-            accel,
-            device,
-            source.bit_depth,
+            source,
+            accel.map(|found| (found, device)),
+            &drawn_by,
             &directory,
         ))
         .kill_on_drop(true)
@@ -565,11 +699,26 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Spawn)?;
 
+    if !extracted.status.success() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&extracted.stderr).trim().to_owned(),
+        ));
+    }
+
+    let gathered = Command::new(ffmpeg)
+        .args(tile_arguments(request, &directory))
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
+
+    forget_thumbnails(&directory).await;
+
     let sheets = list_sheets(&directory).await;
 
     if sheets.is_empty() {
         return Err(TrickplayError::NoOutput(
-            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
+            String::from_utf8_lossy(&gathered.stderr).trim().to_owned(),
         ));
     }
 
@@ -627,9 +776,11 @@ pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_index, format_timestamp, sheet_arguments, thumbnail_count, tile_height_for,
-        HardwareAccel, TrickplayRegistry, TrickplayRequest,
+        build_index, extract_arguments, format_timestamp, sheet_encoder, thumbnail_count,
+        tile_arguments, tile_height_for, Capabilities, HardwareAccel, SheetEncoder, SheetSource,
+        TrickplayRegistry, TrickplayRequest, VideoRange,
     };
+    use crate::capability::VerifiedEncoder;
     use std::path::Path;
 
     #[tokio::test]
@@ -661,6 +812,38 @@ otherwise start a second one"
         );
     }
 
+    fn source_of(range: VideoRange) -> SheetSource {
+        SheetSource {
+            width: 1920,
+            height: 1080,
+            duration_seconds: 600.0,
+            bit_depth: Some(8),
+            range,
+        }
+    }
+
+    fn on_qsv() -> Vec<String> {
+        extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_qsv".to_owned()),
+            Path::new("/cache"),
+        )
+    }
+
+    fn in_software() -> Vec<String> {
+        extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            None,
+            &SheetEncoder::Software,
+            Path::new("/cache"),
+        )
+    }
+
     fn request() -> TrickplayRequest {
         TrickplayRequest {
             input_path: "/media/film.mkv".to_owned(),
@@ -679,14 +862,7 @@ otherwise start a second one"
     /// device and takes down whatever else on the machine was using it.
     #[test]
     fn does_not_ask_a_decoder_on_the_device_to_skip_frames() {
-        let arguments = sheet_arguments(
-            &request(),
-            180,
-            Some(HardwareAccel::Qsv),
-            "/dev/dri/renderD128",
-            Some(8),
-            Path::new("/cache/sheets"),
-        );
+        let arguments = on_qsv();
 
         assert!(
             !arguments.iter().any(|argument| argument == "-skip_frame"),
@@ -810,14 +986,7 @@ otherwise start a second one"
     /// sheet. Left to ffmpeg the graph will not configure at all on QSV.
     #[test]
     fn decodes_on_the_device_and_brings_the_frames_down() {
-        let arguments = sheet_arguments(
-            &request(),
-            180,
-            Some(HardwareAccel::Qsv),
-            "/dev/dri/renderD128",
-            Some(8),
-            Path::new("/cache"),
-        );
+        let arguments = on_qsv();
 
         let chain = arguments
             .windows(2)
@@ -832,15 +1001,17 @@ otherwise start a second one"
             .windows(2)
             .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
         assert_eq!(
-            chain,
-            "hwmap=derive_device=qsv,format=qsv,fps=1/10,vpp_qsv=w=320:h=180,hwdownload,format=nv12,tile=2x2",
-            "the scale happens on the device, so only the thumbnails come down"
+            chain, "fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180",
+            "nothing comes down: the device draws the thumbnails too"
         );
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-c:v", "mjpeg_qsv"]));
     }
 
     #[test]
     fn draws_entirely_in_software_on_a_machine_with_no_device() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
         assert!(!arguments
@@ -850,7 +1021,7 @@ otherwise start a second one"
 
     #[test]
     fn still_only_decodes_keyframes() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(arguments
             .windows(2)
@@ -859,22 +1030,177 @@ otherwise start a second one"
 
     #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
             .and_then(|index| arguments.get(index + 1))
             .expect("the filter chain is passed");
 
-        assert_eq!(filter, "fps=1/10,scale=320:180,tile=2x2");
+        assert_eq!(filter, "fps=1/10,scale=320:180");
     }
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));
+    }
+
+    /// Sheets were never converted at all, so every HDR film in a library had
+    /// washed-out thumbnails under a scrub bar while its clip was converted
+    /// properly a few pixels away.
+    #[test]
+    fn converts_an_hdr_film_before_drawing_its_thumbnails() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Hdr10),
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_vaapi".to_owned()),
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180"
+        );
+    }
+
+    /// The converter is VAAPI's and the decoder hands over VAAPI surfaces, so
+    /// it has to run before the frames are mapped onto QSV.
+    #[test]
+    fn converts_before_mapping_the_frames_onto_qsv() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Hdr10),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_qsv".to_owned()),
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.find("tonemap_vaapi") < chain.find("hwmap"), "{chain}");
+    }
+
+    /// NVIDIA has no JPEG encoder, so the frames have to come down for it.
+    #[test]
+    fn brings_the_frames_down_where_the_device_cannot_draw_jpeg() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            Some((HardwareAccel::Nvenc, "")),
+            &SheetEncoder::Software,
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.contains("hwdownload"), "{chain}");
+        assert!(arguments.windows(2).any(|pair| pair == ["-c:v", "mjpeg"]));
+    }
+
+    #[test]
+    fn writes_single_images_rather_than_a_grid_so_they_can_stay_on_the_device() {
+        let arguments = on_qsv();
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(!chain.contains("tile="), "{chain}");
+        assert!(arguments.windows(2).any(|pair| pair == ["-f", "image2"]));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("frame-%08d.jpg")));
+    }
+
+    #[test]
+    fn gathers_the_thumbnails_into_sheets_in_a_second_pass() {
+        let arguments = tile_arguments(&request(), Path::new("/cache"));
+
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("frame-%08d.jpg")));
+        assert!(arguments.windows(2).any(|pair| pair == ["-vf", "tile=2x2"]));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("sheet-%03d.jpg")));
+        assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+    }
+
+    /// A number written for one scale means something else on another, and the
+    /// flag it is written under is simply ignored.
+    #[test]
+    fn tells_each_encoder_how_hard_to_try_on_the_scale_it_reads() {
+        let flag_of = |arguments: &[String]| {
+            arguments
+                .iter()
+                .find(|argument| {
+                    argument.starts_with("-global_quality")
+                        || argument.starts_with("-qscale")
+                        || argument.starts_with("-qp_init")
+                })
+                .cloned()
+                .expect("a quality flag")
+        };
+
+        assert_eq!(flag_of(&on_qsv()), "-global_quality:v");
+        assert_eq!(flag_of(&in_software()), "-qscale:v");
+    }
+
+    /// A machine with both Intel paths verified could otherwise be handed VAAPI
+    /// surfaces and a QSV encoder, which is not a chain.
+    #[test]
+    fn only_draws_on_the_device_the_frames_are_already_on() {
+        let intel = Capabilities {
+            encoders: vec![
+                VerifiedEncoder {
+                    codec: "mjpeg".to_owned(),
+                    encoder: "mjpeg_vaapi".to_owned(),
+                    accel: HardwareAccel::Vaapi,
+                    verified: true,
+                },
+                VerifiedEncoder {
+                    codec: "mjpeg".to_owned(),
+                    encoder: "mjpeg_qsv".to_owned(),
+                    accel: HardwareAccel::Qsv,
+                    verified: true,
+                },
+            ],
+            ..Capabilities::default()
+        };
+
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Vaapi)),
+            SheetEncoder::Hardware("mjpeg_vaapi".to_owned())
+        );
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Qsv)),
+            SheetEncoder::Hardware("mjpeg_qsv".to_owned())
+        );
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Nvenc)),
+            SheetEncoder::Software,
+            "nvidia has no jpeg encoder, and vaapi's is not on its frames"
+        );
+        assert_eq!(sheet_encoder(&intel, None), SheetEncoder::Software);
     }
 
     #[test]

@@ -16,6 +16,15 @@ pub struct EncoderCandidate {
 /// Software encoders are listed last so that a probe result read in order
 /// prefers hardware, but each is still verified independently.
 ///
+/// The thumbnails a scrub bar is drawn from are JPEG, and four of these
+/// backends encode JPEG on the device. This build said otherwise for a long
+/// time — a comment claimed "JPEG is not something these encoders make" — which
+/// meant every thumbnail in a library was encoded by the processor and every
+/// frame had to come off the device to reach it. There is no `mjpeg_nvenc` or
+/// `mjpeg_amf`: NVIDIA and AMD have no JPEG encoder here, and Jellyfin's own
+/// map lists the same four and no more. Those two fall to software, as they do
+/// there.
+///
 /// On Intel, `VAAPI` is listed before `QSV`, and the order is the whole of what
 /// picks a backend for a machine that was left on automatic. Two reasons, and
 /// the first is in this file: `QSV` has no hardware tone mapper here, so an HDR
@@ -101,6 +110,26 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         accel: HardwareAccel::Rkmpp,
     },
     EncoderCandidate {
+        codec: "mjpeg",
+        encoder: "mjpeg_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "mjpeg",
+        encoder: "mjpeg_qsv",
+        accel: HardwareAccel::Qsv,
+    },
+    EncoderCandidate {
+        codec: "mjpeg",
+        encoder: "mjpeg_videotoolbox",
+        accel: HardwareAccel::VideoToolbox,
+    },
+    EncoderCandidate {
+        codec: "mjpeg",
+        encoder: "mjpeg_rkmpp",
+        accel: HardwareAccel::Rkmpp,
+    },
+    EncoderCandidate {
         codec: "h264",
         encoder: "libx264",
         accel: HardwareAccel::None,
@@ -118,6 +147,11 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
     EncoderCandidate {
         codec: "vp9",
         encoder: "libvpx-vp9",
+        accel: HardwareAccel::None,
+    },
+    EncoderCandidate {
+        codec: "mjpeg",
+        encoder: "mjpeg",
         accel: HardwareAccel::None,
     },
 ];
@@ -603,6 +637,33 @@ async fn verify_encoder(
     ))
 }
 
+impl Default for Capabilities {
+    /// A machine nothing has been asked of yet.
+    ///
+    /// Written out rather than derived for one field: an ffmpeg nobody has
+    /// checked is assumed supported, which is what [`assume_supported`] says
+    /// when the field is missing from a payload, and deriving this would say
+    /// the opposite.
+    fn default() -> Self {
+        Self {
+            ffmpeg_version: String::new(),
+            probe_version: 0,
+            ffmpeg_supported: assume_supported(),
+            encoders: Vec::new(),
+            hardware_accels: Vec::new(),
+            tone_mapping: ToneMapping::default(),
+            rejected: Vec::new(),
+            hardware_scalers: Vec::new(),
+            hardware_overlays: Vec::new(),
+            hardware_tone_maps: Vec::new(),
+            can_burn_text_subtitles: false,
+            can_burn_image_subtitles: false,
+            chains: Vec::new(),
+            concurrent_renders: 0,
+        }
+    }
+}
+
 /// What a payload with no such field meant, which is that nobody had checked.
 const fn assume_supported() -> bool {
     true
@@ -832,6 +893,36 @@ mod tests {
     /// The order is the whole of what picks a backend left on automatic, and on
     /// Intel both verify — so whichever is listed first is what every machine
     /// gets.
+    /// NVIDIA and AMD have no JPEG encoder here, and Jellyfin's map lists the
+    /// same four and no more.
+    #[test]
+    fn knows_which_backends_encode_jpeg_on_the_device() {
+        let drawn: Vec<&str> = ENCODER_CANDIDATES
+            .iter()
+            .filter(|candidate| {
+                candidate.codec == "mjpeg" && candidate.accel != HardwareAccel::None
+            })
+            .map(|candidate| candidate.encoder)
+            .collect();
+
+        assert_eq!(
+            drawn,
+            vec![
+                "mjpeg_vaapi",
+                "mjpeg_qsv",
+                "mjpeg_videotoolbox",
+                "mjpeg_rkmpp"
+            ]
+        );
+    }
+
+    #[test]
+    fn falls_to_the_processor_for_jpeg_where_the_device_cannot() {
+        assert!(ENCODER_CANDIDATES
+            .iter()
+            .any(|candidate| candidate.codec == "mjpeg" && candidate.accel == HardwareAccel::None));
+    }
+
     #[test]
     fn prefers_vaapi_to_qsv_on_intel() {
         let position = |name: &str| {

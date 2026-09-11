@@ -420,6 +420,10 @@ fn preview_filters(
             }
         }
 
+        if let Some(mapping) = pipeline.maps_onto_device {
+            filters.push(mapping.to_owned());
+        }
+
         filters.push(format!(
             "{scaler}=w={width}:h={height}{narrowing}",
             scaler = pipeline.scaler,
@@ -427,10 +431,6 @@ fn preview_filters(
                 .narrows_to_eight_bit
                 .map_or_else(String::new, |option| format!(":{option}")),
         ));
-
-        if let Some(mapping) = pipeline.maps_onto_device {
-            filters.insert(0, mapping.to_owned());
-        }
 
         return filters;
     }
