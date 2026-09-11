@@ -239,10 +239,16 @@ async fn refuses_a_file_outside_the_media_roots() {
 /// Counting invocations is the only way to tell "the work was shared" from
 /// "both runs happened to agree", and both are green under a weaker check.
 ///
-/// Only renders are counted, recognised by `-skip_frame`, which nothing else
-/// passes. The service also asks ffmpeg what it can do, and counting those
-/// would make this test fail whenever something unrelated to sharing work
+/// Only renders are counted, recognised by the sheets they write, which nothing
+/// else asks for. The service also asks ffmpeg what it can do, and counting
+/// those would make this test fail whenever something unrelated to sharing work
 /// started or stopped probing.
+///
+/// This watched for `-skip_frame` until that stopped being passed to a decoder
+/// on the device, whereupon it counted nothing on any machine with hardware and
+/// the test read as a render that never happened. What a render is asked to
+/// write is a better mark than how it is asked to decode, because the writing
+/// is the point and the decoding is a means.
 fn counting_ffmpeg(directory: &std::path::Path) -> (String, PathBuf) {
     use std::os::unix::fs::PermissionsExt;
 
@@ -254,7 +260,7 @@ fn counting_ffmpeg(directory: &std::path::Path) -> (String, PathBuf) {
     std::fs::write(
         &script,
         format!(
-            "#!/bin/sh\ncase \" $* \" in *\" -skip_frame \"*) echo run >> {tally} ;; esac\nexec {real} \"$@\"\n",
+            "#!/bin/sh\ncase \" $* \" in *sheet-%03d.jpg*) echo run >> {tally} ;; esac\nexec {real} \"$@\"\n",
             tally = tally.display(),
             real = ffmpeg(),
         ),
