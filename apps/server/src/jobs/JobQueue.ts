@@ -105,6 +105,7 @@ type JobQueue = {
   reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;
   listRunning: () => RunningJob[];
   cancel: (jobId: string) => Promise<boolean>;
+  cancelFor: (subject: string) => Promise<number>;
   isCancelled: (jobId: string) => boolean;
   setSchedule: (queueName: string, key: string, cron: string, timezone: string) => Promise<void>;
   clearSchedule: (queueName: string, key: string) => Promise<void>;

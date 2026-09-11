@@ -68,6 +68,7 @@ type LibraryService = ShowService & {
     run?: { id: string; of: number },
   ) => Promise<{ jobId: string; state: string } | null>;
   reset: (libraryId: string) => Promise<{ jobId: string; state: string } | null>;
+  remove: (libraryId: string) => Promise<boolean>;
   correctMatch: (
     mediaId: string,
     reference: { externalId: string; externalKind: 'tv' | 'movie' },

@@ -5,6 +5,9 @@ import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { TextField } from '@ValenceUI/TextField';
+import { Icon } from '@ValenceUI/Icon';
+import { Folder01Icon } from '@hugeicons/core-free-icons';
+import { FolderBrowser } from '@ValenceScreens/components/AdminArea/components/FolderBrowser/FolderBrowser';
 import { SELECTABLE_LIBRARY_KINDS } from '@ValenceContracts/schemas/Library';
 import { createLibrary } from '@ValenceClient/library/fetchLibrary';
 import { validateAddLibraryForm } from './validateAddLibraryForm';
@@ -22,6 +25,9 @@ const KIND_LABELS: Record<LibraryKind, string> = {
  * Adds a library: what to call it, and the folder on the machine running Valence that holds it. Does not
  * scan it — adding is quick and scanning is not, so the two are separate gestures.
  *
+ * The folder can be typed or found: browsing walks the server's own folders, since a path typed from
+ * memory on a machine somebody is not sitting at is the easiest thing here to get wrong.
+ *
  * @param isOpen - Whether the dialog is showing.
  * @param onClose - Called when it is dismissed.
  * @param onCreated - Called with the library once the server has made it.
@@ -32,12 +38,14 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
   const [path, setPath] = useState('');
   const [errors, setErrors] = useState<AddLibraryFormErrors>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isBrowsing, setIsBrowsing] = useState(false);
 
   const reset = () => {
     setName('');
     setKind('movies');
     setPath('');
     setErrors({});
+    setIsBrowsing(false);
   };
 
   const close = () => {
@@ -103,14 +111,47 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
           </div>
         </fieldset>
 
-        <TextField
-          label="Path"
-          value={path}
-          onValueChange={setPath}
-          placeholder="/media/movies"
-          description="A folder on the machine running Valence, not your browser."
-          {...(errors.path === undefined ? {} : { error: errors.path })}
-        />
+        <div className="flex flex-col gap-3">
+          <div className="flex items-end gap-2">
+            <div className="min-w-0 flex-1">
+              <TextField
+                label="Path"
+                value={path}
+                onValueChange={setPath}
+                placeholder="/media/movies"
+                description="A folder on the machine running Valence, not your browser."
+                {...(errors.path === undefined ? {} : { error: errors.path })}
+              />
+            </div>
+
+            {isBrowsing ? null : (
+              <Button
+                variant="secondary"
+                size="sm"
+                isPill
+                onClick={() => {
+                  setIsBrowsing(true);
+                }}
+              >
+                <Icon of={Folder01Icon} size={14} />
+                Browse
+              </Button>
+            )}
+          </div>
+
+          {isBrowsing ? (
+            <FolderBrowser
+              start={path}
+              onChoose={(chosen) => {
+                setPath(chosen);
+                setIsBrowsing(false);
+              }}
+              onCancel={() => {
+                setIsBrowsing(false);
+              }}
+            />
+          ) : null}
+        </div>
 
         {errors.submit === undefined ? null : (
           <p role="alert" className="text-sm text-danger">

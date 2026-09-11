@@ -224,3 +224,28 @@ describe('asking a library that is not held to do something', () => {
     await expect(empty.readArtworkUrl('nothing', 'poster')).resolves.toBeNull();
   });
 });
+
+describe('deleting a library', () => {
+  const films = {
+    id: LIBRARY_ID,
+    name: 'Films',
+    kind: 'movies' as const,
+    path: '/media/films',
+    itemCount: 0,
+    lastScannedAt: null,
+    defaultAudioLanguage: null,
+    filesAtOnce: null,
+  };
+
+  it('forgets the library and everything in it', async () => {
+    const service = createMemoryLibraryService({ libraries: [films], media: [film()] });
+
+    await expect(service.remove(LIBRARY_ID)).resolves.toBe(true);
+    await expect(service.list()).resolves.toEqual([]);
+    expect(service.state.media).toEqual([]);
+  });
+
+  it('says so when there is no such library', async () => {
+    await expect(createMemoryLibraryService().remove(LIBRARY_ID)).resolves.toBe(false);
+  });
+});

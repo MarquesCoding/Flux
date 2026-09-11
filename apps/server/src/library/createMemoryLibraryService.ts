@@ -315,6 +315,17 @@ const createMemoryLibraryService = (
     return Promise.resolve({ jobId: `reset-${libraryId}`, state: 'queued' });
   },
 
+  remove: (libraryId) => {
+    if (!state.libraries.some((entry) => entry.id === libraryId)) {
+      return Promise.resolve(false);
+    }
+
+    state.libraries = state.libraries.filter((entry) => entry.id !== libraryId);
+    state.media = state.media.filter((item) => item.libraryId !== libraryId);
+
+    return Promise.resolve(true);
+  },
+
   regeneratePreviews: (libraryId) =>
     Promise.resolve(
       state.libraries.some((entry) => entry.id === libraryId)

@@ -374,6 +374,27 @@ const resetLibrary = async (libraryId: string): Promise<ScanJob | null> => {
 };
 
 /**
+ * Deletes a library and everything Valence knows about what is in it, stopping any work running for
+ * it. The files it read are not touched.
+ *
+ * @param libraryId - The library to delete.
+ * @returns Whether it was there to delete.
+ */
+const deleteLibrary = async (libraryId: string): Promise<boolean> => {
+  const response = await fetch(`/api/libraries/${libraryId}`, { method: 'DELETE' });
+
+  if (response.status === 404) {
+    return false;
+  }
+
+  if (!response.ok) {
+    throw new Error('The library could not be deleted.');
+  }
+
+  return true;
+};
+
+/**
  * Asks for the preview clips to be rendered again against the library's current audio language.
  * Lighter than a rescan: nothing is re-probed, re-matched or re-sampled, only the clips redrawn.
  *
@@ -414,6 +435,7 @@ export {
   scanLibrary,
   readScanState,
   resetLibrary,
+  deleteLibrary,
   regenerateLibraryPreviews,
   correctMatch,
   forgetCorrection,

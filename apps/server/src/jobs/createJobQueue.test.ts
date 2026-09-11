@@ -10,8 +10,10 @@ type Schedule = { queueName: string; cron: string; data: JsonValue };
 const boss = vi.hoisted(() => {
   const workers = new Map<string, WorkHandler>();
   const scheduled: Schedule[] = [];
+  const queued: { kind: string; id: string; libraryId: string }[] = [];
+  const dropped: string[] = [];
 
-  return { workers, scheduled };
+  return { workers, scheduled, queued, dropped };
 });
 
 vi.mock('pg-boss', () => ({
@@ -42,6 +44,20 @@ vi.mock('pg-boss', () => ({
       return Promise.resolve('job');
     }
 
+    findJobs(kind: string, options: { data?: { libraryId?: string } }) {
+      return Promise.resolve(
+        boss.queued
+          .filter((job) => job.kind === kind && job.libraryId === options.data?.libraryId)
+          .map((job) => ({ id: job.id })),
+      );
+    }
+
+    cancel(kind: string, id: string) {
+      boss.dropped.push(`${kind}:${id}`);
+
+      return Promise.resolve();
+    }
+
     stop() {
       return Promise.resolve();
     }
@@ -65,6 +81,8 @@ const deliver = async (kind: string, jobs: DeliveredJob[]): Promise<void> => {
 beforeEach(() => {
   boss.workers.clear();
   boss.scheduled.length = 0;
+  boss.queued.length = 0;
+  boss.dropped.length = 0;
 });
 
 describe('createJobQueue', () => {
@@ -164,5 +182,34 @@ describe('createJobQueue', () => {
     await queue.setSchedule(CHECK_DISK, 'default', '*/15 * * * *', 'Europe/London');
 
     expect(boss.scheduled).toEqual([{ queueName: CHECK_DISK, cron: '*/15 * * * *', data: {} }]);
+  });
+
+  it('stops what a library has running, and drops what it has waiting', async () => {
+    let finish: () => void = () => {};
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: {
+        'library.scan': () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      },
+    });
+
+    await queue.startWorking();
+
+    const running = deliver('library.scan', [{ id: 'job-running', data: { libraryId: 'films' } }]);
+
+    boss.queued.push(
+      { kind: 'library.scan', id: 'job-waiting', libraryId: 'films' },
+      { kind: 'library.scan', id: 'job-elsewhere', libraryId: 'shows' },
+    );
+
+    await expect(queue.cancelFor('films')).resolves.toBe(2);
+    expect(queue.isCancelled('job-running')).toBe(true);
+    expect(boss.dropped).toEqual(['library.scan:job-waiting']);
+
+    finish();
+    await running;
   });
 });

@@ -11,6 +11,9 @@ import {
 } from '@hugeicons/core-free-icons';
 import { useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
+import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
+import { notify } from '@ValenceUI/notify';
+import { deleteLibrary } from '@ValenceClient/library/fetchLibrary';
 import { Badge } from '@ValenceUI/Badge';
 import { DataTable } from '@ValenceUI/DataTable';
 import { HoverCard } from '@ValenceUI/HoverCard';
@@ -45,6 +48,7 @@ import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
  * @param onRegeneratePreviews - Called with the library whose previews are to be remade.
  * @param onLibraryCreated - Called with a library that has just been added.
  * @param onLibraryUpdated - Called with a library whose settings have changed.
+ * @param onLibraryDeleted - Told a library has been deleted, so the list can let it go.
  */
 const LibrariesPanel = ({
   isUnreachable = false,
@@ -58,16 +62,25 @@ const LibrariesPanel = ({
   onRegeneratePreviews,
   onLibraryCreated,
   onLibraryUpdated,
+  onLibraryDeleted,
 }: LibrariesPanelProps) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isConfirmingReset, setIsConfirmingReset] = useState(false);
   const [settingsLibraryId, setSettingsLibraryId] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState<Library | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const isBusy = libraries.length === 0 || progress.size > 0;
 
-  const live = useRef({ progress, onScan, onRegeneratePreviews, setSettingsLibraryId });
+  const live = useRef({
+    progress,
+    onScan,
+    onRegeneratePreviews,
+    setSettingsLibraryId,
+    setDeleting,
+  });
 
-  live.current = { progress, onScan, onRegeneratePreviews, setSettingsLibraryId };
+  live.current = { progress, onScan, onRegeneratePreviews, setSettingsLibraryId, setDeleting };
 
   const columns = useMemo<DataTableColumn<Library>[]>(
     () => [
@@ -217,6 +230,19 @@ const LibrariesPanel = ({
                     },
                   ],
                 },
+                {
+                  items: [
+                    {
+                      id: 'delete',
+                      label: 'Delete library',
+                      icon: <Icon of={Delete02Icon} size={15} />,
+                      isDestructive: true,
+                      onChoose: () => {
+                        live.current.setDeleting(row.original);
+                      },
+                    },
+                  ],
+                },
               ]}
             />
           </span>
@@ -284,6 +310,39 @@ const LibrariesPanel = ({
       ) : (
         <DataTable label="Library roots" columns={columns} rows={libraries} />
       )}
+
+      <ConfirmDialog
+        title={deleting === null ? 'Delete this library?' : `Delete ${deleting.name}?`}
+        detail="Valence forgets this library and everything it knows about what is in it — watch progress, ratings, favourites, previews and thumbnails. The files on disk are not touched. Anything running for it now is stopped."
+        confirmLabel="Delete library"
+        isDestructive
+        isBusy={isDeleting}
+        isOpen={deleting !== null}
+        onClose={() => {
+          setDeleting(null);
+        }}
+        onConfirm={() => {
+          const doomed = deleting;
+
+          if (doomed === null) {
+            return;
+          }
+
+          setIsDeleting(true);
+
+          void deleteLibrary(doomed.id)
+            .then(() => {
+              onLibraryDeleted(doomed.id);
+            })
+            .catch(() => {
+              notify.failed(`${doomed.name} could not be deleted.`);
+            })
+            .finally(() => {
+              setIsDeleting(false);
+              setDeleting(null);
+            });
+        }}
+      />
 
       <AddLibraryDialog
         isOpen={isAdding}

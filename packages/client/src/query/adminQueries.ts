@@ -8,6 +8,7 @@ import {
   fetchJobSchedules,
 } from '@ValenceClient/admin/fetchAdmin';
 import { fetchAccounts } from '@ValenceClient/admin/fetchAccounts';
+import { fetchFolders } from '@ValenceClient/admin/fetchFolders';
 import {
   fetchRoles,
   fetchPermissionCatalogue,
@@ -200,7 +201,22 @@ const shares = () =>
     queryFn: () => fetchEverybodysShares(),
   });
 
+/**
+ * The folders inside one on the machine running Valence, for choosing where a library lives. Not
+ * retried: a folder that is not there is an answer, and asking three more times only delays it.
+ *
+ * @param path - The folder, or nothing for the places to start from.
+ * @returns The query.
+ */
+const folders = (path: string | null) =>
+  queryOptions({
+    queryKey: [...ADMIN, 'folders', path],
+    queryFn: () => fetchFolders(path),
+    retry: false,
+  });
+
 const adminQueries = {
+  folders,
   overview,
   scans,
   monitor,

@@ -3,6 +3,7 @@ import {
   fetchLibraries,
   createLibrary,
   updateLibrary,
+  deleteLibrary,
   fetchLibraryItems,
   scanLibrary,
   readScanState,
@@ -602,5 +603,29 @@ describe('rebuildArtefacts', () => {
     });
 
     await expect(rebuildArtefacts('media-1')).resolves.toBeNull();
+  });
+});
+
+describe('deleteLibrary', () => {
+  it('asks the server to delete the library', async () => {
+    fetchMock.mockResolvedValue({ ok: true, status: 204, json: () => Promise.resolve(null) });
+
+    await expect(deleteLibrary(library.id)).resolves.toBe(true);
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/libraries/${library.id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    );
+  });
+
+  it('says so when there was nothing to delete', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 404, json: () => Promise.resolve(null) });
+
+    await expect(deleteLibrary(library.id)).resolves.toBe(false);
+  });
+
+  it('throws where the server refuses', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 403, json: () => Promise.resolve(null) });
+
+    await expect(deleteLibrary(library.id)).rejects.toThrow('The library could not be deleted.');
   });
 });

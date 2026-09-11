@@ -1,3 +1,4 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -5,6 +6,9 @@ import { AddLibraryDialog } from './AddLibraryDialog';
 import type { Library } from '@ValenceContracts/schemas/Library';
 
 const createLibraryMock = vi.hoisted(() => vi.fn());
+const fetchFoldersMock = vi.hoisted(() => vi.fn());
+
+vi.mock('@ValenceClient/admin/fetchFolders', () => ({ fetchFolders: fetchFoldersMock }));
 
 vi.mock('@ValenceClient/library/fetchLibrary', () => ({
   createLibrary: createLibraryMock,
@@ -38,6 +42,39 @@ const fillForm = async (actor: ReturnType<typeof userEvent.setup>) => {
 };
 
 describe('AddLibraryDialog', () => {
+  it('fills the path with a folder found by browsing the server', async () => {
+    const actor = userEvent.setup();
+
+    fetchFoldersMock.mockImplementation((path: string | null) =>
+      Promise.resolve(
+        path === null
+          ? {
+              path: null,
+              parent: null,
+              folders: [{ name: '/media', path: '/media' }],
+              isTruncated: false,
+            }
+          : { path, parent: '/', folders: [], isTruncated: false },
+      ),
+    );
+
+    render(
+      <QueryClientProvider
+        client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+      >
+        <AddLibraryDialog isOpen onClose={vi.fn()} onCreated={vi.fn()} />
+      </QueryClientProvider>,
+    );
+
+    await actor.click(screen.getByRole('button', { name: 'Browse' }));
+    await actor.click(await screen.findByRole('button', { name: '/media' }));
+    await screen.findByText('No folders in here.');
+    await actor.click(screen.getByRole('button', { name: 'Use this folder' }));
+
+    expect(screen.getByLabelText('Path')).toHaveValue('/media');
+    expect(screen.queryByRole('button', { name: 'Use this folder' })).not.toBeInTheDocument();
+  });
+
   it('is hidden when closed', () => {
     render(<AddLibraryDialog isOpen={false} onClose={vi.fn()} onCreated={vi.fn()} />);
 

@@ -21,6 +21,7 @@ const roles = vi.hoisted(() => ({
 
 const webhooks = vi.hoisted(() => ({ fetchWebhooks: vi.fn(), fetchWebhookDeliveries: vi.fn() }));
 const fetchAccounts = vi.hoisted(() => vi.fn());
+const fetchFolders = vi.hoisted(() => vi.fn());
 const readWholeLibrary = vi.hoisted(() => vi.fn());
 const fetchEverybodysShares = vi.hoisted(() => vi.fn());
 
@@ -28,6 +29,7 @@ vi.mock('@ValenceClient/admin/fetchAdmin', () => admin);
 vi.mock('@ValenceClient/admin/fetchRoles', () => roles);
 vi.mock('@ValenceClient/admin/fetchWebhooks', () => webhooks);
 vi.mock('@ValenceClient/admin/fetchAccounts', () => ({ fetchAccounts }));
+vi.mock('@ValenceClient/admin/fetchFolders', () => ({ fetchFolders }));
 vi.mock('@ValenceClient/library/readWholeLibrary', () => ({ readWholeLibrary }));
 vi.mock('@ValenceClient/sharing/fetchShares', () => ({ fetchEverybodysShares }));
 
@@ -80,6 +82,16 @@ describe('adminQueries', () => {
     await expect(cache.fetchQuery(adminQueries.permissions())).resolves.toEqual([]);
     await expect(cache.fetchQuery(adminQueries.webhooks())).resolves.toEqual([]);
     await expect(cache.fetchQuery(adminQueries.shares())).resolves.toEqual([]);
+  });
+
+  it('reads the folders inside one, and does not ask again about one that is not there', async () => {
+    const listing = { path: '/media', parent: '/', folders: [], isTruncated: false };
+
+    fetchFolders.mockResolvedValue(listing);
+
+    await expect(aCache().fetchQuery(adminQueries.folders('/media'))).resolves.toEqual(listing);
+    expect(fetchFolders).toHaveBeenCalledWith('/media');
+    expect(adminQueries.folders(null).retry).toBe(false);
   });
 
   it('watches a scan on a timer, since a scan finishes without announcing it', () => {
