@@ -9,18 +9,16 @@
 //! every ten seconds is 720 images, and 720 requests to draw one hover is a
 //! worse trade than four sheet downloads.
 
-use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::Mutex;
 
 use crate::integrity::decodes;
+use crate::render_registry::RenderRegistry;
 use crate::transcode_plan::HardwareAccel;
 
 /// Written only when every sheet is on disk.
@@ -440,15 +438,7 @@ async fn unreadable_sheet(ffmpeg: &str, directory: &Path, sheets: &[String]) -> 
 /// finished.
 #[derive(Clone, Default)]
 pub struct TrickplayRegistry {
-    in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
-    /// What went wrong the last time this set was drawn, until somebody asks.
-    ///
-    /// A render that fails in the background has nobody to tell. Without this
-    /// the next ask finds no claim and no sheets, starts another render, and
-    /// fails the same way for ever — which is what a deadline was standing in
-    /// for. Kept until it is read so that the answer reaches whoever asks next,
-    /// and cleared by reading so a later ask is free to try again.
-    failures: Arc<Mutex<HashMap<String, String>>>,
+    renders: RenderRegistry,
 }
 
 impl TrickplayRegistry {
@@ -457,64 +447,24 @@ impl TrickplayRegistry {
         Self::default()
     }
 
-    async fn gate(&self, id: &str) -> Arc<Mutex<()>> {
-        let mut in_flight = self.in_flight.lock().await;
-
-        Arc::clone(in_flight.entry(id.to_owned()).or_default())
-    }
-
     /// Takes this set of thumbnails to render, unless something already has.
-    ///
-    /// A caller that means to render in the background has to say so before it
-    /// spawns anything, because the work sits in a queue before it begins and
-    /// nothing is marked as under way until it does. Without this, every ask
-    /// while a long render was still queued started another one: a 4K remux
-    /// asked about every five seconds gathered fourteen jobs for one film.
-    ///
-    /// The caller that is told yes owns the release, which [`Self::generate`]
-    /// does when it finishes.
-    ///
     pub async fn claim(&self, id: &str) -> bool {
-        let mut in_flight = self.in_flight.lock().await;
-
-        if in_flight.contains_key(id) {
-            return false;
-        }
-
-        in_flight.insert(id.to_owned(), Arc::default());
-
-        true
+        self.renders.claim(id).await
     }
 
     /// Remembers that a render failed, for whoever asks next.
     pub async fn remember_failure(&self, id: &str, reason: String) {
-        self.failures.lock().await.insert(id.to_owned(), reason);
+        self.renders.remember_failure(id, reason).await;
     }
 
     /// Takes what went wrong, where anything did, and forgets it.
     pub async fn take_failure(&self, id: &str) -> Option<String> {
-        self.failures.lock().await.remove(id)
+        self.renders.take_failure(id).await
     }
 
     /// Lets go of a claim whose work never ran.
-    ///
-    /// [`Self::generate`] releases its own claim when it finishes, so this is
-    /// only reached where the work was dropped before it began — a queue shut
-    /// down mid-render, say. Without it the claim would outlive the process's
-    /// interest in it and that film could never be asked for again.
     pub async fn give_up(&self, id: &str) {
-        self.release(id).await;
-    }
-
-    async fn release(&self, id: &str) {
-        let mut in_flight = self.in_flight.lock().await;
-
-        if in_flight
-            .get(id)
-            .is_some_and(|gate| Arc::strong_count(gate) <= 2)
-        {
-            in_flight.remove(id);
-        }
+        self.renders.give_up(id).await;
     }
 
     /// Renders the sheets and the index, or reuses what is already there.
@@ -536,13 +486,13 @@ impl TrickplayRegistry {
         accel: Option<HardwareAccel>,
     ) -> Result<TrickplayIndex, TrickplayError> {
         let id = request.id();
-        let gate = self.gate(&id).await;
+        let gate = self.renders.gate(&id).await;
         let permit = gate.lock().await;
 
         let outcome = generate(ffmpeg, device, cache_root, request, source, accel).await;
 
         drop(permit);
-        self.release(&id).await;
+        self.renders.release(&id).await;
 
         outcome
     }

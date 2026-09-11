@@ -25,6 +25,7 @@ pub mod playlist;
 pub mod preview;
 pub mod probe;
 pub mod queue;
+pub mod render_registry;
 pub mod router;
 pub mod session;
 pub mod session_sweep;
