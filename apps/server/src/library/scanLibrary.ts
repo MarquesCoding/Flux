@@ -7,7 +7,7 @@ import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import { groupExtras } from './groupExtras';
 import { groupVersions } from './groupVersions';
 import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
-import { describeFailure } from './describeFailure';
+import { describeFailure } from '@ValenceServer/logging/describeFailure';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';

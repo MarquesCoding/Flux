@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { describeFailure } from './describeFailure';
+import { describeFailure } from '@ValenceServer/logging/describeFailure';
 
 describe('describeFailure', () => {
   it('says what a plain failure said', () => {
@@ -38,7 +38,7 @@ describe('describeFailure', () => {
   });
 
   it('says something even for an error carrying no message', () => {
-    expect(describeFailure(new Error(''))).toBe('Probe failed.');
+    expect(describeFailure(new Error(''))).toBe('It failed, and said nothing about why.');
   });
   it('reads the attempts gathered in an AggregateError, which carries no message of its own', () => {
     const refused = new Error('connect ECONNREFUSED 127.0.0.1:8420');
@@ -61,6 +61,8 @@ describe('describeFailure', () => {
   });
 
   it('says something for a gathering error that gathered nothing', () => {
-    expect(describeFailure(new AggregateError([], ''))).toBe('Probe failed.');
+    expect(describeFailure(new AggregateError([], ''))).toBe(
+      'It failed, and said nothing about why.',
+    );
   });
 });

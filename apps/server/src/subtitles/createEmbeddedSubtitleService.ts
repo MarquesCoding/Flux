@@ -1,6 +1,7 @@
 import { describeLanguage, readLanguage } from '@ValenceCore/functions/describeTrack';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
+import { describeFailure } from '@ValenceServer/logging/describeFailure';
 
 const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 
@@ -132,7 +133,7 @@ const createEmbeddedSubtitleService = ({
           streamIndex: stream.index,
         });
       } catch (error) {
-        onProblem?.(found.path, error instanceof Error ? error.message : 'Unreadable.');
+        onProblem?.(found.path, error instanceof Error ? describeFailure(error) : 'Unreadable.');
 
         return null;
       }
