@@ -430,6 +430,10 @@ fn preview_filters(
                 .map_or_else(String::new, |option| format!(":{option}")),
         ));
 
+        if let Some(mapping) = pipeline.maps_onto_device {
+            filters.insert(0, mapping.to_owned());
+        }
+
         return filters;
     }
 
@@ -528,11 +532,11 @@ pub fn preview_arguments(
     if let Some((found, pipeline, device)) = onto_the_device {
         arguments.extend(found.filter_device_arguments(device));
 
-        if let Some(flag) = found.ffmpeg_flag() {
+        if found.ffmpeg_flag().is_some() {
             arguments.push("-hwaccel".to_owned());
-            arguments.push(flag.to_owned());
+            arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
-            arguments.push(pipeline.output_format.to_owned());
+            arguments.push(pipeline.decoded_format.to_owned());
         }
     }
 
@@ -956,13 +960,15 @@ mod tests {
                 .expect("a filter chain");
 
             assert!(
-                arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]),
+                arguments
+                    .windows(2)
+                    .any(|pair| pair == ["-hwaccel", "vaapi"]),
                 "{range:?}: {arguments:?}"
             );
             assert!(
                 arguments
                     .windows(2)
-                    .any(|pair| pair == ["-hwaccel_output_format", "qsv"]),
+                    .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]),
                 "{range:?}: {arguments:?}"
             );
             assert!(
@@ -1054,7 +1060,10 @@ mod tests {
 
         assert!(!chain.contains("hwdownload"), "{chain}");
         assert!(!chain.contains("hwupload"), "{chain}");
-        assert_eq!(chain, "vpp_qsv=w=1920:h=800:format=nv12");
+        assert_eq!(
+            chain,
+            "hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=1920:h=800:format=nv12"
+        );
     }
 
     #[test]
