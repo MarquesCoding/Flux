@@ -165,10 +165,14 @@ const readName = (name: string): { title: string | null; year: number | null } =
  * whole of the built-in metadata provider, and what a library falls back to when no catalogue is
  * configured or none recognises a file.
  *
- * A filename naming no year is weak evidence, and a folder deliberately called `Arrival (2016)` is
- * strong, so in that one case the folder is believed instead — which is what makes a folder-per-film
- * collection readable when whatever filled it left `movie.mkv` or `title00.mkv` inside. Edition
- * wording carried only by the filename is lost with it; identity is worth more than a suffix.
+ * A folder deliberately called `Arrival (2016)` is what somebody named, and a filename is whatever
+ * the tool that wrote it happened to use, so the folder is believed — the same way Jellyfin takes a
+ * folder-per-film layout as naming the film and reads the files inside as versions of it. That is
+ * what makes such a collection readable when whatever filled it left `movie.mkv` or `title00.mkv`
+ * inside, and what keeps a folder right when the file in it disagrees.
+ *
+ * Edition wording carried only by the filename is lost with it. Keeping it means holding several
+ * files as one film, which nothing here can do yet.
  *
  * A folder that names a season is never read this way. That is a programme, and the file's own name
  * is all there is to go on.
@@ -184,7 +188,7 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
   const fromFile = readName(stripExtension(fileName));
   const own = { title: fromFile.title ?? stripExtension(fileName), year: fromFile.year };
 
-  if (fromFile.year !== null || readSeasonDirectory(folderName) !== null) {
+  if (readSeasonDirectory(folderName) !== null) {
     return own;
   }
 

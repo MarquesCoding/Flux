@@ -112,10 +112,17 @@ describe('a film in a folder of its own', () => {
     });
   });
 
-  it('believes the file over the folder where the file named a year', () => {
-    expect(readTitleFromPath('/media/films/Arrival (2016)/Arrival (2017).mkv')).toEqual({
+  it('believes the folder over a file that disagrees with it, since somebody named the folder', () => {
+    expect(readTitleFromPath('/media/films/The Thing (1982)/The.Thing.2011.1080p.mkv')).toEqual({
+      title: 'The Thing',
+      year: 1982,
+    });
+  });
+
+  it('leaves a film loose among others alone, since that folder names no film', () => {
+    expect(readTitleFromPath('/media/films/Arrival (2016).mkv')).toEqual({
       title: 'Arrival',
-      year: 2017,
+      year: 2016,
     });
   });
 

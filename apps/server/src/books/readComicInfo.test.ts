@@ -8,22 +8,26 @@ describe('readComicInfo', () => {
         '<ComicInfo><Series>Rent-A-Girlfriend</Series><Writer>Reiji Miyajima</Writer><Summary>A student hires a girlfriend.</Summary></ComicInfo>',
       ),
     ).toEqual({
-      title: 'Rent-A-Girlfriend',
+      series: 'Rent-A-Girlfriend',
+      title: null,
       authors: ['Reiji Miyajima'],
       description: 'A student hires a girlfriend.',
     });
   });
 
-  it('prefers the series over one volume’s own name, which is what a shelf is arranged by', () => {
+  it('keeps a volume’s own name apart from the series holding it', () => {
     expect(
       readComicInfo(
         '<ComicInfo><Series>Berserk</Series><Title>The Black Swordsman</Title></ComicInfo>',
-      )?.title,
-    ).toBe('Berserk');
+      ),
+    ).toMatchObject({ series: 'Berserk', title: 'The Black Swordsman' });
   });
 
-  it('falls back to the title where no series is named', () => {
-    expect(readComicInfo('<ComicInfo><Title>Watchmen</Title></ComicInfo>')?.title).toBe('Watchmen');
+  it('reads a title with no series behind it', () => {
+    expect(readComicInfo('<ComicInfo><Title>Watchmen</Title></ComicInfo>')).toMatchObject({
+      series: null,
+      title: 'Watchmen',
+    });
   });
 
   it('separates writers who are credited together', () => {

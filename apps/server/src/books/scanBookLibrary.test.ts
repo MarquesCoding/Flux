@@ -74,6 +74,13 @@ beforeAll(async () => {
 
   await mkdir(join(where, 'A Series Folder'), { recursive: true });
   await aComic(join(where, 'A Series Folder', 'v01.cbz'), 2, DESCRIBED);
+
+  await mkdir(join(where, 'A Titled Volume'), { recursive: true });
+  await aComic(
+    join(where, 'A Titled Volume', 'v01.cbz'),
+    2,
+    '<ComicInfo><Title>The Black Swordsman</Title></ComicInfo>',
+  );
 });
 
 afterAll(async () => {
@@ -310,11 +317,17 @@ describe('a comic that describes itself', () => {
     expect(books[0]?.title).toBe('Rent-A-Girlfriend');
   });
 
-  it('does not rename a folder somebody arranged after one chapter inside it', async () => {
+  it('names a folder by the series its chapters claim, the way Komga and Kavita do', async () => {
     await scan([join(where, 'A Series Folder', 'v01.cbz')]);
 
-    expect(books[0]?.title).toBe('A Series Folder');
+    expect(books[0]?.title).toBe('Rent-A-Girlfriend');
     expect(books[0]?.authors).toEqual(['Reiji Miyajima']);
+  });
+
+  it('does not rename a folder after one volume’s own title, which is not the series', async () => {
+    await scan([join(where, 'A Titled Volume', 'v01.cbz')]);
+
+    expect(books[0]?.title).toBe('A Titled Volume');
   });
 
   it('leaves a book that says nothing about itself with nothing made up for it', async () => {

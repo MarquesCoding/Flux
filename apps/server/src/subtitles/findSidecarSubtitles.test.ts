@@ -183,36 +183,16 @@ describe('isBitmapSubtitle', () => {
   });
 });
 
-describe('a folder holding one film and nothing else', () => {
-  const alone = [file(VIDEO), file('English.srt')];
+describe('a subtitle that does not repeat the video name', () => {
+  it('is left alone even where it is the only thing it could belong to', () => {
+    const alone = [file(VIDEO), file('English.srt')];
 
-  it('takes a subtitle that does not repeat the film name', () => {
-    expect(findSidecarSubtitles(VIDEO, alone)).toHaveLength(1);
+    expect(findSidecarSubtitles(VIDEO, alone)).toHaveLength(0);
   });
 
-  it('reads the language out of the whole name', () => {
-    expect(findSidecarSubtitles(VIDEO, alone)[0]?.language).toBe('en');
-  });
-
-  it('is not fooled by a second film into taking either one loosely', () => {
-    const two = [file(VIDEO), file('Parasite (2019).mkv'), file('English.srt')];
-
-    expect(findSidecarSubtitles(VIDEO, two)).toHaveLength(0);
-  });
-});
-
-describe('a season folder with one episode left in it', () => {
-  const EPISODE = 'Some.Show.S01E05.mkv';
-
-  it('refuses a subtitle belonging to an episode that has gone', () => {
-    const leftovers = [file(EPISODE), file('Some.Show.S01E03.en.srt')];
-
-    expect(findSidecarSubtitles(EPISODE, leftovers)).toHaveLength(0);
-  });
-
-  it('still takes the one that names the episode itself', () => {
-    const itsOwn = [file(EPISODE), file('Some.Show.S01E05.en.srt')];
-
-    expect(findSidecarSubtitles(EPISODE, itsOwn)).toHaveLength(1);
+  it('is taken once it sits in a subtitle folder, where that is the convention', () => {
+    expect(
+      findSidecarSubtitles(VIDEO, [file('English.srt')], { fromSubtitleDirectory: true }),
+    ).toHaveLength(1);
   });
 });

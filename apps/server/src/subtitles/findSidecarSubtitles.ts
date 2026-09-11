@@ -1,6 +1,4 @@
 import { describeLanguage, readLanguage } from '@ValenceCore/functions/describeTrack';
-import { isMediaFile } from '@ValenceServer/library/readTitleFromPath';
-import { readEpisodeFromPath } from '@ValenceServer/library/readEpisodeFromPath';
 
 const SUBTITLE_EXTENSIONS = new Set(['srt', 'vtt', 'ass', 'ssa']);
 
@@ -114,28 +112,13 @@ const isBitmapSubtitle = (name: string): boolean =>
   BITMAP_SUBTITLE_EXTENSIONS.has(splitName(name).extension);
 
 /**
- * Decides whether a folder holds one film and nothing to confuse it with, which is what makes it
- * safe to take a subtitle that does not repeat the film's name.
- *
- * A season folder is refused however few episodes are left in it. Downloaders leave subtitles behind
- * for episodes that have gone, and attaching those to the one episode still there would be
- * confidently wrong — worse than offering nothing.
- *
- * @param videoName - The video being played.
- * @param files - Everything in the folder holding it.
- * @returns Whether the folder is one film's own.
- */
-const standsAlone = (videoName: string, files: SidecarFile[]): boolean =>
-  readEpisodeFromPath(videoName).episodeNumber === null &&
-  files.filter((file) => isMediaFile(file.name)).length === 1;
-
-/**
  * Picks the subtitle files belonging to one video from the files beside it, matching on the video's
  * own name so that a folder holding a season does not offer every episode's subtitles for each.
  *
- * Where the folder holds one film and nothing else, that matching is dropped: a subtitle named for
- * its language rather than for the film — what Bazarr and MakeMKV write — belongs to the only thing
- * it could belong to.
+ * A file that does not repeat the video's name is left alone even where it is the only thing it
+ * could belong to. This is the convention every tool that writes subtitles already targets, and
+ * loosening it buys one folder shape at the cost of attaching the wrong track wherever a name was
+ * left behind by something that has gone.
  *
  * @param videoName - The video being played.
  * @param files - The files found beside it and in any subtitle directories.
@@ -150,8 +133,6 @@ const findSidecarSubtitles = (
 ): SidecarSubtitle[] => {
   const { stem } = splitName(videoName);
   const found: SidecarSubtitle[] = [];
-  const takesAnything = options.fromSubtitleDirectory === true || standsAlone(videoName, files);
-
   for (const file of files) {
     const { stem: fileStem, extension } = splitName(file.name);
 
@@ -161,7 +142,7 @@ const findSidecarSubtitles = (
 
     const belongsByName = fileStem === stem || fileStem.startsWith(`${stem}.`);
 
-    if (!belongsByName && !takesAnything) {
+    if (!belongsByName && options.fromSubtitleDirectory !== true) {
       continue;
     }
 

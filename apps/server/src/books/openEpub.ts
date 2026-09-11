@@ -82,7 +82,7 @@ const openEpub = async (
   const about =
     read.title === null && read.authors.length === 0 && read.description === null
       ? null
-      : { title: read.title, authors: read.authors, description: read.description };
+      : { series: null, title: read.title, authors: read.authors, description: read.description };
 
   return {
     layout: 'reflow',

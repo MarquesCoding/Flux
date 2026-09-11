@@ -68,12 +68,13 @@ Valence ships one metadata provider, and it reads the filename. `Arrival (2016).
 becomes _Arrival_, 2016. Scene-release noise — resolutions, codecs, group tags —
 is stripped.
 
-Where the filename names no year and the folder holding it does, the folder is
-believed instead, so `Arrival (2016)/movie.mkv` is still _Arrival_, 2016. A
-filename with no year is weak evidence and a folder somebody deliberately named
-is strong. A title the filename did give is never overruled, and a folder that
-names a year and nothing else — filing by release year — is not mistaken for a
-title.
+A film in a folder of its own is named by that folder, the way Jellyfin reads
+the same layout, so `Arrival (2016)/movie.mkv` is still _Arrival_, 2016 — and a
+folder stays right when the file inside it disagrees. A folder naming a year and
+nothing else is not a title, so filing films by release year still works.
+
+An edition named only in the filename — `Arrival (2016) - Extended Cut.mkv` — is
+not kept yet. Holding several files as one film is a separate piece of work.
 
 Set `CATALOGUE_API_KEY` and a richer provider takes over: overview, tagline,
 genres, cast, rating, poster and backdrop, searched by title and year — or by

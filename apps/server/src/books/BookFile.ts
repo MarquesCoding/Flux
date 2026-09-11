@@ -9,6 +9,7 @@ type SpineEntry = {
 };
 
 type BookAbout = {
+  series: string | null;
   title: string | null;
   authors: string[];
   description: string | null;

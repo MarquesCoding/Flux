@@ -27,8 +27,9 @@ const textIn = (pattern: RegExp, xml: string): string | null => {
 /**
  * Reads what a comic says about itself, out of the `ComicInfo.xml` its packer left inside it.
  *
- * The series is preferred over the title where both are given: a volume's `Title` is that volume's
- * own name where it has one, and the shelf is arranged by what the series is called.
+ * The series and the title are kept apart rather than folded together. `Series` names the whole
+ * thing and `Title` names one volume of it, so a shelf is arranged by the first and would be made
+ * nonsense of by the second.
  *
  * Only the writer is taken as an author. A comic credits a penciller, an inker, a colourist and a
  * letterer as well, and listing all of them under one heading would say less than naming nobody.
@@ -40,7 +41,8 @@ const readComicInfo = (xml: string): BookAbout | null => {
   const writers = textIn(WRITER, xml);
 
   const about = {
-    title: textIn(SERIES, xml) ?? textIn(TITLE, xml),
+    series: textIn(SERIES, xml),
+    title: textIn(TITLE, xml),
     authors:
       writers === null
         ? []
@@ -51,7 +53,10 @@ const readComicInfo = (xml: string): BookAbout | null => {
     description: textIn(SUMMARY, xml),
   };
 
-  return about.title === null && about.authors.length === 0 && about.description === null
+  return about.series === null &&
+    about.title === null &&
+    about.authors.length === 0 &&
+    about.description === null
     ? null
     : about;
 };

@@ -101,9 +101,9 @@ const bookPathFor = (root: string, path: string): string => {
  * that happens, and where it does the rest is reported as a problem rather than quietly mixed.
  *
  * What a file states about itself is preferred over what its path suggested, the same way a
- * catalogue is preferred over a filename for a film — except for the title of a book that lives in a
- * folder, where the folder was named by whoever arranged the shelf and one chapter's own title is
- * not the series it belongs to.
+ * catalogue is preferred over a filename for a film, and the same way Komga and Kavita both read a
+ * comic. A series named inside the file wins outright; a volume's own title is taken only where the
+ * file is a book in itself, since one chapter's title is not the name of what holds it.
  *
  * @param options - The library, where it is, what to read it with, and where to put it.
  * @returns What the scan changed.
@@ -178,11 +178,12 @@ const scanBookLibrary = async (options: ScanBookLibraryOptions): Promise<ScanRes
       const named = readBookTitleFromPath(basename(bookPath));
       const about = opened.about ?? null;
       const standsAlone = bookPath === file.path;
+      const stated = about?.series ?? (standsAlone ? about?.title : null) ?? null;
 
       const bookId = await store.upsertBook({
         libraryId,
         path: bookPath,
-        title: (standsAlone ? about?.title : null) ?? named.title,
+        title: stated ?? named.title,
         layout: opened.layout,
         direction: directionFor(opened.layout),
         year: named.year,

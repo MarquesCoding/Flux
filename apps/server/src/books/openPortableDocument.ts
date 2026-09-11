@@ -68,7 +68,14 @@ const openPortableDocument = async (path: string): Promise<FixedBook | null> => 
     pageCount,
     ...(title === null && author === null
       ? {}
-      : { about: { title, authors: author === null ? [] : [author], description: null } }),
+      : {
+          about: {
+            series: null,
+            title,
+            authors: author === null ? [] : [author],
+            description: null,
+          },
+        }),
     readPage: (at) => {
       if (at < 0 || at >= pageCount) {
         return Promise.resolve(null);

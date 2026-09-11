@@ -118,12 +118,11 @@ external subtitles. `Arrival (2016).en.srt`, `Arrival (2016).fr.forced.srt` and
 a `Subs/English.srt` are all found, with the language, forced and SDH flags
 read from the filename.
 
-A folder holding one film and nothing else is read more loosely, because there
-is nothing to confuse it with: a bare `English.srt` beside the film belongs to
-it. A folder holding a programme is not, however few episodes are left in it —
-a downloader leaving subtitles behind for episodes that have gone must not hang
-them on the one still there. A `Subs` folder holding a folder per video is
-looked inside, into the one named for what is playing.
+A file has to repeat the video's name to be found beside it, which is the
+convention every tool that writes subtitles already targets. A bare
+`English.srt` is picked up only from a `Subs` or `Subtitles` folder, where
+that is how it is done — and such a folder holding a folder per video is looked
+inside, into the one named for what is playing.
 
 Where a language code also means something else, what the rest of the name says
 decides: `film.hi.srt` is Hindi, and `film.en.hi.srt` is English for the hard of
