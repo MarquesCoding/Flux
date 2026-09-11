@@ -351,6 +351,13 @@
       "when": 1787581255757,
       "tag": "0049_jwks_alg_and_crv",
       "breakpoints": true
+    },
+    {
+      "idx": 50,
+      "version": "7",
+      "when": 1789088680925,
+      "tag": "0050_media_item_extras",
+      "breakpoints": true
     }
   ]
 }

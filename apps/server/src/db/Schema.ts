@@ -13,6 +13,7 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
+import type { AnyPgColumn } from 'drizzle-orm/pg-core';
 
 const user = pgTable('user', {
   id: text('id').primaryKey(),
@@ -491,6 +492,10 @@ const mediaItem = pgTable(
     audioStreams: jsonb('audioStreams').notNull(),
     subtitleStreams: jsonb('subtitleStreams').notNull(),
     chapters: jsonb('chapters'),
+    parentId: text('parentId').references((): AnyPgColumn => mediaItem.id, {
+      onDelete: 'cascade',
+    }),
+    extraKind: text('extraKind'),
     seriesId: text('seriesId').references(() => series.id, { onDelete: 'set null' }),
     seriesTitle: text('seriesTitle'),
     seasonNumber: integer('seasonNumber'),
@@ -515,6 +520,7 @@ const mediaItem = pgTable(
     index('media_item_cast_idx').using('gin', table.castMembers),
     index('media_item_series_idx').on(table.seriesTitle, table.seasonNumber),
     index('media_item_series_id_idx').on(table.seriesId, table.seasonNumber),
+    index('media_item_parent_idx').on(table.parentId),
   ],
 );
 

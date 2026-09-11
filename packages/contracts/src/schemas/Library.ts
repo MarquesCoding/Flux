@@ -2,6 +2,34 @@ import { z } from 'zod';
 import { MediaItemSchema } from './MediaItem';
 const LIBRARY_KINDS = ['movies', 'shows', 'music', 'books'] as const;
 
+const EXTRA_KINDS = [
+  'trailer',
+  'behindTheScenes',
+  'deletedScene',
+  'featurette',
+  'interview',
+  'scene',
+  'clip',
+  'short',
+  'sample',
+  'other',
+] as const;
+
+const ExtraKindSchema = z.enum(EXTRA_KINDS);
+
+const EXTRA_KIND_LABELS: Record<z.infer<typeof ExtraKindSchema>, string> = {
+  trailer: 'Trailer',
+  behindTheScenes: 'Behind the scenes',
+  deletedScene: 'Deleted scene',
+  featurette: 'Featurette',
+  interview: 'Interview',
+  scene: 'Scene',
+  clip: 'Clip',
+  short: 'Short',
+  sample: 'Sample',
+  other: 'Extra',
+};
+
 const SELECTABLE_LIBRARY_KINDS = ['movies', 'shows', 'books'] as const;
 
 const LibraryKindSchema = z.enum(LIBRARY_KINDS);
@@ -46,6 +74,8 @@ const MediaSummarySchema = z.object({
   hasLogo: z.boolean().default(false),
   posterUrl: z.string().url().nullish(),
   seriesId: z.string().nullable().default(null),
+  parentId: z.string().nullish(),
+  extraKind: ExtraKindSchema.nullish(),
   rating: z.number().nullish(),
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
@@ -80,6 +110,9 @@ const MediaDetailSchema = MediaItemSchema.extend({
   libraryId: z.string().uuid(),
   addedAt: z.string().datetime(),
   metadata: MediaMetadataSchema,
+  parentId: z.string().nullish(),
+  extraKind: ExtraKindSchema.nullish(),
+  extras: z.array(MediaSummarySchema).optional(),
 });
 
 const MediaPageSchema = z.object({
@@ -107,6 +140,9 @@ export type ScanResult = z.infer<typeof ScanResultSchema>;
 export {
   LIBRARY_KINDS,
   SELECTABLE_LIBRARY_KINDS,
+  EXTRA_KINDS,
+  EXTRA_KIND_LABELS,
+  ExtraKindSchema,
   LibraryKindSchema,
   LibrarySchema,
   UpdateLibraryRequestSchema,
