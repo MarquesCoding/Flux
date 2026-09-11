@@ -92,6 +92,7 @@ const harness = (options: {
   overrides?: { path: string; externalId: string; externalKind: 'tv' | 'movie' }[];
   defaultAudioLanguage?: string | null;
   atOnce?: number;
+  capabilitiesImpl?: () => Promise<never>;
   onAdded?: (item: ScannedItem) => void;
   linkExtras?: (libraryId: string, links: { path: string; parentPath: string }[]) => Promise<void>;
 }) => {
@@ -143,20 +144,22 @@ const harness = (options: {
     readMonitor: () => Promise.resolve({}),
     openMonitorStream: () => Promise.resolve(null),
     capabilities: () =>
-      Promise.resolve({
-        ffmpegVersion: 'test',
-        probeVersion: 1,
-        ffmpegSupported: true,
-        encoders: [],
-        hardwareAccels: [],
-        hardwareScalers: [],
-        hardwareOverlays: [],
-        hardwareToneMaps: [],
-        rejected: [],
-        toneMapping: 'unavailable' as const,
-        canBurnTextSubtitles: true,
-        canBurnImageSubtitles: true,
-      }),
+      options.capabilitiesImpl === undefined
+        ? Promise.resolve({
+            ffmpegVersion: 'test',
+            probeVersion: 1,
+            ffmpegSupported: true,
+            encoders: [],
+            hardwareAccels: [],
+            hardwareScalers: [],
+            hardwareOverlays: [],
+            hardwareToneMaps: [],
+            rejected: [],
+            toneMapping: 'unavailable' as const,
+            canBurnTextSubtitles: true,
+            canBurnImageSubtitles: true,
+          })
+        : options.capabilitiesImpl(),
   };
 
   const run = () =>
@@ -1014,5 +1017,70 @@ describe('how many files a scan reads at once', () => {
     }).run();
 
     expect(seen.at(-1)).toBe(12);
+  });
+});
+
+describe('a media service that goes away mid-scan', () => {
+  const many = () => Array.from({ length: 60 }, (_, at) => file(`/media/films/Film ${at}.mkv`));
+
+  it('gives up rather than reporting the whole library as unreadable', async () => {
+    const { run, rows } = harness({
+      found: many(),
+      probeImpl: () => Promise.reject(new Error('fetch failed')),
+      capabilitiesImpl: () => Promise.reject(new Error('fetch failed')),
+    });
+
+    const result = await run();
+
+    expect(result.failed).toBeLessThan(20);
+    expect(rows).toHaveLength(0);
+  });
+
+  it('says the service stopped answering, rather than blaming the files', async () => {
+    const problems: string[] = [];
+
+    await harness({
+      found: many(),
+      probeImpl: () => Promise.reject(new Error('fetch failed')),
+      capabilitiesImpl: () => Promise.reject(new Error('fetch failed')),
+      onProblem: (_path, reason) => problems.push(reason),
+    }).run();
+
+    expect(problems.some((reason) => reason.includes('media service stopped answering'))).toBe(
+      true,
+    );
+  });
+
+  it('does not count a scan that gave up as having removed anything', async () => {
+    const { run } = harness({
+      found: many(),
+      existing: [stored('/media/films/Gone.mkv')],
+      probeImpl: () => Promise.reject(new Error('fetch failed')),
+      capabilitiesImpl: () => Promise.reject(new Error('fetch failed')),
+    });
+
+    expect((await run()).removed).toBe(0);
+  });
+
+  it('keeps going where the service is fine and the file simply is not', async () => {
+    const { run } = harness({
+      found: many(),
+      probeImpl: () => Promise.reject(new Error('Invalid data found')),
+    });
+
+    expect((await run()).failed).toBe(60);
+  });
+
+  it('says what actually went wrong, not only that something did', async () => {
+    const problems: string[] = [];
+
+    await harness({
+      found: [file('/media/films/One.mkv')],
+      probeImpl: () =>
+        Promise.reject(new Error('fetch failed', { cause: new Error('read ECONNRESET') })),
+      onProblem: (_path, reason) => problems.push(reason),
+    }).run();
+
+    expect(problems[0]).toBe('fetch failed: read ECONNRESET');
   });
 });

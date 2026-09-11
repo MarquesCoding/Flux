@@ -7,6 +7,7 @@ import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import { groupExtras } from './groupExtras';
 import { groupVersions } from './groupVersions';
 import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
+import { describeFailure } from './describeFailure';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
@@ -97,6 +98,28 @@ type ScanLibraryOptions = {
 };
 
 type ScanPhase = 'probing';
+
+const GIVE_UP_AFTER = 8;
+
+/**
+ * Asks whether the media service is still there.
+ *
+ * Used only once a run of files has failed in a row. One file that will not probe is a bad file;
+ * every file failing is the service having gone, and the difference decides whether a scan carries
+ * on or stops.
+ *
+ * @param transcoder - The media service to ask.
+ * @returns Whether it answered.
+ */
+const isReachable = async (transcoder: Transcoder): Promise<boolean> => {
+  try {
+    await transcoder.capabilities();
+
+    return true;
+  } catch {
+    return false;
+  }
+};
 
 /**
  * Decides which of a library's files actually need probing: the ones that are new, and the ones
@@ -210,12 +233,14 @@ const scanLibrary = async ({
   let updated = 0;
   let failed = 0;
   let probed = 0;
+  let failedInARow = 0;
+  let stopping = false;
 
   onProgress?.('probing', probed, changed.length);
 
-  await mapWithLimit(changed, atOnce, async (file) => {
-    if (isCancelled?.() === true) {
-      return;
+  const outcomes = await mapWithLimit(changed, atOnce, async (file): Promise<boolean> => {
+    if (isCancelled?.() === true || stopping) {
+      return false;
     }
 
     try {
@@ -225,7 +250,7 @@ const scanLibrary = async ({
         failed += 1;
         onProblem?.(file.path, 'No video stream.');
 
-        return;
+        return false;
       }
 
       const read = readEpisodeFromPath(file.path);
@@ -265,7 +290,7 @@ const scanLibrary = async ({
         failed += 1;
         onProblem?.(file.path, 'No metadata provider could name this file.');
 
-        return;
+        return false;
       }
 
       if (knownExternalId !== null && (metadata.externalId ?? null) === null) {
@@ -275,10 +300,12 @@ const scanLibrary = async ({
           'The catalogue did not answer. Keeping what was already known about this file.',
         );
 
-        return;
+        return false;
       }
 
       const { title, year } = metadata;
+
+      failedInARow = 0;
 
       const itemId = await store.upsert({
         libraryId,
@@ -319,18 +346,38 @@ const scanLibrary = async ({
       }
     } catch (error) {
       failed += 1;
-      onProblem?.(file.path, error instanceof Error ? error.message : 'Probe failed.');
+      failedInARow += 1;
+      onProblem?.(file.path, error instanceof Error ? describeFailure(error) : 'Probe failed.');
+
+      if (failedInARow >= GIVE_UP_AFTER && !(await isReachable(transcoder))) {
+        stopping = true;
+
+        return true;
+      }
     } finally {
       probed += 1;
       onProgress?.('probing', probed, changed.length);
     }
+
+    return false;
   });
+
+  const hasGone = outcomes.some((gaveUp) => gaveUp);
 
   if (hasVanished) {
     onProblem?.(
       root,
       'Nothing was found where this library reads from, so what it already held has been left alone. Check the folder is still there — a network share that is not mounted looks exactly like an empty one.',
     );
+  }
+
+  if (hasGone) {
+    onProblem?.(
+      root,
+      'The media service stopped answering, so this scan gave up rather than reporting the rest of the library as unreadable. Nothing was deleted, and the files it never reached are still waiting to be read.',
+    );
+
+    return { added, updated, removed: 0, failed };
   }
 
   if (isCancelled?.() === true) {
