@@ -14,6 +14,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     ffmpegSupported: true,
     hardwareAccels: [],
     rejectedEncoders: [],
+    chains: [],
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
   artwork: null,
@@ -133,6 +134,7 @@ describe('collectConcerns', () => {
             ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
+            chains: [],
           },
         }),
       });
@@ -152,6 +154,7 @@ describe('collectConcerns', () => {
             ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
+            chains: [],
           },
         }),
       });
@@ -170,6 +173,7 @@ describe('collectConcerns', () => {
             ffmpegSupported: true,
             hardwareAccels: [],
             rejectedEncoders: [],
+            chains: [],
           },
         }),
       });
@@ -218,6 +222,7 @@ describe('collectConcerns', () => {
           ffmpegSupported: false,
           hardwareAccels: [],
           rejectedEncoders: [],
+          chains: [],
         },
       });
 
@@ -266,6 +271,7 @@ describe('collectConcerns', () => {
             ffmpegSupported: false,
             hardwareAccels: [],
             rejectedEncoders: [],
+            chains: [],
           },
         }),
       });

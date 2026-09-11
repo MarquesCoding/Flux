@@ -13,6 +13,7 @@ import { describeSince } from '@ValenceScreens/components/AdminArea/describeSinc
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@ValenceScreens/components/AdminArea/describeAcceleration';
+import { describeChains } from '@ValenceScreens/components/AdminArea/describeChains';
 import { memoryEnvelope } from '@ValenceScreens/components/AdminArea/memoryEnvelope';
 import { measureStorage } from '@ValenceClient/admin/fetchAdmin';
 import type { StorageCount } from '@ValenceClient/admin/fetchAdmin';
@@ -116,6 +117,8 @@ const OverviewPanel = ({
       ? null
       : describeAcceleration(overview.settings.hardwareAccel, overview.transcoder.hardwareAccels);
 
+  const chains = overview === null ? null : describeChains(overview.transcoder.chains);
+
   const now = Date.now();
   const watching = sessions.filter((session) => session.playback !== null);
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
@@ -161,6 +164,18 @@ const OverviewPanel = ({
               <dt className="shrink-0 text-text-muted">Hardware encoding</dt>
               <dd className="min-w-0 truncate text-text">{acceleration?.label ?? '—'}</dd>
             </div>
+
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-text-muted">Hardware chains</dt>
+              <dd className="min-w-0 truncate text-text">{chains?.label ?? '—'}</dd>
+            </div>
+
+            {(chains?.refusals ?? []).map((refusal) => (
+              <div key={refusal.id} className="flex flex-col gap-1">
+                <dt className="text-text-muted">{refusal.what}</dt>
+                <dd className="text-xs text-text-muted">{refusal.reason}</dd>
+              </div>
+            ))}
 
             {(overview?.transcoder.rejectedEncoders ?? []).map((rejected) => (
               <div key={rejected.encoder} className="flex flex-col gap-1">

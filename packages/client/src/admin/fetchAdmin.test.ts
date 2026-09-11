@@ -57,6 +57,16 @@ const OVERVIEW = {
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    chains: [
+      { accel: 'videotoolbox', shape: 'preview', bitDepth: 8, works: true, reason: null },
+      {
+        accel: 'videotoolbox',
+        shape: 'sheet',
+        bitDepth: 10,
+        works: false,
+        reason: 'Impossible to convert between the formats',
+      },
+    ],
   },
   library: { itemCount: 15, libraryCount: 2, bytes: 0 },
   artwork: null,

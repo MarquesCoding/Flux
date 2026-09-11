@@ -30,6 +30,17 @@ const AdminOverviewSchema = z.object({
     ffmpegSupported: z.boolean().default(true),
     hardwareAccels: z.array(z.string()),
     rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })).default([]),
+    chains: z
+      .array(
+        z.object({
+          accel: z.string(),
+          shape: z.enum(['preview', 'sheet', 'transcode']),
+          bitDepth: z.number().int(),
+          works: z.boolean(),
+          reason: z.string().nullable().default(null),
+        }),
+      )
+      .default([]),
   }),
   library: z.object({
     itemCount: z.number(),
@@ -216,6 +227,7 @@ const JobSchedulesSchema = z.object({
 });
 
 type AdminOverview = z.infer<typeof AdminOverviewSchema>;
+type HardwareChain = AdminOverview['transcoder']['chains'][number];
 type Monitor = z.infer<typeof MonitorSchema>;
 type Job = z.infer<typeof JobSchema>;
 type ActiveSession = z.infer<typeof ActiveSessionSchema>;
@@ -612,6 +624,7 @@ export type {
   CatalogueMatch,
   ActiveSession,
   AdminOverview,
+  HardwareChain,
   Job,
   JobDefinition,
   JobSchedule,

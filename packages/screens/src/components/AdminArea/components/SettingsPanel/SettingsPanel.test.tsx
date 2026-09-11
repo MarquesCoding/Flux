@@ -25,6 +25,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     ffmpegSupported: true,
     hardwareAccels: [],
     rejectedEncoders: [],
+    chains: [],
   },
   library: { itemCount: 0, libraryCount: 0, bytes: 0 },
   artwork: null,

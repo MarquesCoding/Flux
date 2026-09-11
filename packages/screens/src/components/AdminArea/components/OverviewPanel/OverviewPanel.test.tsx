@@ -35,6 +35,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    chains: [],
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
   artwork: null,
@@ -251,6 +252,7 @@ describe('OverviewPanel', () => {
               ffmpegSupported: true,
               hardwareAccels: [],
               rejectedEncoders: [],
+              chains: [],
             },
           })}
         />,
@@ -302,6 +304,7 @@ describe('OverviewPanel', () => {
             rejectedEncoders: [
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
             ],
+            chains: [],
           },
         })}
       />,
@@ -356,5 +359,36 @@ describe('OverviewPanel', () => {
 
       expect(screen.getAllByText('Still counting').length).toBeGreaterThan(0);
     });
+  });
+  it('says which hardware chains were proved, and names the ones that refused', () => {
+    render(
+      <OverviewPanel
+        {...props}
+        overview={overview({
+          transcoder: {
+            isReachable: true,
+            address: 'unix:/tmp/valence-transcoder.sock',
+            ffmpegVersion: '8.1.2',
+            ffmpegSupported: true,
+            hardwareAccels: ['qsv'],
+            rejectedEncoders: [],
+            chains: [
+              { accel: 'qsv', shape: 'preview', bitDepth: 8, works: true, reason: null },
+              {
+                accel: 'qsv',
+                shape: 'sheet',
+                bitDepth: 10,
+                works: false,
+                reason: 'Invalid output format nv12 for hwframe download.',
+              },
+            ],
+          },
+        })}
+      />,
+    );
+
+    expect(screen.getByText('1 of 2 proved')).toBeInTheDocument();
+    expect(screen.getByText(/qsv cannot draw thumbnail sheets at 10 bits/)).toBeInTheDocument();
+    expect(screen.getByText(/Invalid output format nv12/)).toBeInTheDocument();
   });
 });

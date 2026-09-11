@@ -403,6 +403,13 @@ type CreateAppOptions = {
     ffmpegSupported?: boolean;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
+    chains?: {
+      accel: string;
+      shape: 'preview' | 'sheet' | 'transcode';
+      bitDepth: number;
+      works: boolean;
+      reason: string | null;
+    }[];
   }>;
   monitor?: () => Promise<JsonValue>;
   stalledJobs?: () => (JobStall & { label: string })[];
@@ -1661,6 +1668,7 @@ const createApp = ({
           ffmpegSupported: transcoderCapabilities?.ffmpegSupported ?? true,
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
+          chains: transcoderCapabilities?.chains ?? [],
         },
         library: {
           libraryCount: libraries.length,

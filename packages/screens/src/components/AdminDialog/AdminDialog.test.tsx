@@ -24,6 +24,7 @@ const OVERVIEW: AdminOverview = {
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    chains: [],
   },
   library: { itemCount: 15, libraryCount: 2, bytes: 0 },
   artwork: null,

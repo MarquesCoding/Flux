@@ -121,7 +121,7 @@ const CapabilitiesSchema = z.object({
         shape: z.enum(['preview', 'sheet', 'transcode']),
         bitDepth: z.number().int(),
         works: z.boolean(),
-        reason: z.string().nullish(),
+        reason: z.string().nullable().default(null),
       }),
     )
     .default([]),

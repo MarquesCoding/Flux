@@ -39,6 +39,17 @@ const AdminOverviewSchema = z
       ffmpegSupported: z.boolean().default(true),
       hardwareAccels: z.array(z.string()),
       rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })),
+      chains: z
+        .array(
+          z.object({
+            accel: z.string(),
+            shape: z.enum(['preview', 'sheet', 'transcode']),
+            bitDepth: z.number().int(),
+            works: z.boolean(),
+            reason: z.string().nullable().default(null),
+          }),
+        )
+        .default([]),
     }),
     library: z.object({
       itemCount: z.number().int().nonnegative(),
