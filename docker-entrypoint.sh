@@ -1,15 +1,15 @@
 #!/bin/sh
 set -e
 
-# Both halves of Flux run in one container, per ADR-0006: one GPU device
+# Both halves of Valence run in one container, per ADR-0006: one GPU device
 # mapping, one log stream, one restart policy. They are siblings started by
 # this shell, not a parent and a child — neither can find the other by walking
-# the process tree, which is why what Flux costs is read from the cgroup and
+# the process tree, which is why what Valence costs is read from the cgroup and
 # not from a process walk. If either dies, the whole container dies so the
 # orchestrator restarts both together rather than leaving an API that cannot
 # play anything.
 
-flux-transcoder serve &
+valence-transcoder serve &
 TRANSCODER_PID=$!
 
 terminate() {

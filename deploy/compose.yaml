@@ -1,0 +1,89 @@
+# Valence, as a server runs it: pulled rather than built, and behind a reverse
+# proxy that terminates TLS somewhere else.
+#
+# Paste this into Dockge as a stack and fill in the settings below. Nothing
+# here needs a file on disk, which is the point — no certificates, no
+# Caddyfile, nothing to upload.
+
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: valence
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}
+      POSTGRES_DB: valence
+      TZ: ${TZ:-UTC}
+    volumes:
+      - db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U valence']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    # Deliberately no ports. Only Valence talks to this, and it does so over
+    # the stack's own network.
+
+  valence:
+    image: ghcr.io/marquescoding/valence:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://valence:${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD}@db:5432/valence
+
+      # Sign-in cookies are sealed with this. Changing it signs everybody out.
+      BETTER_AUTH_SECRET: ${BETTER_AUTH_SECRET:?set BETTER_AUTH_SECRET, at least 32 characters}
+
+      # The address a browser reaches Valence at, which is the proxy's and not
+      # this container's. Sign-in builds its redirects from it, so a wrong
+      # value here fails only at the moment somebody tries to sign in.
+      BETTER_AUTH_URL: ${PUBLIC_URL:?set PUBLIC_URL, e.g. https://valence.example.com}
+      TRUSTED_ORIGINS: ${PUBLIC_URL}
+
+      # True because the browser's half of the journey is HTTPS, even though
+      # this container only ever speaks plain HTTP to the proxy in front of it.
+      # A browser refuses to store a secure cookie from an insecure origin, so
+      # set this to false if you are testing over plain HTTP.
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+
+      # The clock scheduled jobs keep. A container defaults to UTC, so without
+      # this, "daily at 03:00" happens at 03:00 UTC rather than 3am where you are.
+      TZ: ${TZ:-UTC}
+
+      # How many files are probed at once during a scan. The default is half
+      # the cores, capped at four. A NAS with a large library and cores to
+      # spare can afford more; one sharing a disk with everything else cannot.
+      MEDIA_JOBS: ${MEDIA_JOBS:-4}
+
+      # Optional. Without it, titles and years are read from filenames and
+      # nothing fetches posters, descriptions or cast.
+      CATALOGUE_API_KEY: ${CATALOGUE_API_KEY:-}
+
+    ports:
+      # Left of the colon is the port on the NAS, which is what the proxy
+      # points at. Change it if something already answers there.
+      - '${VALENCE_PORT:-8420}:8420'
+
+    volumes:
+      - config:/config
+      - cache:/cache
+      - transcodes:/transcodes
+      # Read only, and Valence would not write here even if it could.
+      - ${MEDIA_PATH:?set MEDIA_PATH, e.g. /mnt/tank/media}:/media:ro
+
+    # Hardware transcoding. Delete both of these if the machine has no GPU:
+    # a device that is not there stops the container from starting at all.
+    # The group is what owns /dev/dri/renderD128 on the host — 44 on most
+    # Debian-derived systems, 104 on some. `ls -n /dev/dri` says which.
+    devices:
+      - /dev/dri:/dev/dri
+    group_add:
+      - ${RENDER_GROUP_ID:-44}
+
+volumes:
+  db-data:
+  config:
+  cache:
+  transcodes:

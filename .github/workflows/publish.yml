@@ -1,0 +1,89 @@
+name: Publish
+
+# Builds the image and pushes it to this repository's container registry, so a
+# server can pull Valence rather than build it.
+#
+# Unlike ci.yml this runs on its own. That workflow is held back because it
+# costs real minutes; this repository is public, so Actions minutes are free
+# and an image that only exists when somebody remembers to press a button is
+# worse than one that is always current.
+
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  workflow_dispatch:
+
+concurrency:
+  group: publish-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  image:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # A registry accepts a lower case name and this owner is not spelt that
+      # way, so it is folded here rather than written out and left to drift.
+      - name: Work out what to call the image
+        id: named
+        run: echo "image=ghcr.io/${OWNER,,}/valence" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Work out how to tag it
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ steps.named.outputs.image }}
+          tags: |
+            type=raw,value=latest,enable={{is_default_branch}}
+            type=ref,event=branch
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,format=long
+          labels: |
+            org.opencontainers.image.title=Valence
+            org.opencontainers.image.description=A self-hosted streaming platform
+            org.opencontainers.image.licenses=AGPL-3.0-or-later
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # amd64 alone. The other half of a multi-architecture build runs under
+      # emulation, and a release-mode Rust build under QEMU takes long enough
+      # to be worth deciding on rather than inheriting.
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+      - name: Say where it went
+        run: |
+          {
+            echo "### Published"
+            echo
+            echo '```'
+            echo "${TAGS}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
