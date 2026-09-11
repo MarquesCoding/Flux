@@ -326,7 +326,12 @@ describe('every question the client asks the media service', () => {
       body: { id: 'clip-1', url: '/previews/clip-1/clip.mp4', isReady: true },
     });
 
-    await client.requestPreview({ inputPath: '/media/a.mkv', generation: 0, wait: true });
+    await client.requestPreview({
+      inputPath: '/media/a.mkv',
+      generation: 0,
+      quality: 'high',
+      wait: true,
+    });
 
     expect(asked[0]?.url).toContain('/previews');
   });
@@ -412,7 +417,7 @@ describe('reclaiming what nothing addresses any more', () => {
     });
 
     await expect(
-      client.sweepPreviews([{ inputPath: '/media/a.mkv', generation: 0 }]),
+      client.sweepPreviews([{ inputPath: '/media/a.mkv', generation: 0, quality: 'high' }]),
     ).resolves.toMatchObject({ removed: 2, freedBytes: 4096, kept: 5, tooNew: 1 });
 
     expect(asked[0]?.url).toContain('/previews/sweep');
@@ -431,9 +436,9 @@ describe('reclaiming what nothing addresses any more', () => {
   it('forgets one item’s preview, and says whether there was one', async () => {
     const { client, asked } = scripted({ body: { forgotten: true } });
 
-    await expect(client.forgetPreview({ inputPath: '/media/a.mkv', generation: 0 })).resolves.toBe(
-      true,
-    );
+    await expect(
+      client.forgetPreview({ inputPath: '/media/a.mkv', generation: 0, quality: 'high' }),
+    ).resolves.toBe(true);
 
     expect(asked[0]?.url).toContain('/previews/forget');
   });

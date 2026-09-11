@@ -1,5 +1,6 @@
 import { selectAudioStream } from '@ValenceCore/functions/describeTrack';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 
 type PreviewSubject = {
   path: string;
@@ -15,13 +16,21 @@ type PreviewSubject = {
  * @param generation - Which round of previews this is, so that a change of recipe produces a
  *   different request rather than matching the clip already cached.
  * @param defaultAudioLanguage - The language the library prefers, which decides the audio track.
+ * @param quality - The preset the server renders previews at, which is part of the clip's address
+ *   too, so a clip made at one preset never answers for another.
  * @returns The request to hand the media service.
  */
 const previewRequestFor = (
   subject: PreviewSubject,
   generation: number,
   defaultAudioLanguage: string | null,
-): { inputPath: string; generation: number; audioStreamIndex?: number } => {
+  quality: PreviewQuality,
+): {
+  inputPath: string;
+  generation: number;
+  quality: PreviewQuality;
+  audioStreamIndex?: number;
+} => {
   const audioStreamIndex =
     defaultAudioLanguage === null
       ? undefined
@@ -30,6 +39,7 @@ const previewRequestFor = (
   return {
     inputPath: subject.path,
     generation,
+    quality,
     ...(audioStreamIndex === undefined ? {} : { audioStreamIndex }),
   };
 };

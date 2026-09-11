@@ -57,6 +57,7 @@ describe('rebuilding one item', () => {
     const outcome = await rebuildItemArtefacts({
       item: item(),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder,
     });
 
@@ -69,12 +70,14 @@ describe('rebuilding one item', () => {
     await rebuildItemArtefacts({
       item: item({ generation: 3, defaultAudioLanguage: 'deu' }),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder,
     });
 
     expect(asked.preview[0]).toEqual({
       inputPath: '/media/arrival.mkv',
       generation: 3,
+      quality: 'high',
       audioStreamIndex: 1,
     });
   });
@@ -82,7 +85,7 @@ describe('rebuilding one item', () => {
   it('leaves the stream unnamed when no language is forced, as the generator does', async () => {
     const { transcoder, asked } = harness();
 
-    await rebuildItemArtefacts({ item: item(), trickplay: GEOMETRY, transcoder });
+    await rebuildItemArtefacts({ item: item(), trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(asked.preview[0]).not.toHaveProperty('audioStreamIndex');
   });
@@ -93,6 +96,7 @@ describe('rebuilding one item', () => {
     await rebuildItemArtefacts({
       item: item({ generation: 5 }),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder,
     });
 
@@ -107,6 +111,7 @@ describe('rebuilding one item', () => {
     const outcome = await rebuildItemArtefacts({
       item: item(),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder: {
         forgetPreview: () => Promise.resolve(false),
         forgetTrickplay: () => Promise.resolve(false),
@@ -122,6 +127,7 @@ describe('rebuilding one item', () => {
     const outcome = await rebuildItemArtefacts({
       item: item(),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder: {
         forgetPreview: () => Promise.reject(new Error('the media service is down')),
         forgetTrickplay: () => Promise.resolve(true),
@@ -137,6 +143,7 @@ describe('rebuilding one item', () => {
     const outcome = await rebuildItemArtefacts({
       item: item(),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder: {
         forgetPreview: () => Promise.reject(new Error('down')),
         forgetTrickplay: () => Promise.reject(new Error('down')),
@@ -144,5 +151,18 @@ describe('rebuilding one item', () => {
     });
 
     expect(outcome).toEqual({ preview: false, trickplay: false });
+  });
+
+  it('addresses the clip at the preset it was made at', async () => {
+    const { transcoder, asked } = harness();
+
+    await rebuildItemArtefacts({
+      item: item(),
+      trickplay: GEOMETRY,
+      quality: 'standard',
+      transcoder,
+    });
+
+    expect(asked.preview[0]).toMatchObject({ quality: 'standard' });
   });
 });

@@ -1,5 +1,6 @@
 import { createRoute, z } from '@hono/zod-openapi';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
+import { PREVIEW_QUALITIES } from '@ValenceContracts/schemas/PreviewQuality';
 import { TranscodeReuseSchema } from '@ValenceContracts/schemas/TranscodeReuse';
 import { JobRunRequestSchema } from '@ValenceServer/jobs/jobDefinitions';
 import { ScheduleTriggerSchema } from '@ValenceServer/jobs/scheduleTrigger';
@@ -25,6 +26,7 @@ const AdminSettingsSchema = z
     trustedOrigins: z.array(z.string()),
     cookieSecure: z.boolean(),
     hardwareAccel: z.string(),
+    previewQuality: z.enum(PREVIEW_QUALITIES),
   })
   .openapi('AdminSettings');
 
@@ -89,6 +91,7 @@ const AdminSettingsRequestSchema = z
   .object({
     catalogueApiKey: z.string().optional(),
     hardwareAccel: z.string().optional(),
+    previewQuality: z.enum(PREVIEW_QUALITIES).optional(),
   })
   .openapi('AdminSettingsRequest');
 

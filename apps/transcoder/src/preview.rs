@@ -60,27 +60,83 @@ const DEFAULT_SECONDS: u32 = 24;
 /// The opening of anything is a distributor's logo on black.
 const DEFAULT_POSITION: f64 = 0.2;
 
-/// How wide a preview is.
+/// How good a preview is, which the server's operator chooses.
 ///
-/// Full height rather than a thumbnail. A preview fills a hero across the
-/// whole width of a desktop, and anything smaller is visibly soft there — the
-/// clip is made once and kept, so the few extra seconds and megabytes buy a
-/// picture that does not look worse than the film it is advertising.
-const DEFAULT_WIDTH: u32 = 1920;
+/// Three presets rather than three numbers, because the numbers only make sense
+/// together: a narrower clip wants a looser quality target and a smaller
+/// bitrate, or it spends bytes on detail nobody can see at that size.
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum PreviewQuality {
+    /// Small clips, for a server short of space or of processor.
+    Low,
+    /// Sharp on a card, a little soft across a hero.
+    Standard,
+    /// Full width, which is how every preview was made before this was a
+    /// choice.
+    #[default]
+    High,
+}
 
-/// How hard the encoder tries.
-///
-/// Low enough that a still from the clip stands next to a still from the file
-/// without embarrassing itself.
-const QUALITY: &str = "20";
+impl PreviewQuality {
+    /// How wide a preview is.
+    ///
+    /// At its best, full width rather than a thumbnail. A preview fills a hero
+    /// across the whole width of a desktop, and anything smaller is visibly
+    /// soft there — the clip is made once and kept, so the few extra seconds
+    /// and megabytes buy a picture that does not look worse than the film it is
+    /// advertising. The lower presets trade that for size.
+    #[must_use]
+    pub const fn width(self) -> u32 {
+        match self {
+            Self::Low => 854,
+            Self::Standard => 1280,
+            Self::High => 1920,
+        }
+    }
 
-/// What a hardware encoder is asked for instead of a quality target.
-///
-/// x264 is told a quality and finds the bitrate. Hardware encoders mostly have
-/// no equivalent, so they are told a bitrate and find the quality. This is what
-/// `QUALITY` produces on 1080p material, so the two routes come out at roughly
-/// the same size.
-const HARDWARE_BITRATE_KBPS: u32 = 6000;
+    /// How hard x264 tries.
+    ///
+    /// At its best, low enough that a still from the clip stands next to a
+    /// still from the file without embarrassing itself.
+    #[must_use]
+    pub const fn crf(self) -> &'static str {
+        match self {
+            Self::Low => "26",
+            Self::Standard => "23",
+            Self::High => "20",
+        }
+    }
+
+    /// What a hardware encoder is asked for instead of a quality target.
+    ///
+    /// x264 is told a quality and finds the bitrate. Hardware encoders mostly
+    /// have no equivalent, so they are told a bitrate and find the quality.
+    /// Each is what the matching quality target produces at that width, so the
+    /// two routes come out at roughly the same size.
+    #[must_use]
+    pub const fn hardware_bitrate_kbps(self) -> u32 {
+        match self {
+            Self::Low => 2000,
+            Self::Standard => 3500,
+            Self::High => 6000,
+        }
+    }
+
+    /// What this preset adds to a clip's address.
+    ///
+    /// Nothing at all for the best, so every clip made before this was a
+    /// choice keeps its address and is not made again. The others add their
+    /// name, so a lower preset never answers for a clip made at a higher one —
+    /// even at the same width, since the quality target differs.
+    const fn address_tag(self) -> Option<&'static [u8]> {
+        match self {
+            Self::Low => Some(b"low"),
+            Self::Standard => Some(b"standard"),
+            Self::High => None,
+        }
+    }
+}
 
 /// How a preview's video gets encoded.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -125,8 +181,14 @@ pub struct PreviewRequest {
     pub at_seconds: Option<u32>,
     #[serde(default = "default_seconds")]
     pub duration_seconds: u32,
-    #[serde(default = "default_width")]
-    pub width: u32,
+    /// How wide the clip is, where the caller insists. Absent means the
+    /// preset's width, which is what the server asks for.
+    #[serde(default)]
+    pub width: Option<u32>,
+    /// How good the clip is. Absent means the best, which is what every clip
+    /// was before this could be chosen.
+    #[serde(default)]
+    pub quality: PreviewQuality,
     /// Whether the caller will wait for the encode to finish.
     #[serde(default)]
     pub wait: bool,
@@ -146,10 +208,6 @@ pub struct PreviewRequest {
 
 const fn default_seconds() -> u32 {
     DEFAULT_SECONDS
-}
-
-const fn default_width() -> u32 {
-    DEFAULT_WIDTH
 }
 
 /// Where a preview ended up.
@@ -183,6 +241,9 @@ impl PreviewRequest {
     /// Content addressed like everything else the service caches, so asking
     /// twice reuses what is already there — and [`RECIPE`] is part of the
     /// address, so asking twice across a change to how clips are made does not.
+    /// The preset joins the address only where it is not the best, so choosing
+    /// a lower one makes new clips while the clips already made stay where
+    /// they are.
     #[must_use]
     pub fn id(&self) -> String {
         let mut hasher = Sha256::new();
@@ -191,8 +252,12 @@ impl PreviewRequest {
         hasher.update(self.generation.to_be_bytes());
         hasher.update(self.input_path.as_bytes());
         hasher.update(self.duration_seconds.to_be_bytes());
-        hasher.update(self.width.to_be_bytes());
+        hasher.update(self.width().to_be_bytes());
         hasher.update(self.audio_stream_index.unwrap_or(u32::MAX).to_be_bytes());
+
+        if let Some(tag) = self.quality.address_tag() {
+            hasher.update(tag);
+        }
 
         let digest = hasher.finalize();
         let mut id = String::with_capacity(32);
@@ -204,6 +269,13 @@ impl PreviewRequest {
         }
 
         id
+    }
+
+    /// How wide the clip comes out: the caller's width where it gave one, the
+    /// preset's otherwise.
+    #[must_use]
+    pub fn width(&self) -> u32 {
+        self.width.unwrap_or_else(|| self.quality.width())
     }
 
     /// Where in the file this clip starts.
@@ -320,7 +392,10 @@ pub fn preview_arguments(
         }
     }
 
-    filters.push(format!("scale='min({width},iw)':-2", width = request.width));
+    filters.push(format!(
+        "scale='min({width},iw)':-2",
+        width = request.width()
+    ));
 
     if source.bit_depth.is_some_and(|depth| depth > 8) {
         filters.push("format=nv12".to_owned());
@@ -376,13 +451,13 @@ pub fn preview_arguments(
             "-preset".to_owned(),
             "veryfast".to_owned(),
             "-crf".to_owned(),
-            QUALITY.to_owned(),
+            request.quality.crf().to_owned(),
         ]),
         PreviewEncoder::Hardware(name) => arguments.extend([
             "-c:v".to_owned(),
             name.clone(),
             "-b:v".to_owned(),
-            format!("{HARDWARE_BITRATE_KBPS}k"),
+            format!("{}k", request.quality.hardware_bitrate_kbps()),
         ]),
     }
 
@@ -610,7 +685,10 @@ impl PreviewRegistry {
 
 #[cfg(test)]
 mod tests {
-    use super::{preview_arguments, preview_encoder, PreviewEncoder, PreviewRequest, Source};
+    use super::{
+        preview_arguments, preview_encoder, PreviewEncoder, PreviewQuality, PreviewRequest, Source,
+        RECIPE,
+    };
     use crate::capability::{Capabilities, VerifiedEncoder};
     use crate::media::VideoRange;
     use crate::transcode_plan::HardwareAccel;
@@ -623,7 +701,8 @@ mod tests {
             generation: 0,
             at_seconds: None,
             duration_seconds: 24,
-            width: 1920,
+            width: None,
+            quality: PreviewQuality::High,
             wait: false,
             audio_stream_index: None,
             owner: None,
@@ -1028,7 +1107,7 @@ mod tests {
 
         hasher.update(request.input_path.as_bytes());
         hasher.update(request.duration_seconds.to_be_bytes());
-        hasher.update(request.width.to_be_bytes());
+        hasher.update(request.width().to_be_bytes());
         hasher.update(request.audio_stream_index.unwrap_or(u32::MAX).to_be_bytes());
 
         let mut without_the_recipe = String::with_capacity(32);
@@ -1099,5 +1178,166 @@ mod tests {
 
         assert_ne!(english.id(), german.id());
         assert_ne!(english.id(), request().id());
+    }
+
+    fn filters_of(arguments: &[String]) -> String {
+        arguments
+            .iter()
+            .position(|argument| argument == "-vf")
+            .map(|at| arguments[at + 1].clone())
+            .expect("filters")
+    }
+
+    fn arguments_for(request: &PreviewRequest, encoder: &PreviewEncoder) -> Vec<String> {
+        preview_arguments(
+            request,
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
+            ToneMapping::Zscale,
+            encoder,
+            None,
+            Path::new("/cache/preview.mp4"),
+        )
+    }
+
+    #[test]
+    fn each_preset_says_how_wide_and_how_good() {
+        let read = |quality: PreviewQuality| {
+            (
+                quality.width(),
+                quality.crf(),
+                quality.hardware_bitrate_kbps(),
+            )
+        };
+
+        assert_eq!(read(PreviewQuality::Low), (854, "26", 2000));
+        assert_eq!(read(PreviewQuality::Standard), (1280, "23", 3500));
+        assert_eq!(read(PreviewQuality::High), (1920, "20", 6000));
+    }
+
+    #[test]
+    fn is_the_best_when_nobody_says() {
+        let parsed: PreviewRequest =
+            serde_json::from_str(r#"{"inputPath":"/media/film.mkv","generation":0}"#)
+                .expect("parses a request that names no preset");
+
+        assert_eq!(PreviewQuality::default(), PreviewQuality::High);
+        assert_eq!(parsed.quality, PreviewQuality::High);
+        assert_eq!(parsed.width(), 1920);
+    }
+
+    #[test]
+    fn reads_a_preset_by_name() {
+        let parsed: PreviewRequest = serde_json::from_str(
+            r#"{"inputPath":"/media/film.mkv","generation":0,"quality":"standard"}"#,
+        )
+        .expect("parses a request that names a preset");
+
+        assert_eq!(parsed.quality, PreviewQuality::Standard);
+        assert_eq!(parsed.width(), 1280);
+    }
+
+    #[test]
+    fn keeps_the_address_every_existing_clip_was_made_under() {
+        use sha2::{Digest as _, Sha256};
+        use std::fmt::Write as _;
+
+        let request = request();
+        let mut hasher = Sha256::new();
+
+        hasher.update(RECIPE.to_be_bytes());
+        hasher.update(request.generation.to_be_bytes());
+        hasher.update(request.input_path.as_bytes());
+        hasher.update(request.duration_seconds.to_be_bytes());
+        hasher.update(1920_u32.to_be_bytes());
+        hasher.update(u32::MAX.to_be_bytes());
+
+        let mut before_presets = String::with_capacity(32);
+
+        for byte in hasher.finalize().iter().take(16) {
+            let _ = write!(before_presets, "{byte:02x}");
+        }
+
+        assert_eq!(
+            request.id(),
+            before_presets,
+            "the best preset must answer to the address clips were made under before it existed"
+        );
+    }
+
+    #[test]
+    fn addresses_each_preset_separately() {
+        let low = PreviewRequest {
+            quality: PreviewQuality::Low,
+            ..request()
+        };
+        let standard = PreviewRequest {
+            quality: PreviewQuality::Standard,
+            ..request()
+        };
+        let low_at_full_width = PreviewRequest {
+            quality: PreviewQuality::Low,
+            width: Some(1920),
+            ..request()
+        };
+
+        assert_ne!(low.id(), request().id());
+        assert_ne!(standard.id(), request().id());
+        assert_ne!(low.id(), standard.id());
+        assert_ne!(
+            low_at_full_width.id(),
+            request().id(),
+            "the same width at a looser quality target is a different clip"
+        );
+    }
+
+    #[test]
+    fn naming_the_presets_own_width_is_the_same_clip() {
+        let named = PreviewRequest {
+            width: Some(1920),
+            ..request()
+        };
+
+        assert_eq!(named.id(), request().id());
+    }
+
+    #[test]
+    fn encodes_at_the_presets_width_and_quality() {
+        let low = PreviewRequest {
+            quality: PreviewQuality::Low,
+            ..request()
+        };
+        let standard = PreviewRequest {
+            quality: PreviewQuality::Standard,
+            ..request()
+        };
+
+        let software = arguments_for(&low, &PreviewEncoder::Software);
+        let hardware = arguments_for(
+            &standard,
+            &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+        );
+
+        assert!(software.windows(2).any(|pair| pair == ["-crf", "26"]));
+        assert!(filters_of(&software).contains("scale='min(854,iw)':-2"));
+        assert!(hardware.windows(2).any(|pair| pair == ["-b:v", "3500k"]));
+        assert!(filters_of(&hardware).contains("scale='min(1280,iw)':-2"));
+    }
+
+    #[test]
+    fn takes_the_callers_width_over_the_presets() {
+        let narrow = PreviewRequest {
+            quality: PreviewQuality::Low,
+            width: Some(640),
+            ..request()
+        };
+
+        let arguments = arguments_for(&narrow, &PreviewEncoder::Software);
+
+        assert!(filters_of(&arguments).contains("scale='min(640,iw)':-2"));
+        assert!(arguments.windows(2).any(|pair| pair == ["-crf", "26"]));
     }
 }

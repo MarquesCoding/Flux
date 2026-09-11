@@ -212,6 +212,10 @@ describe('asking a library that is not held to do something', () => {
     await expect(empty.regeneratePreviews(LIBRARY_ID)).resolves.toBeNull();
   });
 
+  it('remakes no previews for a library it does not hold', async () => {
+    await expect(empty.remakePreviews(LIBRARY_ID)).resolves.toBeNull();
+  });
+
   it('builds no programme from a library it does not hold', async () => {
     await expect(empty.getShow(LIBRARY_ID, 'severance')).resolves.toBeNull();
   });

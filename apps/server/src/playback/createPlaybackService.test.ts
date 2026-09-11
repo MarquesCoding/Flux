@@ -6,6 +6,7 @@ import type { DeviceProfile } from '@ValenceContracts/schemas/DeviceProfile';
 import type { SessionSpec, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 import type { MediaLookup } from './createPlaybackService';
 import type { TranscodeReuse } from '@ValenceContracts/schemas/TranscodeReuse';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 
 const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 
@@ -347,6 +348,7 @@ const CAPABILITIES = {
 const build = (
   transcoderOverrides: Partial<Transcoder> = {},
   found: Awaited<ReturnType<MediaLookup['findForPlayback']>> | undefined = undefined,
+  previewQuality: PreviewQuality | undefined = undefined,
 ) => {
   const transcoder: Transcoder = {
     ...anything(),
@@ -392,6 +394,9 @@ const build = (
       sessionUrlPrefix: '/api/playback/session',
       directUrlPrefix: '/api/media',
       trickplayUrlPrefix: '/api/trickplay',
+      ...(previewQuality === undefined
+        ? {}
+        : { previewQuality: () => Promise.resolve(previewQuality) }),
     }),
   };
 };
@@ -614,9 +619,21 @@ describe('the files a player asks for while it is watching', () => {
         { path: '/media/arrival.mkv', audioStreams: bilingual.audioStreams },
         3,
         'eng',
+        'high',
       ),
       wait: false,
     });
+  });
+
+  it('asks for the clip at the preset the server is set to', async () => {
+    const requestPreview = vi.fn(() =>
+      Promise.resolve({ id: 'clip-1', url: '/clip', isReady: true }),
+    );
+    const { service } = build({ requestPreview }, undefined, 'standard');
+
+    await service.readPreview(MEDIA_ID, null);
+
+    expect(requestPreview).toHaveBeenCalledWith(expect.objectContaining({ quality: 'standard' }));
   });
 
   it('says a preview is being made rather than that there is none', async () => {

@@ -1,3 +1,4 @@
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import { Agent, fetch as undiciFetch } from 'undici';
 import { z } from 'zod';
 import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
@@ -194,6 +195,7 @@ type SweepReport = z.infer<typeof SweepReportSchema>;
 type PreviewSweepSubject = {
   inputPath: string;
   generation: number;
+  quality: PreviewQuality;
   audioStreamIndex?: number;
 };
 
@@ -268,6 +270,7 @@ type Transcoder = {
   requestPreview: (request: {
     inputPath: string;
     generation: number;
+    quality: PreviewQuality;
     wait?: boolean;
     audioStreamIndex?: number;
     owner?: string;

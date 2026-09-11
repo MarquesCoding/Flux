@@ -1,5 +1,6 @@
 import { previewRequestFor } from './previewRequestFor';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
+import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
 import type {
   PreviewSweepSubject,
   TrickplayRequest,
@@ -22,6 +23,7 @@ type TrickplayGeometry = {
 type RebuildItemArtefactsOptions = {
   item: RebuildSubject;
   trickplay: TrickplayGeometry;
+  quality: PreviewQuality;
   transcoder: {
     forgetPreview: (request: PreviewSweepSubject) => Promise<boolean>;
     forgetTrickplay: (request: TrickplayRequest) => Promise<boolean>;
@@ -39,18 +41,19 @@ type Rebuilt = {
  * The answer to "that one looks wrong": a reset rebuilds a whole library and a recipe change
  * rebuilds every artefact of a kind, and neither is a reasonable response to one bad clip.
  *
- * @param options - Which item, the transcoder holding its artefacts, and the store recording what
- *   has been made.
+ * @param options - Which item, the preset its preview was made at, the transcoder holding its
+ *   artefacts, and the store recording what has been made.
  * @returns Whether there was a preview and sheets to throw away.
  */
 const rebuildItemArtefacts = async ({
   item,
   trickplay,
+  quality,
   transcoder,
   onProblem,
 }: RebuildItemArtefactsOptions): Promise<Rebuilt> => {
   const preview = await transcoder
-    .forgetPreview(previewRequestFor(item, item.generation, item.defaultAudioLanguage))
+    .forgetPreview(previewRequestFor(item, item.generation, item.defaultAudioLanguage, quality))
     .catch((error: Error) => {
       onProblem?.('preview', error.message);
 

@@ -11,6 +11,7 @@ const emptySettings = () =>
     setupCompletedAt: null,
     catalogueApiKey: '',
     hardwareAccel: '',
+    previewQuality: 'high' as const,
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',

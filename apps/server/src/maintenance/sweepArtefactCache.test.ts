@@ -58,7 +58,12 @@ describe('sweeping artefacts nothing addresses', () => {
   it('adds up what both kinds reclaimed', async () => {
     const { transcoder, listLiveItems } = harness([item()]);
 
-    const total = await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    const total = await sweepArtefactCache({
+      listLiveItems,
+      trickplay: GEOMETRY,
+      quality: 'high',
+      transcoder,
+    });
 
     expect(total).toMatchObject({ removed: 3, freedBytes: 300 });
   });
@@ -68,17 +73,17 @@ describe('sweeping artefacts nothing addresses', () => {
       item({ generation: 2, defaultAudioLanguage: 'deu' }),
     ]);
 
-    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(previewKeep[0]).toEqual([
-      { inputPath: '/media/arrival.mkv', generation: 2, audioStreamIndex: 1 },
+      { inputPath: '/media/arrival.mkv', generation: 2, quality: 'high', audioStreamIndex: 1 },
     ]);
   });
 
   it('leaves the stream unnamed when no language is forced, exactly as the generator does', async () => {
     const { transcoder, listLiveItems, previewKeep } = harness([item()]);
 
-    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(previewKeep[0]?.[0]).not.toHaveProperty('audioStreamIndex');
   });
@@ -86,7 +91,7 @@ describe('sweeping artefacts nothing addresses', () => {
   it('keeps sheets by their geometry as well as their generation', async () => {
     const { transcoder, listLiveItems, trickplayKeep } = harness([item({ generation: 5 })]);
 
-    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(trickplayKeep[0]).toEqual([
       { inputPath: '/media/arrival.mkv', generation: 5, ...GEOMETRY },
@@ -99,7 +104,7 @@ describe('sweeping artefacts nothing addresses', () => {
       item({ path: '/shows/b.mkv', generation: 7 }),
     ]);
 
-    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(previewKeep[0]).toHaveLength(2);
     expect(previewKeep[0]?.map((one) => one.generation)).toEqual([1, 7]);
@@ -111,6 +116,7 @@ describe('sweeping artefacts nothing addresses', () => {
     const total = await sweepArtefactCache({
       listLiveItems: () => Promise.resolve([item()]),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder: {
         sweepPreviews: () => Promise.reject(new Error('the media service is down')),
         sweepTrickplay: () => Promise.resolve(report(2, 200)),
@@ -126,6 +132,7 @@ describe('sweeping artefacts nothing addresses', () => {
     const total = await sweepArtefactCache({
       listLiveItems: () => Promise.resolve([item()]),
       trickplay: GEOMETRY,
+      quality: 'high',
       transcoder: {
         sweepPreviews: () => Promise.reject(new Error('down')),
         sweepTrickplay: () => Promise.reject(new Error('down')),
@@ -138,9 +145,17 @@ describe('sweeping artefacts nothing addresses', () => {
   it('asks for nothing to be kept when every library is empty', async () => {
     const { transcoder, listLiveItems, previewKeep, trickplayKeep } = harness([]);
 
-    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, transcoder });
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'high', transcoder });
 
     expect(previewKeep[0]).toEqual([]);
     expect(trickplayKeep[0]).toEqual([]);
+  });
+
+  it('keeps clips by the preset they are made at now', async () => {
+    const { transcoder, listLiveItems, previewKeep } = harness([item()]);
+
+    await sweepArtefactCache({ listLiveItems, trickplay: GEOMETRY, quality: 'low', transcoder });
+
+    expect(previewKeep[0]?.[0]).toMatchObject({ quality: 'low' });
   });
 });
