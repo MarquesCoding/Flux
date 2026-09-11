@@ -6,6 +6,7 @@ import { readEpisodeFromPath, tidy } from './readEpisodeFromPath';
 import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import { groupExtras } from './groupExtras';
 import { groupVersions } from './groupVersions';
+import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
@@ -87,6 +88,7 @@ type ScanLibraryOptions = {
   providers?: MetadataProvider[];
   force?: boolean;
   isPartial?: boolean;
+  atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (phase: ScanPhase, processed: number, total: number) => void;
   onAdded?: (item: ScannedItem) => void;
@@ -173,6 +175,7 @@ const scanLibrary = async ({
   providers = [createFilenameMetadataProvider()],
   force = false,
   isPartial = false,
+  atOnce = 1,
   onProblem,
   onProgress,
   onAdded,
@@ -210,13 +213,9 @@ const scanLibrary = async ({
 
   onProgress?.('probing', probed, changed.length);
 
-  let wasStopped = false;
-
-  for (const file of changed) {
+  await mapWithLimit(changed, atOnce, async (file) => {
     if (isCancelled?.() === true) {
-      wasStopped = true;
-
-      break;
+      return;
     }
 
     try {
@@ -226,7 +225,7 @@ const scanLibrary = async ({
         failed += 1;
         onProblem?.(file.path, 'No video stream.');
 
-        continue;
+        return;
       }
 
       const read = readEpisodeFromPath(file.path);
@@ -266,7 +265,7 @@ const scanLibrary = async ({
         failed += 1;
         onProblem?.(file.path, 'No metadata provider could name this file.');
 
-        continue;
+        return;
       }
 
       if (knownExternalId !== null && (metadata.externalId ?? null) === null) {
@@ -276,7 +275,7 @@ const scanLibrary = async ({
           'The catalogue did not answer. Keeping what was already known about this file.',
         );
 
-        continue;
+        return;
       }
 
       const { title, year } = metadata;
@@ -325,7 +324,7 @@ const scanLibrary = async ({
       probed += 1;
       onProgress?.('probing', probed, changed.length);
     }
-  }
+  });
 
   if (hasVanished) {
     onProblem?.(
@@ -334,7 +333,7 @@ const scanLibrary = async ({
     );
   }
 
-  if (wasStopped) {
+  if (isCancelled?.() === true) {
     onProblem?.(
       root,
       'This scan was stopped before it finished. What it had already read is kept; nothing was deleted, and the library still counts as unscanned.',

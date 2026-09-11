@@ -91,6 +91,7 @@ const harness = (options: {
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
   overrides?: { path: string; externalId: string; externalKind: 'tv' | 'movie' }[];
   defaultAudioLanguage?: string | null;
+  atOnce?: number;
   onAdded?: (item: ScannedItem) => void;
   linkExtras?: (libraryId: string, links: { path: string; parentPath: string }[]) => Promise<void>;
 }) => {
@@ -190,6 +191,7 @@ const harness = (options: {
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
       ...(options.onAdded === undefined ? {} : { onAdded: options.onAdded }),
+      ...(options.atOnce === undefined ? {} : { atOnce: options.atOnce }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
     });
 
@@ -954,5 +956,63 @@ describe('a library holding extras', () => {
     expect(extra?.extraKind).toBe('other');
     expect(extra?.episode.seriesTitle).toBe('Some Show');
     expect(extra?.episode.episodeNumber).toBeNull();
+  });
+});
+
+describe('how many files a scan reads at once', () => {
+  const many = () => Array.from({ length: 12 }, (_, at) => file(`/media/films/Film ${at}.mkv`));
+
+  const watchingConcurrency = () => {
+    let inFlight = 0;
+    let mostAtOnce = 0;
+
+    const probeImpl = async () => {
+      inFlight += 1;
+      mostAtOnce = Math.max(mostAtOnce, inFlight);
+
+      await new Promise((resolve) => setTimeout(resolve, 5));
+
+      inFlight -= 1;
+
+      return probe();
+    };
+
+    return { probeImpl, mostAtOnce: () => mostAtOnce };
+  };
+
+  it('reads one at a time unless told otherwise, which is what it always did', async () => {
+    const watching = watchingConcurrency();
+
+    await harness({ found: many(), probeImpl: watching.probeImpl }).run();
+
+    expect(watching.mostAtOnce()).toBe(1);
+  });
+
+  it('reads several at once when a library asks for it', async () => {
+    const watching = watchingConcurrency();
+
+    await harness({ found: many(), probeImpl: watching.probeImpl, atOnce: 4 }).run();
+
+    expect(watching.mostAtOnce()).toBe(4);
+  });
+
+  it('still reads every one of them, and counts them once each', async () => {
+    const { run, rows } = harness({ found: many(), atOnce: 4 });
+    const result = await run();
+
+    expect(rows).toHaveLength(12);
+    expect(result.added).toBe(12);
+  });
+
+  it('still reports progress for every file', async () => {
+    const seen: number[] = [];
+
+    await harness({
+      found: many(),
+      atOnce: 4,
+      onProgress: (_phase, processed) => seen.push(processed),
+    }).run();
+
+    expect(seen.at(-1)).toBe(12);
   });
 });

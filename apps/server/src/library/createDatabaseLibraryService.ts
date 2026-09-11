@@ -339,6 +339,7 @@ const createDatabaseLibraryService = ({
       store,
       transcoder,
       force,
+      atOnce: await filesAtOnceFor(found.id),
       ...(providers === undefined ? {} : { providers }),
       ...(onProblem === undefined ? {} : { onProblem }),
       ...(onArrived === undefined ? {} : { onAdded: (item) => onArrived(found.id, item) }),
