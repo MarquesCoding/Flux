@@ -1248,6 +1248,7 @@ async fn start_trickplay(
         width: video.width,
         height: video.height,
         range: video.range,
+        frames_per_second: video.frame_rate,
         bit_depth: video.bit_depth,
         duration_seconds: probe.duration_seconds,
     };

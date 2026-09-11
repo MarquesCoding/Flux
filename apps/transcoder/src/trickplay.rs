@@ -225,6 +225,10 @@ pub struct SheetSource {
     pub duration_seconds: f64,
     /// What the source says it is, which decides what its frames come down as.
     pub bit_depth: Option<u8>,
+    /// How many frames a second the source really runs at, where it says.
+    ///
+    /// Only used to normalise its timestamps. See [`extract_arguments`].
+    pub frames_per_second: Option<f64>,
     /// Whether it needs converting to something a browser draws.
     ///
     /// Sheets were never converted at all, on any path, so every HDR film in a
@@ -247,8 +251,16 @@ const THUMBNAIL_PATTERN: &str = "frame-%08d.jpg";
 /// What the second pass writes, a grid of them.
 const SHEET_PATTERN: &str = "sheet-%03d.jpg";
 
-/// How hard the JPEG encoder tries, on whichever scale it reads.
+/// How hard the JPEG encoder tries, on ffmpeg's own quality scale.
+///
+/// One to thirty-one, where one is best. Four is what Jellyfin ships.
 const JPEG_QUALITY: u32 = 4;
+
+/// The steps between the scales, which is what the conversions below divide by.
+const QUALITY_STEPS: u32 = 30;
+
+/// What a source that will not say its frame rate is taken to run at.
+const ASSUMED_RATE: f64 = 30.0;
 
 /// How many threads a thumbnail render may use.
 ///
@@ -295,22 +307,36 @@ pub fn sheet_encoder(capabilities: &Capabilities, accel: Option<HardwareAccel>) 
     }
 }
 
-/// How this encoder is told how hard to try.
+/// How this encoder is told how hard to try, on the scale it actually reads.
 ///
-/// The scales are not the same and neither are the flags. `VAAPI` and `QSV`
-/// take a global quality, Rockchip an initial quantiser, and everything else
-/// the JPEG quality scale — so a number written for one of them means something
-/// else to another, and the flag it is written under is simply ignored.
+/// Not one scale but four, and they do not even point the same way. ffmpeg's
+/// own `qscale` runs one to thirty-one with **one** being best. The `VAAPI` and
+/// `QSV` JPEG encoders take a JPEG quality, nought to a hundred, with a
+/// **hundred** being best. `VideoToolbox` takes the same idea scaled to
+/// QP2LAMBDA, so up to a hundred and eighteen. Rockchip takes a quantiser that
+/// stops at ninety-nine.
+///
+/// So a number written for one of them does not merely mistune another, it
+/// means close to the opposite: four is nearly the best picture ffmpeg will
+/// give and nearly the worst that `mjpeg_vaapi` will. The flag differs too, and
+/// a quality under the wrong flag is ignored without complaint.
+///
+/// The arithmetic is Jellyfin's, including that each divisor floors to three.
 fn quality_arguments(encoder: &str) -> [String; 2] {
-    let flag = if encoder.ends_with("_vaapi") || encoder.ends_with("_qsv") {
-        "-global_quality:v"
-    } else if encoder.ends_with("_rkmpp") {
-        "-qp_init:v"
+    let asked = JPEG_QUALITY.clamp(1, 31);
+    let stepped = |top: u32| top - ((asked - 1) * (top / QUALITY_STEPS));
+
+    let (flag, quality) = if encoder.contains("vaapi") || encoder.contains("qsv") {
+        ("-global_quality:v", stepped(100))
+    } else if encoder.contains("rkmpp") {
+        ("-qp_init:v", stepped(99))
+    } else if encoder.contains("videotoolbox") {
+        ("-qscale:v", stepped(118))
     } else {
-        "-qscale:v"
+        ("-qscale:v", asked)
     };
 
-    [flag.to_owned(), JPEG_QUALITY.to_string()]
+    [flag.to_owned(), quality.to_string()]
 }
 
 /// The ffmpeg arguments that draw one thumbnail per interval.
@@ -332,6 +358,23 @@ fn quality_arguments(encoder: &str) -> [String; 2] {
 /// hardware decoder to throw away everything between keyframes is not a thing
 /// every one of them will do, and `QSV` does not merely refuse it: it hangs the
 /// device, which resets it and takes down whatever else was using it.
+///
+/// Where every frame is decoded, the timestamps are rebuilt from the frame
+/// count before they are sampled. A container that lies about its timestamps —
+/// and plenty do — otherwise hands `fps` a clock that jumps, and what comes out
+/// is thumbnails that do not land where the index says they do. Jellyfin
+/// inserts the same filter immediately before `fps`, and only in this mode,
+/// because skipping to keyframes takes its timing from the keyframes instead.
+///
+/// `-fps_mode passthrough` for the same reason at the other end: the muxer is
+/// told to write exactly the frames it is given rather than making up a
+/// constant rate, so the count matches what the index was built for.
+///
+/// Not asked for here: `-hwaccel_flags +low_priority`, which Jellyfin passes to
+/// `VideoToolbox` for exactly this work. It is not in every build — this one
+/// rejects it and takes the whole render down with it — and Jellyfin only sends
+/// it where it has checked. Until there is a check worth trusting, the flag is
+/// worth less than the renders it would break.
 #[must_use]
 pub fn extract_arguments(
     request: &TrickplayRequest,
@@ -344,8 +387,21 @@ pub fn extract_arguments(
     let onto_the_device = on_device
         .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
     let draws_on_the_device = matches!(encoder, SheetEncoder::Hardware(_));
+    let skips_to_keyframes = onto_the_device.is_none();
 
-    let mut filters = vec![format!("fps=1/{}", request.interval_seconds)];
+    let mut filters = Vec::new();
+
+    if !skips_to_keyframes {
+        filters.push(format!(
+            "setpts=N/{:.3}/TB",
+            source
+                .frames_per_second
+                .filter(|rate| *rate > 0.0)
+                .unwrap_or(ASSUMED_RATE)
+        ));
+    }
+
+    filters.push(format!("fps=1/{}", request.interval_seconds));
 
     match onto_the_device {
         Some((_, pipeline, _)) => {
@@ -385,8 +441,6 @@ pub fn extract_arguments(
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
-        "-threads".to_owned(),
-        RENDER_THREADS.to_string(),
     ];
 
     if let Some((found, pipeline, device)) = onto_the_device {
@@ -400,7 +454,12 @@ pub fn extract_arguments(
             arguments.push("-noautorotate".to_owned());
         }
     } else {
-        arguments.extend(["-skip_frame".to_owned(), "nokey".to_owned()]);
+        arguments.extend([
+            "-threads".to_owned(),
+            RENDER_THREADS.to_string(),
+            "-skip_frame".to_owned(),
+            "nokey".to_owned(),
+        ]);
     }
 
     let drawn_by = match encoder {
@@ -411,17 +470,25 @@ pub fn extract_arguments(
     arguments.extend([
         "-i".to_owned(),
         request.input_path.clone(),
-        "-vf".to_owned(),
-        filters.join(","),
         "-an".to_owned(),
         "-sn".to_owned(),
+        "-vf".to_owned(),
+        filters.join(","),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
         "-c:v".to_owned(),
         drawn_by.clone(),
     ]);
 
     arguments.extend(quality_arguments(&drawn_by));
 
+    if drawn_by.contains("videotoolbox") {
+        arguments.extend(["-allow_sw".to_owned(), "1".to_owned()]);
+    }
+
     arguments.extend([
+        "-fps_mode".to_owned(),
+        "passthrough".to_owned(),
         "-f".to_owned(),
         "image2".to_owned(),
         directory.join(THUMBNAIL_PATTERN).to_string_lossy().into(),
@@ -782,9 +849,9 @@ pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_index, extract_arguments, format_timestamp, sheet_encoder, thumbnail_count,
-        tile_arguments, tile_height_for, Capabilities, HardwareAccel, SheetEncoder, SheetSource,
-        TrickplayRegistry, TrickplayRequest, VideoRange,
+        build_index, extract_arguments, format_timestamp, quality_arguments, sheet_encoder,
+        thumbnail_count, tile_arguments, tile_height_for, Capabilities, HardwareAccel,
+        SheetEncoder, SheetSource, TrickplayRegistry, TrickplayRequest, VideoRange,
     };
     use crate::capability::VerifiedEncoder;
     use std::path::Path;
@@ -824,6 +891,7 @@ otherwise start a second one"
             height: 1080,
             duration_seconds: 600.0,
             bit_depth: Some(8),
+            frames_per_second: Some(23.976),
             range,
         }
     }
@@ -1007,7 +1075,8 @@ otherwise start a second one"
             .windows(2)
             .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
         assert_eq!(
-            chain, "fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180",
+            chain,
+            "setpts=N/23.976/TB,fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180",
             "nothing comes down: the device draws the thumbnails too"
         );
         assert!(arguments
@@ -1043,7 +1112,10 @@ otherwise start a second one"
             .and_then(|index| arguments.get(index + 1))
             .expect("the filter chain is passed");
 
-        assert_eq!(filter, "fps=1/10,scale=320:180");
+        assert_eq!(
+            filter, "fps=1/10,scale=320:180",
+            "keyframes carry their own timing"
+        );
     }
 
     #[test]
@@ -1075,7 +1147,7 @@ otherwise start a second one"
 
         assert_eq!(
             chain,
-            "fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180"
+            "setpts=N/23.976/TB,fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180"
         );
     }
 
@@ -1155,20 +1227,74 @@ otherwise start a second one"
     /// flag it is written under is simply ignored.
     #[test]
     fn tells_each_encoder_how_hard_to_try_on_the_scale_it_reads() {
-        let flag_of = |arguments: &[String]| {
+        assert_eq!(
+            quality_arguments("mjpeg_vaapi"),
+            ["-global_quality:v".to_owned(), "91".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_qsv"),
+            ["-global_quality:v".to_owned(), "91".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_rkmpp"),
+            ["-qp_init:v".to_owned(), "90".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_videotoolbox"),
+            ["-qscale:v".to_owned(), "109".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg"),
+            ["-qscale:v".to_owned(), "4".to_owned()]
+        );
+    }
+
+    /// Passthrough, so the muxer writes the frames it is given rather than
+    /// inventing a constant rate the index was not built for.
+    #[test]
+    fn tells_the_muxer_not_to_invent_a_frame_rate() {
+        assert!(on_qsv()
+            .windows(2)
+            .any(|pair| pair == ["-fps_mode", "passthrough"]));
+        assert!(in_software()
+            .windows(2)
+            .any(|pair| pair == ["-fps_mode", "passthrough"]));
+    }
+
+    #[test]
+    fn rebuilds_the_timestamps_only_where_every_frame_is_decoded() {
+        let chain_of = |arguments: Vec<String>| {
             arguments
-                .iter()
-                .find(|argument| {
-                    argument.starts_with("-global_quality")
-                        || argument.starts_with("-qscale")
-                        || argument.starts_with("-qp_init")
-                })
-                .cloned()
-                .expect("a quality flag")
+                .windows(2)
+                .find(|pair| pair[0] == "-vf")
+                .map(|pair| pair[1].clone())
+                .expect("a filter chain")
         };
 
-        assert_eq!(flag_of(&on_qsv()), "-global_quality:v");
-        assert_eq!(flag_of(&in_software()), "-qscale:v");
+        assert!(chain_of(on_qsv()).starts_with("setpts=N/"));
+        assert!(
+            !chain_of(in_software()).contains("setpts"),
+            "keyframes carry their own timing"
+        );
+    }
+
+    #[test]
+    fn takes_a_source_that_will_not_say_its_rate_as_thirty() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            SheetSource {
+                frames_per_second: None,
+                ..source_of(VideoRange::Sdr)
+            },
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_vaapi".to_owned()),
+            Path::new("/cache"),
+        );
+
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.starts_with("setpts=N/30.000/TB")));
     }
 
     /// A machine with both Intel paths verified could otherwise be handed VAAPI
