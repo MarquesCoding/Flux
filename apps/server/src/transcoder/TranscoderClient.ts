@@ -345,7 +345,7 @@ const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init))
 
 const REQUEST_TIMEOUT_MILLISECONDS = 60_000;
 
-const RENDER_TIMEOUT_MILLISECONDS = 30 * 60_000;
+const NO_TIMEOUT = 0;
 
 const HEALTH_TIMEOUT_MILLISECONDS = 5_000;
 
@@ -405,8 +405,7 @@ const createTranscoderClient = ({
   const call2 = fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath));
 
   const callSlowly =
-    fetchImpl ??
-    (socketPath === null ? httpFetch : createSocketFetch(socketPath, RENDER_TIMEOUT_MILLISECONDS));
+    fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath, NO_TIMEOUT));
   const call = async (path: string, init?: HttpRequestInit): Promise<HttpResponse> => {
     const response = await call2(`${origin}${path}`, init);
 
@@ -450,12 +449,16 @@ const createTranscoderClient = ({
     });
 
   /**
-   * Asks for something that is rendered rather than read, and waits as long as that takes.
+   * Asks for something that is rendered rather than read, and waits for as long as it takes.
    *
-   * A preview is an encode and a sheet is hundreds of thumbnails, and both queue behind whatever the
-   * media service is already drawing. Sixty seconds is the right patience for a question about a
-   * file and the wrong patience for a job — it reported work that was progressing normally as a
-   * network failure, and left the item looking unreadable.
+   * No clock at all. A preview is an encode and a sheet is a thumbnail a minute across a whole film,
+   * both queued behind whatever else is being drawn, so any number picked here would be a guess at
+   * how long a stranger's film takes to work through — and being wrong about it reports work that is
+   * progressing normally as a failure, and leaves the item looking broken.
+   *
+   * Nothing is given up by waiting. The connection is the liveness signal: a media service that dies
+   * closes the socket and the request fails at once, which is the case a timeout was protecting
+   * against. Work that fails still fails, because ffmpeg says so.
    *
    * @param path - What to ask for.
    * @param body - The request.
