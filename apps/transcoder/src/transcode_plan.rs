@@ -428,6 +428,18 @@ pub fn scale_filter(max_width: u32, max_height: u32) -> String {
     )
 }
 
+/// Whether an encoder can be handed ten-bit frames at all.
+///
+/// H.264 has a High 10 profile and no Intel part implements it for encoding, on
+/// `QSV` or on `VAAPI`; HEVC and AV1 carry ten bits as a matter of course. The
+/// question is asked of the codec rather than of the machine because it is a
+/// fact about the format, and the machine has already been asked everything
+/// else.
+#[must_use]
+pub fn takes_ten_bit(encoder: &str) -> bool {
+    encoder.starts_with("hevc") || encoder.starts_with("av1") || encoder.starts_with("vp9")
+}
+
 /// The software encoder that replaces a hardware one on fallback.
 #[must_use]
 pub fn software_equivalent(encoder: &str) -> &'static str {
@@ -655,8 +667,13 @@ fn device_chain(
     tone_map: Option<&'static str>,
     width: u32,
     height: u32,
+    narrow: bool,
 ) -> String {
-    let scale = format!("{}=w={width}:h={height}", pipeline.scaler);
+    let narrowing = match (narrow, pipeline.narrows_to_eight_bit) {
+        (true, Some(option)) => format!(":{option}"),
+        _ => String::new(),
+    };
+    let scale = format!("{}=w={width}:h={height}{narrowing}", pipeline.scaler);
 
     match tone_map {
         Some(mapper) => format!("{mapper},{scale}"),
@@ -815,6 +832,18 @@ pub struct HardwarePipeline {
     /// So a chain that came down for its filters has to go back up for these
     /// two, and must not for the others.
     pub encodes_from_device: bool,
+    /// How this backend's scaler is told to hand on eight-bit frames.
+    ///
+    /// No Intel part encodes ten-bit H.264 — High 10 is not in the silicon, on
+    /// `QSV` or on `VAAPI` — so a ten-bit film scaled on the device and handed
+    /// straight to `h264_qsv` is refused, and the only thing ffmpeg says about
+    /// it is that nothing was written. Narrowing where the scale already
+    /// happens costs nothing: the frame is being resampled regardless.
+    ///
+    /// `scale_vt` has no such option, and needs none — `VideoToolbox` takes
+    /// system memory and converts on its way in. Absent means the scaler
+    /// cannot be asked, so the chain is left as it was.
+    pub narrows_to_eight_bit: Option<&'static str>,
 }
 
 impl HardwarePipeline {
@@ -870,6 +899,7 @@ impl HardwareAccel {
                     "tonemap_videotoolbox=format=nv12:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
                 encodes_from_device: false,
+                narrows_to_eight_bit: None,
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
@@ -883,6 +913,7 @@ impl HardwareAccel {
                     "tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
                 encodes_from_device: false,
+                narrows_to_eight_bit: Some("format=nv12"),
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
@@ -894,6 +925,7 @@ impl HardwareAccel {
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
                 tone_map: None,
                 encodes_from_device: true,
+                narrows_to_eight_bit: Some("format=nv12"),
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
@@ -905,6 +937,7 @@ impl HardwareAccel {
                 overlay_upload: "hwupload=derive_device=vaapi",
                 tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
                 encodes_from_device: true,
+                narrows_to_eight_bit: Some("format=nv12"),
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
@@ -916,6 +949,7 @@ impl HardwareAccel {
                 overlay_upload: "hwupload=derive_device=rkmpp",
                 tone_map: None,
                 encodes_from_device: false,
+                narrows_to_eight_bit: Some("format=nv12"),
             }),
             Self::None | Self::Amf => None,
         }
@@ -1328,6 +1362,7 @@ impl TranscodePlan {
                         tone_map.and(on_device_tone_map_filter(&self.spec, self.device_filters)),
                         width,
                         height,
+                        !takes_ten_bit(encoder),
                     );
 
                     match route {
@@ -1674,9 +1709,10 @@ impl TranscodePlan {
 mod tests {
     use super::{
         composited_graph, filter_name, fitted_size, force_key_frames_argument, frame_route,
-        keeps_frames_on_the_gpu, rate_control_arguments, software_equivalent, AudioAction,
-        DeviceFilters, FrameRoute, HardwareAccel, SegmentContainer, SegmentStart, SessionSpec,
-        SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE, TEXT_OVERLAY_FPS,
+        keeps_frames_on_the_gpu, rate_control_arguments, software_equivalent, takes_ten_bit,
+        AudioAction, DeviceFilters, FrameRoute, HardwareAccel, SegmentContainer, SegmentStart,
+        SessionSpec, SubtitleAction, ToneMapping, TranscodePlan, VideoAction, DEFAULT_DEVICE,
+        TEXT_OVERLAY_FPS,
     };
 
     /// A build with a scaler and no compositor, as the existing routes assume.
@@ -2154,7 +2190,7 @@ subtitles='/media/film.mkv':si=2,hwupload"
 
         assert_eq!(
             chain,
-            "tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=1280:h=532"
+            "tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=1280:h=532:format=nv12"
         );
         assert!(
             !chain.contains("zscale") && !chain.contains("hwdownload"),
@@ -2327,7 +2363,7 @@ subtitles='/media/film.mkv':si=2,hwupload"
         assert!(
             graph.starts_with(
                 "[0:v]tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,\
-scale_vaapi=w=1280:h=532[base];"
+scale_vaapi=w=1280:h=532:format=nv12[base];"
             ),
             "{graph}"
         );
@@ -2379,7 +2415,7 @@ scale_vaapi=w=1280:h=532[base];"
                 "the video must never come down, image based: {is_image_based}"
             );
             assert!(
-                graph.starts_with("[0:v]scale_vaapi=w=1280:h=532[base];"),
+                graph.starts_with("[0:v]scale_vaapi=w=1280:h=532:format=nv12[base];"),
                 "the scale still happens on the device: {graph}"
             );
             assert!(
@@ -2863,9 +2899,9 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
     fn scales_on_the_backends_own_filter() {
         let cases = [
             (HardwareAccel::VideoToolbox, "scale_vt=w=1280:h=532"),
-            (HardwareAccel::Nvenc, "scale_cuda=w=1280:h=532"),
-            (HardwareAccel::Qsv, "vpp_qsv=w=1280:h=532"),
-            (HardwareAccel::Vaapi, "scale_vaapi=w=1280:h=532"),
+            (HardwareAccel::Nvenc, "scale_cuda=w=1280:h=532:format=nv12"),
+            (HardwareAccel::Qsv, "vpp_qsv=w=1280:h=532:format=nv12"),
+            (HardwareAccel::Vaapi, "scale_vaapi=w=1280:h=532:format=nv12"),
         ];
 
         for (accel, expected) in cases {
@@ -2878,6 +2914,39 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
             assert_eq!(filters, expected, "{accel:?}");
         }
+    }
+
+    /// HEVC carries ten bits, so narrowing for it would throw away the film.
+    #[test]
+    fn leaves_the_frames_wide_for_an_encoder_that_can_take_them() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "hevc_vaapi".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: None,
+            },
+            ..on_gpu(HardwareAccel::Vaapi)
+        };
+        let args = plan(spec).to_ffmpeg_args();
+        let filters = args
+            .iter()
+            .position(|argument| argument == "-vf")
+            .and_then(|at| args.get(at + 1))
+            .expect("a filter chain");
+
+        assert_eq!(filters, "scale_vaapi=w=1280:h=532");
+    }
+
+    #[test]
+    fn knows_which_codecs_carry_ten_bits() {
+        assert!(takes_ten_bit("hevc_qsv"));
+        assert!(takes_ten_bit("av1_vaapi"));
+        assert!(takes_ten_bit("vp9_vaapi"));
+        assert!(!takes_ten_bit("h264_qsv"));
+        assert!(!takes_ten_bit("h264_vaapi"));
+        assert!(!takes_ten_bit("libx264"));
     }
 
     #[test]

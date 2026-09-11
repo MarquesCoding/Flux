@@ -83,13 +83,17 @@ fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> St
 
     match shape {
         ChainShape::Preview => {
+            let narrow = if bit_depth > 8 { ",format=nv12" } else { "" };
             let up = if pipeline.encodes_from_device {
                 ",hwupload"
             } else {
                 ""
             };
 
-            format!("hwdownload,format={down},scale={}:{}{up}", half.0, half.1)
+            format!(
+                "hwdownload,format={down},scale={}:{}{narrow}{up}",
+                half.0, half.1
+            )
         }
         ChainShape::Sheet => format!(
             "fps=1/1,{scaler}=w={}:h={},hwdownload,format={down},tile=2x2",
@@ -97,12 +101,19 @@ fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> St
             half.1,
             scaler = pipeline.scaler,
         ),
-        ChainShape::Transcode => format!(
-            "{scaler}=w={}:h={}",
-            half.0,
-            half.1,
-            scaler = pipeline.scaler,
-        ),
+        ChainShape::Transcode => {
+            let narrow = match pipeline.narrows_to_eight_bit {
+                Some(option) => format!(":{option}"),
+                None => String::new(),
+            };
+
+            format!(
+                "{scaler}=w={}:h={}{narrow}",
+                half.0,
+                half.1,
+                scaler = pipeline.scaler,
+            )
+        }
     }
 }
 

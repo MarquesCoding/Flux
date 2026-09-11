@@ -279,6 +279,13 @@ pub struct Source {
 ///
 /// Decoding is still worth doing on the device. It is the expensive half, and a
 /// 10-bit source costs several times in software what the two transfers do.
+///
+/// A ten-bit film is narrowed before it reaches the encoder. A preview is an
+/// H.264 clip whatever it was made from, and no Intel part encodes ten-bit
+/// H.264 — High 10 is not in the silicon, on `QSV` or on `VAAPI`. Handed the
+/// `p010` frames the download had to produce, `h264_qsv` writes nothing and
+/// reports only that nothing was written, which is what every 2160p film on a
+/// verified machine did.
 #[must_use]
 pub fn preview_arguments(
     request: &PreviewRequest,
@@ -307,6 +314,10 @@ pub fn preview_arguments(
     }
 
     filters.push(format!("scale='min({width},iw)':-2", width = request.width));
+
+    if source.bit_depth.is_some_and(|depth| depth > 8) {
+        filters.push("format=nv12".to_owned());
+    }
 
     if onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device) {
         filters.push("hwupload".to_owned());
@@ -711,6 +722,57 @@ mod tests {
                 "{range:?}: {chain}"
             );
         }
+    }
+
+    /// No Intel part encodes ten-bit H.264, so the frames narrow on their way.
+    #[test]
+    fn narrows_a_ten_bit_film_before_it_reaches_the_encoder() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(10),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.starts_with("hwdownload,format=p010le,"), "{chain}");
+        assert!(chain.ends_with(",format=nv12,hwupload"), "{chain}");
+    }
+
+    #[test]
+    fn leaves_an_eight_bit_film_as_it_found_it() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(!chain.contains(",format=nv12,hwupload"), "{chain}");
+        assert!(chain.ends_with(",hwupload"), "{chain}");
     }
 
     #[test]
