@@ -496,6 +496,7 @@ const mediaItem = pgTable(
       onDelete: 'cascade',
     }),
     extraKind: text('extraKind'),
+    versionLabel: text('versionLabel'),
     seriesId: text('seriesId').references(() => series.id, { onDelete: 'set null' }),
     seriesTitle: text('seriesTitle'),
     seasonNumber: integer('seasonNumber'),

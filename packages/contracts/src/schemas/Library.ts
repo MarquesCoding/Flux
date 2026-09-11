@@ -76,6 +76,7 @@ const MediaSummarySchema = z.object({
   seriesId: z.string().nullable().default(null),
   parentId: z.string().nullish(),
   extraKind: ExtraKindSchema.nullish(),
+  versionLabel: z.string().nullish(),
   rating: z.number().nullish(),
   seriesTitle: z.string().nullish(),
   seasonNumber: z.number().int().nullish(),
@@ -112,7 +113,9 @@ const MediaDetailSchema = MediaItemSchema.extend({
   metadata: MediaMetadataSchema,
   parentId: z.string().nullish(),
   extraKind: ExtraKindSchema.nullish(),
+  versionLabel: z.string().nullish(),
   extras: z.array(MediaSummarySchema).optional(),
+  versions: z.array(MediaSummarySchema).optional(),
 });
 
 const MediaPageSchema = z.object({

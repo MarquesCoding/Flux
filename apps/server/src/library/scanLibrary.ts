@@ -5,6 +5,7 @@ import { describeQuality } from './describeQuality';
 import { readEpisodeFromPath, tidy } from './readEpisodeFromPath';
 import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
 import { groupExtras } from './groupExtras';
+import { groupVersions } from './groupVersions';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
@@ -40,6 +41,7 @@ type MediaRow = {
   metadata: Metadata;
   episode: EpisodeNumbering;
   extraKind: ExtraKind | null;
+  versionLabel: string | null;
 };
 
 type MediaFileSystem = {
@@ -183,6 +185,10 @@ const scanLibrary = async ({
 
   const bareNumbered = groupBareNumberedEpisodes(found.map((file) => file.path));
   const extras = groupExtras(found.map((file) => file.path));
+  const versions = groupVersions(
+    found.map((file) => file.path),
+    new Set(extras.keys()),
+  );
 
   const seen = force
     ? { changed: found, missing: selectChanged(found, stored, probeVersion).missing }
@@ -287,6 +293,7 @@ const scanLibrary = async ({
         metadata,
         episode,
         extraKind: extra?.kind ?? null,
+        versionLabel: versions.get(file.path)?.label ?? null,
       });
 
       if (knownPaths.has(file.path)) {
@@ -294,7 +301,7 @@ const scanLibrary = async ({
       } else {
         added += 1;
 
-        if (itemId !== null && extra === null) {
+        if (itemId !== null && extra === null && !versions.has(file.path)) {
           onAdded?.({
             itemId,
             title,
@@ -336,9 +343,12 @@ const scanLibrary = async ({
     return { added, updated, removed: 0, failed };
   }
 
-  const links = [...extras]
-    .map(([path, one]) => ({ path, parentPath: one.parentPath }))
-    .filter((one): one is { path: string; parentPath: string } => one.parentPath !== null);
+  const links = [
+    ...[...extras]
+      .map(([path, one]) => ({ path, parentPath: one.parentPath }))
+      .filter((one): one is { path: string; parentPath: string } => one.parentPath !== null),
+    ...[...versions].map(([path, one]) => ({ path, parentPath: one.parentPath })),
+  ];
 
   if (links.length > 0) {
     await store.linkExtras?.(libraryId, links);

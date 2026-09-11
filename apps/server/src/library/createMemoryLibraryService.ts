@@ -29,6 +29,7 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
   seriesId: null,
   parentId: item.parentId ?? null,
   extraKind: item.extraKind ?? null,
+  versionLabel: item.versionLabel ?? null,
   rating: item.metadata.rating ?? null,
   seriesTitle: item.metadata.seriesTitle ?? null,
   seasonNumber: item.metadata.seasonNumber ?? null,
@@ -209,7 +210,15 @@ const createMemoryLibraryService = (
     return Promise.resolve(
       found === null
         ? null
-        : { ...found, extras: state.media.filter((item) => item.parentId === id).map(toSummary) },
+        : {
+            ...found,
+            extras: state.media
+              .filter((item) => item.parentId === id && (item.extraKind ?? null) !== null)
+              .map(toSummary),
+            versions: state.media
+              .filter((item) => item.parentId === id && (item.extraKind ?? null) === null)
+              .map(toSummary),
+          },
     );
   },
 

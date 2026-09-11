@@ -896,6 +896,7 @@ const createDatabaseLibraryService = ({
           addedAt: mediaItem.addedAt,
           posterUrl: mediaItem.posterUrl,
           extraKind: mediaItem.extraKind,
+          versionLabel: mediaItem.versionLabel,
           parentId: mediaItem.parentId,
         })
         .from(mediaItem)
@@ -907,14 +908,27 @@ const createDatabaseLibraryService = ({
         libraryId: row.libraryId,
         parentId: row.parentId,
         extraKind: row.extraKind,
-        extras: held.map(({ posterUrl, ...extra }) => ({
-          ...extra,
-          addedAt: extra.addedAt.toISOString(),
-          hasPoster: posterUrl !== null,
-          posterUrl,
-          hasBackdrop: false,
-          hasLogo: false,
-        })),
+        versionLabel: row.versionLabel,
+        extras: held
+          .filter((one) => one.extraKind !== null)
+          .map(({ posterUrl, ...extra }) => ({
+            ...extra,
+            addedAt: extra.addedAt.toISOString(),
+            hasPoster: posterUrl !== null,
+            posterUrl,
+            hasBackdrop: false,
+            hasLogo: false,
+          })),
+        versions: held
+          .filter((one) => one.extraKind === null)
+          .map(({ posterUrl, ...version }) => ({
+            ...version,
+            addedAt: version.addedAt.toISOString(),
+            hasPoster: posterUrl !== null,
+            posterUrl,
+            hasBackdrop: false,
+            hasLogo: false,
+          })),
         title: row.title,
         year: row.year,
         container: row.container,

@@ -16,6 +16,7 @@ import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { ActionBar } from '@ValenceUI/ActionBar';
+import { OptionMenu } from '@ValenceUI/OptionMenu';
 import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { downloadQueries } from '@ValenceClient/query/downloadQueries';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -41,6 +42,8 @@ import { CastGrid } from './components/CastGrid/CastGrid';
 import { EXTRA_KIND_LABELS } from '@ValenceContracts/schemas/Library';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
+
+const ORIGINAL_VERSION = 'Original';
 
 const CAST_PLACEHOLDERS = 5;
 
@@ -101,6 +104,7 @@ const MediaDetailDialog = ({
 
   const [unlettered, setUnlettered] = useState<string | null>(null);
   const [lastShown, setLastShown] = useState<MediaSummary | null>(null);
+  const [version, setVersion] = useState<string | null>(null);
   const heldRef = useRef<{ resume: number | undefined; siblings: MediaSummary[] }>({
     resume: undefined,
     siblings: [],
@@ -122,6 +126,7 @@ const MediaDetailDialog = ({
     setLastShown(media);
     setIsPreviewPlaying(false);
     setUnlettered(null);
+    setVersion(null);
 
     const returning = requestAnimationFrame(() => {
       scrollToTopOf(topRef.current, prefersReducedMotion !== true);
@@ -146,6 +151,8 @@ const MediaDetailDialog = ({
   const shownResume = media === null ? heldRef.current.resume : resumeSeconds;
   const shownSiblings = media === null ? heldRef.current.siblings : siblings;
   const extras = detail?.extras ?? [];
+  const versions = detail?.versions ?? [];
+  const chosenVersion = versions.find((one) => one.id === version) ?? null;
 
   if (shown === null) {
     return null;
@@ -458,17 +465,43 @@ const MediaDetailDialog = ({
         <ActionBar
           label="More to do with this"
           primary={
-            <Button
-              variant="glossy"
-              size="lg"
-              isPill
-              onClick={() => {
-                onPlay(shown, shownResume ?? 0);
-              }}
-            >
-              <Icon of={PlayIcon} size={18} />
-              {shownResume === undefined ? 'Play' : `Resume from ${formatDuration(shownResume)}`}
-            </Button>
+            <div className="flex items-center gap-2">
+              {versions.length === 0 ? null : (
+                <OptionMenu
+                  label="Which version to play"
+                  triggerShape="field"
+                  trigger={chosenVersion?.versionLabel ?? ORIGINAL_VERSION}
+                  groups={[
+                    {
+                      name: 'Version',
+                      options: [
+                        { id: shown.id, label: ORIGINAL_VERSION },
+                        ...versions.map((one) => ({
+                          id: one.id,
+                          label: one.versionLabel ?? 'Another version',
+                        })),
+                      ],
+                      selectedId: chosenVersion?.id ?? shown.id,
+                      onSelect: setVersion,
+                    },
+                  ]}
+                />
+              )}
+
+              <Button
+                variant="glossy"
+                size="lg"
+                isPill
+                onClick={() => {
+                  onPlay(chosenVersion ?? shown, chosenVersion === null ? (shownResume ?? 0) : 0);
+                }}
+              >
+                <Icon of={PlayIcon} size={18} />
+                {shownResume === undefined || chosenVersion !== null
+                  ? 'Play'
+                  : `Resume from ${formatDuration(shownResume)}`}
+              </Button>
+            </div>
           }
           actions={[
             ...(shownResume === undefined

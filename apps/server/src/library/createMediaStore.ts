@@ -133,6 +133,7 @@ const createMediaStore = (
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
       extraKind: row.extraKind,
+      versionLabel: row.versionLabel,
       updatedAt: new Date(),
     };
 

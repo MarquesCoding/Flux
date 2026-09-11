@@ -73,8 +73,28 @@ the same layout, so `Arrival (2016)/movie.mkv` is still _Arrival_, 2016 — and 
 folder stays right when the file inside it disagrees. A folder naming a year and
 nothing else is not a title, so filing films by release year still works.
 
-An edition named only in the filename — `Arrival (2016) - Extended Cut.mkv` — is
-not kept yet. Holding several files as one film is a separate piece of work.
+A folder whose files all begin with the film's name is one film held as several
+cuts of itself — a theatrical and a director's, a colour print and a black and
+white one. They are one entry on the shelf, and which cut plays is chosen before
+pressing play rather than swapped during. Files that merely sit together are
+films that merely sit together, so the names have to say it.
+
+## Extras
+
+A folder named for what is in it — `Featurettes`, `Behind The Scenes`,
+`Trailers`, `Deleted Scenes`, `Extras` — holds extras rather than films, and so
+does a file whose name ends in `-trailer`, `.sample`, `_interview` and the rest.
+Both are what Jellyfin reads, because that is what a collection is already
+arranged for.
+
+A suffix counts only where something beside it carries the same name without
+it. A film called `The Short` is a film.
+
+Extras are kept off the shelf and shown on the thing they belong to: a film's on
+the film, and a programme's with the programme, since a series is made of its
+episodes rather than being one of them. They never announce themselves as new
+arrivals — a collection with two hundred trailers in it would otherwise send two
+hundred notifications on its first scan.
 
 Set `CATALOGUE_API_KEY` and a richer provider takes over: overview, tagline,
 genres, cast, rating, poster and backdrop, searched by title and year — or by
