@@ -19,8 +19,8 @@ replace.
 Valence has no opinion about how you arrange a library. A film sitting loose in
 a folder of films is read, and so is one in a folder of its own; a programme is
 read whether its episodes sit in `Season 1` folders, in `S01`, in `Series 1`, or
-loose in the show's own folder. `Specials` and `Extras` are read as season zero
-and shown after the seasons rather than before them.
+loose in the show's own folder. A `Specials` folder is season zero, shown after
+the seasons rather than before them.
 
 Symbolic links are followed, so a library assembled out of them — mergerfs,
 rclone, the layouts a download stack leaves behind — is read like any other. A
@@ -79,23 +79,6 @@ white one. They are one entry on the shelf, and which cut plays is chosen before
 pressing play rather than swapped during. Files that merely sit together are
 films that merely sit together, so the names have to say it.
 
-## Extras
-
-A folder named for what is in it — `Featurettes`, `Behind The Scenes`,
-`Trailers`, `Deleted Scenes`, `Extras` — holds extras rather than films, and so
-does a file whose name ends in `-trailer`, `.sample`, `_interview` and the rest.
-Both are what Jellyfin reads, because that is what a collection is already
-arranged for.
-
-A suffix counts only where something beside it carries the same name without
-it. A film called `The Short` is a film.
-
-Extras are kept off the shelf and shown on the thing they belong to: a film's on
-the film, and a programme's with the programme, since a series is made of its
-episodes rather than being one of them. They never announce themselves as new
-arrivals — a collection with two hundred trailers in it would otherwise send two
-hundred notifications on its first scan.
-
 Set `CATALOGUE_API_KEY` and a richer provider takes over: overview, tagline,
 genres, cast, rating, poster and backdrop, searched by title and year — or by
 series name for anything that looks like an episode. The filename reader stays
@@ -115,6 +98,23 @@ so a plugin overrides the built-in reader without replacing it.
 
 A provider that fails is skipped rather than failing the scan. A metadata
 service being down must not make your library unreadable.
+
+## Extras
+
+A folder named for what is in it — `Featurettes`, `Behind The Scenes`,
+`Trailers`, `Deleted Scenes`, `Extras` — holds extras rather than films, and so
+does a file whose name ends in `-trailer`, `.sample`, `_interview` and the rest.
+Both are what Jellyfin reads, because that is what a collection is already
+arranged for.
+
+A suffix counts only where something beside it carries the same name without
+it. A film called `The Short` is a film.
+
+Extras are kept off the shelf and shown on the thing they belong to: a film's on
+the film, and a programme's with the programme, since a series is made of its
+episodes rather than being one of them. They never announce themselves as new
+arrivals — a collection with two hundred trailers in it would otherwise send two
+hundred notifications on its first scan.
 
 ## Finding things again
 
