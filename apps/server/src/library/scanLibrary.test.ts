@@ -1084,3 +1084,35 @@ describe('a media service that goes away mid-scan', () => {
     expect(problems[0]).toBe('fetch failed: read ECONNRESET');
   });
 });
+
+describe('what is worth reading a file again for', () => {
+  const held = (changes: Partial<StoredItem> = {}): StoredItem =>
+    stored('/media/films/Arrival (2016).mkv', changes);
+
+  it('does not read a file again just because nothing said whether it can be copied', () => {
+    const { changed } = selectChanged(
+      [file('/media/films/Arrival (2016).mkv')],
+      [held({ canCopySegments: null })],
+    );
+
+    expect(changed).toEqual([]);
+  });
+
+  it('still reads one again where the probe itself is incomplete', () => {
+    const { changed } = selectChanged(
+      [file('/media/films/Arrival (2016).mkv')],
+      [held({ videoFrameRate: null })],
+    );
+
+    expect(changed).toHaveLength(1);
+  });
+
+  it('still reads one again where the file itself has moved on', () => {
+    const { changed } = selectChanged(
+      [file('/media/films/Arrival (2016).mkv', { sizeBytes: 999 })],
+      [held()],
+    );
+
+    expect(changed).toHaveLength(1);
+  });
+});

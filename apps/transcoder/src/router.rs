@@ -476,40 +476,26 @@ async fn capabilities(State(state): State<AppState>) -> Json<Capabilities> {
 
 /// The segment length a probe judges copyability against.
 ///
-/// The same length a session asks for, because the question is whether this
-/// source could be delivered by copying it, and that depends on what would be
-/// asked of it. See [`crate::boundaries::can_copy_segments`].
-const PROBE_SEGMENT_SECONDS: f64 = 4.0;
-
-/// Everything Valence needs to know about a file, including whether it can be
-/// copied.
+/// Everything Valence needs to know about a file, read from its header.
 ///
-/// Copyability costs a read of the whole packet index — about a second on a six
-/// gigabyte remux — so it is answered here, where the library scan asks once
-/// per file, rather than inside `probe_media`, which is called for previews and
-/// trickplay and boundaries and wants none of it.
+/// Deliberately not whether its segments can be copied. That costs a read of
+/// every video packet in the file — flat against a header read, and growing
+/// with the film — and a library scan asks this once per file, including for
+/// the files nobody ever plays. It was the whole cost of a scan: a header is
+/// read in about seventy milliseconds whatever the size, and the packet index
+/// of a two hour remux takes tens of seconds.
 ///
-/// A file with no video stream is not copyable or otherwise; the question does
-/// not apply and nothing is claimed.
+/// Nothing is lost by not knowing. A session reads the boundaries itself when
+/// it starts, and `deliverable` turns a copy into an encode where they say the
+/// source cannot be cut — so a plan made without this is corrected before a
+/// frame is written, and the read happens once, for a file somebody is actually
+/// watching.
 async fn probe(State(state): State<AppState>, Json(request): Json<ProbeRequest>) -> Response {
     let path = Path::new(&request.path);
 
-    let Ok(mut result) = probe_media(&state.ffprobe, path).await else {
+    let Ok(result) = probe_media(&state.ffprobe, path).await else {
         return error(StatusCode::BAD_REQUEST, "That file could not be probed.");
     };
-
-    if result.video.is_some() {
-        if let Ok(keyframes) =
-            crate::keyframes::read_keyframes(&state.ffprobe, path, result.duration_seconds).await
-        {
-            let cut_seconds = crate::keyframes::cut_interval(&keyframes, PROBE_SEGMENT_SECONDS);
-
-            result.can_copy_segments = Some(crate::boundaries::can_copy_segments(
-                &keyframes,
-                cut_seconds,
-            ));
-        }
-    }
 
     (StatusCode::OK, Json(result)).into_response()
 }

@@ -132,6 +132,10 @@ const isReachable = async (transcoder: Transcoder): Promise<boolean> => {
  *   under an older one is worked out again. Nothing to compare against where it is not known, since
  *   a transcoder that could not be asked is a reason to leave the library alone rather than to
  *   probe all of it.
+ *
+ *   Whether segments can be copied is not among the things worth probing again for. A probe no
+ *   longer answers it — a session works it out when it starts — so a row that does not carry it is
+ *   complete rather than half read.
  * @returns The files to probe.
  */
 const selectChanged = (
@@ -151,7 +155,6 @@ const selectChanged = (
       existing.modifiedAtMs !== file.modifiedAtMs ||
       existing.videoBitDepth === null ||
       existing.videoRangeBase === null ||
-      existing.canCopySegments === null ||
       existing.videoFrameRate === null ||
       (probeVersion !== null && existing.probeVersion !== probeVersion)
     );
