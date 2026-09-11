@@ -128,6 +128,7 @@ const LibraryFacetsSchema = z.object({
 
 export type LibraryFacets = z.infer<typeof LibraryFacetsSchema>;
 export type LibraryKind = z.infer<typeof LibraryKindSchema>;
+export type ExtraKind = z.infer<typeof ExtraKindSchema>;
 export type Library = z.infer<typeof LibrarySchema>;
 export type UpdateLibraryRequest = z.infer<typeof UpdateLibraryRequestSchema>;
 export type MediaSummary = z.infer<typeof MediaSummarySchema>;

@@ -2,12 +2,13 @@ import { isMediaFile } from './readTitleFromPath';
 import { resolveMetadata } from './MetadataProvider';
 import { createFilenameMetadataProvider } from './createFilenameMetadataProvider';
 import { describeQuality } from './describeQuality';
-import { readEpisodeFromPath } from './readEpisodeFromPath';
+import { readEpisodeFromPath, tidy } from './readEpisodeFromPath';
 import { groupBareNumberedEpisodes } from './groupBareNumberedEpisodes';
+import { groupExtras } from './groupExtras';
 import type { Metadata, MetadataProvider } from './MetadataProvider';
 import type { EpisodeNumbering } from './readEpisodeFromPath';
 import type { MediaProbe, Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
-import type { ScanResult } from '@ValenceContracts/schemas/Library';
+import type { ExtraKind, ScanResult } from '@ValenceContracts/schemas/Library';
 
 type ScannedFile = {
   path: string;
@@ -38,6 +39,7 @@ type MediaRow = {
   probeVersion: number | null;
   metadata: Metadata;
   episode: EpisodeNumbering;
+  extraKind: ExtraKind | null;
 };
 
 type MediaFileSystem = {
@@ -70,6 +72,7 @@ type MediaStore = {
   upsert: (row: MediaRow) => Promise<string | null>;
   removeByPaths: (libraryId: string, paths: string[]) => Promise<ScannedItem[]>;
   listOverrides?: (libraryId: string) => Promise<MediaOverride[]>;
+  linkExtras?: (libraryId: string, links: { path: string; parentPath: string }[]) => Promise<void>;
   markScanned: (libraryId: string) => Promise<void>;
 };
 
@@ -179,6 +182,7 @@ const scanLibrary = async ({
   const probeVersion = await readProbeVersion(transcoder);
 
   const bareNumbered = groupBareNumberedEpisodes(found.map((file) => file.path));
+  const extras = groupExtras(found.map((file) => file.path));
 
   const seen = force
     ? { changed: found, missing: selectChanged(found, stored, probeVersion).missing }
@@ -221,11 +225,21 @@ const scanLibrary = async ({
 
       const read = readEpisodeFromPath(file.path);
       const bare = bareNumbered.get(file.path);
+      const extra = extras.get(file.path) ?? null;
 
-      const episode =
+      const numbered =
         read.episodeNumber === null && bare !== undefined
           ? { ...read, ...bare, seriesYear: read.seriesYear }
           : read;
+
+      const episode =
+        extra?.seriesFolder === null || extra === null
+          ? numbered
+          : {
+              ...numbered,
+              seriesTitle: tidy(extra.seriesFolder.slice(extra.seriesFolder.lastIndexOf('/') + 1)),
+              seriesFolder: extra.seriesFolder,
+            };
       const corrected = overrides.get(file.path) ?? null;
       const knownExternalId =
         corrected?.externalId ?? storedByPath.get(file.path)?.externalId ?? null;
@@ -272,6 +286,7 @@ const scanLibrary = async ({
         probeVersion,
         metadata,
         episode,
+        extraKind: extra?.kind ?? null,
       });
 
       if (knownPaths.has(file.path)) {
@@ -279,7 +294,7 @@ const scanLibrary = async ({
       } else {
         added += 1;
 
-        if (itemId !== null) {
+        if (itemId !== null && extra === null) {
           onAdded?.({
             itemId,
             title,
@@ -319,6 +334,14 @@ const scanLibrary = async ({
     );
 
     return { added, updated, removed: 0, failed };
+  }
+
+  const links = [...extras]
+    .map(([path, one]) => ({ path, parentPath: one.parentPath }))
+    .filter((one): one is { path: string; parentPath: string } => one.parentPath !== null);
+
+  if (links.length > 0) {
+    await store.linkExtras?.(libraryId, links);
   }
 
   const gone = missing.length === 0 ? [] : await store.removeByPaths(libraryId, missing);
