@@ -274,7 +274,10 @@ pub fn sheet_arguments(
 
     let filter = match onto_the_device {
         Some((_, pipeline)) => format!(
-            "fps=1/{interval},{scaler}=w={width}:h={height},hwdownload,format={down},tile={columns}x{rows}",
+            "{mapping}fps=1/{interval},{scaler}=w={width}:h={height},hwdownload,format={down},tile={columns}x{rows}",
+            mapping = pipeline
+                .maps_onto_device
+                .map_or_else(String::new, |filter| format!("{filter},")),
             interval = request.interval_seconds,
             scaler = pipeline.scaler,
             width = request.tile_width,
@@ -305,11 +308,11 @@ pub fn sheet_arguments(
     if let Some((found, pipeline)) = onto_the_device {
         arguments.extend(found.filter_device_arguments(device));
 
-        if let Some(flag) = found.ffmpeg_flag() {
+        if found.ffmpeg_flag().is_some() {
             arguments.push("-hwaccel".to_owned());
-            arguments.push(flag.to_owned());
+            arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
-            arguments.push(pipeline.output_format.to_owned());
+            arguments.push(pipeline.decoded_format.to_owned());
         }
     }
 
@@ -738,7 +741,9 @@ otherwise start a second one"
             !arguments.iter().any(|argument| argument == "-skip_frame"),
             "{arguments:?}"
         );
-        assert!(arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel", "vaapi"]));
     }
 
     #[test]
@@ -869,12 +874,15 @@ otherwise start a second one"
             .map(|pair| pair[1].clone())
             .expect("a filter chain");
 
-        assert!(arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]));
         assert!(arguments
             .windows(2)
-            .any(|pair| pair == ["-hwaccel_output_format", "qsv"]));
+            .any(|pair| pair == ["-hwaccel", "vaapi"]));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
         assert_eq!(
-            chain, "fps=1/10,vpp_qsv=w=320:h=180,hwdownload,format=nv12,tile=2x2",
+            chain,
+            "hwmap=derive_device=qsv,format=qsv,fps=1/10,vpp_qsv=w=320:h=180,hwdownload,format=nv12,tile=2x2",
             "the scale happens on the device, so only the thumbnails come down"
         );
     }

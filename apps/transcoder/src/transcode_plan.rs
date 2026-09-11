@@ -674,10 +674,14 @@ fn device_chain(
         _ => String::new(),
     };
     let scale = format!("{}=w={width}:h={height}{narrowing}", pipeline.scaler);
-
-    match tone_map {
+    let chain = match tone_map {
         Some(mapper) => format!("{mapper},{scale}"),
         None => scale,
+    };
+
+    match pipeline.maps_onto_device {
+        Some(mapping) => format!("{mapping},{chain}"),
+        None => chain,
     }
 }
 
@@ -853,6 +857,26 @@ pub struct HardwarePipeline {
     /// surfaces are twice the size, which is why eight-bit films survived it.
     /// The number is the one this build already uses to composite on `QSV`.
     pub upload: &'static str,
+    /// What `-hwaccel` this backend decodes with, which is not always its own.
+    ///
+    /// `QSV` decodes with `VAAPI`. Asking for `-hwaccel qsv` selects the `QSV`
+    /// decoder wrappers — `hevc_qsv` and the rest — and on an Intel iGPU those
+    /// returned "Error during QSV decoding: GPU Hang (-21)" until the device
+    /// reset, over and over, on a library Jellyfin reads on the same chip
+    /// without one. Jellyfin reads it on `VA-API`: its "Prefer OS native DXVA
+    /// or VA-API hardware decoders" is on by default and means the `QSV`
+    /// decoders are never used, only the `QSV` encoders. So this asks for what
+    /// Jellyfin asks for.
+    pub decodes_with: &'static str,
+    /// What the decoder hands over, which follows `decodes_with`.
+    pub decoded_format: &'static str,
+    /// How frames reach this backend's filters from the decoder's.
+    ///
+    /// `QSV` needs its `VAAPI` surfaces mapped rather than copied, which is
+    /// free: a `QSV` device on Linux is a `VAAPI` device underneath and this
+    /// one was derived from it. Everything else decodes into the frames its own
+    /// filters take and needs nothing.
+    pub maps_onto_device: Option<&'static str>,
 }
 
 impl HardwarePipeline {
@@ -904,6 +928,9 @@ impl HardwareAccel {
                 overlay: "overlay_videotoolbox",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload",
+                decodes_with: "videotoolbox",
+                decoded_format: "videotoolbox_vld",
+                maps_onto_device: None,
                 tone_map: Some(
                     "tonemap_videotoolbox=format=nv12:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
@@ -919,6 +946,9 @@ impl HardwareAccel {
                 overlay: "overlay_cuda",
                 overlay_format: "yuva420p",
                 overlay_upload: "hwupload=derive_device=cuda",
+                decodes_with: "cuda",
+                decoded_format: "cuda",
+                maps_onto_device: None,
                 tone_map: Some(
                     "tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
@@ -934,6 +964,9 @@ impl HardwareAccel {
                 overlay: "overlay_qsv",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
+                decodes_with: "vaapi",
+                decoded_format: "vaapi",
+                maps_onto_device: Some("hwmap=derive_device=qsv,format=qsv"),
                 tone_map: Some("vpp_qsv=tonemap=1:format=nv12"),
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
@@ -947,6 +980,9 @@ impl HardwareAccel {
                 overlay: "overlay_vaapi",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=vaapi",
+                decodes_with: "vaapi",
+                decoded_format: "vaapi",
+                maps_onto_device: None,
                 tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
@@ -960,6 +996,9 @@ impl HardwareAccel {
                 overlay: "overlay_rkrga",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=rkmpp",
+                decodes_with: "rkmpp",
+                decoded_format: "drm_prime",
+                maps_onto_device: None,
                 tone_map: None,
                 encodes_from_device: false,
                 narrows_to_eight_bit: Some("format=nv12"),
@@ -1597,14 +1636,11 @@ impl TranscodePlan {
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
 
-            if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-                args.push("-hwaccel".into());
-                args.push(flag.into());
-            }
-
             if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
+                args.push("-hwaccel".into());
+                args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
-                args.push(pipeline.output_format.into());
+                args.push(pipeline.decoded_format.into());
             }
         }
 
@@ -1647,14 +1683,11 @@ impl TranscodePlan {
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
 
-            if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-                args.push("-hwaccel".into());
-                args.push(flag.into());
-            }
-
             if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
+                args.push("-hwaccel".into());
+                args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
-                args.push(pipeline.output_format.into());
+                args.push(pipeline.decoded_format.into());
             }
         }
 
@@ -2161,7 +2194,7 @@ mod tests {
         let args = plan(spec).to_ffmpeg_args();
 
         assert!(
-            args.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]),
+            args.windows(2).any(|pair| pair == ["-hwaccel", "vaapi"]),
             "{args:?}"
         );
     }
@@ -2946,7 +2979,10 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         let cases = [
             (HardwareAccel::VideoToolbox, "scale_vt=w=1280:h=532"),
             (HardwareAccel::Nvenc, "scale_cuda=w=1280:h=532:format=nv12"),
-            (HardwareAccel::Qsv, "vpp_qsv=w=1280:h=532:format=nv12"),
+            (
+                HardwareAccel::Qsv,
+                "hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=1280:h=532:format=nv12",
+            ),
             (HardwareAccel::Vaapi, "scale_vaapi=w=1280:h=532:format=nv12"),
         ];
 
@@ -2993,6 +3029,54 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         assert!(!takes_ten_bit("h264_qsv"));
         assert!(!takes_ten_bit("h264_vaapi"));
         assert!(!takes_ten_bit("libx264"));
+    }
+
+    /// The QSV decoders hang an Intel iGPU, and Jellyfin never uses them: its
+    /// "Prefer OS native DXVA or VA-API hardware decoders" is on by default,
+    /// which is QSV encoding on top of VA-API decoding. This asks for the same.
+    #[test]
+    fn decodes_on_vaapi_where_the_encoder_is_qsv() {
+        let args = plan(on_gpu(HardwareAccel::Qsv)).to_ffmpeg_args();
+
+        assert!(args.windows(2).any(|pair| pair == ["-hwaccel", "vaapi"]));
+        assert!(!args.iter().any(|argument| argument == "qsv"));
+        assert!(args
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
+    }
+
+    /// Mapped rather than copied: a QSV device on Linux is the VAAPI one
+    /// underneath, and this one was derived from it, so it costs nothing.
+    #[test]
+    fn maps_the_decoders_frames_onto_qsv_rather_than_copying_them() {
+        let args = plan(on_gpu(HardwareAccel::Qsv)).to_ffmpeg_args();
+        let filters = args
+            .iter()
+            .position(|argument| argument == "-vf")
+            .and_then(|at| args.get(at + 1))
+            .expect("a filter chain");
+
+        assert!(
+            filters.starts_with("hwmap=derive_device=qsv,format=qsv,"),
+            "{filters}"
+        );
+        assert!(!filters.contains("hwdownload"), "{filters}");
+    }
+
+    #[test]
+    fn leaves_every_other_backend_decoding_on_its_own() {
+        for (accel, flag) in [
+            (HardwareAccel::Vaapi, "vaapi"),
+            (HardwareAccel::Nvenc, "cuda"),
+            (HardwareAccel::VideoToolbox, "videotoolbox"),
+        ] {
+            let args = plan(on_gpu(accel)).to_ffmpeg_args();
+
+            assert!(
+                args.windows(2).any(|pair| pair == ["-hwaccel", flag]),
+                "{accel:?}"
+            );
+        }
     }
 
     #[test]
