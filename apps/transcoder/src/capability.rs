@@ -208,6 +208,16 @@ pub struct Capabilities {
     /// breaks is the joins between them. See [`crate::chains`].
     #[serde(default)]
     pub chains: Vec<crate::chains::VerifiedChain>,
+    /// How many hardware renders this machine will run at the same time.
+    ///
+    /// Measured rather than worked out from the processor count, which has
+    /// nothing to do with it: a render on the device costs a session and a
+    /// share of the device's memory, and a graphics chip has a fixed number of
+    /// both however many cores sit beside it. Zero means there is no hardware
+    /// to be bounded by and the caller's own count governs. See
+    /// [`crate::concurrency`].
+    #[serde(default)]
+    pub concurrent_renders: u32,
     /// Encoders that were offered and would not run, and what they said.
     #[serde(default)]
     pub rejected: Vec<RejectedEncoder>,
@@ -696,6 +706,10 @@ pub async fn detect_capabilities(ffmpeg: &str, device: &str) -> Capabilities {
         .clone()
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one linear probe of the machine, read top to bottom"
+)]
 async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
@@ -753,6 +767,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 
     let version = read_version(ffmpeg).await;
     let encoders_for_chains = encoders.clone();
+    let encoders_for_concurrency = encoders.clone();
 
     Capabilities {
         ffmpeg_supported: meets_minimum(&version),
@@ -776,6 +791,12 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
         chains: crate::chains::verify_chains(ffmpeg, device, &encoders_for_chains).await,
+        concurrent_renders: crate::concurrency::verify_concurrency(
+            ffmpeg,
+            device,
+            &encoders_for_concurrency,
+        )
+        .await,
     }
 }
 
@@ -1192,6 +1213,7 @@ reported anything else would either reprobe forever or never"
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,
             chains: Vec::new(),
+            concurrent_renders: 0,
         }
     }
 

@@ -114,6 +114,7 @@ const CapabilitiesSchema = z.object({
   toneMapping: z.enum(['zscale', 'libplacebo', 'unavailable']).default('unavailable'),
   canBurnTextSubtitles: z.boolean().default(false),
   canBurnImageSubtitles: z.boolean().default(false),
+  concurrentRenders: z.number().int().nonnegative().default(0),
   chains: z
     .array(
       z.object({

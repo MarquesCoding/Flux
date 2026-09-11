@@ -664,6 +664,7 @@ mod tests {
             can_burn_text_subtitles: true,
             can_burn_image_subtitles: true,
             chains: Vec::new(),
+            concurrent_renders: 0,
         }
     }
 

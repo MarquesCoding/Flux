@@ -63,6 +63,7 @@ import {
 } from '@ValenceServer/jobs/JobQueue';
 import type { JobQueue } from '@ValenceServer/jobs/JobQueue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { filesAtOnce } from '@ValenceServer/library/filesAtOnce';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
@@ -412,6 +413,22 @@ const createDatabaseLibraryService = ({
     });
   };
 
+  let measured: Promise<number> | null = null;
+
+  /**
+   * Asks the media service how many hardware renders this machine will run at once, once.
+   *
+   * @returns What the machine proved, or zero where it has no hardware or could not be asked.
+   */
+  const rendersAtOnce = async (): Promise<number> => {
+    measured ??= transcoder
+      .capabilities()
+      .then((found) => found.concurrentRenders)
+      .catch(() => 0);
+
+    return measured;
+  };
+
   /**
    * Decides how many of a library's files to work on at once: what the library was configured with,
    * or what the server thinks it can manage. A library on a network share wants one — the files arrive
@@ -421,7 +438,7 @@ const createDatabaseLibraryService = ({
    * @returns How many files to render at the same time.
    */
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
-    (await findLibrary(libraryId))?.filesAtOnce ?? atOnce;
+    filesAtOnce((await findLibrary(libraryId))?.filesAtOnce ?? atOnce, await rendersAtOnce());
 
   /**
    * Reads what the last scan of a library actually changed. "Scanned an hour ago" and "scanned an hour
