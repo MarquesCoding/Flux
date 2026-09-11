@@ -1,7 +1,17 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CaretDownIcon, InfoIcon, PlayIcon } from '@phosphor-icons/react';
+import { titleLogoUrl } from '@ValenceScreens/library/titleLogoUrl';
+import { TitleLogo } from '@ValenceScreens/components/TitleLogo/TitleLogo';
+import { InformationCircleIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion, useScroll, useTransform } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+  useAnimationFrame,
+  useMotionValue,
+  useReducedMotion,
+  useScroll,
+  useTransform,
+} from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
@@ -14,17 +24,26 @@ import { PageDots } from '@ValenceUI/PageDots';
 import { useIsPageCovered } from '@ValenceUI/useIsPageCovered';
 import type { HeroProps } from './Hero.types';
 
-const DRAWS_IN_BY_PIXELS = 640;
-
-const FOOT_OF_THE_CARD = '24svh';
-
-const SIDE_OF_THE_CARD = '1.5rem';
-
-const CORNER_OF_THE_CARD = '20px';
-
 const ROTATE_AFTER_MILLISECONDS = 28_000;
 
 const PREVIEW_SETTLE_MILLISECONDS = 2500;
+
+const SYNOPSIS_MILLISECONDS = 8000;
+
+const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as const;
+
+const SETTLES_TO = 0.92;
+
+const FADES_TO = 0.08;
+
+const DRIFTS_BY = -40;
+
+const UNMEASURED_DEPTH = 600;
+
+const LOGO_BOX = [
+  'max-h-[22svh] w-auto max-w-[min(76vw,36rem)] object-contain object-left',
+  'drop-shadow-[var(--shadow-legible)]',
+].join(' ');
 
 /**
  * Builds the address an item's backdrop is served from, which is what the hero is drawn over.
@@ -35,27 +54,19 @@ const PREVIEW_SETTLE_MILLISECONDS = 2500;
 const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/backdrop`;
 
 /**
- * Builds the address a title's logo is served from — the title as its designer set it, which the
- * hero prefers to text where the catalogue has one.
+ * The screen a library opens with: one thing in a card beneath the bar, its own artwork behind it,
+ * playing a preview once it has settled. Rotates through a handful of items rather than showing one,
+ * and hands out the colours it is showing so the whole page can be lit by them.
  *
- * @param mediaId - The item.
- * @returns The address to load.
- */
-const logoUrl = (mediaId: string): string => `/api/media/${mediaId}/image/logo`;
-
-const SYNOPSIS_MILLISECONDS = 8000;
-
-const SYNOPSIS_FOLDED = { opacity: 0, height: 0, marginTop: '-0.75rem' } as const;
-
-const LOGO_BOX = [
-  'max-h-[14svh] w-auto max-w-[min(70vw,24rem)] object-contain object-left',
-  'drop-shadow-[var(--shadow-legible)]',
-].join(' ');
-
-/**
- * The screen a library opens with: one thing filling the window, its own artwork behind it, playing
- * a preview once it has settled. Rotates through a handful of items rather than showing one, and
- * hands out the colours it is showing so the whole page can be lit by them.
+ * Where it stays behind, it holds its place as the page is scrolled and the rows ride up over it,
+ * and recedes as they cover it: fading, settling back a little, and drifting up more slowly than
+ * the page — so it reads as further away rather than as something being scrolled off the top.
+ *
+ * How far it has receded is measured against the page's own scroll and the card's height, not
+ * against the card's position. A card held in place by the page reports a position that moves with
+ * the scroll, so measuring from it would read as never having moved at all. That needs whatever follows it to be opaque, which is why it
+ * is asked for rather than assumed: a page whose next thing is transparent would scroll its text
+ * straight across the picture.
  *
  * @param items - What it may feature.
  * @param onPlay - Told to start something, and where from.
@@ -64,17 +75,9 @@ const LOGO_BOX = [
  * @param onFeatureChange - Told which item is showing now.
  * @param resumeFor - Where this viewer left each item, for the button that offers to carry on.
  * @param rotateAfterMilliseconds - How long each item holds the screen.
- * @param fills - Whether it fills what it is put in rather than standing in a runway of its own.
- *   A hero standing in a runway says there is more underneath, with a mark that fades as soon as
- *   somebody starts scrolling — it has said its piece by then, and a hint that outstays the moment
- *   it was needed becomes decoration. One that fills has nothing beneath it and says nothing.
- *
- *   The mark stands clear of whatever the shell has put along the bottom, which it learns from the
- *   shell rather than assuming: a screen with a dock says how much room it takes, and a screen with
- *   no dock — a shared link, which has no chrome at all — says nothing and the mark sits low.
- *   A library's front page scrolls beneath it, which is what the runway and the card drawing in are
- *   for; a page holding nothing but this has nothing to scroll, and the card would be drawing in
- *   against a scroll that never comes.
+ * @param fills - Whether it fills what it is put in, edge to edge, rather than standing as a card.
+ *   A page holding nothing but this has no page for a card to sit on.
+ * @param staysBehind - Whether it holds still while the page scrolls up over it.
  */
 const Hero = ({
   items,
@@ -85,8 +88,10 @@ const Hero = ({
   resumeFor,
   rotateAfterMilliseconds = ROTATE_AFTER_MILLISECONDS,
   fills = false,
+  staysBehind = false,
 }: HeroProps) => {
   const [index, setIndex] = useState(0);
+  const turn = useMotionValue(0);
 
   const [unlettered, setUnlettered] = useState<ReadonlySet<string>>(new Set());
   const [isTelling, setIsTelling] = useState(true);
@@ -106,23 +111,45 @@ const Hero = ({
   const told = overview === '' ? null : overview;
   const resume = featured === undefined ? null : (resumeFor?.(featured.id) ?? null);
 
+  const isReceding = staysBehind && !fills && prefersReducedMotion !== true;
+
+  const cardRef = useRef<HTMLElement>(null);
+  const depthRef = useRef(UNMEASURED_DEPTH);
+  const { scrollY } = useScroll();
+
+  const covered = useTransform(scrollY, (travelled) =>
+    Math.min(Math.max(travelled / depthRef.current, 0), 1),
+  );
+
+  const scale = useTransform(covered, [0, 1], [1, SETTLES_TO]);
+  const opacity = useTransform(covered, [0, 1], [1, FADES_TO]);
+  const y = useTransform(covered, [0, 1], [0, DRIFTS_BY]);
+
+  useEffect(() => {
+    const card = cardRef.current;
+
+    if (card === null || !isReceding) {
+      return;
+    }
+
+    const measure = new ResizeObserver(() => {
+      depthRef.current = Math.max(card.offsetHeight, 1);
+    });
+
+    measure.observe(card);
+
+    return () => {
+      measure.disconnect();
+    };
+  }, [isReceding]);
+
   useEffect(() => {
     if (featured !== undefined) {
       onFeatureChange?.(featured);
     }
   }, [featured, onFeatureChange]);
 
-  const runwayRef = useRef<HTMLDivElement>(null);
-  const { scrollYProgress } = useScroll({
-    target: runwayRef,
-    offset: ['start start', 'end end'],
-  });
-
-  const lift = useTransform(scrollYProgress, [0, 1], ['0px', '72px']);
-  const foot = useTransform(scrollYProgress, [0, 1], ['0px', FOOT_OF_THE_CARD]);
-  const side = useTransform(scrollYProgress, [0, 1], ['0px', SIDE_OF_THE_CARD]);
-  const corner = useTransform(scrollYProgress, [0, 1], ['0px', CORNER_OF_THE_CARD]);
-  const beckon = useTransform(scrollYProgress, [0, 0.12], [1, 0]);
+  const isRotating = items.length > 1 && rotateAfterMilliseconds > 0;
 
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
@@ -130,17 +157,34 @@ const Hero = ({
     }
   }, [items.length, isHeld]);
 
+  const show = useCallback(
+    (next: number) => {
+      turn.set(0);
+      setIndex(next);
+    },
+    [turn],
+  );
+
   useEffect(() => {
-    if (items.length < 2 || rotateAfterMilliseconds <= 0 || isHeld) {
+    turn.set(0);
+  }, [index, turn]);
+
+  useAnimationFrame((_, delta) => {
+    if (!isRotating || isHeld) {
       return;
     }
 
-    const timer = setTimeout(showNext, rotateAfterMilliseconds);
+    const next = turn.get() + delta / rotateAfterMilliseconds;
 
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [items.length, rotateAfterMilliseconds, isHeld, index, showNext]);
+    if (next < 1) {
+      turn.set(next);
+
+      return;
+    }
+
+    turn.set(0);
+    showNext();
+  });
 
   const featuredId = featured?.id ?? null;
 
@@ -170,203 +214,160 @@ const Hero = ({
 
   return (
     <div
-      ref={runwayRef}
-      className="pointer-events-none relative"
-      style={
-        fills
-          ? { height: 'calc(100svh - var(--valence-window-bar))' }
-          : {
-              height:
-                prefersReducedMotion === true
-                  ? 'calc(100svh - var(--valence-window-bar))'
-                  : `calc(100svh - var(--valence-window-bar) + ${DRAWS_IN_BY_PIXELS.toString()}px)`,
-              marginBottom: `-${FOOT_OF_THE_CARD}`,
-            }
-      }
+      className={cn(
+        fills ? 'h-[calc(100svh-var(--valence-window-bar))]' : 'px-4 pt-4 sm:px-6',
+        staysBehind && !fills ? 'sticky top-[var(--nav-clearance,1rem)] z-0' : '',
+      )}
     >
-      <div
+      <motion.section
+        ref={cardRef}
+        aria-label="Featured"
+        onFocusCapture={(event) => {
+          setIsFocused(event.target.matches(':focus-visible'));
+        }}
+        onBlurCapture={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) {
+            setIsFocused(false);
+          }
+        }}
+        {...(isReceding ? { style: { scale, opacity, y } } : {})}
         className={cn(
-          'h-[calc(100svh-var(--valence-window-bar))]',
-          fills ? '' : 'sticky top-[var(--valence-window-bar)]',
+          'relative flex flex-col justify-end overflow-hidden',
+          fills
+            ? 'h-full'
+            : 'h-[min(74svh,52rem)] min-h-[26rem] rounded-[20px] ring-1 ring-line shadow-[var(--shadow-cast)]',
         )}
       >
-        <motion.section
-          aria-label="Featured"
-          onPointerEnter={hold}
-          onPointerLeave={release}
-          onFocusCapture={() => {
-            setIsFocused(true);
-          }}
-          onBlurCapture={(event) => {
-            if (!event.currentTarget.contains(event.relatedTarget)) {
-              setIsFocused(false);
-            }
-          }}
-          style={
-            fills
-              ? { top: 0, left: 0, right: 0, bottom: 0, borderRadius: 0 }
-              : prefersReducedMotion === true
-                ? {
-                    top: '72px',
-                    left: SIDE_OF_THE_CARD,
-                    right: SIDE_OF_THE_CARD,
-                    bottom: FOOT_OF_THE_CARD,
-                    borderRadius: CORNER_OF_THE_CARD,
-                  }
-                : { top: lift, left: side, right: side, bottom: foot, borderRadius: corner }
-          }
-          className={cn(
-            'pointer-events-auto absolute flex flex-col justify-end overflow-hidden',
-            'ring-1 ring-line shadow-[var(--shadow-cast)]',
-          )}
-        >
-          <AnimatePresence initial={false} mode="popLayout">
-            <motion.div
-              key={featured.id}
-              initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.06 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0 }}
-              transition={{ duration: prefersReducedMotion === true ? 0.2 : 1.1, ease: 'easeOut' }}
-              className="absolute inset-0"
-            >
-              <MediaPreview
-                mediaId={featured.id}
-                backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
-                durationSeconds={featured.durationSeconds}
-                settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
-                onEnded={showNext}
-                {...(onPalette === undefined ? {} : { onPalette })}
-                hasSound
-                hasSubtitles
-                controlsAtTop
-                isHeld={isCovered}
-                fills
-              />
-            </motion.div>
-          </AnimatePresence>
-
-          <div className="valence-artwork-scrim pointer-events-none absolute inset-0" />
-
+        <AnimatePresence initial={false} mode="popLayout">
           <motion.div
             key={featured.id}
-            variants={staggerVariants}
-            initial="hidden"
-            animate="shown"
-            className="relative flex flex-col gap-3 px-4 pb-8 pt-24 sm:px-6"
+            initial={{ opacity: 0, scale: prefersReducedMotion === true ? 1 : 1.06 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion === true ? 0.2 : 1.1, ease: 'easeOut' }}
+            className="absolute inset-0"
           >
-            <motion.h1
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion, 'heavy')}
-              className={
-                isLettered
-                  ? 'flex'
-                  : 'max-w-[16ch] text-[clamp(2rem,6.5vw,5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-on-scrim'
-              }
-            >
-              {isLettered ? (
-                <img
-                  src={logoUrl(featured.id)}
-                  alt={featured.seriesTitle ?? featured.title}
-                  className={LOGO_BOX}
-                  onError={() => {
-                    setUnlettered((known) => new Set(known).add(featured.id));
-                  }}
-                />
-              ) : (
-                (featured.seriesTitle ?? featured.title)
-              )}
-            </motion.h1>
+            <MediaPreview
+              mediaId={featured.id}
+              backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
+              durationSeconds={featured.durationSeconds}
+              settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
+              onEnded={showNext}
+              {...(onPalette === undefined ? {} : { onPalette })}
+              hasSound
+              controlsAtTop
+              isHeld={isCovered}
+              fills
+            />
+          </motion.div>
+        </AnimatePresence>
 
-            <motion.p
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-            >
-              <MediaFacts
-                media={featured}
-                hasEpisode={false}
-                className="flex flex-wrap items-center gap-2 text-sm font-medium tracking-[0.14em] text-on-scrim/75"
+        <div className="valence-artwork-scrim pointer-events-none absolute inset-0" />
+
+        <motion.div
+          key={featured.id}
+          variants={staggerVariants}
+          initial="hidden"
+          animate="shown"
+          onPointerEnter={hold}
+          onPointerLeave={release}
+          className="relative flex flex-col gap-4 self-start px-6 pb-10 pt-24 sm:px-12 sm:pb-14"
+        >
+          <motion.h1
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion, 'heavy')}
+            className={
+              isLettered
+                ? 'flex'
+                : 'max-w-[16ch] text-[clamp(2.75rem,6.5vw,6.5rem)] font-semibold leading-[0.95] tracking-[-0.035em] text-on-scrim'
+            }
+          >
+            {isLettered ? (
+              <TitleLogo
+                src={titleLogoUrl(featured.id)}
+                alt={featured.seriesTitle ?? featured.title}
+                className={LOGO_BOX}
+                onError={() => {
+                  setUnlettered((known) => new Set(known).add(featured.id));
+                }}
               />
-            </motion.p>
+            ) : (
+              (featured.seriesTitle ?? featured.title)
+            )}
+          </motion.h1>
 
-            <AnimatePresence initial={false}>
-              {told === null || !isTelling ? null : (
-                <motion.p
-                  initial={SYNOPSIS_FOLDED}
-                  animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
-                  exit={SYNOPSIS_FOLDED}
-                  transition={{
-                    duration: prefersReducedMotion === true ? 0.2 : 0.55,
-                    ease: [0.2, 0, 0, 1],
-                  }}
-                  className="line-clamp-3 max-w-[52ch] overflow-hidden text-[0.95rem] leading-relaxed text-on-scrim/90 drop-shadow-[var(--shadow-legible-tight)]"
-                >
-                  {told}
-                </motion.p>
-              )}
-            </AnimatePresence>
+          <motion.p
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+          >
+            <MediaFacts
+              media={featured}
+              hasEpisode={false}
+              className="flex flex-wrap items-center gap-2 text-base font-medium text-on-scrim/85"
+            />
+          </motion.p>
 
-            <motion.div
-              variants={revealVariants(prefersReducedMotion)}
-              transition={revealTransition(prefersReducedMotion)}
-              className="flex flex-wrap items-center gap-3 pt-2"
+          <AnimatePresence initial={false}>
+            {told === null || !isTelling ? null : (
+              <motion.p
+                initial={SYNOPSIS_FOLDED}
+                animate={{ opacity: 1, height: 'auto', marginTop: 0 }}
+                exit={SYNOPSIS_FOLDED}
+                transition={{
+                  duration: prefersReducedMotion === true ? 0.2 : 0.55,
+                  ease: [0.2, 0, 0, 1],
+                }}
+                className="line-clamp-3 max-w-[56ch] overflow-hidden text-lg leading-relaxed text-on-scrim/90 drop-shadow-[var(--shadow-legible-tight)]"
+              >
+                {told}
+              </motion.p>
+            )}
+          </AnimatePresence>
+
+          <motion.div
+            variants={revealVariants(prefersReducedMotion)}
+            transition={revealTransition(prefersReducedMotion)}
+            className="flex flex-wrap items-center gap-3 pt-3"
+          >
+            <Button
+              variant="glossy"
+              size="xl"
+              isPill
+              onClick={() => {
+                onPlay(featured, resume ?? 0);
+              }}
             >
+              <Icon of={PlayIcon} size={18} />
+              {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
+            </Button>
+
+            {onInspect === undefined ? null : (
               <Button
-                variant="glossy"
-                size="lg"
+                variant="overlay"
+                size="xl"
                 isPill
                 onClick={() => {
-                  onPlay(featured, resume ?? 0);
+                  onInspect(featured);
                 }}
               >
-                <Icon of={PlayIcon} size={18} />
-                {resume === null ? 'Play' : `Resume from ${formatDuration(resume)}`}
+                <Icon of={InformationCircleIcon} size={18} />
+                More info
               </Button>
-
-              {onInspect === undefined ? null : (
-                <Button
-                  variant="secondary"
-                  size="lg"
-                  isPill
-                  onClick={() => {
-                    onInspect(featured);
-                  }}
-                >
-                  <Icon of={InfoIcon} size={18} />
-                  More info
-                </Button>
-              )}
-            </motion.div>
+            )}
           </motion.div>
+        </motion.div>
 
-          <PageDots
-            count={items.length}
-            selectedIndex={index}
-            labels={items.map((item) => item.title)}
-            label="Featured items"
-            onSelect={setIndex}
-            {...(items.length > 1 && rotateAfterMilliseconds > 0
-              ? { fillMilliseconds: rotateAfterMilliseconds, isFillPaused: isHeld }
-              : {})}
-            className="mb-8 mr-4 self-end sm:absolute sm:bottom-8 sm:right-6 sm:mb-0 sm:mr-0"
-          />
-
-          {fills ? null : (
-            <motion.span
-              aria-hidden
-              style={{ opacity: beckon }}
-              animate={prefersReducedMotion === true ? {} : { y: [0, 6, 0] }}
-              transition={
-                prefersReducedMotion === true
-                  ? {}
-                  : { duration: 2, repeat: Infinity, ease: 'easeInOut' }
-              }
-              className="pointer-events-none absolute bottom-[calc(2rem+var(--dock-clearance,0px))] left-1/2 -translate-x-1/2 text-on-scrim/70"
-            >
-              <Icon of={CaretDownIcon} size={24} />
-            </motion.span>
-          )}
-        </motion.section>
-      </div>
+        <PageDots
+          count={items.length}
+          selectedIndex={index}
+          labels={items.map((item) => item.title)}
+          label="Featured items"
+          tone="overlay"
+          onSelect={show}
+          {...(isRotating ? { progress: turn } : {})}
+          className="mb-8 mr-6 self-end sm:absolute sm:bottom-14 sm:right-12 sm:mb-0 sm:mr-0"
+        />
+      </motion.section>
     </div>
   );
 };

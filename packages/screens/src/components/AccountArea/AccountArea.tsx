@@ -5,6 +5,7 @@ import { useTravelDirection } from '@ValenceUI/useTravelDirection';
 import { ACCOUNT_PANELS } from '@ValenceScreens/components/AccountArea/accountPanels';
 import { SettingList } from '@ValenceUI/SettingList';
 import { TabPanel } from '@ValenceUI/TabPanel';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { ProfileSettings } from '@ValenceScreens/components/AccountArea/components/ProfileSettings/ProfileSettings';
 import { TwoFactorSetup } from '@ValenceScreens/components/TwoFactorSetup/TwoFactorSetup';
@@ -37,10 +38,12 @@ const AccountArea = ({ user, panel, profile, draft, onDraft, onChanged }: Accoun
       exit="gone"
       className="flex w-full flex-col"
     >
-      <TabPanel value="profile" className="flex flex-col gap-6" travel={travel}>
-        <SettingList>
-          <ProfileSettings profile={profile} draft={draft} onDraft={onDraft} />
-        </SettingList>
+      <TabPanel value="profile" className="flex flex-col gap-4" travel={travel}>
+        <PanelCard title="Profile" isFlush>
+          <SettingList>
+            <ProfileSettings profile={profile} draft={draft} onDraft={onDraft} />
+          </SettingList>
+        </PanelCard>
       </TabPanel>
 
       <TabPanel value="devices" travel={travel}>
@@ -51,18 +54,24 @@ const AccountArea = ({ user, panel, profile, draft, onDraft, onChanged }: Accoun
         <SharePanel />
       </TabPanel>
 
-      <TabPanel value="history" className="flex flex-col gap-6" travel={travel}>
-        <HistoryPanel />
+      <TabPanel value="history" className="flex flex-col gap-4" travel={travel}>
+        <PanelCard title="Watch history" isFlush>
+          <HistoryPanel />
+        </PanelCard>
       </TabPanel>
 
-      <TabPanel value="security" className="flex flex-col gap-6" travel={travel}>
-        <SettingList>
-          <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
+      <TabPanel value="security" className="flex flex-col gap-4" travel={travel}>
+        <PanelCard title="Sign-in" isFlush>
+          <SettingList>
+            <TwoFactorSetup isEnabled={user.twoFactorEnabled === true} onChanged={onChanged} />
 
-          <PasskeySetup onChanged={onChanged} />
-        </SettingList>
+            <PasskeySetup onChanged={onChanged} />
+          </SettingList>
+        </PanelCard>
 
-        <ApiKeyPanel />
+        <PanelCard title="API keys">
+          <ApiKeyPanel />
+        </PanelCard>
       </TabPanel>
     </motion.div>
   );

@@ -1,7 +1,7 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { NavDock } from './NavDock';
+import { NavBar } from './NavBar';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import type * as MotionReact from 'motion/react';
 
@@ -23,26 +23,49 @@ afterEach(() => {
   motion.isReduced = false;
 });
 
-describe('NavDock', () => {
+describe('NavBar', () => {
   it('names itself, so a screen reader can skip to it', () => {
-    render(<NavDock {...props} />);
+    render(<NavBar {...props} />);
 
     expect(screen.getByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
   });
 
   it('is one bar rather than two, so places and tools read as one navigation', () => {
-    const { container } = render(
-      <NavDock
+    render(
+      <NavBar
         {...props}
         actions={[{ id: 'search', label: 'Search', icon: null, onSelect: vi.fn() }]}
       />,
     );
 
-    expect(container.querySelectorAll('.valence-glass')).toHaveLength(1);
+    const bar = screen.getByRole('navigation', { name: 'Sections' });
+
+    expect(within(bar).getByRole('button', { name: 'Home' })).toBeInTheDocument();
+    expect(within(bar).getByRole('button', { name: 'Search' })).toBeInTheDocument();
+  });
+
+  it('runs along the top of the window rather than floating at its foot', () => {
+    const { container } = render(<NavBar {...props} />);
+
+    expect(container.querySelector('header')).toHaveClass('fixed', 'top-0', 'inset-x-0');
+  });
+
+  it('is solid where the page does not say how far it has been scrolled', () => {
+    const { container } = render(<NavBar {...props} />);
+
+    expect(container.querySelector('[data-slot="nav-bar-fill"]')).toHaveStyle({ opacity: '1' });
+  });
+
+  it('is clear at the top of a page, and painted in as far as the page says', () => {
+    const { container: top } = render(<NavBar {...props} solidity={0} />);
+    const { container: halfway } = render(<NavBar {...props} solidity={0.5} />);
+
+    expect(top.querySelector('[data-slot="nav-bar-fill"]')).toHaveStyle({ opacity: '0' });
+    expect(halfway.querySelector('[data-slot="nav-bar-fill"]')).toHaveStyle({ opacity: '0.5' });
   });
 
   it('says which place is being stood on', () => {
-    render(<NavDock {...props} />);
+    render(<NavBar {...props} />);
 
     expect(screen.getByRole('button', { name: 'Home' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Films' })).not.toHaveAttribute('aria-current');
@@ -51,70 +74,117 @@ describe('NavDock', () => {
   it('shows where you are in a way the pointer cannot take away', async () => {
     const actor = userEvent.setup();
 
-    render(<NavDock {...props} />);
+    render(<NavBar {...props} />);
 
     const here = screen.getByRole('button', { name: 'Home' });
     const elsewhere = screen.getByRole('button', { name: 'Films' });
 
-    expect(here).toHaveClass('text-primary');
+    expect(here).toHaveAttribute('aria-current', 'page');
 
     await actor.hover(elsewhere);
 
-    expect(here).toHaveClass('text-primary');
-    expect(elsewhere).not.toHaveClass('text-primary');
+    expect(here).toHaveAttribute('aria-current', 'page');
+    expect(here).toHaveClass('text-text');
+    expect(here).not.toHaveClass('text-text-muted');
+    expect(elsewhere).not.toHaveAttribute('aria-current');
   });
 
-  it('stands a mark under the place being stood on, and nowhere else', () => {
-    const { container } = render(<NavDock {...props} />);
+  it('stands a mark behind the place being stood on, and nowhere else', () => {
+    const { container } = render(<NavBar {...props} />);
 
-    const dots = container.querySelectorAll('.bg-primary');
+    const marks = container.querySelectorAll('[data-mark="nav-bar-mark"]');
 
-    expect(dots).toHaveLength(1);
+    expect(marks).toHaveLength(1);
+    expect(marks[0]?.closest('button')).toBe(screen.getByRole('button', { name: 'Home' }));
+  });
+
+  it('carries the mark to whatever the pointer rests on, and back when it leaves', async () => {
+    const actor = userEvent.setup();
+    const { container } = render(<NavBar {...props} />);
+
+    await actor.hover(screen.getByRole('button', { name: 'Films' }));
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(
+      screen.getByRole('button', { name: 'Films' }),
+    );
+
+    await actor.unhover(screen.getByRole('navigation', { name: 'Sections' }));
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(
+      screen.getByRole('button', { name: 'Home' }),
+    );
+  });
+
+  it('draws the mark as a pill, the same shape as the places it moves between', () => {
+    const { container } = render(<NavBar {...props} />);
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')).toHaveClass('rounded-full');
   });
 
   it('goes where it is asked', async () => {
     const onSelect = vi.fn();
     const user = userEvent.setup();
 
-    render(<NavDock {...props} onSelect={onSelect} />);
+    render(<NavBar {...props} onSelect={onSelect} />);
 
     await user.click(screen.getByRole('button', { name: 'Films' }));
 
     expect(onSelect).toHaveBeenCalledWith('films');
   });
 
-  it('marks every item as something the highlight can travel to', () => {
-    render(<NavDock {...props} />);
+  it('marks every tool as something whose open panel can hold it still', () => {
+    render(
+      <NavBar
+        {...props}
+        actions={[{ id: 'search', label: 'Search', icon: null, onSelect: vi.fn() }]}
+      />,
+    );
 
-    expect(screen.getByRole('button', { name: 'Films' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute(
       'data-highlight',
-      'films',
+      'search',
     );
   });
 
-  it('reads as icons, with the names kept out of the row', () => {
-    render(<NavDock {...props} />);
+  it('writes the places as words where there is room for them', () => {
+    render(<NavBar {...props} />);
 
-    expect(screen.getByRole('button', { name: 'Home' })).not.toHaveTextContent('Home');
-    expect(screen.getByRole('button', { name: 'Films' })).not.toHaveTextContent('Films');
+    expect(screen.getByRole('button', { name: 'Home' })).toHaveTextContent('Home');
+    expect(screen.getByText('Films')).toHaveClass('hidden', 'md:inline');
+  });
+
+  it('draws each tool as a round button of one size, so a face sits in it as well as a glyph', () => {
+    render(
+      <NavBar
+        {...props}
+        actions={[{ id: 'search', label: 'Search', icon: null, onSelect: vi.fn() }]}
+      />,
+    );
+
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass('size-9', 'rounded-full');
   });
 
   it('names every place for anybody who cannot see the icons', () => {
-    render(<NavDock {...props} />);
+    render(<NavBar {...props} />);
 
     for (const label of ['Home', 'Films']) {
       expect(screen.getByRole('button', { name: label })).toBeInTheDocument();
     }
   });
 
-  it('names the icon a pointer rests on, out of the row rather than in it', async () => {
+  it('names a tool a pointer rests on, since a tool is only ever an icon', async () => {
     const user = userEvent.setup();
 
-    render(<NavDock {...props} />);
+    render(
+      <NavBar
+        {...props}
+        actions={[{ id: 'search', label: 'Search', icon: <span />, onSelect: vi.fn() }]}
+      />,
+    );
 
-    await user.hover(screen.getByRole('button', { name: 'Films' }));
+    await user.hover(screen.getByRole('button', { name: 'Search' }));
 
-    expect(await screen.findByText('Films', {}, { timeout: 3000 })).toBeInTheDocument();
+    expect(await screen.findByText('Search', {}, { timeout: 3000 })).toBeInTheDocument();
   });
 
   it('does a tool where it stands rather than going somewhere', async () => {
@@ -122,7 +192,7 @@ describe('NavDock', () => {
     const user = userEvent.setup();
 
     render(
-      <NavDock {...props} actions={[{ id: 'search', label: 'Search', icon: null, onSelect }]} />,
+      <NavBar {...props} actions={[{ id: 'search', label: 'Search', icon: null, onSelect }]} />,
     );
 
     await user.click(screen.getByRole('button', { name: 'Search' }));
@@ -132,7 +202,7 @@ describe('NavDock', () => {
 
   it('draws a tool that opens something as itself, not wrapped in a button', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           {
@@ -151,7 +221,7 @@ describe('NavDock', () => {
 
   it('says a tool is the current place, since search is both', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           { id: 'search', label: 'Search', icon: null, isCurrent: true, onSelect: vi.fn() },
@@ -163,34 +233,34 @@ describe('NavDock', () => {
   });
 
   it('sets a display name so devtools can identify it', () => {
-    expect(NavDock.displayName).toBe('NavDock');
+    expect(NavBar.displayName).toBe('NavBar');
   });
 
   it('moves the mark without animating it when less motion was asked for', () => {
     motion.isReduced = true;
 
-    render(<NavDock items={ITEMS} selectedId="home" onSelect={vi.fn()} />);
+    render(<NavBar items={ITEMS} selectedId="home" onSelect={vi.fn()} />);
 
     expect(screen.getByRole('button', { name: 'Home' })).toBeInTheDocument();
   });
 });
 
-describe('what a dock can carry besides places', () => {
+describe('what the bar can carry besides places', () => {
   it('shows a mark for the instance when it is given one', () => {
-    render(<NavDock {...props} brand={<span>Valence</span>} />);
+    render(<NavBar {...props} brand={<span>Valence</span>} />);
 
     expect(screen.getByText('Valence')).toBeInTheDocument();
   });
 
   it('carries no mark at all when it is not given one', () => {
-    render(<NavDock {...props} />);
+    render(<NavBar {...props} />);
 
     expect(screen.queryByText('Valence')).not.toBeInTheDocument();
   });
 
   it('draws the icon a place carries', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         items={[{ id: 'home', label: 'Home', icon: <span data-testid="home-icon" /> }]}
       />,
@@ -201,7 +271,7 @@ describe('what a dock can carry besides places', () => {
 
   it('fills the icon in for the place being stood on', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         items={[
           {
@@ -220,7 +290,7 @@ describe('what a dock can carry besides places', () => {
 
   it('falls back to the ordinary icon when a place has no filled one', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         items={[{ id: 'home', label: 'Home', icon: <span data-testid="outline" /> }]}
       />,
@@ -231,7 +301,7 @@ describe('what a dock can carry besides places', () => {
 
   it('holds both drawings for a place whose mark fills as it is pointed at', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         items={[
           {
@@ -253,7 +323,7 @@ describe('what a dock can carry besides places', () => {
     const user = userEvent.setup();
 
     render(
-      <NavDock
+      <NavBar
         {...props}
         items={[
           {
@@ -278,7 +348,7 @@ describe('what a dock can carry besides places', () => {
 
   it('shows a count on a tool that has something to say', () => {
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           {
@@ -298,7 +368,7 @@ describe('what a dock can carry besides places', () => {
     const user = userEvent.setup();
 
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           {
@@ -326,7 +396,7 @@ describe('what a dock can carry besides places', () => {
     const user = userEvent.setup();
 
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           {
@@ -355,7 +425,7 @@ describe('what a dock can carry besides places', () => {
     const user = userEvent.setup();
 
     render(
-      <NavDock
+      <NavBar
         {...props}
         actions={[
           {

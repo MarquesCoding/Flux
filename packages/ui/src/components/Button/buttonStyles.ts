@@ -1,7 +1,7 @@
 import { cva } from 'class-variance-authority';
 import { PRESS_MOTION } from '@ValenceUI/animations/motion';
 
-const RAISED = 'valence-raise';
+const FLAT = 'border';
 
 const buttonStyles = cva(
   [
@@ -14,17 +14,18 @@ const buttonStyles = cva(
   {
     variants: {
       variant: {
-        primary: `${RAISED} valence-raise--tinted [--raise-fill:var(--color-accent)] text-primary-foreground`,
-        glossy: `${RAISED} valence-raise--pale text-black`,
-        secondary: `${RAISED} text-secondary-foreground`,
-        soft: `${RAISED} valence-raise--tinted [--raise-fill:color-mix(in_oklab,var(--color-accent)_28%,var(--color-surface-raised))] text-accent`,
+        primary: `${FLAT} border-transparent bg-accent text-primary-foreground hover:brightness-110`,
+        glossy: `${FLAT} border-[var(--surface-line)] bg-white text-black hover:brightness-95`,
+        secondary: `${FLAT} border-[var(--surface-line)] bg-[var(--surface-hover)] text-secondary-foreground hover:bg-[var(--surface-active)]`,
+        soft: `${FLAT} border-transparent bg-accent/15 text-accent hover:bg-accent/25`,
         ghost: 'bg-transparent text-foreground hover:bg-[var(--surface-hover)]',
-        danger: `${RAISED} valence-raise--tinted [--raise-fill:var(--color-danger)] text-destructive-foreground`,
+        danger: `${FLAT} border-transparent bg-danger text-destructive-foreground hover:brightness-110`,
         overlay: 'bg-scrim text-on-scrim backdrop-blur-md hover:brightness-125',
         link: 'bg-transparent text-foreground underline-offset-4 hover:underline',
         bare: '',
       },
       size: {
+        xs: 'h-7 gap-1.5 px-3 text-xs',
         sm: 'h-8 gap-1.5 px-3.5 text-[0.8125rem]',
         md: 'h-9 gap-2 px-3.5 text-sm',
         lg: 'h-10 gap-2 px-5 text-sm',
@@ -32,7 +33,7 @@ const buttonStyles = cva(
         none: '',
       },
       shape: {
-        square: 'rounded-md',
+        square: 'rounded-lg',
         pill: 'rounded-full',
         bare: '',
       },
@@ -46,13 +47,13 @@ const buttonStyles = cva(
         variant: ['primary', 'glossy', 'secondary', 'soft', 'ghost', 'danger', 'overlay', 'link'],
         class: 'shrink-0 items-center justify-center whitespace-nowrap',
       },
+      { isIconOnly: true, size: 'xs', class: 'size-7' },
       { isIconOnly: true, size: 'sm', class: 'size-8' },
       { isIconOnly: true, size: 'md', class: 'size-9' },
       { isIconOnly: true, size: 'lg', class: 'size-10' },
       { isIconOnly: true, size: 'xl', class: 'size-12' },
       { variant: 'bare', class: 'shadow-none active:scale-100' },
       { variant: ['ghost', 'link', 'overlay'], class: 'shadow-none' },
-      { shape: 'pill', isIconOnly: false, class: 'rounded-md' },
     ],
     defaultVariants: {
       variant: 'primary',

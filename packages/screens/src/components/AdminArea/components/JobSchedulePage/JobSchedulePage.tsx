@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { PlusIcon, XIcon } from '@phosphor-icons/react';
+import { Add01Icon, Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { AddTriggerDialog } from '@ValenceScreens/components/AdminArea/components/AddTriggerDialog/AddTriggerDialog';
@@ -42,7 +42,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
               setIsAdding(true);
             }}
           >
-            <Icon of={PlusIcon} size={16} />
+            <Icon of={Add01Icon} size={16} />
             Add trigger
           </Button>
         </div>
@@ -91,7 +91,7 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
                       onRemove(entry.id);
                     }}
                   >
-                    <Icon of={XIcon} size={16} />
+                    <Icon of={Cancel01Icon} size={16} />
                   </Button>
                 </li>
               );

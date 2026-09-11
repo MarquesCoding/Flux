@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CheckIcon } from '@phosphor-icons/react';
+import { Tick02Icon } from '@hugeicons/core-free-icons';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { cn } from '@ValenceUI/cn';
 import { POPUP_MOTION } from '@ValenceUI/animations/motion';
@@ -62,7 +62,7 @@ const OptionMenu = ({
           aria-label={label}
           {...(matchTriggerWidth ? { style: { minWidth: 'var(--anchor-width)' } } : {})}
           className={cn(
-            'valence-glass valence-glass--popover z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
+            'valence-float z-50 flex max-h-80 flex-col overflow-hidden rounded-lg p-1.5 text-sm text-text',
             POPUP_MOTION,
           )}
         >
@@ -102,7 +102,7 @@ const OptionMenu = ({
                       </span>
 
                       <RadixMenu.ItemIndicator className="flex size-4 shrink-0 items-center justify-center text-accent">
-                        <Icon of={CheckIcon} size={15} />
+                        <Icon of={Tick02Icon} size={15} />
                       </RadixMenu.ItemIndicator>
                     </RadixMenu.RadioItem>
                   ))}

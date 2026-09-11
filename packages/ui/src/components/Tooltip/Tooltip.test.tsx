@@ -50,6 +50,25 @@ describe('Tooltip', () => {
     expect(screen.getByRole('button')).toBeInTheDocument();
   });
 
+  it('is a small solid chip in the page colours turned over, rather than a pane of glass', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Tooltip label="Pop out">
+        <button type="button" aria-label="Pop out" />
+      </Tooltip>,
+    );
+
+    await user.hover(screen.getByRole('button', { name: 'Pop out' }));
+
+    const chip = (await screen.findAllByText('Pop out'))
+      .map((found) => found.closest('[data-slot="tooltip-content"]'))
+      .find((found) => found !== null);
+
+    expect(chip).toHaveClass('bg-text', 'text-surface', 'rounded-sm');
+    expect(chip?.className).not.toContain('valence-glass');
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(Tooltip.displayName).toBe('Tooltip');
   });

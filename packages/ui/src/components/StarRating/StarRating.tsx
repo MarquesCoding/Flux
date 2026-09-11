@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { StarIcon } from '@phosphor-icons/react';
+import { StarIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { cn } from '@ValenceUI/cn';
 import { Button } from '@ValenceUI/Button';

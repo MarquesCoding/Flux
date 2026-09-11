@@ -1,16 +1,10 @@
 import { Icon } from '@ValenceUI/Icon';
-import { PauseIcon, PlayIcon, SpeakerHighIcon, SpeakerSlashIcon } from '@phosphor-icons/react';
+import { PauseIcon, PlayIcon, VolumeHighIcon, VolumeOffIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { VideoSurface } from '@ValenceUI/VideoSurface';
 import { frameUrl } from '@ValenceClient/playback/frameUrl';
 import { readLights } from '@ValenceScreens/library/readLights';
-import {
-  fetchSubtitleTracks,
-  subtitleTrackUrl,
-  previewTrack,
-} from '@ValenceClient/playback/fetchSubtitles';
-import { liftCues } from '@ValenceScreens/playback/liftCues';
 import { readPreviewState } from '@ValenceClient/playback/readPreviewState';
 import { readSoundPreference, saveSoundPreference } from '@ValenceClient/playback/soundPreference';
 import { fadeAudioOut } from '@ValenceScreens/playback/fadeAudioOut';
@@ -28,8 +22,6 @@ const SETTLE_MILLISECONDS = 2600;
  * @returns The address to load.
  */
 const previewUrl = (mediaId: string): string => `/api/media/${mediaId}/preview`;
-
-const CUE_LINE = 80;
 
 const PREVIEW_PENDING = 'Preview is being made — check back shortly';
 
@@ -54,7 +46,6 @@ const SETTLE_BACK_MILLISECONDS = 700;
  * @param startFraction - How far into the item to start.
  * @param hasSound - Whether it may be unmuted at all. It still starts silent either way, and only
  *   carries a viewer's remembered choice where this is set.
- * @param hasSubtitles - Whether it carries forced subtitles.
  * @param controlsAtTop - Whether the controls sit in the top corner rather than the bottom one, for a
  *   preview filling a screen that has nothing else up there.
  * @param isHeld - Whether the clip should hold where it is rather than playing on. A hero standing
@@ -74,7 +65,6 @@ const MediaPreview = ({
   fills = false,
   settleMilliseconds = SETTLE_MILLISECONDS,
   hasSound = false,
-  hasSubtitles = false,
   controlsAtTop = false,
   isHeld = false,
   repeats,
@@ -94,34 +84,11 @@ const MediaPreview = ({
   const [mayBeHeard, setMayBeHeard] = useState(false);
   const [hasStarted, setHasStarted] = useState(false);
   const [absence, setAbsence] = useState<PreviewAbsence>(null);
-  const [subtitles, setSubtitles] = useState<{ id: string; language: string } | null>(null);
 
   const loops = repeats ?? onEnded === undefined;
 
   const isShowingFrame = !hasStarted || hasEnded || absence !== null;
   const startSeconds = Math.floor(durationSeconds * startFraction);
-
-  useEffect(() => {
-    if (!hasSubtitles) {
-      return;
-    }
-
-    let abandoned = false;
-
-    void fetchSubtitleTracks(mediaId)
-      .catch(() => [])
-      .then((tracks) => {
-        const chosen = previewTrack(tracks, navigator.language);
-
-        if (!abandoned && chosen !== null) {
-          setSubtitles({ id: chosen.id, language: chosen.language ?? 'und' });
-        }
-      });
-
-    return () => {
-      abandoned = true;
-    };
-  }, [mediaId, hasSubtitles]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -243,16 +210,6 @@ const MediaPreview = ({
   }, [isMuted, mayBeHeard]);
 
   useEffect(() => {
-    const element = videoRef.current;
-
-    if (element === null || subtitles === null) {
-      return;
-    }
-
-    return liftCues(element, () => CUE_LINE).stop;
-  }, [subtitles]);
-
-  useEffect(() => {
     if (onPalette === undefined) {
       return;
     }
@@ -346,16 +303,6 @@ const MediaPreview = ({
           setIsPaused(!playing);
           onPlayingChange?.(playing);
         }}
-        {...(subtitles === null
-          ? {}
-          : {
-              textTrack: {
-                id: subtitles.id,
-                label: 'Subtitles',
-                language: subtitles.language,
-                src: subtitleTrackUrl(mediaId, subtitles.id, startSeconds),
-              },
-            })}
         loops={loops}
         onEnded={() => {
           if (loops) {
@@ -429,9 +376,9 @@ const MediaPreview = ({
                 className="bg-shade/50 text-on-scrim backdrop-blur"
               >
                 {isMuted ? (
-                  <Icon of={SpeakerSlashIcon} size={18} />
+                  <Icon of={VolumeOffIcon} size={18} />
                 ) : (
-                  <Icon of={SpeakerHighIcon} size={18} />
+                  <Icon of={VolumeHighIcon} size={18} />
                 )}
               </Button>
             </>

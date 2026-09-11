@@ -1,4 +1,4 @@
-import { FolderOpenIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
 import type { EmptyLibraryProps } from './EmptyLibrary.types';
@@ -24,7 +24,7 @@ const EmptyLibrary = ({
   if (search !== '') {
     return (
       <NothingHere
-        of={MagnifyingGlassIcon}
+        of={Search01Icon}
         title={`Nothing matches “${search}”`}
         detail="Try fewer words, or a different spelling."
       />

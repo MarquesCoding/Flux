@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { StreamStats } from './StreamStats';
@@ -256,6 +256,34 @@ describe('StreamStats', () => {
     await user.click(screen.getByRole('button', { name: 'Close stats' }));
 
     expect(props.onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('lets whatever holds it be dragged by its head', () => {
+    const onGrab = vi.fn();
+
+    draw({ onGrab });
+
+    fireEvent.pointerDown(screen.getByRole('heading', { name: 'Stats for nerds' }));
+
+    expect(onGrab).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not take hold when the close button is pressed, which is not a handle', () => {
+    const onGrab = vi.fn();
+
+    draw({ onGrab });
+
+    fireEvent.pointerDown(screen.getByRole('button', { name: 'Close stats' }));
+
+    expect(onGrab).not.toHaveBeenCalled();
+  });
+
+  it('shows no handle where nothing can drag it', () => {
+    draw();
+
+    expect(screen.getByRole('heading', { name: 'Stats for nerds' }).parentElement).not.toHaveClass(
+      'cursor-grab',
+    );
   });
 
   it('sets a display name so devtools can identify it', () => {

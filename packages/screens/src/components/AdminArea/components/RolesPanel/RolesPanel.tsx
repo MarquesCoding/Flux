@@ -1,11 +1,11 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
-  DotsThreeIcon,
-  PencilSimpleIcon,
-  PlusIcon,
-  TrashIcon,
-  WarningIcon,
-} from '@phosphor-icons/react';
+  Add01Icon,
+  Alert02Icon,
+  Delete02Icon,
+  MoreHorizontalIcon,
+  PencilEdit01Icon,
+} from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
@@ -27,6 +27,7 @@ import { adminQueries } from '@ValenceClient/query/adminQueries';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { Refusal } from '@ValenceClient/admin/fetchRoles';
 import type { Permission, Role } from '@ValenceContracts/schemas/Permission';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 const NEW_ROLE_POSITION = 50;
 
@@ -133,14 +134,14 @@ const RolesPanel = () => {
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.name}`}
-              trigger={<Icon of={DotsThreeIcon} size={16} />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
                     {
                       id: 'edit',
                       label: 'Edit role',
-                      icon: <Icon of={PencilSimpleIcon} size={15} />,
+                      icon: <Icon of={PencilEdit01Icon} size={15} />,
                       onChoose: () => {
                         live.current.onEdit(row.original.id);
                       },
@@ -152,7 +153,7 @@ const RolesPanel = () => {
                     {
                       id: 'delete',
                       label: 'Delete role',
-                      icon: <Icon of={TrashIcon} size={15} />,
+                      icon: <Icon of={Delete02Icon} size={15} />,
                       isDestructive: true,
                       onChoose: () => {
                         live.current.onAskDelete(row.original);
@@ -176,26 +177,28 @@ const RolesPanel = () => {
           role="alert"
           className="flex items-start gap-3 rounded-lg border border-danger/40 bg-danger/10 p-4 text-sm text-text"
         >
-          <Icon of={WarningIcon} size={18} className="mt-0.5 shrink-0 text-danger" />
+          <Icon of={Alert02Icon} size={18} className="mt-0.5 shrink-0 text-danger" />
           {refusal.message}
         </p>
       )}
 
-      <section className="flex flex-col">
-        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
+      <PanelCard
+        title="Roles"
+        isFlush
+        actions={
           <Button
             variant="soft"
-            size="sm"
+            size="xs"
             isPill
             onClick={() => {
               setIsCreating(true);
             }}
           >
-            <Icon of={PlusIcon} size={15} />
+            <Icon of={Add01Icon} size={15} />
             Create role
           </Button>
-        </div>
-
+        }
+      >
         {couldNotRead ? (
           <CouldNotRead
             what="The roles"
@@ -208,7 +211,7 @@ const RolesPanel = () => {
         ) : (
           <DataTable label="Roles" columns={columns} rows={roles} emptyMessage="No roles yet." />
         )}
-      </section>
+      </PanelCard>
 
       <Dialog
         label="Create a role"
@@ -353,7 +356,7 @@ const RolesPanel = () => {
                   role="alert"
                   className="flex items-start gap-3 rounded-md border border-danger/40 bg-danger/10 p-3 text-sm text-text"
                 >
-                  <Icon of={WarningIcon} size={16} className="mt-0.5 shrink-0 text-danger" />
+                  <Icon of={Alert02Icon} size={16} className="mt-0.5 shrink-0 text-danger" />
                   {refusal.message}
                 </p>
               )}

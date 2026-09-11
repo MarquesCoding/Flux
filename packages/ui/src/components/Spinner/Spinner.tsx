@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CircleNotchIcon } from '@phosphor-icons/react';
+import { Loading03Icon } from '@hugeicons/core-free-icons';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { spinVariants, spinTransition, reducedSpinTransition } from '@ValenceUI/animations/spin';
@@ -33,7 +33,7 @@ const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
       animate={prefersReducedMotion === true ? 'idle' : 'spinning'}
       transition={prefersReducedMotion === true ? reducedSpinTransition : spinTransition}
     >
-      <Icon of={CircleNotchIcon} size={SIZE_PIXELS[size]} />
+      <Icon of={Loading03Icon} size={SIZE_PIXELS[size]} />
     </motion.span>
   );
 };

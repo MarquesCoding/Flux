@@ -1,83 +1,100 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { HouseIcon, TelevisionIcon } from '@phosphor-icons/react';
+import { Home01Icon, PauseIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { Icon } from './Icon';
+
+/**
+ * The drawing an icon rendered as.
+ *
+ * @param container - What was rendered.
+ * @returns The drawing.
+ */
+const glyphOf = (container: HTMLElement): SVGSVGElement => {
+  const glyph = container.querySelector('svg');
+
+  if (glyph === null) {
+    throw new Error('The icon drew nothing.');
+  }
+
+  return glyph;
+};
 
 describe('Icon', () => {
   it('draws the icon it was given', () => {
-    const { container } = render(<Icon of={HouseIcon} />);
+    const { container } = render(<Icon of={Home01Icon} />);
 
     expect(container.querySelector('svg')).toBeInTheDocument();
   });
 
   it('is hidden from anything reading the page, since a glyph beside a label says nothing', () => {
-    const { container } = render(<Icon of={HouseIcon} />);
+    const { container } = render(<Icon of={Home01Icon} />);
 
-    expect(container.querySelector('svg')).toHaveAttribute('aria-hidden', 'true');
+    expect(glyphOf(container)).toHaveAttribute('aria-hidden', 'true');
   });
 
   it('says what it means where it stands on its own', () => {
-    render(<Icon of={HouseIcon} label="Home" />);
+    render(<Icon of={Home01Icon} label="Home" />);
 
     expect(screen.getByRole('img', { name: 'Home' })).toBeInTheDocument();
   });
 
-  it('takes the size it is asked for', () => {
-    const { container } = render(<Icon of={HouseIcon} size={32} />);
+  it('takes the size it is asked for, in rem, so it grows with the text on a large screen', () => {
+    const { container } = render(<Icon of={Home01Icon} size={32} />);
 
-    expect(container.querySelector('svg')).toHaveAttribute('width', '32');
+    expect(glyphOf(container)).toHaveAttribute('width', '2rem');
+    expect(glyphOf(container)).toHaveAttribute('height', '2rem');
   });
 
-  it('fills a thing in force, which is how a glyph says it is on', () => {
-    const { container: quiet } = render(<Icon of={HouseIcon} />);
-    const { container: loud } = render(<Icon of={HouseIcon} isActive />);
+  it('draws at the size of body text where no size is asked for', () => {
+    const { container } = render(<Icon of={Home01Icon} />);
 
+    expect(glyphOf(container)).toHaveAttribute('width', '1.125rem');
+  });
+
+  it("draws its line a little heavier than the set's own, so it holds over artwork", () => {
+    const { container } = render(<Icon of={Home01Icon} />);
+
+    expect(container.innerHTML).toContain('stroke-width="1.75"');
+  });
+
+  it('draws a thing in force with a heavier line, as a second cue beside its control', () => {
+    const { container: quiet } = render(<Icon of={Home01Icon} />);
+    const { container: loud } = render(<Icon of={Home01Icon} isActive />);
+
+    expect(loud.innerHTML).toContain('stroke-width="2.25"');
     expect(quiet.innerHTML).not.toBe(loud.innerHTML);
   });
 
-  it('draws a resting glyph boldly, since a hairline reads as unfinished over artwork', () => {
-    const { container: resting } = render(<Icon of={HouseIcon} />);
-    const { container: thin } = render(<Icon of={HouseIcon} weight="thin" />);
+  it('carries the class the stylesheet knows every glyph by', () => {
+    const { container } = render(<Icon of={Home01Icon} />);
 
-    expect(resting.innerHTML).not.toBe(thin.innerHTML);
-  });
-
-  it('still draws duotone for a caller that asks for it', () => {
-    const { container } = render(<Icon of={HouseIcon} weight="duotone" />);
-
-    expect(container.querySelector('svg')?.innerHTML).toContain('opacity');
-  });
-
-  it('carries the class that decides how strong the second tone is', () => {
-    const { container } = render(<Icon of={HouseIcon} />);
-
-    expect(container.querySelector('svg')).toHaveClass('valence-icon');
+    expect(glyphOf(container)).toHaveClass('valence-icon');
   });
 
   it('keeps the classes a caller gave it as well', () => {
-    const { container } = render(<Icon of={HouseIcon} className="text-red-500" />);
+    const { container } = render(<Icon of={Home01Icon} className="text-red-500" />);
 
-    expect(container.querySelector('svg')).toHaveClass('valence-icon', 'text-red-500');
-  });
-
-  it('draws any other weight a caller asks for', () => {
-    const { container: thin } = render(<Icon of={HouseIcon} weight="thin" />);
-    const { container: resting } = render(<Icon of={HouseIcon} />);
-
-    expect(thin.innerHTML).not.toBe(resting.innerHTML);
-  });
-
-  it('lets a caller set the weight itself, which overrides being in force', () => {
-    const { container: told } = render(<Icon of={HouseIcon} isActive weight="thin" />);
-    const { container: filled } = render(<Icon of={HouseIcon} isActive />);
-
-    expect(told.innerHTML).not.toBe(filled.innerHTML);
+    expect(glyphOf(container)).toHaveClass('valence-icon', 'text-red-500');
   });
 
   it('draws the other icon instead while what it stands for is in force', () => {
-    const { container: off } = render(<Icon of={HouseIcon} whenActive={TelevisionIcon} />);
-    const { container: on } = render(<Icon of={HouseIcon} whenActive={TelevisionIcon} isActive />);
+    const { container: off } = render(<Icon of={PlayIcon} whenActive={PauseIcon} />);
+    const { container: on } = render(<Icon of={PlayIcon} whenActive={PauseIcon} isActive />);
+    const { container: pause } = render(<Icon of={PauseIcon} isActive />);
 
     expect(off.innerHTML).not.toBe(on.innerHTML);
+    expect(on.querySelector('path')?.getAttribute('d')).toBe(
+      pause.querySelector('path')?.getAttribute('d'),
+    );
+  });
+
+  it('swaps the drawing in place rather than drawing the two side by side', () => {
+    const { container } = render(<Icon of={PlayIcon} whenActive={PauseIcon} isActive />);
+
+    expect(container.querySelectorAll('svg')).toHaveLength(1);
+  });
+
+  it('sets a display name so devtools can identify it', () => {
+    expect(Icon.displayName).toBe('Icon');
   });
 });

@@ -103,7 +103,8 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
           initialFocus={panelRef}
           data-slot="dialog-content"
           className={cn(
-            'valence-glass fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-none text-text',
+            'fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-none text-text',
+            'valence-float',
             'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
             'sm:w-[min(42rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2',
             'sm:rounded-2xl',

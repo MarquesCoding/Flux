@@ -9,6 +9,28 @@ const valence = {
   },
 };
 
+const SHARED_IMPORT_BANS = [
+  {
+    group: ['../*'],
+    message:
+      'Parent-relative imports are banned. Use @ValenceUI/*, @ValenceCore/*, @ValenceContracts/* or @ValenceSDK/*.',
+  },
+  {
+    group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react', '@phosphor-icons/*'],
+    message:
+      'Icons come from @hugeicons/core-free-icons, drawn by @ValenceUI/Icon — see code standards section 10.',
+  },
+  {
+    group: ['@base-ui/react', '@base-ui/react/*'],
+    message: 'Base UI is for Dialog alone — see ADR-0021. Everything else in ValenceUI is Radix.',
+  },
+  {
+    group: ['@hugeicons/react'],
+    message:
+      'Draw an icon with @ValenceUI/Icon rather than HugeiconsIcon, so the set stays swappable in one file.',
+  },
+];
+
 export default tseslint.config(
   {
     ignores: [
@@ -42,29 +64,7 @@ export default tseslint.config(
       'no-restricted-imports': [
         'error',
         {
-          patterns: [
-            {
-              group: ['../*'],
-              message:
-                'Parent-relative imports are banned. Use @ValenceUI/*, @ValenceCore/*, @ValenceContracts/* or @ValenceSDK/*.',
-            },
-            {
-              group: ['@tabler/icons-react', '@remixicon/react', 'lucide-react', '@hugeicons/*'],
-              message:
-                'Icons come from @phosphor-icons/react, drawn by @ValenceUI/Icon — see code standards section 10.',
-            },
-            {
-              group: ['@base-ui/react', '@base-ui/react/*'],
-              message:
-                'Base UI is for Dialog alone — see ADR-0021. Everything else in ValenceUI is Radix.',
-            },
-            {
-              group: ['@phosphor-icons/react'],
-              importNames: ['IconBase', 'IconContext', 'SSR'],
-              message:
-                'Draw an icon with @ValenceUI/Icon rather than the set itself, so the set stays swappable in one file.',
-            },
-          ],
+          patterns: [...SHARED_IMPORT_BANS],
         },
       ],
       'no-restricted-syntax': [
@@ -148,6 +148,7 @@ export default tseslint.config(
         'error',
         {
           patterns: [
+            ...SHARED_IMPORT_BANS,
             {
               group: ['@ValenceWeb/*'],
               message:
@@ -170,6 +171,7 @@ export default tseslint.config(
         'error',
         {
           patterns: [
+            ...SHARED_IMPORT_BANS,
             {
               group: ['@ValenceWeb/*'],
               message:

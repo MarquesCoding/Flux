@@ -108,6 +108,25 @@ describe('AccountArea', () => {
     expect(screen.queryByRole('button', { name: 'Save' })).not.toBeInTheDocument();
   });
 
+  it('holds each panel in a card that says what it is', () => {
+    const first = drawOn('profile');
+
+    expect(screen.getByRole('heading', { name: 'Profile', level: 3 })).toBeInTheDocument();
+
+    first.unmount();
+
+    const second = drawOn('security');
+
+    expect(screen.getByRole('heading', { name: 'Sign-in', level: 3 })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'API keys', level: 3 })).toBeInTheDocument();
+
+    second.unmount();
+
+    drawOn('history');
+
+    expect(screen.getByRole('heading', { name: 'Watch history', level: 3 })).toBeInTheDocument();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(AccountArea.displayName).toBe('AccountArea');
   });

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CaretRightIcon, InfoIcon, WarningIcon } from '@phosphor-icons/react';
+import { Alert02Icon, ArrowRight01Icon, InformationCircleIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { Card } from '@ValenceUI/Card';
 import type { ConcernTone } from '@ValenceScreens/components/AdminArea/collectConcerns';
@@ -38,9 +38,9 @@ const ConcernsBanner = ({ concerns, onOpenPanel }: ConcernsBannerProps) => {
             >
               <span className={`mt-0.5 shrink-0 ${TONE_CLASSES[concern.tone]}`}>
                 {concern.tone === 'setup' ? (
-                  <Icon of={InfoIcon} size={16} />
+                  <Icon of={InformationCircleIcon} size={16} />
                 ) : (
-                  <Icon of={WarningIcon} size={16} />
+                  <Icon of={Alert02Icon} size={16} />
                 )}
               </span>
 
@@ -49,7 +49,7 @@ const ConcernsBanner = ({ concerns, onOpenPanel }: ConcernsBannerProps) => {
                 <span className="truncate text-xs text-text-muted">{concern.detail}</span>
               </span>
 
-              <Icon of={CaretRightIcon} size={14} className="shrink-0 text-text-muted" />
+              <Icon of={ArrowRight01Icon} size={14} className="shrink-0 text-text-muted" />
             </Button>
           </li>
         ))}

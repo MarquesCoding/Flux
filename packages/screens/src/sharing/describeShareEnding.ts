@@ -1,28 +1,28 @@
-import { ClockIcon, EyeSlashIcon, LinkBreakIcon } from '@phosphor-icons/react';
+import { Clock01Icon, Unlink01Icon, ViewOffIcon } from '@hugeicons/core-free-icons';
 import { SHARE_ENDING_SAID } from '@ValenceContracts/schemas/Share';
-import type { Icon as PhosphorIcon } from '@phosphor-icons/react';
+import type { IconGlyph } from '@ValenceUI/Icon.types';
 import type { ShareEnding } from '@ValenceContracts/schemas/Share';
 
 type EndingTold = {
   said: string;
   detail: string;
-  icon: PhosphorIcon;
+  icon: IconGlyph;
 };
 
-const TOLD: Record<ShareEnding, { detail: string; icon: PhosphorIcon }> = {
+const TOLD: Record<ShareEnding, { detail: string; icon: IconGlyph }> = {
   withdrawn: {
     detail: 'Somebody stopped it working. Whoever sent it can send another.',
-    icon: LinkBreakIcon,
+    icon: Unlink01Icon,
   },
   expired: {
     detail:
       'It was made to last a while, and that while is over. Whoever sent it can send another.',
-    icon: ClockIcon,
+    icon: Clock01Icon,
   },
   spent: {
     detail:
       'It was made to be opened a set number of times, and it has been. Whoever sent it can send another.',
-    icon: EyeSlashIcon,
+    icon: ViewOffIcon,
   },
 };
 

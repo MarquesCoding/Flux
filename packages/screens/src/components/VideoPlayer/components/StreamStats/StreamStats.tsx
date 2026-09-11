@@ -1,6 +1,7 @@
 import { Icon } from '@ValenceUI/Icon';
-import { XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
+import { cn } from '@ValenceUI/cn';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import {
   describeAxis as axis,
@@ -100,6 +101,8 @@ const size = (width: number | null, height: number | null): string =>
  *   is now.
  * @param party - How the watch party is faring, where this viewing is part of one.
  * @param onClose - Called to close the panel.
+ * @param onGrab - Told when somebody takes hold of the panel's head, so whatever holds the panel can
+ *   let it be dragged. The close button is not a handle.
  */
 const StreamStats = ({
   media,
@@ -110,6 +113,7 @@ const StreamStats = ({
   sessionStartSeconds,
   party,
   onClose,
+  onGrab,
 }: StreamStatsProps) => {
   const video = detail?.videoCodec ?? media.id;
   const audio = detail?.audioStreams[0] ?? null;
@@ -120,11 +124,24 @@ const StreamStats = ({
       aria-label="Stats for nerds"
       className="valence-rail valence-glass valence-glass--film pointer-events-auto max-h-[calc(100svh-11rem)] w-full max-w-lg overflow-y-auto overscroll-contain rounded-lg p-4 text-xs text-on-scrim"
     >
-      <header className="mb-3 flex items-center justify-between gap-4 border-b border-on-scrim/10 pb-2">
+      <header
+        onPointerDown={(event) => {
+          if (
+            onGrab !== undefined &&
+            !(event.target instanceof Element && event.target.closest('button') !== null)
+          ) {
+            onGrab(event);
+          }
+        }}
+        className={cn(
+          'mb-3 flex items-center justify-between gap-4 border-b border-on-scrim/10 pb-2',
+          onGrab === undefined ? '' : 'cursor-grab touch-none select-none active:cursor-grabbing',
+        )}
+      >
         <h3 className="text-sm font-medium tracking-tight">Stats for nerds</h3>
 
         <Button isIconOnly variant="ghost" label="Close stats" size="sm" onClick={onClose}>
-          <Icon of={XIcon} size={16} />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </header>
 

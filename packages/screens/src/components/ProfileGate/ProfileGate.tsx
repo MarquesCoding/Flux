@@ -1,6 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Logo } from '@ValenceUI/Logo';
-import { CaretLeftIcon, CaretRightIcon, KeyIcon } from '@phosphor-icons/react';
+import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import type { Variants } from 'motion/react';
@@ -305,7 +305,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                       setPage((current) => Math.max(current - 1, 0));
                     }}
                   >
-                    <Icon of={CaretLeftIcon} size={20} />
+                    <Icon of={ArrowLeft01Icon} size={20} />
                   </Button>
                 </span>
 
@@ -366,7 +366,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                       setPage((current) => Math.min(current + 1, pages - 1));
                     }}
                   >
-                    <Icon of={CaretRightIcon} size={20} />
+                    <Icon of={ArrowRight01Icon} size={20} />
                   </Button>
                 </span>
               </motion.div>
@@ -452,7 +452,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     disabled={password === ''}
                   >
                     Watch
-                    <Icon of={CaretRightIcon} size={18} />
+                    <Icon of={ArrowRight01Icon} size={18} />
                   </Button>
 
                   {!isPasskeySupported() ? null : (
@@ -465,7 +465,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                         void signInWithPasskey();
                       }}
                     >
-                      <Icon of={KeyIcon} size={16} />
+                      <Icon of={Key01Icon} size={16} />
                       Use a passkey instead
                     </Button>
                   )}
@@ -489,7 +489,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     setNeedsCode(false);
                   }}
                 >
-                  <Icon of={CaretLeftIcon} size={18} />
+                  <Icon of={ArrowLeft01Icon} size={18} />
                 </Button>
               </motion.div>
             </div>

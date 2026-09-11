@@ -4,19 +4,28 @@ const READ_AT = 24;
 
 const SPREAD = 1.9;
 
-const ZONES = [
-  { from: [0, 0, 0.5, 0.5], at: '12% 10%' },
-  { from: [0.5, 0, 0.5, 0.5], at: '88% 12%' },
-  { from: [0, 0.5, 0.5, 0.5], at: '10% 82%' },
-  { from: [0.5, 0.5, 0.5, 0.5], at: '90% 85%' },
-  { from: [0.25, 0.25, 0.5, 0.5], at: '50% 45%' },
-] as const;
+const COLUMNS = [8, 36, 64, 92] as const;
+
+const ROWS = [10, 48, 86] as const;
+
+const ZONES = ROWS.flatMap((y, row) =>
+  COLUMNS.map((x, column) => ({
+    from: [
+      column / COLUMNS.length,
+      row / ROWS.length,
+      1 / COLUMNS.length,
+      1 / ROWS.length,
+    ] as const,
+    at: `${x.toString()}% ${y.toString()}%`,
+  })),
+);
 
 const MIN_PEAK = 110;
 
 /**
- * Reads the handful of colours that stand for an image, by drawing it very small and looking at what
- * is left. Shrinking averages the picture for us, which is both cheaper and steadier than sampling a
+ * Reads the colours that stand for an image, by drawing it very small and looking at what is left —
+ * one for each cell of a grid laid over it, four across and three down, so the page is lit by what
+ * is where in the picture rather than by a handful of averages. Shrinking averages the picture for us, which is both cheaper and steadier than sampling a
  * full-size one. Answers with nothing where the image cannot be read at all, which a canvas tainted
  * by another origin cannot.
  *

@@ -5,21 +5,17 @@ import { useShell } from '@ValenceClient/shell/useShell';
 import { useFavourites } from '@ValenceClient/library/useFavourites';
 
 /**
- * The front of the server: a hero drawn from every library, and the rows of one of them.
+ * The front of the server: a hero drawn from every library, and the rows of everything to watch.
  */
 const HomePage = () => {
   const { title, user, rememberItems, setStartOverride, setMoodLights } = useShell();
-  const { place, go, replace } = usePlace();
+  const { place, go } = usePlace();
   const favourites = useFavourites(user.id);
 
   return (
     <LibraryBrowser
       name={title}
       search={place.search}
-      libraryId={place.library}
-      onLibraryChange={(libraryId) => {
-        replace({ library: libraryId });
-      }}
       {...(user.role === 'admin'
         ? {
             onAddLibrary: () => {

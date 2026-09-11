@@ -1,3 +1,5 @@
+import type { MotionValue } from 'motion/react';
+
 type PageDotsProps = {
   count: number;
   selectedIndex: number;
@@ -5,8 +7,8 @@ type PageDotsProps = {
   labels?: string[];
   label?: string;
   className?: string;
-  fillMilliseconds?: number;
-  isFillPaused?: boolean;
+  progress?: MotionValue<number>;
+  tone?: 'page' | 'overlay';
 };
 
 export type { PageDotsProps };

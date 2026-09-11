@@ -3,7 +3,7 @@ import type {
   WebhookPreset,
   WebhookSubscribableEvent,
 } from '@ValenceContracts/schemas/Webhook';
-import type { WebhookFilterChoice } from '../WebhooksPanel/components/WebhookFilterList/WebhookFilterList.types';
+import type { WebhookFilterChoice } from '@ValenceScreens/components/AdminArea/components/WebhooksPanel/components/WebhookFilterList/WebhookFilterList.types';
 
 type WebhookDraft = {
   name: string;

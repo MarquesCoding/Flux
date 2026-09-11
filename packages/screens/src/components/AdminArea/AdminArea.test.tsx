@@ -33,6 +33,7 @@ const OVERVIEW: AdminOverview = {
     trustedOrigins: ['http://localhost:5173'],
     cookieSecure: false,
     hardwareAccel: '',
+    previewQuality: 'high' as const,
   },
   transcoder: {
     isReachable: true,

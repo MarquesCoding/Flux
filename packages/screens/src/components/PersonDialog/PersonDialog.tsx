@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { UserIcon, XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon, UserIcon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { ReadMore } from '@ValenceUI/ReadMore';
@@ -101,7 +101,7 @@ const PersonDialog = ({
       <DialogContent className="p-0">
         <div className="absolute right-4 top-4 z-10">
           <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-            <Icon of={XIcon} size={18} />
+            <Icon of={Cancel01Icon} size={18} />
           </Button>
         </div>
 

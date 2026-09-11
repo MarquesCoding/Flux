@@ -1,5 +1,13 @@
 import { Icon } from '@ValenceUI/Icon';
-import { DownloadSimpleIcon, InfoIcon, LinkIcon, PlayIcon, XIcon } from '@phosphor-icons/react';
+import { titleLogoUrl } from '@ValenceScreens/library/titleLogoUrl';
+import { TitleLogo } from '@ValenceScreens/components/TitleLogo/TitleLogo';
+import {
+  Cancel01Icon,
+  Download04Icon,
+  InformationCircleIcon,
+  Link01Icon,
+  PlayIcon,
+} from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
@@ -165,7 +173,7 @@ const ShowDialog = ({
           isShowing={hasScrolledPast}
         >
           <Button isIconOnly variant="ghost" size="sm" isPill label="Close" onClick={onClose}>
-            <Icon of={XIcon} size={16} />
+            <Icon of={Cancel01Icon} size={16} />
           </Button>
         </ScrolledTitle>
 
@@ -183,7 +191,7 @@ const ShowDialog = ({
 
           <div className="absolute right-4 top-4">
             <Button isIconOnly variant="overlay" label="Close" onClick={onClose}>
-              <Icon of={XIcon} size={20} />
+              <Icon of={Cancel01Icon} size={20} />
             </Button>
           </div>
 
@@ -217,8 +225,8 @@ const ShowDialog = ({
               {lettered === null || unlettered === lettered.id ? (
                 shown.title
               ) : (
-                <img
-                  src={`/api/media/${lettered.id}/image/logo`}
+                <TitleLogo
+                  src={titleLogoUrl(lettered.id)}
                   alt={shown.title}
                   className="max-h-[16svh] w-auto max-w-[min(70vw,26rem)] object-contain object-left"
                   onError={() => {
@@ -361,7 +369,7 @@ const ShowDialog = ({
                   {
                     id: 'episode',
                     label: 'About this episode',
-                    icon: <Icon of={InfoIcon} size={18} />,
+                    icon: <Icon of={InformationCircleIcon} size={18} />,
                     onChoose: () => {
                       onInspect(carryingOn.episode);
                     },
@@ -373,7 +381,7 @@ const ShowDialog = ({
                   {
                     id: 'download',
                     label: 'Download the programme',
-                    icon: <Icon of={DownloadSimpleIcon} size={18} />,
+                    icon: <Icon of={Download04Icon} size={18} />,
                     onChoose: () => {
                       setIsDownloading(true);
                     },
@@ -385,7 +393,7 @@ const ShowDialog = ({
                   {
                     id: 'share',
                     label: 'Share',
-                    icon: <Icon of={LinkIcon} size={18} />,
+                    icon: <Icon of={Link01Icon} size={18} />,
                     onChoose: () => {
                       onShare(shown);
                     },

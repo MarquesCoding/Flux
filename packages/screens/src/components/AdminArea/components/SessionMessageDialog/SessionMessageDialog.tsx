@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -49,7 +49,7 @@ const SessionMessageDialog = ({ watcher, isOpen, onSend, onClose }: SessionMessa
     <Dialog label="Send a message" isOpen={isOpen} onClose={onClose}>
       <DialogTitle title={`Message ${watcher}`}>
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
-          <Icon of={XIcon} size={16} />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </DialogTitle>
 

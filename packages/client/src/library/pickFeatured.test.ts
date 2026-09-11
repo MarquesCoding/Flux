@@ -10,6 +10,8 @@ import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 
 let counter = 0;
 
+const STAYS_PUT = (): number => 0.999;
+
 const itemOf = (changes: Partial<MediaSummary> = {}): MediaSummary => {
   counter += 1;
 
@@ -79,9 +81,52 @@ describe('pickFeatured', () => {
 
   it('keeps a show where its first file appeared, not where its first episode did', () => {
     const film = itemOf({ title: 'Parasite' });
-    const featured = pickFeatured([episodeOf('Show', 1, 9), film, episodeOf('Show', 1, 1)], 10);
+    const featured = pickFeatured(
+      [episodeOf('Show', 1, 9), film, episodeOf('Show', 1, 1)],
+      10,
+      STAYS_PUT,
+    );
 
     expect(featured.map((item) => item.seriesTitle ?? item.title)).toEqual(['Show', 'Parasite']);
+  });
+
+  it('shuffles what it features, so the front page is not the same few every visit', () => {
+    const first = itemOf({ title: 'First' });
+    const second = itemOf({ title: 'Second' });
+    const third = itemOf({ title: 'Third' });
+
+    expect(pickFeatured([first, second, third], 3, () => 0).map((item) => item.title)).toEqual([
+      'Second',
+      'Third',
+      'First',
+    ]);
+  });
+
+  it('leaves the order alone where the draw says to', () => {
+    const first = itemOf({ title: 'First' });
+    const second = itemOf({ title: 'Second' });
+    const third = itemOf({ title: 'Third' });
+
+    expect(pickFeatured([first, second, third], 3, STAYS_PUT).map((item) => item.title)).toEqual([
+      'First',
+      'Second',
+      'Third',
+    ]);
+  });
+
+  it('shuffles before it stops, so the few it keeps are drawn from everything', () => {
+    const items = [itemOf({ title: 'A' }), itemOf({ title: 'B' }), itemOf({ title: 'C' })];
+
+    expect(pickFeatured(items, 1, () => 0).map((item) => item.title)).toEqual(['B']);
+  });
+
+  it('does not change what it was given', () => {
+    const items = [itemOf({ title: 'A' }), itemOf({ title: 'B' }), itemOf({ title: 'C' })];
+    const before = items.map((item) => item.id);
+
+    pickFeatured(items, 3, () => 0);
+
+    expect(items.map((item) => item.id)).toEqual(before);
   });
 
   it('keeps two different shows apart', () => {

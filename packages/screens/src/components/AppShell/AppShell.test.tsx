@@ -1,6 +1,7 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { chosenTheme } from '@ValenceClient/shell/theme';
 import { AppShell } from './AppShell';
 
 vi.mock('@ValenceUI/badAppleFilm', () => ({
@@ -81,16 +82,32 @@ describe('AppShell', () => {
     }
   });
 
-  it('hides administration from everyone who does not administer', () => {
+  it('hides administration from everyone who does not administer', async () => {
+    const user = userEvent.setup();
+
     draw();
 
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
   });
 
-  it('offers administration to someone who does', () => {
+  it('offers administration to someone who does, in the menu on their face', async () => {
+    const user = userEvent.setup();
+    const { props } = draw({ isAdministrator: true });
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Admin' }));
+
+    expect(props.onOpenAdmin).toHaveBeenCalledOnce();
+  });
+
+  it('keeps administration off the bar itself, since it lives behind the face', () => {
     draw({ isAdministrator: true });
 
-    expect(screen.getByRole('button', { name: 'Admin' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Admin' })).not.toBeInTheDocument();
   });
 
   it('says which section the viewer is in', () => {
@@ -118,6 +135,7 @@ describe('AppShell', () => {
     const { props } = draw();
 
     await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Account' }));
 
     expect(props.onOpenAccount).toHaveBeenCalledOnce();
     expect(props.onSectionChange).not.toHaveBeenCalled();
@@ -126,7 +144,64 @@ describe('AppShell', () => {
   it('lights the face while the account is open, since no section is current then', () => {
     draw({ isAccountOpen: true });
 
-    expect(screen.getByRole('button', { name: 'Account' })).toHaveAttribute('aria-current', 'page');
+    expect(
+      screen.getByRole('button', { name: 'Account' }).closest('[data-highlight="account"]'),
+    ).toHaveClass('text-text');
+  });
+
+  it('lights the face while the server dialog is open too, since that is where it was opened', () => {
+    draw({ isAdministrator: true, isAdminOpen: true });
+
+    expect(
+      screen.getByRole('button', { name: 'Account' }).closest('[data-highlight="account"]'),
+    ).toHaveClass('text-text');
+  });
+
+  it('leaves the face unlit while neither dialog is open', () => {
+    draw();
+
+    expect(
+      screen.getByRole('button', { name: 'Account' }).closest('[data-highlight="account"]'),
+    ).not.toHaveClass('text-text');
+  });
+
+  it('changes the theme from the menu on the face, marking the one in force', async () => {
+    const user = userEvent.setup();
+
+    draw();
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+
+    const system = await screen.findByRole('menuitem', { name: /System/ });
+
+    expect(within(system).getByText('✓')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('menuitem', { name: /Dark/ }));
+
+    expect(chosenTheme()).toBe('dark');
+  });
+
+  it('signs out from the menu on the face', async () => {
+    const user = userEvent.setup();
+    const onSignOut = vi.fn();
+
+    draw({ onSignOut });
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Sign out' }));
+
+    expect(onSignOut).toHaveBeenCalledOnce();
+  });
+
+  it('offers no way to sign out where the page was given none', async () => {
+    const user = userEvent.setup();
+
+    draw();
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await screen.findByRole('menuitem', { name: 'Account' });
+
+    expect(screen.queryByRole('menuitem', { name: 'Sign out' })).not.toBeInTheDocument();
   });
 
   it('lights the page with the colour of what is being shown', () => {
@@ -138,10 +213,10 @@ describe('AppShell', () => {
     expect(bloom?.style.background).toContain('20% 30%');
   });
 
-  it('leaves room beneath every page for the dock to float over', () => {
+  it('leaves room above every page for the bar laid over its top', () => {
     const { view } = draw();
 
-    expect(view.container.querySelector('main')).toHaveClass('pb-28');
+    expect(view.container.querySelector('main')).toHaveClass('pt-[var(--nav-clearance)]');
   });
 
   it('ends the page with the content rather than with a second navigation', () => {

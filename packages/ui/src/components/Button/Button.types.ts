@@ -3,7 +3,7 @@ import type { ButtonHTMLAttributes, ReactNode } from 'react';
 type ButtonVariant =
   'primary' | 'glossy' | 'secondary' | 'soft' | 'ghost' | 'danger' | 'overlay' | 'link' | 'bare';
 
-type ButtonSize = 'sm' | 'md' | 'lg' | 'xl' | 'none';
+type ButtonSize = 'xs' | 'sm' | 'md' | 'lg' | 'xl' | 'none';
 
 type ButtonProps = Omit<ButtonHTMLAttributes<HTMLButtonElement>, 'className'> & {
   children?: ReactNode;

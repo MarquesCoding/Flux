@@ -1,37 +1,83 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
-  BellIcon,
-  BookOpenIcon,
-  DownloadSimpleIcon,
-  DiceFiveIcon,
-  FilmSlateIcon,
+  BookOpen01Icon,
+  Cancel01Icon,
+  ComputerIcon,
+  DiceFaces05Icon,
+  Download04Icon,
+  FavouriteIcon,
+  Film01Icon,
   FireIcon,
-  GearSixIcon,
-  HeartIcon,
-  HouseIcon,
-  MagnifyingGlassIcon,
-  TelevisionIcon,
+  Home01Icon,
+  Logout01Icon,
+  Moon02Icon,
+  Notification01Icon,
+  Search01Icon,
+  Settings02Icon,
+  Sun01Icon,
+  Tv01Icon,
   UserCircleIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+} from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import {
+  AnimatePresence,
+  motion,
+  useMotionValue,
+  useMotionValueEvent,
+  useReducedMotion,
+  useScroll,
+} from 'motion/react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Button } from '@ValenceUI/Button';
-import { NavDock } from '@ValenceUI/NavDock';
+import { NavBar } from '@ValenceUI/NavBar';
+import { Logo } from '@ValenceUI/Logo';
 import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { useDotFilm } from '@ValenceUI/useDotFilm';
 import { useKonamiCode } from '@ValenceUI/useKonamiCode';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
+import { useTheme } from '@ValenceClient/shell/useTheme';
+import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
 import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
-import type { NavDockAction, NavDockItem } from '@ValenceUI/NavDock.types';
+import type { NavBarAction, NavBarItem } from '@ValenceUI/NavBar.types';
 import type { LibraryKind } from '@ValenceContracts/schemas/Library';
+import type { Theme } from '@ValenceClient/shell/theme';
 import type { AppShellProps, ShellSection } from './AppShell.types';
 
 const FADING = 1.2;
+
+const SOLID_WITHIN = 64;
+
+/**
+ * How far the bar should be painted in, given how far the page has scrolled.
+ *
+ * Solid by the time the page's content reaches the bar, and not before — so on a page that opens on
+ * a hero, which is a long scroll before anything passes underneath, the bar arrives gradually over
+ * all of it. Where the content begins is read from the element that says it meets the bar; a page
+ * without one begins its content just below the bar, and fills over the first few pixels instead.
+ *
+ * @param travelled - How far the page has scrolled.
+ * @returns How solid, from nothing to one.
+ */
+const howSolid = (travelled: number): number => {
+  const meets = document.querySelector<HTMLElement>('[data-meets-bar]');
+  const bar = document.querySelector<HTMLElement>('.valence-navbar')?.offsetHeight ?? SOLID_WITHIN;
+
+  const reach =
+    meets === null
+      ? SOLID_WITHIN
+      : Math.max(meets.getBoundingClientRect().top + travelled - bar, SOLID_WITHIN);
+
+  return Math.min(Math.max(travelled / reach, 0), 1);
+};
+
+const THEME_ICONS: Record<Theme, ReactNode> = {
+  system: <Icon of={ComputerIcon} size={16} />,
+  light: <Icon of={Sun01Icon} size={16} />,
+  dark: <Icon of={Moon02Icon} size={16} />,
+};
 
 const SURPRISE_LABELS: Record<LibraryKind, string> = {
   movies: 'A film',
@@ -41,27 +87,27 @@ const SURPRISE_LABELS: Record<LibraryKind, string> = {
 };
 
 const SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <Icon of={HouseIcon} size={18} />,
-  shows: <Icon of={TelevisionIcon} size={18} />,
-  films: <Icon of={FilmSlateIcon} size={18} />,
+  home: <Icon of={Home01Icon} size={18} />,
+  shows: <Icon of={Tv01Icon} size={18} />,
+  films: <Icon of={Film01Icon} size={18} />,
   new: <Icon of={FireIcon} size={18} />,
-  favourites: <Icon of={HeartIcon} size={18} />,
-  read: <Icon of={BookOpenIcon} size={18} />,
-  search: <Icon of={MagnifyingGlassIcon} size={18} />,
+  favourites: <Icon of={FavouriteIcon} size={18} />,
+  read: <Icon of={BookOpen01Icon} size={18} />,
+  search: <Icon of={Search01Icon} size={18} />,
   account: <Icon of={UserCircleIcon} size={18} />,
-  admin: <Icon of={GearSixIcon} size={18} />,
+  admin: <Icon of={Settings02Icon} size={18} />,
 };
 
 const ACTIVE_SECTION_ICONS: Record<ShellSection, ReactNode> = {
-  home: <Icon of={HouseIcon} size={18} isActive />,
-  shows: <Icon of={TelevisionIcon} size={18} isActive />,
-  films: <Icon of={FilmSlateIcon} size={18} isActive />,
+  home: <Icon of={Home01Icon} size={18} isActive />,
+  shows: <Icon of={Tv01Icon} size={18} isActive />,
+  films: <Icon of={Film01Icon} size={18} isActive />,
   new: <Icon of={FireIcon} size={18} isActive />,
-  favourites: <Icon of={HeartIcon} size={18} isActive />,
-  read: <Icon of={BookOpenIcon} size={18} isActive />,
-  search: <Icon of={MagnifyingGlassIcon} size={18} isActive />,
+  favourites: <Icon of={FavouriteIcon} size={18} isActive />,
+  read: <Icon of={BookOpen01Icon} size={18} isActive />,
+  search: <Icon of={Search01Icon} size={18} isActive />,
   account: <Icon of={UserCircleIcon} size={18} isActive />,
-  admin: <Icon of={GearSixIcon} size={18} isActive />,
+  admin: <Icon of={Settings02Icon} size={18} isActive />,
 };
 
 const SECTION_GESTURES: Record<ShellSection, IconGesture> = {
@@ -89,8 +135,9 @@ const SECTION_LABELS: Record<ShellSection, string> = {
 };
 
 /**
- * The frame every page is drawn inside: the dock at the foot, the light behind, and the footer at
- * the end of the scroll. Sections arrive rather than appear, and each remembers how far down it was
+ * The frame every page is drawn inside: the bar along the top, the light behind, and the footer at
+ * the end of the scroll. The bar is clear until the page has been scrolled and painted in after, so
+ * the top of a page is the page rather than chrome laid over it. Sections arrive rather than appear, and each remembers how far down it was
  * scrolled so moving between them and back lands where it was left.
  *
  * @param section - Which section is showing.
@@ -100,11 +147,13 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param isAdministrator - Whether to offer the admin section at all.
  * @param isDownloadsOpen - Whether the downloads dialog is raised.
  * @param onOpenDownloads - Told to raise the downloads dialog.
- * @param isAdminOpen - Whether the server dialog is raised, which lights the dock's cog.
- * @param onOpenAdmin - Told to raise the server dialog.
- * @param isAccountOpen - Whether the account dialog is raised, which lights the dock's face.
+ * @param isAdminOpen - Whether the server dialog is raised, which lights the bar's face, since the
+ *   account menu is where it is opened from.
+ * @param onOpenAdmin - Told to raise the server dialog, from the account menu.
+ * @param isAccountOpen - Whether the account dialog is raised, which lights the bar's face.
  * @param onOpenAccount - Told to raise the account dialog.
  * @param avatar - The face to draw on the account control.
+ * @param onSignOut - Told to end the session.
  * @param onSurprise - Told to choose something at random, optionally from one kind of library.
  * @param surpriseKinds - Which kinds of library there are, which decides whether the dice offer a
  *   menu or simply act.
@@ -123,12 +172,20 @@ const AppShell = ({
   isDownloadsOpen,
   onOpenDownloads,
   avatar,
+  onSignOut,
   onSurprise,
   surpriseKinds = [],
   notifications,
 }: AppShellProps) => {
   const prefersReducedMotion = useReducedMotion();
   const [isFilmPlaying, setIsFilmPlaying] = useState(false);
+  const { scrollY } = useScroll();
+  const solidity = useMotionValue(0);
+  const { theme, choose } = useTheme();
+
+  useMotionValueEvent(scrollY, 'change', (travelled) => {
+    solidity.set(howSolid(travelled));
+  });
 
   useKonamiCode(() => {
     if (section === 'home' && prefersReducedMotion !== true) {
@@ -184,7 +241,7 @@ const AppShell = ({
     };
   }, [section]);
 
-  const items: NavDockItem[] = BROWSE_SECTIONS.map((id) => ({
+  const items: NavBarItem[] = BROWSE_SECTIONS.map((id) => ({
     id,
     label: SECTION_LABELS[id],
     icon: SECTION_ICONS[id],
@@ -192,14 +249,16 @@ const AppShell = ({
     gesture: SECTION_GESTURES[id],
   }));
 
-  const actions: NavDockAction[] = [
+  const face = avatar ?? <Icon of={UserCircleIcon} size={22} />;
+
+  const actions: NavBarAction[] = [
     ...(canKeepFiles()
       ? [
           {
             id: 'downloads',
             label: 'Downloads',
-            icon: <Icon of={DownloadSimpleIcon} size={20} />,
-            activeIcon: <Icon of={DownloadSimpleIcon} size={20} isActive />,
+            icon: <Icon of={Download04Icon} size={20} />,
+            activeIcon: <Icon of={Download04Icon} size={20} isActive />,
             gesture: 'settle' as const,
             isCurrent: isDownloadsOpen,
             onSelect: onOpenDownloads,
@@ -209,8 +268,8 @@ const AppShell = ({
     {
       id: 'search',
       label: 'Search',
-      icon: <Icon of={MagnifyingGlassIcon} size={20} />,
-      activeIcon: <Icon of={MagnifyingGlassIcon} size={20} />,
+      icon: <Icon of={Search01Icon} size={20} />,
+      activeIcon: <Icon of={Search01Icon} size={20} />,
       gesture: 'settle' as const,
       isCurrent: section === 'search',
       onSelect: () => {
@@ -223,7 +282,7 @@ const AppShell = ({
           {
             id: 'surprise',
             label: 'Randomiser',
-            icon: <Icon of={DiceFiveIcon} size={20} />,
+            icon: <Icon of={DiceFaces05Icon} size={20} />,
             gesture: 'tumble' as const,
             ...(surpriseKinds.length > 1
               ? {
@@ -231,8 +290,8 @@ const AppShell = ({
                     <ActionMenu
                       label="Choose something at random"
                       align="center"
-                      className="hover:bg-transparent data-[popup-open]:bg-transparent"
-                      trigger={<Icon of={DiceFiveIcon} size={20} />}
+                      className="rounded-full hover:bg-transparent"
+                      trigger={<Icon of={DiceFaces05Icon} size={20} />}
                       groups={[
                         {
                           items: [
@@ -269,37 +328,78 @@ const AppShell = ({
           {
             id: 'notifications',
             label: 'Notifications',
-            icon: <Icon of={BellIcon} size={20} />,
+            icon: <Icon of={Notification01Icon} size={20} />,
             control: notifications,
           },
         ]),
-    ...(isAdministrator
-      ? [
-          {
-            id: 'admin',
-            label: 'Admin',
-            icon: <Icon of={GearSixIcon} size={20} />,
-            activeIcon: <Icon of={GearSixIcon} size={20} />,
-            gesture: 'spin' as const,
-            isCurrent: isAdminOpen,
-            onSelect: onOpenAdmin,
-          },
-        ]
-      : []),
     {
       id: 'account',
       label: 'Account',
-      icon: avatar ?? <Icon of={UserCircleIcon} size={22} />,
-      activeIcon: avatar ?? <Icon of={UserCircleIcon} size={20} />,
-      gesture: 'settle' as const,
-      isCurrent: isAccountOpen,
-      onSelect: onOpenAccount,
+      icon: face,
+      gesture: avatar === undefined ? ('settle' as const) : ('none' as const),
+      isCurrent: isAccountOpen || isAdminOpen,
+      control: (
+        <ActionMenu
+          label="Account"
+          align="end"
+          className="rounded-full hover:bg-transparent"
+          trigger={face}
+          groups={[
+            {
+              items: [
+                {
+                  id: 'account',
+                  label: 'Account',
+                  icon: <Icon of={UserCircleIcon} size={16} />,
+                  onChoose: onOpenAccount,
+                },
+                ...(isAdministrator
+                  ? [
+                      {
+                        id: 'admin',
+                        label: 'Admin',
+                        icon: <Icon of={Settings02Icon} size={16} />,
+                        onChoose: onOpenAdmin,
+                      },
+                    ]
+                  : []),
+              ],
+            },
+            {
+              name: 'Theme',
+              items: THEME_CHOICES.map((choice) => ({
+                id: `theme-${choice.id}`,
+                label: choice.label,
+                icon: THEME_ICONS[choice.id],
+                ...(theme === choice.id ? { detail: '✓' } : {}),
+                onChoose: () => {
+                  choose(choice.id);
+                },
+              })),
+            },
+            ...(onSignOut === undefined
+              ? []
+              : [
+                  {
+                    items: [
+                      {
+                        id: 'sign-out',
+                        label: 'Sign out',
+                        icon: <Icon of={Logout01Icon} size={16} />,
+                        onChoose: onSignOut,
+                      },
+                    ],
+                  },
+                ]),
+          ]}
+        />
+      ),
     },
   ];
 
   return (
-    <div className="valence-docked relative min-h-[calc(100vh-var(--valence-window-bar))] text-text">
-      <MoodBackground lights={moodLights} hasGrid={section === 'home'} film={film} />
+    <div className="valence-shell relative min-h-[calc(100vh-var(--valence-window-bar))] text-text">
+      <MoodBackground lights={moodLights} film={film} />
 
       <AnimatePresence>
         {isFilmPlaying ? (
@@ -312,10 +412,10 @@ const AppShell = ({
               duration: prefersReducedMotion === true ? 0 : FADING,
               ease: 'easeInOut',
             }}
-            className="fixed top-[calc(1rem+var(--valence-window-bar))] right-4 z-50"
+            className="fixed top-[calc(1rem+var(--nav-clearance))] right-4 z-50"
           >
             <Button isIconOnly variant="overlay" label="Stop the film" onClick={endFilm}>
-              <Icon of={XIcon} size={20} />
+              <Icon of={Cancel01Icon} size={20} />
             </Button>
           </motion.div>
         ) : null}
@@ -326,7 +426,9 @@ const AppShell = ({
         transition={{ duration: prefersReducedMotion === true ? 0 : FADING, ease: 'easeInOut' }}
         className={isFilmPlaying ? 'pointer-events-none' : undefined}
       >
-        <NavDock
+        <NavBar
+          brand={<Logo size={28} isSolid />}
+          solidity={solidity}
           items={items}
           selectedId={section}
           actions={actions}
@@ -344,7 +446,7 @@ const AppShell = ({
           variants={staggerVariants}
           initial="hidden"
           animate="shown"
-          className="min-h-[calc(100vh-var(--valence-window-bar))] pb-28"
+          className="min-h-[calc(100vh-var(--valence-window-bar))] pb-16 pt-[var(--nav-clearance)]"
         >
           <motion.div
             variants={revealVariants(prefersReducedMotion)}

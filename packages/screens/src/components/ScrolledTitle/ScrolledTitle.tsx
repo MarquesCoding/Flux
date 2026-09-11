@@ -16,6 +16,10 @@ import type { ScrolledTitleProps } from './ScrolledTitle.types';
  *
  * It reaches the dialog's own edges rather than sitting inside its margin, so it reads as part of
  * the dialog's frame rather than as a card that happens to be stuck to the top of the content.
+ * It also paints a sliver of itself above its own top edge. It is pulled up by exactly the
+ * content's padding, but both are in rem, and where the root size is not a whole number of pixels
+ * the two round differently — leaving a hairline at the top of the dialog for the scrolling
+ * content to show through.
  *
  * Solid rather than glass, unlike everything else that floats in Valence. Glass works where what is
  * behind it is scenery; here what is behind it is a paragraph moving upwards, and a title with
@@ -41,7 +45,8 @@ const ScrolledTitle = ({ title, artwork, detail, isShowing, children }: Scrolled
         transition={{ duration: prefersReducedMotion === true ? 0 : 0.18, ease: 'easeOut' }}
         className={cn(
           'flex items-center gap-3 bg-surface-raised px-4 py-2.5 sm:px-5',
-          'border-b border-[var(--surface-line)] shadow-[var(--shadow-raised)]',
+          'border-b border-[var(--surface-line)]',
+          'shadow-[0_-2px_0_var(--color-surface-raised),var(--shadow-raised)]',
           isShowing ? '' : 'pointer-events-none',
         )}
       >

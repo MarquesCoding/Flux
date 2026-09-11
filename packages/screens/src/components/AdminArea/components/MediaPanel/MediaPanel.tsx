@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { ArrowsClockwiseIcon, MagnifyingGlassIcon } from '@phosphor-icons/react';
+import { RefreshIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useMemo, useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
@@ -8,6 +8,7 @@ import { TextField } from '@ValenceUI/TextField';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaPanelProps } from './MediaPanel.types';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 /**
  * Names a row by its programme rather than by the episode standing in for it, so a series appears
@@ -131,7 +132,7 @@ const MediaPanel = ({
                 void rebuild(row.original);
               }}
             >
-              <Icon of={ArrowsClockwiseIcon} size={15} />
+              <Icon of={RefreshIcon} size={15} />
               {rebuilding === row.original.id
                 ? 'Rebuilding…'
                 : rebuilt.has(row.original.id)
@@ -147,7 +148,7 @@ const MediaPanel = ({
                 onCorrect(row.original);
               }}
             >
-              <Icon of={MagnifyingGlassIcon} size={15} />
+              <Icon of={Search01Icon} size={15} />
               Wrong match?
             </Button>
           </span>
@@ -158,8 +159,10 @@ const MediaPanel = ({
   );
 
   return (
-    <section className="flex flex-col">
-      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
+    <PanelCard
+      title="Media"
+      isFlush
+      actions={
         <TextField
           label="Find a programme or film"
           isLabelHidden
@@ -171,10 +174,10 @@ const MediaPanel = ({
           onValueChange={setSearch}
           className="w-64 max-w-full"
         />
-      </div>
-
+      }
+    >
       {isUnreachable ? (
-        <p className="px-5 pb-6 text-sm text-text-muted">
+        <p className="p-5 text-sm text-text-muted">
           The libraries could not be read from the server. This is not the same as holding nothing.
         </p>
       ) : (
@@ -188,7 +191,7 @@ const MediaPanel = ({
           }
         />
       )}
-    </section>
+    </PanelCard>
   );
 };
 

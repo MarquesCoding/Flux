@@ -7,15 +7,34 @@ import type { DotFieldProps } from '@ValenceUI/DotField.types';
 import type { MoodBackgroundProps, MoodLight } from './MoodBackground.types';
 import { HOUSE_LIGHTS } from '@ValenceUI/houseLights';
 
-const BLOOMS = [
-  { at: '14% 8%', size: '70vw 60vh', strength: 40 },
-  { at: '86% 12%', size: '65vw 55vh', strength: 36 },
-  { at: '10% 84%', size: '70vw 55vh', strength: 30 },
-  { at: '90% 86%', size: '65vw 55vh', strength: 28 },
-  { at: '50% 45%', size: '80vw 60vh', strength: 24 },
+const BLOOM_COLUMNS = ['8%', '36%', '64%', '92%'] as const;
+
+const BLOOM_ROWS = [
+  { y: '10%', strength: 36 },
+  { y: '48%', strength: 28 },
+  { y: '86%', strength: 22 },
 ] as const;
 
-const DRIFTS = ['34s', '46s', '58s', '41s', '52s'] as const;
+const BLOOMS = BLOOM_ROWS.flatMap((row) =>
+  BLOOM_COLUMNS.map((x) => ({ at: `${x} ${row.y}`, size: '48vw 46vh', strength: row.strength })),
+);
+
+const FALLBACK_BLOOM = { at: '50% 45%', size: '48vw 46vh', strength: 24 } as const;
+
+const DRIFTS = [
+  '34s',
+  '46s',
+  '58s',
+  '41s',
+  '52s',
+  '38s',
+  '61s',
+  '44s',
+  '49s',
+  '36s',
+  '55s',
+  '43s',
+] as const;
 
 const HOUSE = HOUSE_LIGHTS;
 
@@ -33,7 +52,7 @@ const PARALLAX = 0.34;
  * @returns The gradient, as CSS.
  */
 const paint = (light: MoodLight, at: number): string => {
-  const bloom = BLOOMS[at] ?? BLOOMS[0];
+  const bloom = BLOOMS[at] ?? FALLBACK_BLOOM;
 
   return `radial-gradient(${bloom.size} at ${light.at ?? bloom.at}, color-mix(in oklab, ${light.color} ${bloom.strength.toString()}%, transparent), transparent 70%)`;
 };

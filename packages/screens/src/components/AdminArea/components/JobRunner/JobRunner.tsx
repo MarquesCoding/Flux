@@ -1,5 +1,11 @@
 import { Icon } from '@ValenceUI/Icon';
-import { CalendarIcon, DotsThreeIcon, InfoIcon, PlayIcon, StopIcon } from '@phosphor-icons/react';
+import {
+  Calendar01Icon,
+  InformationCircleIcon,
+  MoreHorizontalIcon,
+  PlayIcon,
+  StopIcon,
+} from '@hugeicons/core-free-icons';
 import { useCallback, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
@@ -171,7 +177,7 @@ const JobRunner = ({
                 Running
               </Badge>
 
-              <Icon of={InfoIcon} size={15} className="shrink-0 text-text-muted" />
+              <Icon of={InformationCircleIcon} size={15} className="shrink-0 text-text-muted" />
             </HoverCard>
           );
         },
@@ -184,7 +190,7 @@ const JobRunner = ({
           <span className="flex justify-end">
             <ActionMenu
               label={`Actions for ${row.original.label}`}
-              trigger={<Icon of={DotsThreeIcon} size={16} />}
+              trigger={<Icon of={MoreHorizontalIcon} size={16} />}
               groups={[
                 {
                   items: [
@@ -215,7 +221,7 @@ const JobRunner = ({
                     {
                       id: 'schedule',
                       label: 'Edit schedule',
-                      icon: <Icon of={CalendarIcon} size={15} />,
+                      icon: <Icon of={Calendar01Icon} size={15} />,
                       onChoose: () => {
                         live.current.onOpenSchedule(row.original.kind);
                       },

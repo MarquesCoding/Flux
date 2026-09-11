@@ -69,7 +69,7 @@ describe('Logo', () => {
     const { container: sized } = render(<Logo size={64} />);
     const { container: free } = render(<Logo className="h-[0.72em]" />);
 
-    expect(boxOf(sized).style.height).toBe('64px');
+    expect(boxOf(sized).style.height).toBe('4rem');
     expect(boxOf(free).style.height).toBe('');
   });
 
@@ -109,6 +109,14 @@ describe('Logo', () => {
     expect(dotted.innerHTML).not.toContain('animate-[spin');
   });
 
+  it('draws one flat ink where it is asked to be solid, with no gradient turning in it', () => {
+    const { container } = render(<Logo isSolid isAnimated />);
+
+    expect(container.innerHTML).toContain('bg-text');
+    expect(container.innerHTML).not.toContain('conic-gradient');
+    expect(container.innerHTML).not.toContain('animate-');
+  });
+
   it('holds still where nobody is waiting on it', () => {
     const { container } = render(<Logo />);
 
@@ -122,8 +130,14 @@ describe('the shape of the mark', () => {
     const { container } = render(<Logo size={100} />);
     const held = container.firstElementChild;
 
-    expect(held).toHaveStyle({ height: '100px' });
-    expect(held).not.toHaveStyle({ width: '100px' });
+    expect(held).toHaveStyle({ height: '6.25rem' });
+    expect(held).not.toHaveStyle({ width: '6.25rem' });
+  });
+
+  it('is sized in rem, so it grows with the text on a large screen', () => {
+    const { container } = render(<Logo size={32} />);
+
+    expect(boxOf(container).style.height).toBe('2rem');
   });
 
   it('holds its proportions where a class sets the size instead', () => {

@@ -138,7 +138,7 @@ describe('RailCard', () => {
     expect(screen.getByText('Parasite')).toBeInTheDocument();
   });
 
-  it('reads the clip aloud in writing, since a hover preview is silent', async () => {
+  it('reads nothing aloud in writing over the clip, since a preview carries no subtitles', async () => {
     const { container } = renderInAnAddress(
       <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
     );
@@ -146,10 +146,12 @@ describe('RailCard', () => {
     await restOn(cardHolder(container));
 
     await waitFor(() => {
-      expect(vi.mocked(fetch).mock.calls.some(([url]) => urlOf(url).includes('/subtitles'))).toBe(
-        true,
-      );
+      expect(fetch).toHaveBeenCalled();
     });
+
+    expect(vi.mocked(fetch).mock.calls.some(([url]) => urlOf(url).includes('/subtitles'))).toBe(
+      false,
+    );
   });
 
   it('opens the page when the card is chosen', async () => {

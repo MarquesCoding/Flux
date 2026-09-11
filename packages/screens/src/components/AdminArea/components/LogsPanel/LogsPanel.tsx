@@ -1,10 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import {
-  ArrowsClockwiseIcon,
-  CheckIcon,
-  CopyIcon,
-  DownloadSimpleIcon,
-} from '@phosphor-icons/react';
+import { Copy01Icon, Download04Icon, RefreshIcon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
@@ -21,6 +16,7 @@ import type { BadgeTone } from '@ValenceUI/Badge.types';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { LogLevel, LogRecord } from '@ValenceContracts/schemas/Log';
 import type { LogsPanelProps } from './LogsPanel.types';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 const PAGE = 300;
 
@@ -153,9 +149,11 @@ const LogsPanel = ({
   const asText = () => logsAsText(records);
 
   return (
-    <section className="flex flex-col">
-      <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
-        <div className="flex flex-wrap items-center justify-end gap-2">
+    <PanelCard
+      title="Logs"
+      isFlush
+      actions={
+        <>
           <TextField
             label="Search the messages"
             isLabelHidden
@@ -171,7 +169,7 @@ const LogsPanel = ({
           <Button
             isIconOnly
             variant="ghost"
-            size="sm"
+            size="xs"
             isPill
             label="Read the log again"
             hasTooltip
@@ -180,13 +178,13 @@ const LogsPanel = ({
               void load();
             }}
           >
-            <Icon of={ArrowsClockwiseIcon} size={15} />
+            <Icon of={RefreshIcon} size={15} />
           </Button>
 
           <Button
             isIconOnly
             variant="ghost"
-            size="sm"
+            size="xs"
             isPill
             label={copied ? 'Copied' : 'Copy what is shown'}
             hasTooltip
@@ -196,13 +194,13 @@ const LogsPanel = ({
               });
             }}
           >
-            {copied ? <Icon of={CheckIcon} size={15} /> : <Icon of={CopyIcon} size={15} />}
+            {copied ? <Icon of={Tick02Icon} size={15} /> : <Icon of={Copy01Icon} size={15} />}
           </Button>
 
           <Button
             isIconOnly
             variant="ghost"
-            size="sm"
+            size="xs"
             isPill
             label="Download what is shown"
             hasTooltip
@@ -210,11 +208,11 @@ const LogsPanel = ({
               download('valence-log.txt', asText());
             }}
           >
-            <Icon of={DownloadSimpleIcon} size={15} />
+            <Icon of={Download04Icon} size={15} />
           </Button>
-        </div>
-      </div>
-
+        </>
+      }
+    >
       <DataTable
         label="What the server and the media service have reported"
         columns={columns}
@@ -240,7 +238,7 @@ const LogsPanel = ({
           setReading(null);
         }}
       />
-    </section>
+    </PanelCard>
   );
 };
 

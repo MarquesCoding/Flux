@@ -13,7 +13,7 @@ import {
   WEBHOOK_PRESETS,
 } from '@ValenceContracts/schemas/Webhook';
 import { MEDIA_KINDS, MEDIA_KIND_LABELS } from '@ValenceContracts/schemas/MediaKind';
-import { WebhookFilterList } from '../WebhooksPanel/components/WebhookFilterList/WebhookFilterList';
+import { WebhookFilterList } from '@ValenceScreens/components/AdminArea/components/WebhooksPanel/components/WebhookFilterList/WebhookFilterList';
 import type { MediaKind } from '@ValenceContracts/schemas/MediaKind';
 import type { WebhookPreset, WebhookSubscribableEvent } from '@ValenceContracts/schemas/Webhook';
 import type { WebhookFieldsProps } from './WebhookFields.types';

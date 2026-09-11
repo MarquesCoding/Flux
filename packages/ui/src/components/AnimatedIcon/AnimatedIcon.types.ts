@@ -1,6 +1,6 @@
 import type { ReactNode } from 'react';
 
-type IconGesture = 'spin' | 'ring' | 'tumble' | 'fill' | 'settle';
+type IconGesture = 'spin' | 'ring' | 'tumble' | 'fill' | 'settle' | 'none';
 
 type AnimatedIconProps = {
   gesture?: IconGesture;

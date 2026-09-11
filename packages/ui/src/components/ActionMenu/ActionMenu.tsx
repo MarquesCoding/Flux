@@ -53,7 +53,7 @@ const ActionMenu = ({
           align={align}
           data-slot="menu-content"
           className={cn(
-            'z-50 valence-glass valence-glass--popover min-w-56 overflow-hidden rounded-lg p-1.5 text-sm text-text outline-none',
+            'z-50 valence-float min-w-56 overflow-hidden rounded-lg p-1.5 text-sm text-text outline-none',
             POPUP_MOTION,
           )}
         >

@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -35,7 +35,7 @@ const DownloadsDialog = ({ isOpen, onClose }: DownloadsDialogProps) => {
         detail="Once one is on this device it is yours until you delete it."
       >
         <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
-          <Icon of={XIcon} size={16} />
+          <Icon of={Cancel01Icon} size={16} />
         </Button>
       </DialogTitle>
 

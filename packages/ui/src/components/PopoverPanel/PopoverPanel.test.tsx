@@ -70,14 +70,14 @@ describe('PopoverPanel', () => {
     expect(onOpenChange.mock.calls.at(-1)?.[0]).toBe(true);
   });
 
-  it('takes the same glass as the bar it belongs to', async () => {
+  it('stands on the flat surface every floating panel shares', async () => {
     const actor = userEvent.setup();
 
     draw();
 
     await actor.click(screen.getByRole('button', { name: 'Episodes' }));
 
-    expect((await screen.findByText('Season one')).closest('.valence-glass')).not.toBeNull();
+    expect((await screen.findByText('Season one')).closest('.valence-float')).not.toBeNull();
   });
 
   it('sets a display name so devtools can identify it', () => {
@@ -143,7 +143,7 @@ describe('PopoverPanel', () => {
     expect(screen.getByRole('button', { name: 'Episodes' }).className).toContain('hover:bg-hover');
   });
 
-  it("takes the page's glass by default", async () => {
+  it("takes the page's surface by default", async () => {
     const actor = userEvent.setup();
 
     draw();
@@ -153,6 +153,7 @@ describe('PopoverPanel', () => {
     const panel = await screen.findByRole('dialog', { name: 'Episodes' });
 
     expect(panel.className).not.toContain('valence-glass--film');
+    expect(panel.className).toContain('valence-float');
   });
 
   it("takes film glass over video, where the page's colours say nothing", async () => {
@@ -165,6 +166,7 @@ describe('PopoverPanel', () => {
     const panel = await screen.findByRole('dialog', { name: 'Episodes' });
 
     expect(panel.className).toContain('valence-glass--film');
+    expect(panel.className).not.toContain('valence-float');
   });
 
   it('draws none where the chrome around it already does', () => {

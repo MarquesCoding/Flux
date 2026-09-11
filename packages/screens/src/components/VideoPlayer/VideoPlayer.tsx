@@ -1,10 +1,11 @@
 import { Icon } from '@ValenceUI/Icon';
+import { motion, useDragControls } from 'motion/react';
 import {
-  PictureInPictureIcon,
-  ScreencastIcon,
-  SkipForwardIcon,
-  XIcon,
-} from '@phosphor-icons/react';
+  Cancel01Icon,
+  CastIcon,
+  NextIcon,
+  PictureInPictureOnIcon,
+} from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -221,6 +222,7 @@ const VideoPlayer = ({
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const stageRef = useRef<HTMLDivElement>(null);
+  const statsDrag = useDragControls();
   const startTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isSilencedByPolicyRef = useRef(false);
   const frameSecondsRef = useRef(DEFAULT_FRAME_SECONDS);
@@ -1593,7 +1595,7 @@ const VideoPlayer = ({
 
         <div className="flex w-24 shrink-0 justify-end">
           <Button isIconOnly variant="overlay" label="Close" onClick={onClose} size="md">
-            <Icon of={XIcon} size={20} />
+            <Icon of={Cancel01Icon} size={20} />
           </Button>
         </div>
       </header>
@@ -1636,7 +1638,7 @@ const VideoPlayer = ({
 
         {!isPoppedOut ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-shade text-center">
-            <Icon of={PictureInPictureIcon} size={32} className="text-text-muted" />
+            <Icon of={PictureInPictureOnIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
@@ -1650,7 +1652,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-shade text-center">
-            <Icon of={ScreencastIcon} size={32} className="text-text-muted" />
+            <Icon of={CastIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
@@ -1715,8 +1717,19 @@ const VideoPlayer = ({
         ) : null}
 
         {isShowingStats ? (
-          <div className="pointer-events-none absolute inset-x-3 top-16 flex justify-start">
+          <motion.div
+            drag
+            dragControls={statsDrag}
+            dragListener={false}
+            dragMomentum={false}
+            dragElastic={0}
+            dragConstraints={stageRef}
+            className="pointer-events-none absolute left-3 top-16 w-[min(32rem,calc(100%-1.5rem))]"
+          >
             <StreamStats
+              onGrab={(event) => {
+                statsDrag.start(event);
+              }}
               media={media}
               session={session}
               detail={detail}
@@ -1739,7 +1752,7 @@ const VideoPlayer = ({
                 setIsShowingStats(false);
               }}
             />
-          </div>
+          </motion.div>
         ) : null}
 
         {skippable === null ? null : (
@@ -1761,7 +1774,7 @@ const VideoPlayer = ({
               }}
             >
               {describeSkip(skippable)}
-              <Icon of={SkipForwardIcon} size={18} />
+              <Icon of={NextIcon} size={18} />
             </Button>
           </div>
         )}

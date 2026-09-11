@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Icon } from '@ValenceUI/Icon';
-import { SignOutIcon, XIcon } from '@phosphor-icons/react';
+import { Cancel01Icon, Logout01Icon } from '@hugeicons/core-free-icons';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
@@ -16,9 +16,8 @@ import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 import { AccountArea } from '@ValenceScreens/components/AccountArea/AccountArea';
 import { ACCOUNT_PANELS } from '@ValenceScreens/components/AccountArea/accountPanels';
 import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
-import { signOut } from '@ValenceClient/session/auth';
 import { saveProfile, uploadProfilePhoto } from '@ValenceClient/profiles/fetchProfiles';
-import { usePlace } from '@ValenceScreens/navigation/usePlace';
+import { useSignOut } from '@ValenceScreens/session/useSignOut';
 import { useShell } from '@ValenceClient/shell/useShell';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileDraft } from '@ValenceScreens/components/AccountArea/components/ProfileSettings/ProfileSettings.types';
@@ -48,15 +47,11 @@ const draftOf = (profile: ViewerProfile): ProfileDraft => ({
  *
  * Who the account belongs to is said once, in the head, rather than again at the top of the first
  * panel. The head is the one part of a dialog that does not scroll away, which makes it the right
- * place for whose account this is and for moving between the panels.
+ * place for whose account this is and for moving between the panels. It is kept to one line, the
+ * same as the server's: a banner-height head is room taken from every panel beneath it.
  *
  * Which panel is open is in the address, so a particular one can be linked to and the back button
  * moves between them.
- *
- * Signing out empties the cache rather than only asking who is signed in again. Everything held
- * there belongs to the person leaving — what they kept, how far through things they are, what is
- * waiting on their bell — and handing that to whoever signs in next is a privacy fault, not a stale
- * read.
  *
  * @param panel - Which panel the address names, or nothing where the dialog is shut.
  * @param onPanel - Told which panel to move to.
@@ -64,8 +59,8 @@ const draftOf = (profile: ViewerProfile): ProfileDraft => ({
  */
 const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
   const { user, refresh } = useShell();
-  const { go } = usePlace();
   const cache = useQueryClient();
+  const leave = useSignOut();
 
   const asked = useQuery({ ...profileQueries.watching(), enabled: panel !== null });
   const profile = asked.data ?? null;
@@ -135,30 +130,34 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
         }}
       >
         <DialogTitle
-          className="gap-5 pb-0"
+          size="compact"
           title={profile?.name ?? user.name}
           detail={user.email}
           icon={
             profile === null ? (
-              <span className="size-12 shrink-0 rounded-xl bg-subtle" />
+              <span className="size-6 shrink-0 rounded-full bg-subtle" />
             ) : (
-              <ProfileFace profile={profile} className="size-12 shrink-0 rounded-xl text-lg" />
+              <ProfileFace
+                profile={profile}
+                className="size-6 shrink-0 rounded-full text-[0.625rem]"
+              />
             )
           }
           below={
             <TabRow
               tone="underlined"
+              size="sm"
               groups={[{ items: ACCOUNT_PANELS }]}
               value={showing}
               label="What to change"
-              className="-mx-6 px-6"
+              className="-mx-5 px-5"
             />
           }
         >
           {user.role !== 'admin' ? null : <Badge size="sm">admin</Badge>}
 
           <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
-            <Icon of={XIcon} size={16} />
+            <Icon of={Cancel01Icon} size={16} />
           </Button>
         </DialogTitle>
 
@@ -182,22 +181,10 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
             variant="danger"
             isPill
             onClick={() => {
-              void signOut().then(async (ended) => {
-                if (!ended) {
-                  notify.failed('You are still signed in. The server would not end the session.');
-
-                  return;
-                }
-
-                cache.clear();
-                onClose();
-                go({ section: 'home', search: '', inspecting: null, playing: null, account: null });
-
-                return refresh();
-              });
+              void leave();
             }}
           >
-            <Icon of={SignOutIcon} size={16} />
+            <Icon of={Logout01Icon} size={16} />
             Sign out
           </Button>
 

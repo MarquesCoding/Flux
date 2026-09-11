@@ -42,6 +42,12 @@ const withdraw = async (user: ReturnType<typeof userEvent.setup>, title: string)
 };
 
 describe('SharePanel', () => {
+  it('holds the links in a card that says whose they are', async () => {
+    renderInAnAddress(<SharePanel />);
+
+    expect(await screen.findByRole('heading', { name: 'Your links' })).toBeInTheDocument();
+  });
+
   it('lists the links this account has handed out', async () => {
     fetchShares.mockResolvedValue([share(), share({ id: 'share-2', title: 'Another Thing' })]);
 

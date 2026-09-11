@@ -93,31 +93,6 @@ const trackForLanguage = (
   return tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ?? null;
 };
 
-/**
- * Picks the track a hover preview should carry, which is a forced one or none at all — a preview
- * runs for a few seconds and full subtitles on it are noise.
- *
- * @param tracks - The tracks available.
- * @param language - The language being spoken, so a forced track in it is preferred to one in another.
- * @returns The track to burn into the preview, or null for none.
- */
-const previewTrack = (tracks: SubtitleTrack[], language: string): SubtitleTrack | null => {
-  const spoken = language.split('-')[0]?.toLowerCase() ?? '';
-
-  return (
-    tracks.find((track) => (track.language ?? '').toLowerCase().startsWith(spoken)) ??
-    tracks[0] ??
-    null
-  );
-};
-
 export type { SubtitleTrack };
 
-export {
-  fetchSubtitleTracks,
-  subtitleTrackUrl,
-  defaultTrackId,
-  previewTrack,
-  trackForLanguage,
-  SUBTITLES_OFF,
-};
+export { fetchSubtitleTracks, subtitleTrackUrl, defaultTrackId, trackForLanguage, SUBTITLES_OFF };

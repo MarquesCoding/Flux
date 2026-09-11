@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DeviceList } from './DeviceList';
@@ -104,6 +104,21 @@ describe('DeviceList', () => {
     await user.click(await screen.findByRole('button', { name: 'Sign them out' }));
 
     expect(endOtherDevices).toHaveBeenCalled();
+  });
+
+  it('puts that way out in the strip of the card holding the devices', async () => {
+    fetchDevices.mockResolvedValue([device({ isCurrent: true }), device({ id: 'session-2' })]);
+
+    render(<DeviceList />);
+
+    const strip = (await screen.findByRole('heading', { name: 'Devices' })).closest('header');
+
+    expect(strip).not.toBeNull();
+    expect(
+      await within(strip ?? document.body).findByRole('button', {
+        name: /Sign out everywhere else/,
+      }),
+    ).toBeInTheDocument();
   });
 
   it('says so plainly when it has nothing to show', async () => {

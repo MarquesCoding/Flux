@@ -8,7 +8,7 @@ import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { useWatchParty } from '@ValenceClient/party/useWatchParty';
-import { readCurrentProfile } from '@ValenceClient/profiles/currentProfile';
+import { profileQueries } from '@ValenceClient/query/profileQueries';
 import { watchPresence } from '@ValenceClient/presence/watchPresence';
 import { byMediaId } from '@ValenceClient/playback/watchProgress';
 import { summariseDetail } from '@ValenceClient/library/summariseDetail';
@@ -82,14 +82,9 @@ const SignedIn = ({ title }: SignedInProps) => {
     });
   }, [watched.data]);
 
-  const people = useQuery({ ...sessionQueries.profiles(), enabled: user !== null });
+  const watching = useQuery({ ...profileQueries.watching(), enabled: user !== null });
 
-  const watching = readCurrentProfile();
-
-  const watcher =
-    watching === null
-      ? null
-      : ((people.data ?? []).find((person) => person.id === watching) ?? null);
+  const watcher = watching.data ?? null;
 
   const everyone = useQuery({
     ...sessionQueries.everyone(),

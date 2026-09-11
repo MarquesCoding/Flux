@@ -1,45 +1,55 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
-import { FolderOpenIcon } from '@phosphor-icons/react';
+import { FolderOpenIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
-import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
 import { Rail } from '@ValenceUI/Rail';
 import { RevealItem } from '@ValenceUI/RevealItem';
 import { SplashScreen } from '@ValenceUI/SplashScreen';
+import { Spinner } from '@ValenceUI/Spinner';
 import { Hero } from '@ValenceScreens/components/Hero/Hero';
 import { groupIntoRails } from '@ValenceClient/library/groupIntoRails';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { BookRail } from '@ValenceScreens/components/BookRail/BookRail';
-import { readLastLibrary, rememberLastLibrary } from '@ValenceClient/library/lastLibrary';
-import { bookQueries } from '@ValenceClient/query/bookQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { pickFeatured } from '@ValenceClient/library/pickFeatured';
+import { cn } from '@ValenceUI/cn';
 import { EmptyLibrary } from '@ValenceScreens/components/LibraryBrowser/components/EmptyLibrary/EmptyLibrary';
 import { byMediaId } from '@ValenceClient/playback/watchProgress';
 import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
 import { resumeFor } from '@ValenceClient/playback/resumeFor';
+import { useHomeRows } from '@ValenceScreens/components/LibraryBrowser/useHomeRows';
+import type { LibraryKind } from '@ValenceContracts/schemas/Library';
 import type { LibraryBrowserProps } from './LibraryBrowser.types';
 
 const HERO_COUNT = 5;
+
 const PAGE_SIZE = 60;
+
 const SEARCH_DEBOUNCE_MS = 250;
 
-const HERO_SAMPLE = 24;
+const HERO_SAMPLE = 200;
+
+const WATCHABLE: ReadonlySet<LibraryKind> = new Set(['movies', 'shows']);
 
 /**
- * Browses one library: the hero at the top, the rows beneath it, and the names of the other
- * libraries across the middle. The hero draws from every library rather than the chosen one, since
- * the front of the server should show what is on it rather than what is in one folder of it.
+ * The front of the server: a hero drawn from everything on it, and the rows beneath it.
+ *
+ * Every library holding something to watch, together — films and programmes on one page rather than
+ * one library at a time behind a switch. Choosing between them is what the bar along the top is for,
+ * and a second way of choosing on the page itself was the same question asked twice. Books are left
+ * to their own section, since nothing in one can be played.
+ *
+ * Beneath the hero it is a handful of rows rather than the library laid end to end: carrying on,
+ * what somebody is likely to want, what is new, what is well thought of, and a few genres. A server
+ * with six thousand films is still a page of a dozen rows; the rest is what the sections along the
+ * top and search are for. Genres keep arriving as somebody scrolls, a few at a time, so the page
+ * goes on for as long as there is something new to show. Searching trades the rows for the answer.
  *
  * @param search - What is in the search box.
- * @param libraryId - Which library to show, where the address names one.
- * @param onLibraryChange - Told which library is being shown, including the one opened on.
  * @param onPlay - Told to open the page about something.
  * @param onWatch - Told to start something, and where from.
  * @param onShow - Told to open a programme rather than an episode.
@@ -47,7 +57,7 @@ const HERO_SAMPLE = 24;
  * @param onItemsLoaded - Told what it drew, so an address naming an item can be resolved.
  * @param onFeatureChange - Told which item the hero is showing.
  * @param onPalette - Told the colours on screen, so the page can be lit by them.
- * @param onSearchChange - Told what was typed.
+ * @param onAddLibrary - Told to add a library, where the viewer may.
  * @param hasHero - Whether to open with a hero at all.
  * @param name - What this instance is called, for the wordmark held up while it reads.
  * @param isKept - Whether each item is kept.
@@ -67,70 +77,76 @@ const LibraryBrowser = ({
   onPlay,
   onShow,
   onWatch,
-  libraryId,
-  onLibraryChange,
 }: LibraryBrowserProps) => {
   const [appliedSearch, setAppliedSearch] = useState('');
-  const [chosen, setChosen] = useState<string | null>(readLastLibrary);
 
-  const go = useNavigate();
   const askedFor = useQuery(libraryQueries.all());
   const libraries = askedFor.data ?? [];
 
-  const selectedId =
-    libraries.find((entry) => entry.id === libraryId)?.id ??
-    libraries.find((entry) => entry.id === chosen)?.id ??
-    libraries[0]?.id ??
-    null;
+  const watchable = useMemo(
+    () => libraries.filter((entry) => WATCHABLE.has(entry.kind)).map((entry) => entry.id),
+    [libraries],
+  );
 
-  const selected = libraries.find((entry) => entry.id === selectedId) ?? null;
-  const shelf = selected !== null && selected.kind === 'books' ? selected : null;
+  const isHome = appliedSearch === '';
 
-  const onTheShelf = useQuery({
-    ...bookQueries.inLibrary(shelf?.id ?? ''),
-    enabled: shelf !== null,
+  const page = useQuery({
+    ...libraryQueries.across(watchable, { search: appliedSearch, limit: PAGE_SIZE }),
+    enabled: watchable.length > 0 && !isHome,
   });
 
-  const hasNothingOnTheShelf = shelf !== null && (onTheShelf.data ?? []).length === 0;
+  const items = page.data ?? [];
 
-  const page = useQuery(
-    libraryQueries.items(selectedId, { search: appliedSearch, limit: PAGE_SIZE }),
-  );
-
-  const items = page.data?.items ?? [];
-  const loadedFor = page.data?.libraryId ?? null;
-
-  const sample = useQuery(
-    libraryQueries.across(
-      libraries.map((entry) => entry.id),
-      { search: '', limit: HERO_SAMPLE },
-    ),
-  );
+  const sample = useQuery(libraryQueries.across(watchable, { search: '', limit: HERO_SAMPLE }));
 
   const heroItems = sample.data ?? [];
 
+  const heroPicks = useMemo(() => pickFeatured(heroItems, HERO_COUNT), [heroItems]);
+
   const watched = useQuery(viewingQueries.progress());
-  const progress = byMediaId(watched.data ?? []);
+  const progress = useMemo(() => byMediaId(watched.data ?? []), [watched.data]);
+
+  const home = useHomeRows(watchable, progress, isHome, !watched.isLoading);
+  const { hasMore, isReadingMore, showMore } = home;
+
+  const [end, setEnd] = useState<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (end === null || !isHome || !hasMore || isReadingMore) {
+      return;
+    }
+
+    const watching = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting === true) {
+          showMore();
+        }
+      },
+      { rootMargin: '0px 0px 800px 0px' },
+    );
+
+    watching.observe(end);
+
+    return () => {
+      watching.disconnect();
+    };
+  }, [end, isHome, hasMore, isReadingMore, showMore]);
+
+  const rails = isHome ? home.rails : groupIntoRails(items, Date.now(), progress);
+  const shown = rails.flatMap((rail) => rail.items);
+  const shownKey = shown.map((media) => media.id).join(',');
 
   const reportItems = useRef(onItemsLoaded);
+  const shownRef = useRef(shown);
 
   reportItems.current = onItemsLoaded;
-
-  const reportLibrary = useRef(onLibraryChange);
-
-  reportLibrary.current = onLibraryChange;
+  shownRef.current = shown;
 
   useEffect(() => {
-    if (items.length > 0) {
-      reportItems.current?.(items);
+    if (shownRef.current.length > 0) {
+      reportItems.current?.(shownRef.current);
     }
-  }, [items]);
-
-  useEffect(() => {
-    if (selectedId !== null) {
-      reportLibrary.current?.(selectedId);
-    }
-  }, [selectedId]);
+  }, [shownKey]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -144,8 +160,9 @@ const LibraryBrowser = ({
 
   const isReading =
     askedFor.isPending ||
-    (selectedId !== null && page.isPending) ||
-    (hasHero && libraries.length > 0 && sample.isPending);
+    page.isLoading ||
+    home.isReading ||
+    (hasHero && watchable.length > 0 && sample.isPending);
 
   if (askedFor.isError || page.isError) {
     return (
@@ -188,6 +205,8 @@ const LibraryBrowser = ({
     );
   }
 
+  const hasSheet = hasHero && heroItems.length > 0;
+
   return (
     <motion.div
       variants={staggerVariants}
@@ -196,9 +215,10 @@ const LibraryBrowser = ({
       exit="gone"
       className="flex flex-col gap-8"
     >
-      {hasHero && heroItems.length > 0 ? (
+      {hasSheet ? (
         <Hero
-          items={pickFeatured(heroItems, HERO_COUNT)}
+          items={heroPicks}
+          staysBehind
           onPlay={(media, startSeconds) => {
             if (onWatch === undefined) {
               onPlay(media);
@@ -221,50 +241,34 @@ const LibraryBrowser = ({
         />
       ) : null}
 
-      <section className="flex flex-col gap-5 px-4 sm:px-6">
-        <header className="flex justify-center pb-1">
-          <SegmentedRow
-            size="sm"
-            label="Which library"
-            items={libraries.map((entry) => ({ id: entry.id, label: entry.name }))}
-            value={selectedId ?? ''}
-            onSelect={(id) => {
-              setChosen(id);
-              rememberLastLibrary(id);
-              onLibraryChange?.(id);
-            }}
-          />
-        </header>
-
+      <section
+        {...(hasSheet ? { 'data-meets-bar': '' } : {})}
+        className={cn(
+          'flex flex-col gap-5 px-4 sm:px-6',
+          hasSheet
+            ? 'valence-sheet relative z-10 min-h-[calc(100svh-var(--nav-clearance,0px))] pb-16 pt-8'
+            : '',
+        )}
+      >
         <AnimatePresence mode="wait" initial={false}>
           <motion.div
-            key={loadedFor ?? 'nothing-loaded'}
+            key={appliedSearch}
             variants={staggerVariants}
             initial="hidden"
             animate="shown"
             exit="gone"
           >
-            {shelf !== null && !hasNothingOnTheShelf ? (
-              <BookRail
-                libraryId={shelf.id}
-                title={shelf.name}
-                onOpen={(book) => {
-                  void go({ to: '/read/$bookId', params: { bookId: book.id } });
-                }}
-              />
-            ) : hasNothingOnTheShelf || items.length === 0 ? (
+            {rails.length === 0 ? (
               <EmptyLibrary
                 search={appliedSearch}
-                libraryName={
-                  shelf?.name ?? libraries.find((entry) => entry.id === loadedFor)?.name ?? null
-                }
+                libraryName={null}
                 hasContentElsewhere={heroItems.length > 0}
                 canManage={onAddLibrary !== undefined}
                 {...(onAddLibrary === undefined ? {} : { onManage: onAddLibrary })}
               />
             ) : (
               <div className="flex flex-col gap-10">
-                {groupIntoRails(items, Date.now(), progress).map(({ showOf, ...rail }) => (
+                {rails.map(({ showOf, ...rail }) => (
                   <Rail
                     key={rail.id}
                     title={rail.title}
@@ -319,6 +323,12 @@ const LibraryBrowser = ({
                     ))}
                   </Rail>
                 ))}
+
+                {isHome && hasMore ? (
+                  <div ref={setEnd} className="flex h-16 items-center justify-center">
+                    {isReadingMore ? <Spinner size="sm" label="Finding more to watch" /> : null}
+                  </div>
+                ) : null}
               </div>
             )}
           </motion.div>

@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { Badge } from '@ValenceUI/Badge';
 import { Button } from '@ValenceUI/Button';
-import { Card } from '@ValenceUI/Card';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
 import { Switch } from '@ValenceUI/Switch';
 import { WEBHOOK_EVENT_LABELS } from '@ValenceContracts/schemas/Webhook';
@@ -11,6 +10,7 @@ import { EditWebhookDialog } from './components/EditWebhookDialog/EditWebhookDia
 import { DeliveryHistory } from './components/DeliveryHistory/DeliveryHistory';
 import type { WebhookSubscription } from '@ValenceContracts/schemas/Webhook';
 import type { WebhooksPanelProps } from './WebhooksPanel.types';
+import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
 
 /**
  * Says how a subscription's last delivery went, in a word and a colour: never used, when it last
@@ -121,7 +121,7 @@ const WebhooksPanel = ({
       />
 
       {created === null ? null : (
-        <Card as="section" className="border-accent/40">
+        <PanelCard title="New webhook" className="ring-1 ring-accent/40">
           <div className="flex flex-col gap-3">
             <div className="flex flex-col gap-1">
               <span className="text-sm font-medium text-text">
@@ -145,23 +145,25 @@ const WebhooksPanel = ({
               </Button>
             </div>
           </div>
-        </Card>
+        </PanelCard>
       )}
 
-      <section className="flex flex-col overflow-hidden">
-        <div className="flex flex-wrap items-center justify-end gap-2 px-5 pb-3 pt-1">
+      <PanelCard
+        title="Webhooks"
+        isFlush
+        actions={
           <Button
             variant="primary"
             isPill
-            size="sm"
+            size="xs"
             onClick={() => {
               setIsAdding(true);
             }}
           >
             Add a webhook
           </Button>
-        </div>
-
+        }
+      >
         {webhooks.length === 0 ? (
           <p className="px-4 py-8 text-center text-sm text-text-muted">
             Nothing is being told about anything. Add a webhook to have Valence post to Discord,
@@ -266,7 +268,7 @@ const WebhooksPanel = ({
             })}
           </ul>
         )}
-      </section>
+      </PanelCard>
     </div>
   );
 };

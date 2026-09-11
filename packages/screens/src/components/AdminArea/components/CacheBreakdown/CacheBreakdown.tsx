@@ -1,5 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
-import { InfoIcon } from '@phosphor-icons/react';
+import { InformationCircleIcon } from '@hugeicons/core-free-icons';
 import { Button } from '@ValenceUI/Button';
 import { HoverCard } from '@ValenceUI/HoverCard';
 import { formatBytes } from '@ValenceCore/functions/formatBytes';
@@ -47,7 +47,7 @@ const CacheBreakdown = ({ cache, artwork, liveSessions, library }: CacheBreakdow
                     hasTooltip={false}
                     className="text-text-muted transition-colors hover:text-text"
                   >
-                    <Icon of={InfoIcon} size={14} />
+                    <Icon of={InformationCircleIcon} size={14} />
                   </Button>
                 </HoverCard>
               )}

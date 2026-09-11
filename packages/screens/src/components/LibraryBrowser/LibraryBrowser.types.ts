@@ -6,8 +6,6 @@ type LibraryBrowserProps = {
   hasHero?: boolean;
   name?: string;
   onSearchChange?: (search: string) => void;
-  libraryId?: string | null;
-  onLibraryChange?: (libraryId: string) => void;
   onFeatureChange?: (media: MediaSummary) => void;
   onPalette?: (lights: MoodLight[]) => void;
   onPlay: (media: MediaSummary) => void;
