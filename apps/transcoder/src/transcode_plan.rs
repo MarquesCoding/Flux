@@ -1062,7 +1062,7 @@ impl HardwareAccel {
             ],
             Self::Qsv => vec![
                 "-init_hw_device".to_owned(),
-                format!("vaapi=va:{device}"),
+                format!("vaapi=va:{device},driver=iHD"),
                 "-init_hw_device".to_owned(),
                 "qsv=qs@va".to_owned(),
                 "-filter_hw_device".to_owned(),
@@ -3127,13 +3127,16 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             .any(|pair| pair == ["-filter_hw_device", "va"]));
     }
 
+    /// The driver is named, as Jellyfin names it. QSV does not exist on i965
+    /// at all, so a machine that would resolve to it should say so when the
+    /// device is opened rather than somewhere further down the chain.
     #[test]
     fn derives_the_qsv_device_from_a_vaapi_one() {
         let args = plan(on_gpu(HardwareAccel::Qsv)).to_ffmpeg_args();
 
         assert!(args
             .windows(2)
-            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128"]));
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128,driver=iHD"]));
         assert!(args
             .windows(2)
             .any(|pair| pair == ["-init_hw_device", "qsv=qs@va"]));
