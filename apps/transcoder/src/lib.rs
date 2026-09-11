@@ -12,6 +12,7 @@ pub mod cache_usage;
 pub mod capability;
 pub mod cgroup;
 pub mod chains;
+pub mod concurrency;
 pub mod download;
 pub mod fingerprint;
 pub mod frame;

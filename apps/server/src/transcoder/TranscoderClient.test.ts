@@ -36,6 +36,7 @@ describe('what the transcoder says it can do', () => {
     toneMapping: 'zscale',
     canBurnTextSubtitles: true,
     canBurnImageSubtitles: true,
+    concurrentRenders: 0,
     chains: [],
   };
 

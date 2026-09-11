@@ -289,6 +289,7 @@ const createPlaybackService = ({
         return null;
       }
 
+      const chosenAccel = await forcedAccel();
       const index = await transcoder.requestTrickplay({
         inputPath: found.path,
         generation: found.generation,
@@ -296,6 +297,7 @@ const createPlaybackService = ({
         tileWidth: TRICKPLAY_TILE_WIDTH,
         columns: TRICKPLAY_COLUMNS,
         rows: TRICKPLAY_ROWS,
+        ...(chosenAccel === '' ? {} : { hardwareAccel: chosenAccel }),
         wait: false,
       });
 
@@ -331,6 +333,7 @@ const createPlaybackService = ({
         return { kind: 'absent' };
       }
 
+      const chosenAccel = await forcedAccel();
       const clip = await transcoder
         .requestPreview({
           ...previewRequestFor(
@@ -339,6 +342,7 @@ const createPlaybackService = ({
             found.defaultAudioLanguage,
             await previewQuality(),
           ),
+          ...(chosenAccel === '' ? {} : { hardwareAccel: chosenAccel }),
           wait: false,
         })
         .catch(() => null);

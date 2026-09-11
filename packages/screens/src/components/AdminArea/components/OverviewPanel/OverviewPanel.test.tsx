@@ -41,6 +41,7 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    concurrentRenders: 0,
     chains: [],
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
@@ -258,6 +259,7 @@ describe('OverviewPanel', () => {
               ffmpegSupported: true,
               hardwareAccels: [],
               rejectedEncoders: [],
+              concurrentRenders: 0,
               chains: [],
             },
           })}
@@ -310,6 +312,7 @@ describe('OverviewPanel', () => {
             rejectedEncoders: [
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
             ],
+            concurrentRenders: 0,
             chains: [],
           },
         })}
@@ -378,6 +381,7 @@ describe('OverviewPanel', () => {
             ffmpegSupported: true,
             hardwareAccels: ['qsv'],
             rejectedEncoders: [],
+            concurrentRenders: 2,
             chains: [
               { accel: 'qsv', shape: 'preview', bitDepth: 8, works: true, reason: null },
               {

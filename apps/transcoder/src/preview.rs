@@ -26,7 +26,9 @@ use crate::chains::{runs_here, ChainShape};
 use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::monitor::{record, LogLevel};
-use crate::transcode_plan::{tone_map_filter, HardwareAccel, ToneMapping, NO_EMBEDDED_CAPTIONS};
+use crate::transcode_plan::{
+    tone_map_filter, HardwareAccel, HardwarePipeline, ToneMapping, NO_EMBEDDED_CAPTIONS,
+};
 
 /// The file a preview is written to.
 pub const PREVIEW_NAME: &str = "preview.mp4";
@@ -153,9 +155,16 @@ pub enum PreviewEncoder {
 /// in the library. Doing that in software costs around fifteen times the
 /// processor time of doing it on the encoder already sitting in the machine,
 /// and a scan runs several at once.
+///
+/// A backend chosen by hand is honoured here, which it was not before: the
+/// setting reached transcodes and nothing else, so an operator who had chosen
+/// VAAPI still had every preview drawn on QSV.
 #[must_use]
-pub fn preview_encoder(capabilities: &Capabilities) -> PreviewEncoder {
-    match capabilities.best_encoder("h264") {
+pub fn preview_encoder(
+    capabilities: &Capabilities,
+    chosen: Option<HardwareAccel>,
+) -> PreviewEncoder {
+    match capabilities.encoder_for("h264", chosen) {
         Some(found) if found.accel != HardwareAccel::None => {
             PreviewEncoder::Hardware(found.encoder.clone())
         }
@@ -197,6 +206,12 @@ pub struct PreviewRequest {
     /// Absent leaves the choice to ffmpeg, exactly as before this existed.
     #[serde(default)]
     pub audio_stream_index: Option<u32>,
+    /// The backend the operator chose, where they chose one.
+    ///
+    /// Absent means automatic, which is what a caller written before this
+    /// existed asks for and what it used to get regardless.
+    #[serde(default)]
+    pub hardware_accel: Option<HardwareAccel>,
     /// Which of the server's jobs asked for this, where one did.
     ///
     /// Carried only so the queue can say which scan a piece of work belongs
@@ -323,6 +338,128 @@ pub struct Source {
     pub range: VideoRange,
     /// What its frames come down as, which a ten-bit film answers differently.
     pub bit_depth: Option<u8>,
+    /// How big the picture is, where the caller knows.
+    ///
+    /// A hardware scaler is given a number, not an expression: none of them
+    /// takes `min(iw,1280)` the way the software `scale` does. Knowing the size
+    /// is therefore what decides whether the clip can be cut without the frames
+    /// ever leaving the device. Absent means they come down, as they always did.
+    pub size: Option<(u32, u32)>,
+}
+
+/// Whether this clip can be cut without the frames ever leaving the device, and
+/// at what size.
+///
+/// Everything the chain does has to have a hardware answer, or the frames come
+/// down for the one thing that does not and there was no point keeping them up.
+/// A scaler there is, so the questions are the encoder and the conversion: an
+/// encoder that reads system memory wants them down anyway, and an HDR film
+/// needs a converter on the device, which is `tonemap_vaapi` on VAAPI and an
+/// option on the scaler on QSV.
+///
+/// The size has to be known, because no hardware scaler takes the
+/// `min(iw,1280)` expression the software one does — it wants a number, and
+/// working one out needs the picture it is working from.
+///
+/// This is what the round trip was costing. A preview that comes down and goes
+/// back up asks the device for a second frames context while the decoder still
+/// holds the first, and on QSV a 2160p film answered that with "Task finished
+/// with error code: -17 (File exists)" and an encoder that never opened.
+fn stays_on_the_device(
+    onto_the_device: Option<(HardwareAccel, HardwarePipeline, &str)>,
+    source: Source,
+    request: &PreviewRequest,
+) -> Option<(HardwarePipeline, (u32, u32))> {
+    let (_, pipeline, _) = onto_the_device?;
+    let (width, height) = source.size?;
+
+    if !pipeline.encodes_from_device {
+        return None;
+    }
+
+    if source.range != VideoRange::Sdr && pipeline.tone_map.is_none() {
+        return None;
+    }
+
+    Some((pipeline, fitted_to(request.width(), (width, height))))
+}
+
+/// The exact size a clip is drawn at, keeping the shape of the picture.
+///
+/// Narrower than asked for where the film is already narrower, which is what
+/// `min(iw,width)` said, and rounded to an even height because encoders want
+/// one.
+fn fitted_to(width: u32, source: (u32, u32)) -> (u32, u32) {
+    let (source_width, source_height) = source;
+    let drawn = width.min(source_width).max(2);
+    let scaled = u64::from(drawn) * u64::from(source_height) / u64::from(source_width.max(1));
+    let height = u32::try_from(scaled).unwrap_or(2).max(2);
+
+    (drawn - drawn % 2, height - height % 2)
+}
+
+/// The filters between the decoder and the encoder, and where they run.
+///
+/// Two shapes, and which one is used is the whole of what this decides: the
+/// frames stay on the device where every step of the chain has an answer there,
+/// and otherwise they come down for the software filters and go back up for an
+/// encoder that wants them up. See [`stays_on_the_device`].
+fn preview_filters(
+    request: &PreviewRequest,
+    source: Source,
+    tone_mapping: ToneMapping,
+    onto_the_device: Option<(HardwareAccel, HardwarePipeline, &str)>,
+) -> Vec<String> {
+    let mut filters = Vec::new();
+    let encodes_from_device =
+        onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device);
+
+    if let Some((pipeline, (width, height))) = stays_on_the_device(onto_the_device, source, request)
+    {
+        if source.range != VideoRange::Sdr {
+            if let Some(mapper) = pipeline.tone_map {
+                filters.push(mapper.to_owned());
+            }
+        }
+
+        filters.push(format!(
+            "{scaler}=w={width}:h={height}{narrowing}",
+            scaler = pipeline.scaler,
+            narrowing = pipeline
+                .narrows_to_eight_bit
+                .map_or_else(String::new, |option| format!(":{option}")),
+        ));
+
+        return filters;
+    }
+
+    if let Some((_, pipeline, _)) = onto_the_device {
+        filters.push(format!(
+            "hwdownload,format={}",
+            pipeline.download_format_for(source.bit_depth)
+        ));
+    }
+
+    if source.range != VideoRange::Sdr {
+        if let Some(filter) = tone_map_filter(tone_mapping) {
+            filters.push(filter.to_owned());
+        }
+    }
+
+    filters.push(format!(
+        "scale='min({width},iw)':-2",
+        width = request.width()
+    ));
+
+    if source.bit_depth.is_some_and(|depth| depth > 8) {
+        filters.push("format=nv12".to_owned());
+    }
+
+    if let Some((_, pipeline, _)) = onto_the_device.filter(|_| encodes_from_device) {
+        filters.push(pipeline.upload.to_owned());
+    }
+
+    filters
 }
 
 /// The ffmpeg arguments that cut and encode the clip.
@@ -375,38 +512,11 @@ pub fn preview_arguments(
     on_device: OnDevice<'_>,
     output: &Path,
 ) -> Vec<String> {
-    let mut filters = Vec::new();
     let onto_the_device = on_device
         .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
-
-    if let Some((_, pipeline, _)) = onto_the_device {
-        filters.push(format!(
-            "hwdownload,format={}",
-            pipeline.download_format_for(source.bit_depth)
-        ));
-    }
-
-    if source.range != VideoRange::Sdr {
-        if let Some(filter) = tone_map_filter(tone_mapping) {
-            filters.push(filter.to_owned());
-        }
-    }
-
-    filters.push(format!(
-        "scale='min({width},iw)':-2",
-        width = request.width()
-    ));
-
-    if source.bit_depth.is_some_and(|depth| depth > 8) {
-        filters.push("format=nv12".to_owned());
-    }
-
     let encodes_from_device =
         onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device);
-
-    if encodes_from_device {
-        filters.push("hwupload".to_owned());
-    }
+    let filters = preview_filters(request, source, tone_mapping, onto_the_device);
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),
@@ -527,12 +637,12 @@ pub async fn generate(
 
     let tone_mapping = capabilities.tone_mapping;
     let start = request.start_seconds(duration_seconds);
-    let mut chosen = preview_encoder(capabilities);
+    let mut chosen = preview_encoder(capabilities, request.hardware_accel);
 
     loop {
         let accel = match &chosen {
             PreviewEncoder::Hardware(_) => capabilities
-                .best_encoder("h264")
+                .encoder_for("h264", request.hardware_accel)
                 .map(|found| found.accel)
                 .filter(|found| {
                     runs_here(
@@ -703,6 +813,7 @@ mod tests {
             duration_seconds: 24,
             width: None,
             quality: PreviewQuality::High,
+            hardware_accel: None,
             wait: false,
             audio_stream_index: None,
             owner: None,
@@ -729,15 +840,16 @@ mod tests {
             can_burn_text_subtitles: true,
             can_burn_image_subtitles: true,
             chains: Vec::new(),
+            concurrent_renders: 0,
         }
     }
 
     #[test]
     fn takes_the_machines_encoder_when_it_has_one() {
-        let chosen = preview_encoder(&capabilities_with(
-            "h264_videotoolbox",
-            HardwareAccel::VideoToolbox,
-        ));
+        let chosen = preview_encoder(
+            &capabilities_with("h264_videotoolbox", HardwareAccel::VideoToolbox),
+            None,
+        );
 
         assert_eq!(
             chosen,
@@ -747,9 +859,52 @@ mod tests {
 
     #[test]
     fn falls_back_to_x264_on_a_machine_with_no_encoder() {
-        let chosen = preview_encoder(&capabilities_with("libx264", HardwareAccel::None));
+        let chosen = preview_encoder(&capabilities_with("libx264", HardwareAccel::None), None);
 
         assert_eq!(chosen, PreviewEncoder::Software);
+    }
+
+    /// The setting reached transcodes and nothing else, so a machine set to
+    /// VAAPI drew every preview on QSV without saying so.
+    #[test]
+    fn draws_on_the_backend_the_operator_chose_rather_than_the_first_listed() {
+        let capabilities = Capabilities {
+            encoders: vec![
+                VerifiedEncoder {
+                    codec: "h264".to_owned(),
+                    encoder: "h264_qsv".to_owned(),
+                    accel: HardwareAccel::Qsv,
+                    verified: true,
+                },
+                VerifiedEncoder {
+                    codec: "h264".to_owned(),
+                    encoder: "h264_vaapi".to_owned(),
+                    accel: HardwareAccel::Vaapi,
+                    verified: true,
+                },
+            ],
+            ..capabilities_with("h264_qsv", HardwareAccel::Qsv)
+        };
+
+        assert_eq!(
+            preview_encoder(&capabilities, Some(HardwareAccel::Vaapi)),
+            PreviewEncoder::Hardware("h264_vaapi".to_owned())
+        );
+        assert_eq!(
+            preview_encoder(&capabilities, None),
+            PreviewEncoder::Hardware("h264_qsv".to_owned())
+        );
+    }
+
+    /// A choice this machine cannot honour draws on what is here instead.
+    #[test]
+    fn falls_back_where_the_chosen_backend_is_not_on_this_machine() {
+        let chosen = preview_encoder(
+            &capabilities_with("h264_qsv", HardwareAccel::Qsv),
+            Some(HardwareAccel::Nvenc),
+        );
+
+        assert_eq!(chosen, PreviewEncoder::Hardware("h264_qsv".to_owned()));
     }
 
     #[test]
@@ -760,6 +915,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
@@ -785,6 +941,7 @@ mod tests {
                 Source {
                     range,
                     bit_depth: Some(8),
+                    size: None,
                 },
                 ToneMapping::Zscale,
                 &PreviewEncoder::Hardware("h264_qsv".to_owned()),
@@ -824,6 +981,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(10),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_qsv".to_owned()),
@@ -838,7 +996,10 @@ mod tests {
             .expect("a filter chain");
 
         assert!(chain.starts_with("hwdownload,format=p010le,"), "{chain}");
-        assert!(chain.ends_with(",format=nv12,hwupload"), "{chain}");
+        assert!(
+            chain.ends_with(",format=nv12,hwupload=extra_hw_frames=64"),
+            "{chain}"
+        );
     }
 
     #[test]
@@ -849,6 +1010,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_qsv".to_owned()),
@@ -862,8 +1024,132 @@ mod tests {
             .map(|pair| pair[1].clone())
             .expect("a filter chain");
 
-        assert!(!chain.contains(",format=nv12,hwupload"), "{chain}");
-        assert!(chain.ends_with(",hwupload"), "{chain}");
+        assert!(!chain.contains("format=nv12,hwupload"), "{chain}");
+        assert!(chain.ends_with(",hwupload=extra_hw_frames=64"), "{chain}");
+    }
+
+    /// The round trip is what a 2160p preview was failing on: a second frames
+    /// context asked of the device while the decoder still held the first.
+    #[test]
+    fn cuts_without_the_frames_leaving_the_device_where_everything_has_an_answer() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(10),
+                size: Some((3840, 1600)),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(!chain.contains("hwdownload"), "{chain}");
+        assert!(!chain.contains("hwupload"), "{chain}");
+        assert_eq!(chain, "vpp_qsv=w=1920:h=800:format=nv12");
+    }
+
+    #[test]
+    fn converts_an_hdr_film_on_the_device_rather_than_coming_down_for_it() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Hdr10,
+                bit_depth: Some(10),
+                size: Some((3840, 2160)),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_vaapi".to_owned()),
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.starts_with("tonemap_vaapi"), "{chain}");
+        assert!(!chain.contains("hwdownload"), "{chain}");
+        assert!(!chain.contains("zscale"), "{chain}");
+    }
+
+    /// A backend that reads system memory wants the frames down regardless, so
+    /// keeping them up buys nothing and costs a transfer back.
+    #[test]
+    fn comes_down_for_an_encoder_that_reads_system_memory() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+                size: Some((1920, 800)),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+            Some((HardwareAccel::VideoToolbox, "")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.starts_with("hwdownload"), "{chain}");
+    }
+
+    /// No hardware scaler takes an expression, so an unknown size means down.
+    #[test]
+    fn comes_down_where_the_size_of_the_picture_is_not_known() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+                size: None,
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.starts_with("hwdownload"), "{chain}");
+    }
+
+    #[test]
+    fn draws_a_narrow_film_at_its_own_width_rather_than_stretching_it() {
+        assert_eq!(super::fitted_to(1920, (1280, 536)), (1280, 536));
+        assert_eq!(super::fitted_to(1920, (3840, 1600)), (1920, 800));
+        assert_eq!(super::fitted_to(1920, (1920, 1080)), (1920, 1080));
+    }
+
+    #[test]
+    fn keeps_both_sides_even_because_an_encoder_wants_them_so() {
+        let (width, height) = super::fitted_to(1920, (1919, 1079));
+
+        assert_eq!(width % 2, 0);
+        assert_eq!(height % 2, 0);
     }
 
     #[test]
@@ -874,6 +1160,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -895,6 +1182,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -920,6 +1208,7 @@ mod tests {
                 Source {
                     range: VideoRange::Sdr,
                     bit_depth: Some(8),
+                    size: None,
                 },
                 ToneMapping::Zscale,
                 &encoder,
@@ -948,6 +1237,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_qsv".to_owned()),
@@ -970,6 +1260,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
@@ -990,6 +1281,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -1011,6 +1303,7 @@ mod tests {
             Source {
                 range: VideoRange::Hdr10,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -1038,6 +1331,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -1131,6 +1425,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -1154,6 +1449,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
@@ -1195,6 +1491,7 @@ mod tests {
             Source {
                 range: VideoRange::Sdr,
                 bit_depth: Some(8),
+                size: None,
             },
             ToneMapping::Zscale,
             encoder,

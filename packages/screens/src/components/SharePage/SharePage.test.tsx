@@ -121,7 +121,7 @@ describe('SharePage', () => {
 
     await user.click(screen.getByRole('button', { name: 'Play it' }));
 
-    expect(screen.getByText('playing Arrival')).toBeInTheDocument();
+    expect(await screen.findByText('playing Arrival')).toBeInTheDocument();
 
     await waitFor(() => {
       expect(screen.queryByText('playing Arrival')).not.toBeInTheDocument();

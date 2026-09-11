@@ -1,7 +1,5 @@
-import { cpus } from 'node:os';
 import { z } from 'zod';
-
-const DEFAULT_MEDIA_JOBS = Math.max(1, Math.min(4, Math.floor(cpus().length / 2)));
+import { defaultMediaJobs } from '@ValenceServer/env/defaultMediaJobs';
 
 const EnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
@@ -27,7 +25,7 @@ const EnvSchema = z.object({
     .default('false')
     .transform((value) => value === 'true'),
   TRANSCODER_URL: z.string().min(1).default('unix:/run/valence-transcoder.sock'),
-  MEDIA_JOBS: z.coerce.number().int().positive().default(DEFAULT_MEDIA_JOBS),
+  MEDIA_JOBS: z.coerce.number().int().positive().default(defaultMediaJobs()),
   CATALOGUE_API_KEY: z.string().default(''),
   IMAGE_CACHE_DIR: z.string().default('/cache/images'),
   AUTH_RATE_LIMIT_ENABLED: z

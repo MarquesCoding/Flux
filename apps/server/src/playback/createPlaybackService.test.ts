@@ -153,6 +153,7 @@ const harness = (
         toneMapping: 'unavailable' as const,
         canBurnTextSubtitles: true,
         canBurnImageSubtitles: true,
+        concurrentRenders: 0,
         chains: [],
       }),
   };
@@ -335,6 +336,7 @@ const CAPABILITIES = {
   toneMapping: 'zscale' as const,
   canBurnTextSubtitles: true,
   canBurnImageSubtitles: true,
+  concurrentRenders: 0,
   chains: [],
   hardwareScalers: [],
   hardwareOverlays: [],

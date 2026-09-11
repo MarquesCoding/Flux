@@ -115,6 +115,7 @@ const CapabilitiesSchema = z.object({
   toneMapping: z.enum(['zscale', 'libplacebo', 'unavailable']).default('unavailable'),
   canBurnTextSubtitles: z.boolean().default(false),
   canBurnImageSubtitles: z.boolean().default(false),
+  concurrentRenders: z.number().int().nonnegative().default(0),
   chains: z
     .array(
       z.object({
@@ -215,6 +216,7 @@ type TrickplayRequest = {
   columns: number;
   rows: number;
   wait?: boolean;
+  hardwareAccel?: string;
   owner?: string;
 };
 type SessionResponse = z.infer<typeof SessionResponseSchema>;
@@ -273,6 +275,7 @@ type Transcoder = {
     quality: PreviewQuality;
     wait?: boolean;
     audioStreamIndex?: number;
+    hardwareAccel?: string;
     owner?: string;
   }) => Promise<{ id: string; url: string; isReady: boolean }>;
   readPreviewFile: (

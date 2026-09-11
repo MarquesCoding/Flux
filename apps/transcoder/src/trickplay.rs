@@ -63,6 +63,12 @@ pub struct TrickplayRequest {
     pub columns: u32,
     /// Thumbnails down one sheet.
     pub rows: u32,
+    /// The backend the operator chose, where they chose one.
+    ///
+    /// Absent means automatic. Sheets picked whichever hardware encoder was
+    /// listed first and ignored the setting entirely, exactly as previews did.
+    #[serde(default)]
+    pub hardware_accel: Option<HardwareAccel>,
     /// Whether the caller is willing to wait for rendering to finish.
     ///
     /// A library import waits, because nobody is watching it. A player must
@@ -93,6 +99,7 @@ impl Default for TrickplayRequest {
             tile_width: 320,
             columns: 10,
             rows: 10,
+            hardware_accel: None,
             wait: true,
             owner: None,
         }
@@ -233,19 +240,26 @@ const RENDER_THREADS: u32 = 2;
 /// read once. `fps` before `scale` means the expensive resize only runs on the
 /// frames that survive.
 ///
-/// Only keyframes are decoded. A seek preview is a rough idea of where the
-/// timeline is about to land, and the nearest keyframe answers that as well as
-/// the exact frame does — at a fraction of the cost, because the decoder skips
-/// everything between them. Measured on a ninety minute film: fifteen seconds
-/// against several minutes. The `fps` filter still emits one image per
-/// interval, so the index and the sheets line up as before.
+/// Only keyframes are decoded, and only in software. A seek preview is a rough
+/// idea of where the timeline is about to land, and the nearest keyframe
+/// answers that as well as the exact frame does — at a fraction of the cost,
+/// because the decoder skips everything between them. Measured on a ninety
+/// minute film: fifteen seconds against several minutes. The `fps` filter still
+/// emits one image per interval, so the index and the sheets line up as before.
 ///
-/// Decoding goes to the hardware when there is any. Skipping to keyframes
-/// keeps the number of frames small but not the cost of each one: a 10-bit
-/// HEVC keyframe is expensive to decode in software, and handing the whole
-/// pass to the decoder already in the machine took a fifty minute episode from
-/// thirteen processor-seconds to two and a half. The sheets themselves stay on
-/// the CPU, since JPEG is not something these encoders make.
+/// `-skip_frame` is not asked of a decoder on the device. Telling a hardware
+/// decoder to throw away everything between keyframes is not a thing every one
+/// of them will do, and QSV does not merely refuse it: an Intel iGPU reading
+/// this library returned "Error during QSV decoding: GPU Hang (-21)" over and
+/// over, which resets the device and takes down whatever else was using it.
+/// Jellyfin draws the same line — its keyframe-only setting says it will fall
+/// back to the software decoder where the hardware one does not support the
+/// mode, and it ships with that setting off.
+///
+/// So the choice is one or the other, and on the device wins. Decoding is the
+/// expensive half: a 10-bit HEVC keyframe costs plenty in software, and handing
+/// the pass to the decoder already in the machine took a fifty minute episode
+/// from thirteen processor-seconds to two and a half.
 #[must_use]
 pub fn sheet_arguments(
     request: &TrickplayRequest,
@@ -299,9 +313,11 @@ pub fn sheet_arguments(
         }
     }
 
+    if onto_the_device.is_none() {
+        arguments.extend(["-skip_frame".to_owned(), "nokey".to_owned()]);
+    }
+
     arguments.extend([
-        "-skip_frame".to_owned(),
-        "nokey".to_owned(),
         "-i".to_owned(),
         request.input_path.clone(),
         "-vf".to_owned(),
@@ -699,9 +715,30 @@ otherwise start a second one"
             tile_width: 320,
             columns: 2,
             rows: 2,
+            hardware_accel: None,
             wait: true,
             owner: None,
         }
+    }
+
+    /// QSV does not refuse the option, it hangs the GPU — which resets the
+    /// device and takes down whatever else on the machine was using it.
+    #[test]
+    fn does_not_ask_a_decoder_on_the_device_to_skip_frames() {
+        let arguments = sheet_arguments(
+            &request(),
+            180,
+            Some(HardwareAccel::Qsv),
+            "/dev/dri/renderD128",
+            Some(8),
+            Path::new("/cache/sheets"),
+        );
+
+        assert!(
+            !arguments.iter().any(|argument| argument == "-skip_frame"),
+            "{arguments:?}"
+        );
+        assert!(arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]));
     }
 
     #[test]

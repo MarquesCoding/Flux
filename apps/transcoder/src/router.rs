@@ -671,6 +671,19 @@ async fn session_file(
 /// Encoded once and served as a file afterwards, so a wall of cards playing
 /// previews costs nothing running: the alternative is half a dozen transcodes
 /// competing with whatever somebody is actually watching.
+/// The answer for a clip that was already cut, which needs no work at all.
+fn already_drawn(id: String) -> Response {
+    (
+        StatusCode::OK,
+        Json(PreviewClip {
+            url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
+            id,
+            is_ready: true,
+        }),
+    )
+        .into_response()
+}
+
 async fn start_preview(
     State(state): State<AppState>,
     Json(request): Json<PreviewRequest>,
@@ -688,15 +701,7 @@ async fn start_preview(
     let id = request.id();
 
     if preview_ready(&config.cache_root, &id).await {
-        return (
-            StatusCode::OK,
-            Json(PreviewClip {
-                url: format!("/previews/{id}/{}", crate::preview::PREVIEW_NAME),
-                id,
-                is_ready: true,
-            }),
-        )
-            .into_response();
+        return already_drawn(id);
     }
 
     let probe = match probe_media(&state.ffprobe, &path).await {
@@ -710,6 +715,7 @@ async fn start_preview(
 
     let range = video.range;
     let bit_depth = video.bit_depth;
+    let size = Some((video.width, video.height));
     let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
     let duration = probe.duration_seconds;
 
@@ -737,7 +743,11 @@ async fn start_preview(
                         },
                         &cache_root,
                         &queued,
-                        crate::preview::Source { range, bit_depth },
+                        crate::preview::Source {
+                            range,
+                            bit_depth,
+                            size,
+                        },
                         &found,
                         duration,
                     ),
@@ -769,7 +779,11 @@ async fn start_preview(
                 },
                 &config.cache_root,
                 &request,
-                crate::preview::Source { range, bit_depth },
+                crate::preview::Source {
+                    range,
+                    bit_depth,
+                    size,
+                },
                 &capabilities,
                 duration,
             ),
@@ -1168,7 +1182,7 @@ async fn start_trickplay(
     let config = state.registry.config();
     let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
     let accel = capabilities
-        .best_encoder("h264")
+        .encoder_for("h264", request.hardware_accel)
         .map(|found| found.accel)
         .filter(|found| {
             crate::chains::runs_here(

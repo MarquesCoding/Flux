@@ -19,6 +19,7 @@ type RegeneratePreviewsOptions = {
   transcoder: Transcoder;
   defaultAudioLanguage: string | null;
   quality: PreviewQuality;
+  hardwareAccel?: string;
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
@@ -42,6 +43,7 @@ const regeneratePreviews = async ({
   transcoder,
   defaultAudioLanguage,
   quality,
+  hardwareAccel,
   atOnce = 1,
   onProblem,
   onProgress,
@@ -60,6 +62,7 @@ const regeneratePreviews = async ({
     const rendered = await transcoder
       .requestPreview({
         ...previewRequestFor(item, generation, defaultAudioLanguage, quality),
+        ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
         wait: true,
         ...(owner === undefined ? {} : { owner }),
       })

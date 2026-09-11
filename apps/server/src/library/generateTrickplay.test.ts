@@ -59,6 +59,7 @@ const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Trans
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
       canBurnImageSubtitles: true,
+      concurrentRenders: 0,
       chains: [],
     }),
 });
@@ -418,5 +419,50 @@ describe('generateTrickplay', () => {
     });
 
     expect(trickplayRequests.every((request) => request.owner === undefined)).toBe(true);
+  });
+  it('draws on the backend the operator chose, which the sheets used to ignore', async () => {
+    const asked: { hardwareAccel?: string }[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve(TRICKPLAY_INDEX);
+    });
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      trickplay: PARAMS,
+      hardwareAccel: 'vaapi',
+    });
+
+    expect(asked[0]?.hardwareAccel).toBe('vaapi');
+  });
+
+  it('says nothing about a backend where none was chosen', async () => {
+    const asked: { hardwareAccel?: string }[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve(TRICKPLAY_INDEX);
+    });
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      trickplay: PARAMS,
+      hardwareAccel: '',
+    });
+
+    expect(asked[0]).not.toHaveProperty('hardwareAccel');
   });
 });

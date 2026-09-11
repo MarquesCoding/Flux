@@ -1233,6 +1233,7 @@ const libraryService = createDatabaseLibraryService({
   db,
   files: createMediaFileSystem(),
   transcoder,
+  forcedAccel: async () => (await settings.read()).hardwareAccel,
   jobs,
   providers: [catalogueProvider, createFilenameMetadataProvider()],
   books: bookService,

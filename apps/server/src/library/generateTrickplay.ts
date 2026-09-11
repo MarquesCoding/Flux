@@ -23,6 +23,7 @@ type GenerateTrickplayOptions = {
   store: TrickplayStore;
   transcoder: Transcoder;
   trickplay: TrickplayParams;
+  hardwareAccel?: string;
   atOnce?: number;
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
@@ -88,6 +89,7 @@ const generateTrickplay = async ({
   store,
   transcoder,
   trickplay,
+  hardwareAccel,
   atOnce = 1,
   onProblem,
   onProgress,
@@ -109,6 +111,7 @@ const generateTrickplay = async ({
         inputPath: item.path,
         generation,
         ...trickplay,
+        ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
         wait: false,
         ...(owner === undefined ? {} : { owner }),
       },

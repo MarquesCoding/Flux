@@ -35,6 +35,9 @@ const beneath = (error: Error): Error | null => {
  * instead of in `cause`. Following only `cause` there ends the chain on an empty line and reports
  * the bare "fetch failed" this exists to avoid.
  *
+ * Written for the scan and now used by anything that reports a fault to an operator, which is why
+ * it lives beside the log rather than beside the scanner.
+ *
  * @param error - What was thrown.
  * @returns What went wrong, with its causes, as one line.
  */
@@ -53,7 +56,7 @@ const describeFailure = (error: Error): string => {
     held = beneath(held);
   }
 
-  return said.length === 0 ? 'Probe failed.' : said.join(': ');
+  return said.length === 0 ? 'It failed, and said nothing about why.' : said.join(': ');
 };
 
 export { describeFailure };

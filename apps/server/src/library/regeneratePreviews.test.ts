@@ -51,6 +51,7 @@ const stubTranscoder = (requestPreview: Transcoder['requestPreview']): Transcode
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
       canBurnImageSubtitles: true,
+      concurrentRenders: 0,
       chains: [],
     }),
 });
@@ -332,5 +333,55 @@ describe('regeneratePreviews', () => {
     });
 
     expect(previewRequests[0]).toMatchObject({ quality: 'low' });
+  });
+
+  it('draws on the backend the operator chose, which previews used to ignore', async () => {
+    const asked: { hardwareAccel?: string }[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve({ id: 'clip', url: '/previews/clip', isReady: true });
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () =>
+          Promise.resolve([{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+      hardwareAccel: 'vaapi',
+    });
+
+    expect(asked[0]?.hardwareAccel).toBe('vaapi');
+  });
+
+  it('says nothing about a backend where none was chosen', async () => {
+    const asked: { hardwareAccel?: string }[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve({ id: 'clip', url: '/previews/clip', isReady: true });
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () =>
+          Promise.resolve([{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+      hardwareAccel: '',
+    });
+
+    expect(asked[0]).not.toHaveProperty('hardwareAccel');
   });
 });

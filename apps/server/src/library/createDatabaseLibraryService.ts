@@ -64,6 +64,7 @@ import {
 } from '@ValenceServer/jobs/JobQueue';
 import type { JobQueue } from '@ValenceServer/jobs/JobQueue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
+import { filesAtOnce } from '@ValenceServer/library/filesAtOnce';
 
 const GenresSchema = z.array(z.string());
 type CreateDatabaseLibraryServiceOptions = {
@@ -71,6 +72,7 @@ type CreateDatabaseLibraryServiceOptions = {
   db: ValenceDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
+  forcedAccel?: () => Promise<string>;
   jobs: JobQueue;
   previewQuality?: () => Promise<PreviewQuality>;
   providers?: MetadataProvider[];
@@ -178,6 +180,7 @@ const createDatabaseLibraryService = ({
   db,
   files,
   transcoder,
+  forcedAccel,
   jobs,
   providers,
   books,
@@ -413,6 +416,22 @@ const createDatabaseLibraryService = ({
     });
   };
 
+  let measured: Promise<number> | null = null;
+
+  /**
+   * Asks the media service how many hardware renders this machine will run at once, once.
+   *
+   * @returns What the machine proved, or zero where it has no hardware or could not be asked.
+   */
+  const rendersAtOnce = async (): Promise<number> => {
+    measured ??= transcoder
+      .capabilities()
+      .then((found) => found.concurrentRenders)
+      .catch(() => 0);
+
+    return measured;
+  };
+
   /**
    * Decides how many of a library's files to work on at once: what the library was configured with,
    * or what the server thinks it can manage. A library on a network share wants one — the files arrive
@@ -422,7 +441,7 @@ const createDatabaseLibraryService = ({
    * @returns How many files to render at the same time.
    */
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
-    (await findLibrary(libraryId))?.filesAtOnce ?? atOnce;
+    filesAtOnce((await findLibrary(libraryId))?.filesAtOnce ?? atOnce, await rendersAtOnce());
 
   /**
    * Reads what the last scan of a library actually changed. "Scanned an hour ago" and "scanned an hour
@@ -1128,6 +1147,8 @@ const createDatabaseLibraryService = ({
     },
 
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
+      const chosenAccel = await forcedAccel?.();
+
       await regeneratePreviews({
         ...(jobId === undefined ? {} : { owner: jobId }),
         libraryId,
@@ -1140,6 +1161,7 @@ const createDatabaseLibraryService = ({
         transcoder,
         defaultAudioLanguage,
         quality: await previewQuality(),
+        ...(chosenAccel === undefined ? {} : { hardwareAccel: chosenAccel }),
         ...(onProblem === undefined ? {} : { onProblem }),
         ...(jobId === undefined
           ? {}
@@ -1197,6 +1219,8 @@ const createDatabaseLibraryService = ({
     },
 
     runRegenerateTrickplay: async (libraryId, jobId) => {
+      const chosenAccel = await forcedAccel?.();
+
       await generateTrickplay({
         libraryId,
         generation: (await findLibrary(libraryId))?.generation ?? 0,
@@ -1207,6 +1231,7 @@ const createDatabaseLibraryService = ({
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_TRICKPLAY_JOB),
         },
         transcoder,
+        ...(chosenAccel === undefined ? {} : { hardwareAccel: chosenAccel }),
         trickplay: {
           intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
           tileWidth: TRICKPLAY_TILE_WIDTH,

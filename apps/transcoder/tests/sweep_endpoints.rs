@@ -103,6 +103,7 @@ fn preview_request() -> PreviewRequest {
         duration_seconds: 24,
         width: None,
         quality: PreviewQuality::High,
+        hardware_accel: None,
         wait: false,
         audio_stream_index: None,
         owner: None,
@@ -157,6 +158,7 @@ async fn recognises_live_sheets_from_the_request_that_drew_them() {
         tile_width: 320,
         columns: 10,
         rows: 10,
+        hardware_accel: None,
         wait: true,
         owner: None,
     };
@@ -199,6 +201,7 @@ async fn a_generation_that_moved_on_no_longer_addresses_the_old_sheets() {
         tile_width: 320,
         columns: 10,
         rows: 10,
+        hardware_accel: None,
         wait: true,
         owner: None,
     };

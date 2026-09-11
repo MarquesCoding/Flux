@@ -15,6 +15,15 @@ pub struct EncoderCandidate {
 ///
 /// Software encoders are listed last so that a probe result read in order
 /// prefers hardware, but each is still verified independently.
+///
+/// On Intel, `VAAPI` is listed before `QSV`, and the order is the whole of what
+/// picks a backend for a machine that was left on automatic. Two reasons, and
+/// the first is in this file: `QSV` has no hardware tone mapper here, so an HDR
+/// film taken down that path comes off the device to be converted where the
+/// `VAAPI` one converts in place. The second was measured on an Intel iGPU,
+/// where `QSV` decoding returned "GPU Hang (-21)" against a library that `VAAPI`
+/// read start to finish without one — and a hang resets the whole device, so it
+/// takes down whatever else on the machine was using it.
 pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
     EncoderCandidate {
         codec: "h264",
@@ -40,6 +49,21 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         codec: "av1",
         encoder: "av1_nvenc",
         accel: HardwareAccel::Nvenc,
+    },
+    EncoderCandidate {
+        codec: "h264",
+        encoder: "h264_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "hevc",
+        encoder: "hevc_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "av1",
+        encoder: "av1_vaapi",
+        accel: HardwareAccel::Vaapi,
     },
     EncoderCandidate {
         codec: "h264",
@@ -75,21 +99,6 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         codec: "hevc",
         encoder: "hevc_rkmpp",
         accel: HardwareAccel::Rkmpp,
-    },
-    EncoderCandidate {
-        codec: "h264",
-        encoder: "h264_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "hevc",
-        encoder: "hevc_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "av1",
-        encoder: "av1_vaapi",
-        accel: HardwareAccel::Vaapi,
     },
     EncoderCandidate {
         codec: "h264",
@@ -208,6 +217,16 @@ pub struct Capabilities {
     /// breaks is the joins between them. See [`crate::chains`].
     #[serde(default)]
     pub chains: Vec<crate::chains::VerifiedChain>,
+    /// How many hardware renders this machine will run at the same time.
+    ///
+    /// Measured rather than worked out from the processor count, which has
+    /// nothing to do with it: a render on the device costs a session and a
+    /// share of the device's memory, and a graphics chip has a fixed number of
+    /// both however many cores sit beside it. Zero means there is no hardware
+    /// to be bounded by and the caller's own count governs. See
+    /// [`crate::concurrency`].
+    #[serde(default)]
+    pub concurrent_renders: u32,
     /// Encoders that were offered and would not run, and what they said.
     #[serde(default)]
     pub rejected: Vec<RejectedEncoder>,
@@ -296,6 +315,36 @@ impl Capabilities {
             .iter()
             .find(|encoder| encoder.codec == codec && encoder.accel != HardwareAccel::None)
             .or_else(|| self.encoders.iter().find(|encoder| encoder.codec == codec))
+    }
+
+    /// Picks an encoder for a codec, honouring a backend chosen by hand.
+    ///
+    /// The operator's choice governs every encode or it governs nothing worth
+    /// having. Previews and sheets asked `best_encoder` instead, which takes
+    /// whichever hardware encoder is listed first — so a machine set to VAAPI
+    /// drew every preview on QSV and said nothing about it.
+    ///
+    /// A choice this machine cannot honour falls back rather than failing.
+    /// Refusing to draw anything is a worse answer than drawing it on what is
+    /// actually here, and the rejection is already reported elsewhere.
+    #[must_use]
+    pub fn encoder_for(
+        &self,
+        codec: &str,
+        chosen: Option<HardwareAccel>,
+    ) -> Option<&VerifiedEncoder> {
+        match chosen {
+            Some(HardwareAccel::None) => self
+                .encoders
+                .iter()
+                .find(|encoder| encoder.codec == codec && encoder.accel == HardwareAccel::None),
+            Some(wanted) => self
+                .encoders
+                .iter()
+                .find(|encoder| encoder.codec == codec && encoder.accel == wanted)
+                .or_else(|| self.best_encoder(codec)),
+            None => self.best_encoder(codec),
+        }
     }
 
     /// Whether any hardware encoder was verified.
@@ -488,13 +537,19 @@ async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, devic
 /// Two gates, and the second is the one that matters: a filter can be compiled
 /// in and still be refused by the driver underneath it. Only backends with a
 /// tone mapper of their own are asked, which is what keeps this to a few short
-/// probes rather than a sweep — and only one of the three can be present on any
-/// given machine.
+/// probes rather than a sweep.
+///
+/// `QSV` converts with an option on `vpp_qsv` rather than with a filter of its
+/// own, so the presence gate reads the scaler it already uses and proves
+/// nothing — the option is newer than the filter and a build can have one
+/// without the other. The run is the whole of the answer there, which is what
+/// it was always meant to be.
 async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> Vec<String> {
     let mut verified = Vec::new();
 
     for accel in [
         HardwareAccel::Vaapi,
+        HardwareAccel::Qsv,
         HardwareAccel::Nvenc,
         HardwareAccel::VideoToolbox,
     ] {
@@ -666,6 +721,10 @@ pub async fn detect_capabilities(ffmpeg: &str, device: &str) -> Capabilities {
         .clone()
 }
 
+#[allow(
+    clippy::too_many_lines,
+    reason = "one linear probe of the machine, read top to bottom"
+)]
 async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
@@ -723,6 +782,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 
     let version = read_version(ffmpeg).await;
     let encoders_for_chains = encoders.clone();
+    let encoders_for_concurrency = encoders.clone();
 
     Capabilities {
         ffmpeg_supported: meets_minimum(&version),
@@ -746,6 +806,12 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
         chains: crate::chains::verify_chains(ffmpeg, device, &encoders_for_chains).await,
+        concurrent_renders: crate::concurrency::verify_concurrency(
+            ffmpeg,
+            device,
+            &encoders_for_concurrency,
+        )
+        .await,
     }
 }
 
@@ -763,6 +829,22 @@ mod tests {
     ///
     /// Eight-bit frames would let a driver that cannot convert HDR pass, which
     /// is the whole failure this probe exists to catch.
+    /// The order is the whole of what picks a backend left on automatic, and on
+    /// Intel both verify — so whichever is listed first is what every machine
+    /// gets.
+    #[test]
+    fn prefers_vaapi_to_qsv_on_intel() {
+        let position = |name: &str| {
+            ENCODER_CANDIDATES
+                .iter()
+                .position(|candidate| candidate.encoder == name)
+                .expect("a candidate")
+        };
+
+        assert!(position("h264_vaapi") < position("h264_qsv"));
+        assert!(position("hevc_vaapi") < position("hevc_qsv"));
+    }
+
     #[test]
     fn asks_a_tone_mapper_for_ten_bit_frames_on_the_device() {
         let arguments = tone_map_probe_arguments(
@@ -1162,6 +1244,7 @@ reported anything else would either reprobe forever or never"
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,
             chains: Vec::new(),
+            concurrent_renders: 0,
         }
     }
 
