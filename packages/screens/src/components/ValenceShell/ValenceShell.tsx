@@ -15,7 +15,6 @@ import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareD
 import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
 import { NotificationBell } from '@ValenceScreens/components/NotificationBell/NotificationBell';
 import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
-import { AppFooter } from '@ValenceScreens/components/AppFooter/AppFooter';
 import {
   clearNotifications,
   markNotificationsRead,
@@ -164,30 +163,6 @@ const ValenceShell = () => {
           genre: next === 'search' ? place.genre : null,
         });
       }}
-      footer={(places) => (
-        <AppFooter
-          places={places}
-          onPlace={(next) => {
-            go({ section: next, search: '', genre: null });
-          }}
-          onGenre={(genre) => {
-            go({ section: 'search', search: '', genre });
-          }}
-          onAccount={(panel) => {
-            go({ account: panel });
-          }}
-          {...(user.role === 'admin'
-            ? {
-                onAdmin: () => {
-                  go({ admin: ADMIN_OPENS_ON });
-                },
-              }
-            : {})}
-          onSignOut={() => {
-            void leave();
-          }}
-        />
-      )}
       isAccountOpen={place.account !== null}
       onOpenAccount={() => {
         go({ account: ACCOUNT_OPENS_ON });

@@ -24,7 +24,6 @@ type AppShellProps = {
   onSurprise?: (only?: LibraryKind) => void;
   libraryKinds?: LibraryKind[];
   stocked?: ShellSection[];
-  footer?: (places: { id: ShellSection; label: string }[]) => ReactNode;
   notifications?: ReactNode;
 };
 
