@@ -465,4 +465,81 @@ describe('generateTrickplay', () => {
 
     expect(asked[0]).not.toHaveProperty('hardwareAccel');
   });
+  it('picks up a film that arrives while it is already rendering', async () => {
+    const drawn: string[] = [];
+    let rounds = 0;
+    const transcoder = stubTranscoder((request) => {
+      drawn.push(request.inputPath);
+
+      return Promise.resolve(TRICKPLAY_INDEX);
+    });
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => {
+          rounds += 1;
+
+          return Promise.resolve(
+            rounds === 1
+              ? [{ id: 'item-0', path: '/media/a.mkv' }]
+              : [{ id: 'item-1', path: '/media/late.mkv' }],
+          );
+        },
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    expect(drawn).toEqual(['/media/a.mkv', '/media/late.mkv']);
+  });
+
+  it('does not hand back a film whose sheets already failed', async () => {
+    const drawn: string[] = [];
+    const problems: string[] = [];
+    const transcoder = stubTranscoder((request) => {
+      drawn.push(request.inputPath);
+
+      return Promise.reject(new Error('that file has no video stream'));
+    });
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/broken.mkv' }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      trickplay: PARAMS,
+      onProblem: (_path, reason) => problems.push(reason),
+    });
+
+    expect(drawn).toEqual(['/media/broken.mkv']);
+    expect(problems).toHaveLength(1);
+  });
+
+  it('stops once a round turns up nothing it has not tried', async () => {
+    let asked = 0;
+    const transcoder = stubTranscoder(() => Promise.resolve(TRICKPLAY_INDEX));
+
+    await generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => {
+          asked += 1;
+
+          return Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]);
+        },
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      trickplay: PARAMS,
+    });
+
+    expect(asked).toBe(2);
+  });
 });
