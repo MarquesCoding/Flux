@@ -212,4 +212,89 @@ describe('createJobQueue', () => {
     finish();
     await running;
   });
+
+  it('names the job already holding a key, rather than leaving a caller to invent one', async () => {
+    let finish: () => void = () => {};
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: {
+        'library.scan': () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      },
+    });
+
+    await queue.startWorking();
+
+    const running = deliver('library.scan', [{ id: 'job-running', data: { libraryId: 'films' } }]);
+
+    await expect(queue.liveJob('library.scan', 'films')).resolves.toBe('job-running');
+    await expect(queue.liveJob('library.scan', 'shows')).resolves.toBeNull();
+
+    finish();
+    await running;
+  });
+
+  it('finds one that is only waiting, which is a collision just the same', async () => {
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: { 'library.scan': () => Promise.resolve() },
+    });
+
+    boss.queued.push({ kind: 'library.scan', id: 'job-waiting', libraryId: 'films' });
+
+    await expect(queue.liveJob('library.scan', 'films')).resolves.toBe('job-waiting');
+  });
+
+  it('finds a job of a kind that is about no library at all', async () => {
+    let finish: () => void = () => {};
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: {
+        [CHECK_DISK]: () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+      },
+    });
+
+    await queue.startWorking();
+
+    const running = deliver(CHECK_DISK, [{ id: 'job-housekeeping', data: {} }]);
+
+    await expect(queue.liveJob(CHECK_DISK)).resolves.toBe('job-housekeeping');
+
+    finish();
+    await running;
+  });
+
+  it('still stops every kind a library has going, not just one of them', async () => {
+    let finish: () => void = () => {};
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: {
+        'library.scan': () =>
+          new Promise<void>((resolve) => {
+            finish = resolve;
+          }),
+        'library.regenerateTrickplay': () => new Promise<void>(() => {}),
+      },
+    });
+
+    await queue.startWorking();
+
+    const scanning = deliver('library.scan', [{ id: 'job-scan', data: { libraryId: 'films' } }]);
+
+    void deliver('library.regenerateTrickplay', [
+      { id: 'job-sheets', data: { libraryId: 'films' } },
+    ]);
+
+    await expect(queue.cancelFor('films')).resolves.toBeGreaterThanOrEqual(2);
+    expect(queue.isCancelled('job-scan')).toBe(true);
+    expect(queue.isCancelled('job-sheets')).toBe(true);
+
+    finish();
+    await scanning;
+  });
 });

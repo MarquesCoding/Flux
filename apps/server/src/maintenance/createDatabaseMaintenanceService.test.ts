@@ -45,13 +45,38 @@ describe('createDatabaseMaintenanceService', () => {
     );
   });
 
-  it('falls back to a pending id when one is already queued', async () => {
+  it('answers with the job already doing it rather than inventing an id', async () => {
     const maintenance = createDatabaseMaintenanceService({
-      jobs: createInertJobQueue({ enqueue: () => Promise.resolve(null) }),
+      jobs: createInertJobQueue({
+        enqueue: () => Promise.resolve(null),
+        liveJob: () => Promise.resolve('job-already-going'),
+      }),
     });
 
     const queued = await maintenance.cleanupSessions();
 
-    expect(queued).toEqual({ jobId: 'pending-server.cleanupSessions', state: 'queued' });
+    expect(queued).toEqual({ jobId: 'job-already-going', state: 'running' });
+  });
+
+  it('asks for the job of that kind, whichever library it is about', async () => {
+    const liveJob = vi.fn(() => Promise.resolve('job-already-going'));
+    const maintenance = createDatabaseMaintenanceService({
+      jobs: createInertJobQueue({ enqueue: () => Promise.resolve(null), liveJob }),
+    });
+
+    await maintenance.cleanupSessions();
+
+    expect(liveJob).toHaveBeenCalledWith('server.cleanupSessions');
+  });
+
+  it('says there is no job rather than naming one that does not exist', async () => {
+    const maintenance = createDatabaseMaintenanceService({
+      jobs: createInertJobQueue({
+        enqueue: () => Promise.resolve(null),
+        liveJob: () => Promise.resolve(null),
+      }),
+    });
+
+    expect(await maintenance.cleanupSessions()).toEqual({ jobId: null, state: 'unavailable' });
   });
 });

@@ -13,6 +13,7 @@ const createInertJobQueue = (overrides: Partial<JobQueue> = {}): JobQueue => ({
   readState: () => Promise.resolve('unknown'),
   readProgress: () => null,
   listRunning: () => [],
+  liveJob: () => Promise.resolve(null),
   cancel: () => Promise.resolve(false),
   cancelFor: () => Promise.resolve(0),
   isCancelled: () => false,

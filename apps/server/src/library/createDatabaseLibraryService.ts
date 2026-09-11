@@ -304,20 +304,20 @@ const createDatabaseLibraryService = ({
    * reaches ninety episodes is something to watch rather than a request that hangs for as long as a
    * series takes to fetch.
    *
+   * Where the queue already holds a re-read for this library it used to do the work in the request
+   * after all, which is the one case it exists to avoid: a re-read with no job id appears in no
+   * list of running work, reports no progress and cannot be stopped. It answers with the job that
+   * is already reading instead, and the paths are picked up by the scan that follows — a re-read
+   * works from what the files say, not from a list it was handed.
+   *
    * @param libraryId - The library the files are in.
    * @param paths - The files to read again.
-   * @returns The job to watch, or null where the queue took nothing.
+   * @returns The job reading these files, or null where there is none and none could be started.
    */
   const queueReadAgain = async (libraryId: string, paths: string[]): Promise<string | null> => {
     const jobId = await jobs.enqueue(READ_AGAIN_JOB, { libraryId, paths }, libraryId);
 
-    if (jobId === null) {
-      await readAgain(libraryId, paths);
-
-      return null;
-    }
-
-    return jobId;
+    return jobId ?? (await jobs.liveJob(READ_AGAIN_JOB, libraryId));
   };
 
   const findLibrary = async (id: string) => {
@@ -441,6 +441,37 @@ const createDatabaseLibraryService = ({
    * @param libraryId - The library being worked on.
    * @returns How many files to render at the same time.
    */
+  /**
+   * Answers with the job that will do this work, whether this call is what started it.
+   *
+   * A queue holds one job of a kind for a library at a time, so asking twice gets nothing back the
+   * second time. The answer used to be an invented id — `pending-<library>` — which was worse than
+   * no answer: nothing has that id, so reading its state says "unknown", the client treats unknown
+   * as finished and stops watching, and the work carries on untracked. Cancelling it answered 404
+   * while it ran.
+   *
+   * So the job already holding the key is found and returned instead. The caller asked who is doing
+   * this, and there is always a real answer.
+   *
+   * @param started - The id this call created, or null where something already held the key.
+   * @param kind - The kind of job asked for.
+   * @param libraryId - The library it is for.
+   * @returns The job that will do the work, or null where it could not be found at all.
+   */
+  const alreadyAsked = async (
+    started: string | null,
+    kind: string,
+    libraryId: string,
+  ): Promise<{ jobId: string; state: string } | null> => {
+    if (started !== null) {
+      return { jobId: started, state: 'queued' };
+    }
+
+    const running = await jobs.liveJob(kind, libraryId);
+
+    return running === null ? null : { jobId: running, state: 'running' };
+  };
+
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
     filesAtOnce((await findLibrary(libraryId))?.filesAtOnce ?? atOnce, await rendersAtOnce());
 
@@ -1029,7 +1060,7 @@ const createDatabaseLibraryService = ({
         libraryId,
       );
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, SCAN_LIBRARY_JOB, libraryId);
     },
 
     reset: async (libraryId) => {
@@ -1047,7 +1078,7 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, SCAN_LIBRARY_JOB, libraryId);
     },
 
     remove: async (libraryId) => {
@@ -1075,7 +1106,7 @@ const createDatabaseLibraryService = ({
         libraryId,
       );
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, REGENERATE_PREVIEWS_JOB, libraryId);
     },
 
     fetchLogos: async (libraryId) => {
@@ -1085,7 +1116,7 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueue(FETCH_LOGOS_JOB, { libraryId }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, FETCH_LOGOS_JOB, libraryId);
     },
 
     remakePreviews: async (libraryId) => {
@@ -1101,7 +1132,7 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueue(REGENERATE_TRICKPLAY_JOB, { libraryId }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, REGENERATE_TRICKPLAY_JOB, libraryId);
     },
 
     detectSegments: async (libraryId) => {
@@ -1111,7 +1142,7 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueue(DETECT_SEGMENTS_JOB, { libraryId }, libraryId);
 
-      return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+      return alreadyAsked(jobId, DETECT_SEGMENTS_JOB, libraryId);
     },
 
     readScanState: async (jobId) => {

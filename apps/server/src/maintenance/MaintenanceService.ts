@@ -1,4 +1,4 @@
-type QueuedJob = { jobId: string; state: string };
+type QueuedJob = { jobId: string | null; state: string };
 
 type MaintenanceService = {
   cleanupImageCache: () => Promise<QueuedJob>;
