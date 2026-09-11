@@ -57,6 +57,7 @@ pub fn decode_arguments(path: &Path) -> Vec<String> {
 pub async fn decodes(ffmpeg: &str, path: &Path) -> Result<(), String> {
     let outcome = Command::new(ffmpeg)
         .args(decode_arguments(path))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(|error| format!("could not start ffmpeg to check the file: {error}"))?;

@@ -667,6 +667,7 @@ pub async fn generate(
                 accel.map(|found| (found, tools.device)),
                 &output,
             ))
+            .kill_on_drop(true)
             .output()
             .await
             .map_err(PreviewError::Spawn)?;

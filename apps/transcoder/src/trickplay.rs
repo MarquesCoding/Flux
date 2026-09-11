@@ -560,6 +560,7 @@ pub async fn generate(
             source.bit_depth,
             &directory,
         ))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(TrickplayError::Spawn)?;
