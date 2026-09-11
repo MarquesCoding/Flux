@@ -38,6 +38,7 @@ import { MediaFacts } from '@ValenceScreens/components/MediaFacts/MediaFacts';
 import { scrollToTopOf } from '@ValenceScreens/navigation/scrollToTopOf';
 import { RatingPanel } from '@ValenceScreens/components/RatingPanel/RatingPanel';
 import { CastGrid } from './components/CastGrid/CastGrid';
+import { EXTRA_KIND_LABELS } from '@ValenceContracts/schemas/Library';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { MediaDetailDialogProps } from './MediaDetailDialog.types';
 
@@ -144,6 +145,7 @@ const MediaDetailDialog = ({
   const percent = `${Math.round((preparing?.progress ?? 0) * 100).toString()}%`;
   const shownResume = media === null ? heldRef.current.resume : resumeSeconds;
   const shownSiblings = media === null ? heldRef.current.siblings : siblings;
+  const extras = detail?.extras ?? [];
 
   if (shown === null) {
     return null;
@@ -373,6 +375,41 @@ const MediaDetailDialog = ({
                 />
               )}
             </section>
+
+            {extras.length === 0 ? null : (
+              <section className="flex flex-col gap-3">
+                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
+                  Extras
+                </h3>
+
+                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
+                  {extras.map((extra) => (
+                    <li key={extra.id} className="w-56 shrink-0 sm:w-64">
+                      <MediaCard
+                        {...(extra.extraKind === null || extra.extraKind === undefined
+                          ? {}
+                          : { eyebrow: EXTRA_KIND_LABELS[extra.extraKind] })}
+                        title={extra.title}
+                        subtitle={
+                          <MediaFacts
+                            media={extra}
+                            hasRuntime
+                            className="flex flex-wrap items-center gap-2"
+                          />
+                        }
+                        shape="wide"
+                        {...(extra.hasBackdrop
+                          ? { imageUrl: artworkUrl(extra.id, 'backdrop') }
+                          : {})}
+                        onSelect={() => {
+                          onPlay(extra, 0);
+                        }}
+                      />
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            )}
 
             {shownSiblings.length === 0 ? null : (
               <section className="flex flex-col gap-3">

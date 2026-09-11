@@ -510,3 +510,61 @@ describe('opening one item after another', () => {
     });
   });
 });
+
+describe('the extras a film carries', () => {
+  const anExtra = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
+    ...summary,
+    id: 'extra-1',
+    title: 'Scoring the film',
+    parentId: 'media-1',
+    extraKind: 'featurette',
+    ...overrides,
+  });
+
+  it('says nothing of them where a film carries none', async () => {
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Synopsis')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Extras')).not.toBeInTheDocument();
+  });
+
+  it('lists them under a heading of their own', async () => {
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra()] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Extras')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Scoring the film')).toBeInTheDocument();
+  });
+
+  it('says what sort of extra each one is, so a trailer is not mistaken for the film', async () => {
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra({ extraKind: 'trailer' })] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Trailer')).toBeInTheDocument();
+    });
+  });
+
+  it('plays one when it is chosen, from the beginning', async () => {
+    const onPlay = vi.fn();
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra()] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Scoring the film')).toBeInTheDocument();
+    });
+
+    await userEvent.setup().click(screen.getByText('Scoring the film'));
+
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ id: 'extra-1' }), 0);
+  });
+});
