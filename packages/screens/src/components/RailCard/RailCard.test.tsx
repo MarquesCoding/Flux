@@ -285,3 +285,69 @@ describe('RailCard', () => {
     });
   });
 });
+
+describe('a card that stands upright', () => {
+  it('stands on the poster when asked to', () => {
+    const { container } = renderInAnAddress(
+      <RailCard media={MEDIA} shape="poster" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      `/api/media/${MEDIA.id}/image/poster`,
+    );
+    expect(container.querySelector('.aspect-\\[2\\/3\\]')).not.toBeNull();
+  });
+
+  it('lies flat on the backdrop unless asked otherwise', () => {
+    const { container } = renderInAnAddress(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      `/api/media/${MEDIA.id}/image/backdrop`,
+    );
+    expect(container.querySelector('.aspect-video')).not.toBeNull();
+  });
+
+  it('falls back to the backdrop for something with no poster', () => {
+    const { container } = renderInAnAddress(
+      <RailCard
+        media={{ ...MEDIA, hasPoster: false }}
+        shape="poster"
+        onPlay={vi.fn()}
+        onInspect={vi.fn()}
+      />,
+    );
+
+    expect(container.querySelector('img')).toHaveAttribute(
+      'src',
+      `/api/media/${MEDIA.id}/image/backdrop`,
+    );
+  });
+
+  it('opens its preview wide enough to watch, however narrow the poster', async () => {
+    const { container } = renderInAnAddress(
+      <RailCard media={MEDIA} shape="poster" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    await restOn(cardHolder(container));
+
+    const panel = screen.getByRole('button', { name: 'More about Parasite' }).parentElement;
+
+    expect(panel?.style.width).toBe('352px');
+  });
+
+  it("opens a flat card's preview at the card's own width, grown a little", async () => {
+    const { container } = renderInAnAddress(
+      <RailCard media={MEDIA} onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    await restOn(cardHolder(container));
+
+    const panel = screen.getByRole('button', { name: 'More about Parasite' }).parentElement;
+
+    expect(panel?.style.width).toBe('0px');
+  });
+});

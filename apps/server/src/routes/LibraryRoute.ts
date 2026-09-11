@@ -388,6 +388,25 @@ const resetLibraryRoute = createRoute({
   },
 });
 
+const deleteLibraryRoute = createRoute({
+  method: 'delete',
+  path: '/api/libraries/{id}',
+  tags: ['Library'],
+  summary: 'Delete a library and everything known about it, stopping any work running for it',
+  request: { params: z.object({ id: z.string().uuid() }) },
+  responses: {
+    204: { description: 'The library was deleted; the files it read are untouched' },
+    403: {
+      description: 'Not an administrator',
+      content: { 'application/json': { schema: Forbidden } },
+    },
+    404: {
+      description: 'No such library',
+      content: { 'application/json': { schema: NotFound } },
+    },
+  },
+});
+
 const regeneratePreviewsRoute = createRoute({
   method: 'post',
   path: '/api/libraries/{id}/regenerate-previews',
@@ -422,6 +441,7 @@ export {
   scanLibraryRoute,
   scanStateRoute,
   resetLibraryRoute,
+  deleteLibraryRoute,
   listShowsRoute,
   getShowRoute,
   runningScansRoute,

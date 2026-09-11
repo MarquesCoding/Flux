@@ -3,7 +3,7 @@ import type { CardPadding, CardProps, CardRadius, CardTone } from './Card.types'
 
 const TONE_CLASSES: Record<CardTone, string> = {
   raised: 'valence-surface',
-  glass: 'valence-glass',
+  glass: 'valence-float',
   plain: '',
 };
 

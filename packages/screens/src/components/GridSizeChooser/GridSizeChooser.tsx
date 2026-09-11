@@ -1,5 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
-import { DashboardSquare01Icon, GridViewIcon } from '@hugeicons/core-free-icons';
+import { SEGMENTED } from '@ValenceUI/tokens/segmented';
+import { Grid2X2Icon, Grid3X3Icon, SquareIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { SlidingMark } from '@ValenceUI/SlidingMark';
@@ -13,9 +14,9 @@ const SIZES: readonly {
   label: string;
   glyph: IconGlyph;
 }[] = [
-  { id: 'small', label: 'Small cards, more of them', glyph: GridViewIcon },
-  { id: 'medium', label: 'Medium cards', glyph: DashboardSquare01Icon },
-  { id: 'large', label: 'Large cards, fewer of them', glyph: GridViewIcon },
+  { id: 'small', label: 'Small cards, more of them', glyph: Grid3X3Icon },
+  { id: 'medium', label: 'Medium cards', glyph: Grid2X2Icon },
+  { id: 'large', label: 'Large cards, fewer of them', glyph: SquareIcon },
 ];
 
 /**
@@ -43,7 +44,11 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
       onBlur={() => {
         setPointedAt(null);
       }}
-      className={cn('valence-glass flex items-center gap-1 rounded-full p-1', className)}
+      className={cn(
+        'flex items-center gap-1 rounded-full p-1',
+        SEGMENTED.tones.inverted.track,
+        className,
+      )}
     >
       {SIZES.map(({ id, label, glyph }) => (
         <Button

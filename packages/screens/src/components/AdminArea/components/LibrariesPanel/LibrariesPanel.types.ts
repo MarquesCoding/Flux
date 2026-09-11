@@ -13,6 +13,7 @@ type LibrariesPanelProps = {
   onRegeneratePreviews: (libraryId: string) => void;
   onLibraryCreated: (library: Library) => void;
   onLibraryUpdated: (library: Library) => void;
+  onLibraryDeleted: (libraryId: string) => void;
 };
 
 export type { LibrariesPanelProps };

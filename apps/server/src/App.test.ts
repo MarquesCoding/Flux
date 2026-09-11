@@ -472,3 +472,68 @@ describe('managing roles as an administrator', () => {
     expect(response.status).toBe(400);
   });
 });
+
+describe('deleting a library', () => {
+  const FILMS_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
+
+  const build = () => {
+    const { auth, settings, store } = createMemoryAuth();
+    const permissions = createMemoryPermissionService();
+
+    return signedInApp(
+      createApp({
+        auth,
+        settings,
+        permissions,
+        countUsers: () => Promise.resolve(1),
+        promoteToAdmin: () => Promise.resolve(),
+        library: createMemoryLibraryService({
+          libraries: [
+            {
+              id: FILMS_ID,
+              name: 'Films',
+              kind: 'movies',
+              path: '/media/films',
+              itemCount: 0,
+              lastScannedAt: null,
+              defaultAudioLanguage: null,
+              filesAtOnce: null,
+            },
+          ],
+          media: [],
+        }),
+        subtitles: createMemorySubtitleService(),
+        segments: createMemorySegmentService(),
+        progress: createMemoryWatchProgressService(),
+        favourites: createMemoryFavouriteService(),
+        ratings: createMemoryRatingService(),
+        playback: createMemoryPlaybackService(),
+      }),
+      { store, permissions, isAdministrator: true },
+    );
+  };
+
+  const remove = (app: ReturnType<typeof build>) =>
+    app.request(`${TEST_ORIGIN}/api/libraries/${FILMS_ID}`, {
+      method: 'DELETE',
+      headers: { origin: TEST_ORIGIN },
+    });
+
+  it('forgets the library, so it is no longer listed', async () => {
+    const app = build();
+
+    expect((await remove(app)).status).toBe(204);
+
+    const listed = await app.request(`${TEST_ORIGIN}/api/libraries`);
+
+    expect(await listed.json()).toEqual([]);
+  });
+
+  it('says there is no such library once it has gone', async () => {
+    const app = build();
+
+    await remove(app);
+
+    expect((await remove(app)).status).toBe(404);
+  });
+});

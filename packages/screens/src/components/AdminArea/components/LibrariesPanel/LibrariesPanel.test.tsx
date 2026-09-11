@@ -1,6 +1,6 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LibrariesPanel } from './LibrariesPanel';
 import type { Library } from '@ValenceContracts/schemas/Library';
 import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
@@ -38,7 +38,12 @@ const props = {
   onRegeneratePreviews: vi.fn(),
   onLibraryCreated: vi.fn(),
   onLibraryUpdated: vi.fn(),
+  onLibraryDeleted: vi.fn(),
 };
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 /**
  * Chooses something from a library's actions menu.
@@ -221,5 +226,39 @@ describe('LibrariesPanel', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(LibrariesPanel.displayName).toBe('LibrariesPanel');
+  });
+
+  it('asks before deleting a library, and says what goes with it', async () => {
+    const user = userEvent.setup();
+
+    render(<LibrariesPanel {...props} libraries={[library()]} />);
+
+    await choose(user, 'Films', /Delete library/);
+
+    expect(await screen.findByText(/files on disk are not touched/)).toBeInTheDocument();
+    expect(screen.getByText(/Anything running for it now is stopped/)).toBeInTheDocument();
+  });
+
+  it('deletes the library once confirmed, and lets the list drop it', async () => {
+    const onLibraryDeleted = vi.fn();
+    const fetchMock = vi.fn(() => Promise.resolve({ ok: true, status: 204 }));
+    const user = userEvent.setup();
+
+    vi.stubGlobal('fetch', fetchMock);
+
+    render(
+      <LibrariesPanel {...props} libraries={[library()]} onLibraryDeleted={onLibraryDeleted} />,
+    );
+
+    await choose(user, 'Films', /Delete library/);
+    await user.click(await screen.findByRole('button', { name: 'Delete library' }));
+
+    await waitFor(() => {
+      expect(onLibraryDeleted).toHaveBeenCalledWith(library().id);
+    });
+    expect(fetchMock).toHaveBeenCalledWith(
+      `/api/libraries/${library().id}`,
+      expect.objectContaining({ method: 'DELETE' }),
+    );
   });
 });

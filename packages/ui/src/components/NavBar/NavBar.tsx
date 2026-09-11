@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { motion } from 'motion/react';
 import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
 import { Button } from '@ValenceUI/Button';
@@ -27,10 +27,17 @@ const MOVES = 'transition-colors duration-[var(--duration-fast)] ease-[var(--eas
  *
  * A single mark rests on where you are, follows the pointer to whatever it passes over, and returns
  * when the pointer leaves. Places are words wherever there is room for them and their icons where
- * there is not; the tools are always icons, named on hover.
+ * there is not — and the place being stood on carries its icon beside its word as well, so where you
+ * are is said twice rather than only by the mark behind it. That icon holds still under the pointer:
+ * it sits beside a word rather than standing in for one, and a lift or a wipe there reads as the
+ * word jumping; the tools are always icons, named on hover.
  *
  * An action whose control has a panel open is held still while it is open, because a popover is
  * anchored to the icon that opened it and a gesture played underneath it would shove the panel.
+ *
+ * A place that was just pressed stays lit until the page says it is the place being stood on. The
+ * pointer and focus can both leave in the moment between — the page moves, focus goes with it — and
+ * lighting whatever was current before made the mark flick back to the old place and then forward.
  *
  * Something the pointer is on is lit, and so is something keyboard focus has reached — but not
  * something focus was merely handed back to. Closing a dialog returns focus to the control that
@@ -59,7 +66,13 @@ const NavBar = ({
   const [pointedAt, setPointedAt] = useState<string | null>(null);
   const { actionsRef, openAction } = useOpenAction();
 
-  const lit = pointedAt ?? selectedId;
+  const [chosen, setChosen] = useState<string | null>(null);
+
+  useEffect(() => {
+    setChosen(null);
+  }, [selectedId]);
+
+  const lit = pointedAt ?? chosen ?? selectedId;
 
   const mark = <SlidingMark group="nav-bar-mark" className="rounded-full" />;
 
@@ -105,6 +118,7 @@ const NavBar = ({
                     }
                   }}
                   onClick={() => {
+                    setChosen(item.id);
                     onSelect(item.id);
                   }}
                   className={cn(
@@ -120,12 +134,16 @@ const NavBar = ({
                   {lit === item.id ? mark : null}
 
                   {item.icon === undefined ? null : (
-                    <span className="relative z-10 flex md:hidden">
+                    <span className={cn('relative z-10 flex', isCurrent ? '' : 'md:hidden')}>
                       <AnimatedIcon
-                        isPlaying={pointedAt === item.id}
+                        isPlaying={!isCurrent && pointedAt === item.id}
                         icon={isCurrent ? (item.activeIcon ?? item.icon) : item.icon}
-                        {...(item.gesture === undefined ? {} : { gesture: item.gesture })}
-                        {...(item.activeIcon === undefined ? {} : { activeIcon: item.activeIcon })}
+                        {...(isCurrent || item.gesture === undefined
+                          ? {}
+                          : { gesture: item.gesture })}
+                        {...(isCurrent || item.activeIcon === undefined
+                          ? {}
+                          : { activeIcon: item.activeIcon })}
                       />
                     </span>
                   )}

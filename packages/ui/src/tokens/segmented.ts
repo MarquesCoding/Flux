@@ -18,7 +18,7 @@ const SEGMENTED = {
   },
   tones: {
     inverted: {
-      track: 'valence-glass',
+      track: 'border border-[var(--surface-line)] bg-[var(--surface-hover)]',
       mark: 'rounded-pill bg-text',
       chosen: 'font-semibold text-surface hover:text-surface focus-visible:text-surface',
     },

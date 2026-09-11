@@ -61,6 +61,7 @@ import {
   REGENERATE_TRICKPLAY_JOB,
   FETCH_LOGOS_JOB,
   DETECT_SEGMENTS_JOB,
+  CLEANUP_ARTEFACT_CACHE_JOB,
 } from '@ValenceServer/jobs/JobQueue';
 import type { JobQueue } from '@ValenceServer/jobs/JobQueue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
@@ -1046,6 +1047,18 @@ const createDatabaseLibraryService = ({
       const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
       return { jobId: jobId ?? `pending-${libraryId}`, state: 'queued' };
+    },
+
+    remove: async (libraryId) => {
+      if ((await findLibrary(libraryId)) === null) {
+        return false;
+      }
+
+      await jobs.cancelFor(libraryId);
+      await db.delete(library).where(eq(library.id, libraryId));
+      await jobs.enqueue(CLEANUP_ARTEFACT_CACHE_JOB, {}, CLEANUP_ARTEFACT_CACHE_JOB);
+
+      return true;
     },
 
     regeneratePreviews: async (libraryId) => {

@@ -367,7 +367,11 @@ describe('App routing', () => {
     await screen.findByText('admin@valence.test');
 
     serverState({ setup: setupComplete, session: null });
-    await actor.click(screen.getByRole('button', { name: /Sign out/ }));
+    await actor.click(
+      within(screen.getByRole('dialog', { name: 'Your account' })).getByRole('button', {
+        name: /Sign out/,
+      }),
+    );
     await arrive();
 
     expect(await screen.findByText('Who is watching?')).toBeInTheDocument();

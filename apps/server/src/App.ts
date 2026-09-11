@@ -51,8 +51,13 @@ import {
   forgetCorrectionRoute,
   rebuildArtefactsRoute,
   resetLibraryRoute,
+  deleteLibraryRoute,
   regeneratePreviewsRoute,
 } from './routes/LibraryRoute';
+import { listFoldersRoute } from '@ValenceServer/routes/FolderRoute';
+import { listFolders } from '@ValenceServer/folders/listFolders';
+import { createFolderDisk } from '@ValenceServer/folders/createFolderDisk';
+import type { FolderDisk } from '@ValenceServer/folders/FolderDisk';
 import {
   explainRoute,
   startRoute,
@@ -418,6 +423,7 @@ type CreateAppOptions = {
   libraryBytes?: () => Promise<number>;
   measureStorage?: () => Promise<StorageCount>;
   readImage?: (url: string) => Promise<{ body: ArrayBuffer; contentType: string } | null>;
+  folderDisk?: FolderDisk;
   isTranscoderReachable?: () => Promise<boolean>;
   transcoderAddress?: string;
   listRunningJobs?: () => RunningJob[];
@@ -467,6 +473,7 @@ const createApp = ({
   stalledJobs,
   readImage,
   isTranscoderReachable = () => Promise.resolve(false),
+  folderDisk = createFolderDisk(),
   transcoderAddress = '',
   listRunningJobs = () => [],
   cancelJob = () => Promise.resolve(false),
@@ -636,6 +643,25 @@ const createApp = ({
     }
 
     return context.json(created, 201);
+  });
+
+  app.openapi(listFoldersRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'library.create'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    const found = await listFolders(folderDisk, context.req.valid('query').path);
+
+    switch (found.kind) {
+      case 'listed':
+        return context.json(found.listing, 200);
+      case 'relative':
+        return context.json({ error: 'Give the whole path, starting from the root.' }, 400);
+      case 'missing':
+        return context.json({ error: 'There is no such folder.' }, 404);
+      case 'unreadable':
+        return context.json({ error: 'Valence is not allowed to read that folder.' }, 403);
+    }
   });
 
   app.openapi(updateLibraryRoute, async (context) => {
@@ -849,6 +875,18 @@ const createApp = ({
     }
 
     return context.json(reset, 202);
+  });
+
+  app.openapi(deleteLibraryRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'library.delete'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    if (!(await library.remove(context.req.valid('param').id))) {
+      return context.json({ error: 'No such library.' }, 404);
+    }
+
+    return context.body(null, 204);
   });
 
   app.openapi(regeneratePreviewsRoute, async (context) => {

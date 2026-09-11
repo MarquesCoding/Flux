@@ -83,3 +83,25 @@ describe('GridSizeChooser', () => {
     expect(GridSizeChooser.displayName).toBe('GridSizeChooser');
   });
 });
+
+describe('how the sizes are drawn', () => {
+  it('draws each size with its own glyph, from many small squares to one large one', () => {
+    render(<GridSizeChooser value="medium" onValueChange={vi.fn()} />);
+
+    const drawn = ['Small cards, more of them', 'Medium cards', 'Large cards, fewer of them'].map(
+      (name) => screen.getByRole('button', { name }).querySelector('svg')?.innerHTML ?? '',
+    );
+
+    expect(drawn.every((glyph) => glyph !== '')).toBe(true);
+    expect(new Set(drawn).size).toBe(3);
+  });
+
+  it('sits in the flat track the other segmented controls use, rather than in glass', () => {
+    render(<GridSizeChooser value="medium" onValueChange={vi.fn()} />);
+
+    const track = screen.getByRole('group', { name: 'How large the cards are' });
+
+    expect(track).toHaveClass('bg-[var(--surface-hover)]');
+    expect(track).not.toHaveClass('valence-glass');
+  });
+});

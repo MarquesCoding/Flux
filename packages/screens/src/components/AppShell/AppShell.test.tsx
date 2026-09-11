@@ -235,7 +235,7 @@ describe('AppShell', () => {
     const user = userEvent.setup();
     const onSurprise = vi.fn();
 
-    draw({ onSurprise, surpriseKinds: ['movies'] });
+    draw({ onSurprise, libraryKinds: ['movies'] });
 
     await user.click(screen.getByRole('button', { name: 'Randomiser' }));
 
@@ -246,7 +246,7 @@ describe('AppShell', () => {
     const user = userEvent.setup();
     const onSurprise = vi.fn();
 
-    draw({ onSurprise, surpriseKinds: ['movies', 'shows'] });
+    draw({ onSurprise, libraryKinds: ['movies', 'shows'] });
 
     await user.click(screen.getByRole('button', { name: 'Choose something at random' }));
 
@@ -261,7 +261,7 @@ describe('AppShell', () => {
   it('names only the kinds the server actually holds', async () => {
     const user = userEvent.setup();
 
-    draw({ onSurprise: vi.fn(), surpriseKinds: ['movies', 'shows'] });
+    draw({ onSurprise: vi.fn(), libraryKinds: ['movies', 'shows'] });
 
     await user.click(screen.getByRole('button', { name: 'Choose something at random' }));
 
@@ -413,5 +413,70 @@ describe('AppShell', () => {
     });
 
     expect(filmOf(view.container)).toBeInTheDocument();
+  });
+});
+
+describe('the places the bar offers', () => {
+  const offered = (): string[] =>
+    ['Home', 'Shows', 'Films', 'Books', 'New & Popular', 'Favourites'].filter(
+      (name) =>
+        within(screen.getByRole('navigation', { name: 'Sections' })).queryByRole('button', {
+          name,
+        }) !== null,
+    );
+
+  afterEach(() => {
+    Object.defineProperty(window, 'scrollY', { value: 0, configurable: true });
+  });
+
+  it('offers every place until it is known which of them hold anything', () => {
+    draw();
+
+    expect(offered()).toEqual(['Home', 'Shows', 'Films', 'Books', 'New & Popular', 'Favourites']);
+  });
+
+  it('offers films, programmes and books only where they hold something', () => {
+    draw({ stocked: ['films'] });
+
+    expect(offered()).toEqual(['Home', 'Films', 'New & Popular', 'Favourites']);
+  });
+
+  it('keeps the places that are never empty however little there is', () => {
+    draw({ stocked: [] });
+
+    expect(offered()).toEqual(['Home', 'New & Popular', 'Favourites']);
+  });
+
+  it('hands its foot the places it offers, so the footer offers the same ones', () => {
+    draw({
+      stocked: ['films', 'read'],
+      footer: (places) => <footer>{places.map((place) => place.label).join(', ')}</footer>,
+    });
+
+    expect(screen.getByRole('contentinfo')).toHaveTextContent(
+      'Home, Films, Books, New & Popular, Favourites',
+    );
+  });
+
+  it('says how far the page has come up towards the bar, so the sheet can fade in by it', () => {
+    Object.defineProperty(window, 'scrollY', { value: 32, configurable: true });
+
+    const { view } = draw();
+
+    expect(
+      view.container
+        .querySelector<HTMLElement>('.valence-shell')
+        ?.style.getPropertyValue('--content-reach'),
+    ).toBe('0.5');
+  });
+
+  it('says nothing has come up yet at the top of the page', () => {
+    const { view } = draw();
+
+    expect(
+      view.container
+        .querySelector<HTMLElement>('.valence-shell')
+        ?.style.getPropertyValue('--content-reach'),
+    ).toBe('0');
   });
 });

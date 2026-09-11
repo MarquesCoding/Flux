@@ -202,6 +202,7 @@ describe('every gated route, asked by somebody with no permissions', () => {
     ],
     ['DELETE', `/api/media/${LIBRARY_ID}/match`, 'media.override', { refusesWith: 404 }],
     ['POST', `/api/libraries/${LIBRARY_ID}/reset`, 'jobs.runDestructive'],
+    ['DELETE', `/api/libraries/${LIBRARY_ID}`, 'library.delete'],
     ['POST', `/api/libraries/${LIBRARY_ID}/regenerate-previews`, 'jobs.run'],
     [
       'POST',

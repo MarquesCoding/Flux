@@ -236,6 +236,14 @@ const AdminArea = ({
     );
   };
 
+  const onLibraryDeleted = (libraryId: string) => {
+    cache.setQueryData(libraryQueries.all().queryKey, (current: Library[] = []) =>
+      current.filter((entry) => entry.id !== libraryId),
+    );
+    void cache.invalidateQueries({ queryKey: libraryQueries.key });
+    void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
+  };
+
   const onLibraryCreated = (library: Library) => {
     cache.setQueryData(libraryQueries.all().queryKey, (current: Library[] = []) => [
       ...current,
@@ -625,6 +633,7 @@ const AdminArea = ({
               }}
               onLibraryCreated={onLibraryCreated}
               onLibraryUpdated={onLibraryUpdated}
+              onLibraryDeleted={onLibraryDeleted}
             />
           </TabPanel>
 

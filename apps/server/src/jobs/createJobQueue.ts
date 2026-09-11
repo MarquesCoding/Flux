@@ -190,6 +190,32 @@ const createJobQueue = async ({
       return false;
     },
 
+    cancelFor: async (subject) => {
+      let stopped = 0;
+
+      for (const [jobId, about] of running) {
+        if (about.subject === subject) {
+          cancelled.add(jobId);
+          stopped += 1;
+        }
+      }
+
+      for (const kind of kinds) {
+        if (handlers[kind] === undefined) {
+          continue;
+        }
+
+        const waiting = await boss.findJobs(kind, { data: { libraryId: subject }, queued: true });
+
+        for (const job of waiting) {
+          await dropQueued(kind, job.id);
+          stopped += 1;
+        }
+      }
+
+      return stopped;
+    },
+
     isCancelled: (jobId) => cancelled.has(jobId),
 
     reportProgress: (jobId, phase, processed, total) => {

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Outlet } from '@tanstack/react-router';
 import { AnimatePresence, motion } from 'motion/react';
 import { groupVariants } from '@ValenceUI/animations/reveal';
@@ -15,6 +15,7 @@ import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareD
 import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
 import { NotificationBell } from '@ValenceScreens/components/NotificationBell/NotificationBell';
 import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
+import { AppFooter } from '@ValenceScreens/components/AppFooter/AppFooter';
 import {
   clearNotifications,
   markNotificationsRead,
@@ -39,6 +40,7 @@ import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useSignOut } from '@ValenceScreens/session/useSignOut';
 import { useShell } from '@ValenceClient/shell/useShell';
 import type { ShowSummary } from '@ValenceContracts/schemas/Show';
+import type { ShellSection } from '@ValenceScreens/components/AppShell/AppShell.types';
 import type { Inbox } from '@ValenceClient/notifications/fetchNotifications';
 
 const NOTHING_WAITING = { notifications: [], unread: 0 };
@@ -84,7 +86,32 @@ const ValenceShell = () => {
 
   const libraries = useQuery(libraryQueries.all());
 
-  const surpriseKinds = [...new Set((libraries.data ?? []).map((one) => one.kind))];
+  const libraryKinds = [...new Set((libraries.data ?? []).map((one) => one.kind))];
+
+  const watchableIds = useMemo(
+    () =>
+      (libraries.data ?? [])
+        .filter((one) => one.kind === 'movies' || one.kind === 'shows')
+        .map((one) => one.id),
+    [libraries.data],
+  );
+
+  const anyFilm = useQuery({
+    ...libraryQueries.across(watchableIds, { kind: 'films', limit: 1 }),
+    enabled: watchableIds.length > 0,
+  });
+
+  const isStockKnown = libraries.data !== undefined && !anyFilm.isLoading;
+
+  const stocked: ShellSection[] = [
+    ...((anyFilm.data ?? []).length > 0 ? (['films'] as const) : []),
+    ...((libraries.data ?? []).some((one) => one.kind === 'shows' && one.itemCount > 0)
+      ? (['shows'] as const)
+      : []),
+    ...((libraries.data ?? []).some((one) => one.kind === 'books' && one.itemCount > 0)
+      ? (['read'] as const)
+      : []),
+  ];
 
   const inspecting = place.inspecting === null ? null : (known.get(place.inspecting) ?? null);
 
@@ -137,6 +164,30 @@ const ValenceShell = () => {
           genre: next === 'search' ? place.genre : null,
         });
       }}
+      footer={(places) => (
+        <AppFooter
+          places={places}
+          onPlace={(next) => {
+            go({ section: next, search: '', genre: null });
+          }}
+          onGenre={(genre) => {
+            go({ section: 'search', search: '', genre });
+          }}
+          onAccount={(panel) => {
+            go({ account: panel });
+          }}
+          {...(user.role === 'admin'
+            ? {
+                onAdmin: () => {
+                  go({ admin: ADMIN_OPENS_ON });
+                },
+              }
+            : {})}
+          onSignOut={() => {
+            void leave();
+          }}
+        />
+      )}
       isAccountOpen={place.account !== null}
       onOpenAccount={() => {
         go({ account: ACCOUNT_OPENS_ON });
@@ -151,7 +202,8 @@ const ValenceShell = () => {
       }}
       moodLights={place.section === 'home' ? moodLights : []}
       isAdministrator={user.role === 'admin'}
-      surpriseKinds={surpriseKinds}
+      {...(libraries.data === undefined ? {} : { libraryKinds })}
+      {...(isStockKnown ? { stocked } : {})}
       notifications={
         <NotificationBell
           notifications={inbox.notifications}

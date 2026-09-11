@@ -78,3 +78,23 @@ describe('MediaGrid', () => {
     expect(container.querySelector('ul')).toHaveClass('xl:grid-cols-3');
   });
 });
+
+describe('a grid of posters', () => {
+  it('stands its cards upright on their posters, more of them to a row', () => {
+    const { container } = renderInAnAddress(
+      <MediaGrid items={items} size="small" shape="poster" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('ul')).toHaveClass('xl:grid-cols-8', 'lg:grid-cols-6');
+    expect(container.querySelectorAll('.aspect-\\[2\\/3\\]')).toHaveLength(2);
+  });
+
+  it('lays its cards flat unless asked otherwise', () => {
+    const { container } = renderInAnAddress(
+      <MediaGrid items={items} size="small" onPlay={vi.fn()} onInspect={vi.fn()} />,
+    );
+
+    expect(container.querySelector('ul')).not.toHaveClass('xl:grid-cols-8');
+    expect(container.querySelectorAll('.aspect-video')).toHaveLength(2);
+  });
+});

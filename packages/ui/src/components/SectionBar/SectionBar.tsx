@@ -1,4 +1,5 @@
 import { Icon } from '@ValenceUI/Icon';
+import { SEGMENTED } from '@ValenceUI/tokens/segmented';
 import { ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
@@ -78,7 +79,8 @@ const SectionBar = ({ label, groups, value, onValueChange, className }: SectionB
         setPointedAt(null);
       }}
       className={cn(
-        'valence-rail valence-glass relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+        'valence-rail relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-lg p-1.5',
+        SEGMENTED.tones.inverted.track,
         className,
       )}
     >

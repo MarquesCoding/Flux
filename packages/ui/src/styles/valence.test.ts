@@ -85,3 +85,21 @@ describe('the Valence stylesheet', () => {
     }
   });
 });
+
+describe('the page the rows ride up on', () => {
+  it('fades its sheet in as the rows rise, clear over the hero at the top of the page', () => {
+    const fill = /\.valence-sheet::before \{([^}]*)\}/.exec(stylesheet)?.[1] ?? '';
+    const sheet = /\.valence-sheet \{([^}]*)\}/.exec(stylesheet)?.[1] ?? '';
+
+    expect(fill).toContain('opacity: var(--content-reach, 1)');
+    expect(fill).toContain('background-color: var(--color-surface)');
+    expect(fill).toContain('box-shadow: var(--shadow-sheet)');
+    expect(sheet).not.toContain('background-color');
+  });
+});
+
+describe('focus', () => {
+  it('draws no ring around whatever has focus, the ring colour being transparent', () => {
+    expect(stylesheet).toContain('--color-ring: transparent');
+  });
+});
