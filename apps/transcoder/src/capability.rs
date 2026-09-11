@@ -15,6 +15,15 @@ pub struct EncoderCandidate {
 ///
 /// Software encoders are listed last so that a probe result read in order
 /// prefers hardware, but each is still verified independently.
+///
+/// On Intel, `VAAPI` is listed before `QSV`, and the order is the whole of what
+/// picks a backend for a machine that was left on automatic. Two reasons, and
+/// the first is in this file: `QSV` has no hardware tone mapper here, so an HDR
+/// film taken down that path comes off the device to be converted where the
+/// `VAAPI` one converts in place. The second was measured on an Intel iGPU,
+/// where `QSV` decoding returned "GPU Hang (-21)" against a library that `VAAPI`
+/// read start to finish without one — and a hang resets the whole device, so it
+/// takes down whatever else on the machine was using it.
 pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
     EncoderCandidate {
         codec: "h264",
@@ -40,6 +49,21 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         codec: "av1",
         encoder: "av1_nvenc",
         accel: HardwareAccel::Nvenc,
+    },
+    EncoderCandidate {
+        codec: "h264",
+        encoder: "h264_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "hevc",
+        encoder: "hevc_vaapi",
+        accel: HardwareAccel::Vaapi,
+    },
+    EncoderCandidate {
+        codec: "av1",
+        encoder: "av1_vaapi",
+        accel: HardwareAccel::Vaapi,
     },
     EncoderCandidate {
         codec: "h264",
@@ -75,21 +99,6 @@ pub const ENCODER_CANDIDATES: &[EncoderCandidate] = &[
         codec: "hevc",
         encoder: "hevc_rkmpp",
         accel: HardwareAccel::Rkmpp,
-    },
-    EncoderCandidate {
-        codec: "h264",
-        encoder: "h264_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "hevc",
-        encoder: "hevc_vaapi",
-        accel: HardwareAccel::Vaapi,
-    },
-    EncoderCandidate {
-        codec: "av1",
-        encoder: "av1_vaapi",
-        accel: HardwareAccel::Vaapi,
     },
     EncoderCandidate {
         codec: "h264",
@@ -814,6 +823,22 @@ mod tests {
     ///
     /// Eight-bit frames would let a driver that cannot convert HDR pass, which
     /// is the whole failure this probe exists to catch.
+    /// The order is the whole of what picks a backend left on automatic, and on
+    /// Intel both verify — so whichever is listed first is what every machine
+    /// gets.
+    #[test]
+    fn prefers_vaapi_to_qsv_on_intel() {
+        let position = |name: &str| {
+            ENCODER_CANDIDATES
+                .iter()
+                .position(|candidate| candidate.encoder == name)
+                .expect("a candidate")
+        };
+
+        assert!(position("h264_vaapi") < position("h264_qsv"));
+        assert!(position("hevc_vaapi") < position("hevc_qsv"));
+    }
+
     #[test]
     fn asks_a_tone_mapper_for_ten_bit_frames_on_the_device() {
         let arguments = tone_map_probe_arguments(
