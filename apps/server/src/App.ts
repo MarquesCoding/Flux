@@ -403,6 +403,7 @@ type CreateAppOptions = {
     ffmpegSupported?: boolean;
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
+    concurrentRenders?: number;
     chains?: {
       accel: string;
       shape: 'preview' | 'sheet' | 'transcode';
@@ -1669,6 +1670,7 @@ const createApp = ({
           hardwareAccels: transcoderCapabilities?.hardwareAccels ?? [],
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
           chains: transcoderCapabilities?.chains ?? [],
+          concurrentRenders: transcoderCapabilities?.concurrentRenders ?? 0,
         },
         library: {
           libraryCount: libraries.length,

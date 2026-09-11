@@ -39,6 +39,7 @@ const AdminOverviewSchema = z
       ffmpegSupported: z.boolean().default(true),
       hardwareAccels: z.array(z.string()),
       rejectedEncoders: z.array(z.object({ encoder: z.string(), reason: z.string() })),
+      concurrentRenders: z.number().int().nonnegative().default(0),
       chains: z
         .array(
           z.object({

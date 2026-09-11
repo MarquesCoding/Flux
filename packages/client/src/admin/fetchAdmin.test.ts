@@ -57,6 +57,7 @@ const OVERVIEW = {
     ffmpegSupported: true,
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
+    concurrentRenders: 2,
     chains: [
       { accel: 'videotoolbox', shape: 'preview', bitDepth: 8, works: true, reason: null },
       {
