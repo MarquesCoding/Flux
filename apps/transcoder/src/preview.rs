@@ -280,6 +280,13 @@ pub struct Source {
 /// Decoding is still worth doing on the device. It is the expensive half, and a
 /// 10-bit source costs several times in software what the two transfers do.
 ///
+/// A chain that ends on the device is not told a pixel format. `-pix_fmt
+/// yuv420p` names a format that lives in system memory, so ffmpeg answers it by
+/// putting a software scaler between `hwupload` and the encoder and then cannot
+/// configure it — "Impossible to convert between the formats supported by the
+/// filter `Parsed_hwupload_3`". The frames are already the format the encoder
+/// wants; saying so again in system-memory terms is what breaks it.
+///
 /// A ten-bit film is narrowed before it reaches the encoder. A preview is an
 /// H.264 clip whatever it was made from, and no Intel part encodes ten-bit
 /// H.264 — High 10 is not in the silicon, on `QSV` or on `VAAPI`. Handed the
@@ -319,7 +326,10 @@ pub fn preview_arguments(
         filters.push("format=nv12".to_owned());
     }
 
-    if onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device) {
+    let encodes_from_device =
+        onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device);
+
+    if encodes_from_device {
         filters.push("hwupload".to_owned());
     }
 
@@ -376,11 +386,13 @@ pub fn preview_arguments(
         ]),
     }
 
+    arguments.extend(["-profile:v".to_owned(), "high".to_owned()]);
+
+    if !encodes_from_device {
+        arguments.extend(["-pix_fmt".to_owned(), "yuv420p".to_owned()]);
+    }
+
     arguments.extend([
-        "-profile:v".to_owned(),
-        "high".to_owned(),
-        "-pix_fmt".to_owned(),
-        "yuv420p".to_owned(),
         NO_EMBEDDED_CAPTIONS[0].to_owned(),
         NO_EMBEDDED_CAPTIONS[1].to_owned(),
         "-c:a".to_owned(),
@@ -846,6 +858,49 @@ mod tests {
                 .windows(2)
                 .any(|pair| pair == ["-movflags", "+faststart"]));
         }
+    }
+
+    /// Naming a system-memory format is what puts a scaler after the upload.
+    #[test]
+    fn does_not_name_a_pixel_format_for_a_chain_that_ends_on_the_device() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(!arguments.iter().any(|argument| argument == "-pix_fmt"));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-profile:v", "high"]));
+    }
+
+    /// `VideoToolbox` takes system memory, so the format still has to be named.
+    #[test]
+    fn names_a_pixel_format_where_the_encoder_reads_system_memory() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            Source {
+                range: VideoRange::Sdr,
+                bit_depth: Some(8),
+            },
+            ToneMapping::Zscale,
+            &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+            Some((HardwareAccel::VideoToolbox, "/dev/dri/renderD128")),
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-pix_fmt", "yuv420p"]));
     }
 
     #[test]

@@ -124,6 +124,11 @@ fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> St
 /// after is the chain as it is really built, ending at the encoder the shape
 /// really uses — which is where two of the failures this exists to catch turned
 /// up, rather than in the filters.
+///
+/// The encoder is given the arguments the shape gives it, not just its name. A
+/// probe that leaves off `-pix_fmt` passes a chain that fails in use, because
+/// naming a system-memory format is itself what puts a software scaler after
+/// `hwupload`. Proving the chain means proving the arguments around it.
 #[must_use]
 pub fn chain_probe_arguments(
     accel: HardwareAccel,
@@ -162,13 +167,17 @@ pub fn chain_probe_arguments(
         return arguments;
     }
 
-    arguments.extend([
-        "-c:v".to_owned(),
-        encoder.to_owned(),
-        "-f".to_owned(),
-        "null".to_owned(),
-        "-".to_owned(),
-    ]);
+    arguments.extend(["-c:v".to_owned(), encoder.to_owned()]);
+
+    let encodes_from_device = accel
+        .pipeline()
+        .is_some_and(|pipeline| pipeline.encodes_from_device);
+
+    if shape == ChainShape::Preview && !encodes_from_device {
+        arguments.extend(["-pix_fmt".to_owned(), "yuv420p".to_owned()]);
+    }
+
+    arguments.extend(["-f".to_owned(), "null".to_owned(), "-".to_owned()]);
 
     arguments
 }
