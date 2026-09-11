@@ -33,7 +33,7 @@ reference, not a substitute for reading it.
    `<dialog>` in `Dialog` — and nowhere else, including elsewhere in ValenceUI.
    Every other control composes one of those; there is no `IconButton`. ESLint
    enforces it.
-9. **No raw SVG anywhere.** Icons come from `@phosphor-icons/react` and are
+9. **No raw SVG anywhere.** Icons come from `@hugeicons/core-free-icons` and are
    drawn by `@ValenceUI/Icon`, never by the renderer directly.
 10. **Every function and component has a co-located Vitest test.**
 11. **Conventional Commits.**
