@@ -4,6 +4,8 @@ import { readdir, readFile, unlink } from 'node:fs/promises';
 import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
+import { serveStatic } from '@hono/node-server/serve-static';
+import { isAppAddress } from '@ValenceServer/web/isAppAddress';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
 import { and, count, eq, gt, isNull, lt, lte, sql } from 'drizzle-orm';
 import { createApp } from './App';
@@ -1781,6 +1783,8 @@ void relayMonitor({
   keepGoing: () => true,
 });
 
+const WEB_ROOT = './apps/web/dist';
+
 const nodeWebSocket = createNodeWebSocket({ app });
 
 app.get(
@@ -1827,6 +1831,14 @@ app.get(
       },
     };
   }),
+);
+
+app.use('/*', serveStatic({ root: WEB_ROOT }));
+
+app.get('*', async (context, next) =>
+  isAppAddress(context.req.path)
+    ? serveStatic({ path: `${WEB_ROOT}/index.html` })(context, next)
+    : next(),
 );
 
 const server = serve({ fetch: app.fetch, port: env.PORT }, (info) => {

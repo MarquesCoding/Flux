@@ -11,7 +11,8 @@
     "typecheck": "tsc --noEmit",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
-    "db:push": "drizzle-kit push"
+    "db:push": "drizzle-kit push",
+    "bundle": "esbuild src/Main.ts --bundle --platform=node --format=esm --target=node22 --packages=external --outfile=dist/Main.js"
   },
   "dependencies": {
     "@better-auth/api-key": "^1.7.1",
@@ -46,6 +47,7 @@
     "@types/web-push": "^3.6.4",
     "@vitest/coverage-v8": "^4.1.10",
     "drizzle-kit": "^0.31.10",
+    "esbuild": "^0.28.2",
     "tsx": "^4.19.2",
     "vitest": "^4.1.10"
   }

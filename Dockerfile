@@ -23,7 +23,15 @@ COPY apps/web ./apps/web
 COPY apps/server ./apps/server
 RUN pnpm install --frozen-lockfile
 RUN pnpm --filter @valence/web build
-RUN pnpm --filter @valence/server build
+
+# Bundled rather than compiled. `tsc` emits the import specifiers it was given,
+# and this repository's are TypeScript path aliases pointing at other packages'
+# sources — `@ValenceServer/...`, `@ValenceContracts/...` — which Node cannot
+# resolve and which nothing rewrites. The emitted relative imports carry no file
+# extension either, which ESM requires. Bundling settles both at build time and
+# leaves node_modules external, so native dependencies are still loaded the
+# ordinary way.
+RUN pnpm --filter @valence/server bundle
 
 FROM node:22-bookworm-slim AS runtime
 

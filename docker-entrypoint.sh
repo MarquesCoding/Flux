@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 set -e
 
 # Both halves of Valence run in one container, per ADR-0006: one GPU device
@@ -22,7 +22,9 @@ trap terminate TERM INT
 node apps/server/dist/Main.js &
 SERVER_PID=$!
 
-# Exit as soon as either half stops.
+# Exit as soon as either half stops. `wait -n` is a bash builtin and this is
+# bash for that reason alone: /bin/sh here is dash, which rejects the option
+# outright and takes the container down with it.
 wait -n "$TRANSCODER_PID" "$SERVER_PID"
 EXIT_CODE=$?
 
