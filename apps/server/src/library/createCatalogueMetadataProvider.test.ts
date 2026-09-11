@@ -63,7 +63,9 @@ const respondWith = (bodies: Record<string, JsonValue>, status = 200) => {
   const fetchImpl: Fetcher = (url) => {
     calls.push(url);
 
-    const match = Object.entries(bodies).find(([path]) => url.includes(path));
+    const match = Object.entries(bodies)
+      .sort(([left], [right]) => right.length - left.length)
+      .find(([path]) => url.includes(path));
 
     if (match === undefined) {
       return Promise.resolve({ ok: false, status: 404, json: () => Promise.resolve(null) });
@@ -298,7 +300,7 @@ describe('createCatalogueMetadataProvider', () => {
 
   it('refuses an episode whose title disagrees entirely with what the filename said', async () => {
     const { instance } = provider({
-      '/tv/5/season/1/episode/2': { name: 'Biscuits with the Boss' },
+      '/tv/5/season/1': { episodes: [{ episode_number: 2, name: 'Biscuits with the Boss' }] },
       '/search/tv': { results: [{ id: 5, name: 'Ted Lasso', first_air_date: '2020-08-14' }] },
       '/tv/5': { id: 5, name: 'Ted Lasso', genres: [] },
     });
@@ -317,7 +319,7 @@ describe('createCatalogueMetadataProvider', () => {
 
   it('accepts an episode title that only roughly agrees, not just an identical one', async () => {
     const { instance } = provider({
-      '/tv/5/season/1/episode/2': { name: 'The Biscuits Special' },
+      '/tv/5/season/1': { episodes: [{ episode_number: 2, name: 'The Biscuits Special' }] },
       '/search/tv': { results: [{ id: 5, name: 'Some Show', first_air_date: '2020-08-14' }] },
       '/tv/5': { id: 5, name: 'Some Show', genres: [] },
     });
@@ -337,7 +339,9 @@ describe('createCatalogueMetadataProvider', () => {
 
   it('keeps a translated release, where the title differs because the language does', async () => {
     const { instance } = provider({
-      '/tv/5/season/1/episode/2': { name: 'To Affection', still_path: '/still.jpg' },
+      '/tv/5/season/1': {
+        episodes: [{ episode_number: 2, name: 'To Affection', still_path: '/still.jpg' }],
+      },
       '/search/tv': {
         results: [{ id: 5, name: 'A Sign of Affection', first_air_date: '2024-01-06' }],
       },
@@ -360,7 +364,7 @@ describe('createCatalogueMetadataProvider', () => {
 
   it('still refuses a disagreeing episode when the series was only the best guess', async () => {
     const { instance } = provider({
-      '/tv/5/season/1/episode/2': { name: 'Biscuits with the Boss' },
+      '/tv/5/season/1': { episodes: [{ episode_number: 2, name: 'Biscuits with the Boss' }] },
       '/search/tv': { results: [{ id: 5, name: 'Ted Lasso', first_air_date: '2020-08-14' }] },
       '/tv/5': { id: 5, name: 'Ted Lasso', genres: [] },
     });
@@ -379,7 +383,7 @@ describe('createCatalogueMetadataProvider', () => {
 
   it('does not refuse a match when the filename named no episode title to check against', async () => {
     const { instance } = provider({
-      '/tv/5/season/1/episode/2': { name: 'Whatever This One Is Called' },
+      '/tv/5/season/1': { episodes: [{ episode_number: 2, name: 'Whatever This One Is Called' }] },
       '/search/tv': { results: [{ id: 5, name: 'Some Show', first_air_date: '2020-08-14' }] },
       '/tv/5': { id: 5, name: 'Some Show', genres: [] },
     });
@@ -935,7 +939,7 @@ describe('matching a library that is not named in Latin', () => {
         results: [{ id: 5, name: '進撃の巨人', first_air_date: '2013-04-07' }],
       },
       '/tv/5': { id: 5, name: '進撃の巨人' },
-      '/tv/5/season/1/episode/1': { id: 50, name: '二千年後の君へ' },
+      '/tv/5/season/1': { episodes: [{ episode_number: 1, id: 50, name: '二千年後の君へ' }] },
     });
 
     const found = await instance.describe(
@@ -959,7 +963,9 @@ describe('matching a library that is not named in Latin', () => {
         results: [{ id: 5, name: 'Some Other Programme', first_air_date: '2013-04-07' }],
       },
       '/tv/5': { id: 5, name: 'Some Other Programme' },
-      '/tv/5/season/1/episode/1': { id: 50, name: 'Completely Different Episode' },
+      '/tv/5/season/1': {
+        episodes: [{ episode_number: 1, id: 50, name: 'Completely Different Episode' }],
+      },
     });
 
     const found = await instance.describe(
@@ -994,10 +1000,10 @@ describe('describing an episode rather than a film', () => {
     },
   };
 
-  const anEpisodeOf = (episodeBody: JsonValue) =>
+  const anEpisodeOf = (episodeBody: Record<string, JsonValue>) =>
     provider({
       '/search/tv': SERIES_SEARCH,
-      '/tv/42/season/1/episode/2': episodeBody,
+      '/tv/42/season/1': { episodes: [{ episode_number: 2, ...episodeBody }] },
       '/tv/42': SERIES_DETAIL,
     });
 
@@ -1076,7 +1082,7 @@ describe('describing an episode rather than a film', () => {
   it('asks about the first season where the file does not say which', async () => {
     const { instance, calls } = provider({
       '/search/tv': SERIES_SEARCH,
-      '/tv/42/season/1/episode/2': { name: 'Half Loop' },
+      '/tv/42/season/1': { episodes: [{ episode_number: 2, name: 'Half Loop' }] },
       '/tv/42': SERIES_DETAIL,
     });
 
@@ -1088,7 +1094,7 @@ describe('describing an episode rather than a film', () => {
       }),
     );
 
-    expect(calls.some((url) => url.includes('/season/1/episode/2'))).toBe(true);
+    expect(calls.some((url) => url.includes('/season/1'))).toBe(true);
   });
 });
 
@@ -1165,5 +1171,73 @@ describe('searching the catalogue by hand', () => {
     const { instance } = provider({ '/search/movie': { results: 'not a list' } });
 
     await expect(instance.search?.('Arrival', 'movie')).resolves.toEqual([]);
+  });
+});
+
+describe('what a scan costs a catalogue', () => {
+  const SERIES = { results: [{ id: 5, name: 'Some Show', first_air_date: '2020-01-01' }] };
+
+  const anEpisode = (number: number) =>
+    facts(`/media/Some Show/S01E0${number.toString()}.mkv`, {
+      seriesTitle: 'Some Show',
+      seriesYear: null,
+      seriesFolder: '/media/Some Show',
+      seasonNumber: 1,
+      episodeNumber: number,
+      episodeTitle: null,
+    });
+
+  const aSeason = () =>
+    provider({
+      '/search/tv': SERIES,
+      '/tv/5/season/1': {
+        episodes: [
+          { episode_number: 1, name: 'The first' },
+          { episode_number: 2, name: 'The second' },
+          { episode_number: 3, name: 'The third' },
+        ],
+      },
+      '/tv/5': { id: 5, name: 'Some Show' },
+    });
+
+  it('asks after a programme once however many episodes of it there are', async () => {
+    const { instance, calls } = aSeason();
+
+    for (const number of [1, 2, 3]) {
+      await instance.describe(anEpisode(number));
+    }
+
+    expect(calls.filter((url) => url.includes('/search/tv'))).toHaveLength(1);
+    expect(calls.filter((url) => url.includes('/season/1'))).toHaveLength(1);
+  });
+
+  it('still reads each episode out of the season it asked for', async () => {
+    const { instance } = aSeason();
+
+    const found = await Promise.all(
+      [1, 2, 3].map(async (number) => instance.describe(anEpisode(number))),
+    );
+
+    expect(found.map((one) => one?.title)).toEqual(['The first', 'The second', 'The third']);
+  });
+
+  it('asks once where episodes are read at the same time, rather than once each', async () => {
+    const { instance, calls } = aSeason();
+
+    await Promise.all([1, 2, 3].map(async (number) => instance.describe(anEpisode(number))));
+
+    expect(calls.filter((url) => url.includes('/search/tv'))).toHaveLength(1);
+  });
+
+  it('says so when the catalogue asks to be left alone', async () => {
+    const problems: string[] = [];
+    const { instance } = provider(
+      { '/search/movie': { results: [] } },
+      { status: 429, onProblem: (reason) => problems.push(reason) },
+    );
+
+    await instance.describe(facts('/media/films/Arrival (2016).mkv'));
+
+    expect(problems.some((reason) => reason.includes('429'))).toBe(true);
   });
 });

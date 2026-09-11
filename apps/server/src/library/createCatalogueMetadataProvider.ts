@@ -5,6 +5,7 @@ import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import { readTitleFromPath } from './readTitleFromPath';
 import { pickLogo } from './pickLogo';
+import { createCatalogueGate } from './createCatalogueGate';
 import type { CastMember, Metadata, MetadataProvider } from './MetadataProvider';
 
 const DEFAULT_BASE_URL = 'https://api.themoviedb.org/3';
@@ -23,7 +24,13 @@ const DEFAULT_IMAGE_BASE_URL = 'https://image.tmdb.org/t/p';
 
 const RETRIES = 3;
 
+const AT_ONCE = 4;
+
+const REMEMBERED = 4000;
+
 const BACKOFF_MILLISECONDS = 500;
+
+const TOO_MANY = 429;
 
 /**
  * Decides whether asking the catalogue again could produce a different answer. A rate limit or a
@@ -33,7 +40,7 @@ const BACKOFF_MILLISECONDS = 500;
  * @param status - What the catalogue answered with.
  * @returns Whether the request is worth repeating.
  */
-const isWorthRetrying = (status: number): boolean => status === 429 || status >= 500;
+const isWorthRetrying = (status: number): boolean => status === TOO_MANY || status >= 500;
 
 const PersonResponseSchema = z.object({
   id: z.number().int().positive(),
@@ -70,13 +77,6 @@ const LogoSchema = z.object({
 const ImagesResponseSchema = z.object({ logos: z.array(LogoSchema).default([]) });
 
 type SearchResult = z.infer<typeof SearchResultSchema>;
-
-const EpisodeResponseSchema = z.object({
-  name: z.string().optional(),
-  overview: z.string().optional(),
-  still_path: z.string().nullish(),
-  vote_average: z.number().optional(),
-});
 
 const SeasonResponseSchema = z.object({
   episodes: z
@@ -321,6 +321,9 @@ const createCatalogueMetadataProvider = ({
   fetchImpl,
   onProblem,
 }: CreateCatalogueMetadataProviderOptions): MetadataProvider => {
+  const gate = createCatalogueGate(AT_ONCE);
+  const said = new Map<string, Promise<JsonValue | null>>();
+
   const call: Fetcher =
     fetchImpl ??
     (async (url: string, headers?: Record<string, string>) => {
@@ -333,14 +336,16 @@ const createCatalogueMetadataProvider = ({
       };
     });
 
-  const request = async (path: string, key: string, query: Record<string, string>) => {
+  const ask = async (path: string, key: string, query: Record<string, string>) => {
     const isToken = isAccessToken(key);
     const parameters = new URLSearchParams(isToken ? query : { api_key: key, ...query });
 
     for (let attempt = 0; attempt <= RETRIES; attempt += 1) {
-      const response = await call(
-        `${baseUrl}${path}?${parameters.toString()}`,
-        isToken ? { authorization: `Bearer ${key}` } : undefined,
+      const response = await gate.run(() =>
+        call(
+          `${baseUrl}${path}?${parameters.toString()}`,
+          isToken ? { authorization: `Bearer ${key}` } : undefined,
+        ),
       );
 
       if (response.ok) {
@@ -353,10 +358,54 @@ const createCatalogueMetadataProvider = ({
         return null;
       }
 
-      await wait(BACKOFF_MILLISECONDS * 2 ** attempt);
+      const backoff = BACKOFF_MILLISECONDS * 2 ** attempt;
+
+      if (response.status === TOO_MANY) {
+        gate.holdFor(backoff);
+      }
+
+      await wait(backoff);
     }
 
     return null;
+  };
+
+  /**
+   * Asks the catalogue for something, or hands back what it already said.
+   *
+   * A library is full of files that want the same answer — every episode of a programme asks after
+   * the same series, and every episode of a season after the same season. Asked once each, a
+   * programme of ninety episodes costs a handful of requests rather than nearly three hundred.
+   *
+   * What is remembered is the promise rather than the answer, so files being read at the same time
+   * share one request in flight instead of each starting their own.
+   *
+   * @param path - The catalogue path being asked for.
+   * @param key - The credential to ask with.
+   * @param query - What to ask for.
+   * @returns What the catalogue said, or null where it would not say.
+   */
+  const request = async (path: string, key: string, query: Record<string, string>) => {
+    const at = `${path}?${new URLSearchParams(query).toString()}`;
+    const remembered = said.get(at);
+
+    if (remembered !== undefined) {
+      return remembered;
+    }
+
+    const asking = ask(path, key, query);
+
+    said.set(at, asking);
+
+    if (said.size > REMEMBERED) {
+      const oldest = said.keys().next();
+
+      if (!(oldest.done ?? false)) {
+        said.delete(oldest.value);
+      }
+    }
+
+    return asking;
   };
 
   return {
@@ -398,20 +447,25 @@ const createCatalogueMetadataProvider = ({
 
         const poster = imageUrl(imageBaseUrl, detail.poster_path, 'w500');
 
-        const episode = isEpisode
-          ? EpisodeResponseSchema.safeParse(
+        const season = isEpisode
+          ? SeasonResponseSchema.safeParse(
               await request(
-                `/tv/${detail.id.toString()}/season/${(facts.episode?.seasonNumber ?? 1).toString()}/episode/${episodeNumber.toString()}`,
+                `/tv/${detail.id.toString()}/season/${(facts.episode?.seasonNumber ?? 1).toString()}`,
                 key,
                 {},
               ),
             )
           : null;
 
+        const episode =
+          season?.success === true
+            ? (season.data.episodes.find((one) => one.episode_number === episodeNumber) ?? null)
+            : null;
+
         const knownEpisodeTitle = facts.episode?.episodeTitle ?? null;
         const catalogueEpisodeName =
-          episode?.success === true && episode.data.name !== undefined && episode.data.name !== ''
-            ? episode.data.name
+          episode !== null && episode.name !== undefined && episode.name !== ''
+            ? episode.name
             : null;
 
         if (
@@ -424,20 +478,15 @@ const createCatalogueMetadataProvider = ({
           return null;
         }
 
-        const still =
-          episode?.success === true
-            ? imageUrl(imageBaseUrl, episode.data.still_path, 'w780')
-            : null;
+        const still = episode === null ? null : imageUrl(imageBaseUrl, episode.still_path, 'w780');
         const backdrop = still ?? imageUrl(imageBaseUrl, detail.backdrop_path, 'w1280');
 
         const seriesName = detail.title ?? detail.name ?? searchTitle;
         const episodeName = catalogueEpisodeName ?? knownEpisodeTitle;
 
         const overview =
-          episode?.success === true &&
-          episode.data.overview !== undefined &&
-          episode.data.overview !== ''
-            ? episode.data.overview
+          episode !== null && episode.overview !== undefined && episode.overview !== ''
+            ? episode.overview
             : detail.overview;
 
         return {
