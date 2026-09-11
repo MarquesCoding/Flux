@@ -63,6 +63,12 @@ pub struct TrickplayRequest {
     pub columns: u32,
     /// Thumbnails down one sheet.
     pub rows: u32,
+    /// The backend the operator chose, where they chose one.
+    ///
+    /// Absent means automatic. Sheets picked whichever hardware encoder was
+    /// listed first and ignored the setting entirely, exactly as previews did.
+    #[serde(default)]
+    pub hardware_accel: Option<HardwareAccel>,
     /// Whether the caller is willing to wait for rendering to finish.
     ///
     /// A library import waits, because nobody is watching it. A player must
@@ -93,6 +99,7 @@ impl Default for TrickplayRequest {
             tile_width: 320,
             columns: 10,
             rows: 10,
+            hardware_accel: None,
             wait: true,
             owner: None,
         }
@@ -699,6 +706,7 @@ otherwise start a second one"
             tile_width: 320,
             columns: 2,
             rows: 2,
+            hardware_accel: None,
             wait: true,
             owner: None,
         }

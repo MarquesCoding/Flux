@@ -70,6 +70,7 @@ type CreateDatabaseLibraryServiceOptions = {
   db: ValenceDatabase;
   files: MediaFileSystem;
   transcoder: Transcoder;
+  forcedAccel?: () => Promise<string>;
   jobs: JobQueue;
   providers?: MetadataProvider[];
   books?: BookStore;
@@ -176,6 +177,7 @@ const createDatabaseLibraryService = ({
   db,
   files,
   transcoder,
+  forcedAccel,
   jobs,
   providers,
   books,
@@ -1118,6 +1120,8 @@ const createDatabaseLibraryService = ({
     },
 
     runRegeneratePreviews: async (libraryId, defaultAudioLanguage, jobId) => {
+      const chosenAccel = await forcedAccel?.();
+
       await regeneratePreviews({
         ...(jobId === undefined ? {} : { owner: jobId }),
         libraryId,
@@ -1129,6 +1133,7 @@ const createDatabaseLibraryService = ({
         },
         transcoder,
         defaultAudioLanguage,
+        ...(chosenAccel === undefined ? {} : { hardwareAccel: chosenAccel }),
         ...(onProblem === undefined ? {} : { onProblem }),
         ...(jobId === undefined
           ? {}
@@ -1186,6 +1191,8 @@ const createDatabaseLibraryService = ({
     },
 
     runRegenerateTrickplay: async (libraryId, jobId) => {
+      const chosenAccel = await forcedAccel?.();
+
       await generateTrickplay({
         libraryId,
         generation: (await findLibrary(libraryId))?.generation ?? 0,
@@ -1196,6 +1203,7 @@ const createDatabaseLibraryService = ({
           markComplete: (mediaItemId) => markJobComplete(db, mediaItemId, REGENERATE_TRICKPLAY_JOB),
         },
         transcoder,
+        ...(chosenAccel === undefined ? {} : { hardwareAccel: chosenAccel }),
         trickplay: {
           intervalSeconds: TRICKPLAY_INTERVAL_SECONDS,
           tileWidth: TRICKPLAY_TILE_WIDTH,

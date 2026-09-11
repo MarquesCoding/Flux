@@ -844,6 +844,15 @@ pub struct HardwarePipeline {
     /// system memory and converts on its way in. Absent means the scaler
     /// cannot be asked, so the chain is left as it was.
     pub narrows_to_eight_bit: Option<&'static str>,
+    /// How frames go back onto the device after the software filters.
+    ///
+    /// `QSV` is asked for room. A session holds one allocator, the decoder has
+    /// already taken a pool out of it, and an upload that asks for no headroom
+    /// gets a graph that will not configure — "Task finished with error code:
+    /// -17 (File exists)", and then an encoder that never opens. Ten-bit
+    /// surfaces are twice the size, which is why eight-bit films survived it.
+    /// The number is the one this build already uses to composite on `QSV`.
+    pub upload: &'static str,
 }
 
 impl HardwarePipeline {
@@ -900,6 +909,7 @@ impl HardwareAccel {
                 ),
                 encodes_from_device: false,
                 narrows_to_eight_bit: None,
+                upload: "hwupload",
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
@@ -914,6 +924,7 @@ impl HardwareAccel {
                 ),
                 encodes_from_device: false,
                 narrows_to_eight_bit: Some("format=nv12"),
+                upload: "hwupload",
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
@@ -926,6 +937,7 @@ impl HardwareAccel {
                 tone_map: None,
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
+                upload: "hwupload=extra_hw_frames=64",
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
@@ -938,6 +950,7 @@ impl HardwareAccel {
                 tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
+                upload: "hwupload",
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
@@ -950,6 +963,7 @@ impl HardwareAccel {
                 tone_map: None,
                 encodes_from_device: false,
                 narrows_to_eight_bit: Some("format=nv12"),
+                upload: "hwupload",
             }),
             Self::None | Self::Amf => None,
         }

@@ -213,6 +213,7 @@ type TrickplayRequest = {
   columns: number;
   rows: number;
   wait?: boolean;
+  hardwareAccel?: string;
   owner?: string;
 };
 type SessionResponse = z.infer<typeof SessionResponseSchema>;
@@ -270,6 +271,7 @@ type Transcoder = {
     generation: number;
     wait?: boolean;
     audioStreamIndex?: number;
+    hardwareAccel?: string;
     owner?: string;
   }) => Promise<{ id: string; url: string; isReady: boolean }>;
   readPreviewFile: (

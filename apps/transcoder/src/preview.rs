@@ -97,9 +97,16 @@ pub enum PreviewEncoder {
 /// in the library. Doing that in software costs around fifteen times the
 /// processor time of doing it on the encoder already sitting in the machine,
 /// and a scan runs several at once.
+///
+/// A backend chosen by hand is honoured here, which it was not before: the
+/// setting reached transcodes and nothing else, so an operator who had chosen
+/// VAAPI still had every preview drawn on QSV.
 #[must_use]
-pub fn preview_encoder(capabilities: &Capabilities) -> PreviewEncoder {
-    match capabilities.best_encoder("h264") {
+pub fn preview_encoder(
+    capabilities: &Capabilities,
+    chosen: Option<HardwareAccel>,
+) -> PreviewEncoder {
+    match capabilities.encoder_for("h264", chosen) {
         Some(found) if found.accel != HardwareAccel::None => {
             PreviewEncoder::Hardware(found.encoder.clone())
         }
@@ -135,6 +142,12 @@ pub struct PreviewRequest {
     /// Absent leaves the choice to ffmpeg, exactly as before this existed.
     #[serde(default)]
     pub audio_stream_index: Option<u32>,
+    /// The backend the operator chose, where they chose one.
+    ///
+    /// Absent means automatic, which is what a caller written before this
+    /// existed asks for and what it used to get regardless.
+    #[serde(default)]
+    pub hardware_accel: Option<HardwareAccel>,
     /// Which of the server's jobs asked for this, where one did.
     ///
     /// Carried only so the queue can say which scan a piece of work belongs
@@ -329,8 +342,8 @@ pub fn preview_arguments(
     let encodes_from_device =
         onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device);
 
-    if encodes_from_device {
-        filters.push("hwupload".to_owned());
+    if let Some((_, pipeline, _)) = onto_the_device.filter(|_| encodes_from_device) {
+        filters.push(pipeline.upload.to_owned());
     }
 
     let mut arguments = vec![
@@ -452,12 +465,12 @@ pub async fn generate(
 
     let tone_mapping = capabilities.tone_mapping;
     let start = request.start_seconds(duration_seconds);
-    let mut chosen = preview_encoder(capabilities);
+    let mut chosen = preview_encoder(capabilities, request.hardware_accel);
 
     loop {
         let accel = match &chosen {
             PreviewEncoder::Hardware(_) => capabilities
-                .best_encoder("h264")
+                .encoder_for("h264", request.hardware_accel)
                 .map(|found| found.accel)
                 .filter(|found| {
                     runs_here(
@@ -624,6 +637,7 @@ mod tests {
             at_seconds: None,
             duration_seconds: 24,
             width: 1920,
+            hardware_accel: None,
             wait: false,
             audio_stream_index: None,
             owner: None,
@@ -655,10 +669,10 @@ mod tests {
 
     #[test]
     fn takes_the_machines_encoder_when_it_has_one() {
-        let chosen = preview_encoder(&capabilities_with(
-            "h264_videotoolbox",
-            HardwareAccel::VideoToolbox,
-        ));
+        let chosen = preview_encoder(
+            &capabilities_with("h264_videotoolbox", HardwareAccel::VideoToolbox),
+            None,
+        );
 
         assert_eq!(
             chosen,
@@ -668,9 +682,52 @@ mod tests {
 
     #[test]
     fn falls_back_to_x264_on_a_machine_with_no_encoder() {
-        let chosen = preview_encoder(&capabilities_with("libx264", HardwareAccel::None));
+        let chosen = preview_encoder(&capabilities_with("libx264", HardwareAccel::None), None);
 
         assert_eq!(chosen, PreviewEncoder::Software);
+    }
+
+    /// The setting reached transcodes and nothing else, so a machine set to
+    /// VAAPI drew every preview on QSV without saying so.
+    #[test]
+    fn draws_on_the_backend_the_operator_chose_rather_than_the_first_listed() {
+        let capabilities = Capabilities {
+            encoders: vec![
+                VerifiedEncoder {
+                    codec: "h264".to_owned(),
+                    encoder: "h264_qsv".to_owned(),
+                    accel: HardwareAccel::Qsv,
+                    verified: true,
+                },
+                VerifiedEncoder {
+                    codec: "h264".to_owned(),
+                    encoder: "h264_vaapi".to_owned(),
+                    accel: HardwareAccel::Vaapi,
+                    verified: true,
+                },
+            ],
+            ..capabilities_with("h264_qsv", HardwareAccel::Qsv)
+        };
+
+        assert_eq!(
+            preview_encoder(&capabilities, Some(HardwareAccel::Vaapi)),
+            PreviewEncoder::Hardware("h264_vaapi".to_owned())
+        );
+        assert_eq!(
+            preview_encoder(&capabilities, None),
+            PreviewEncoder::Hardware("h264_qsv".to_owned())
+        );
+    }
+
+    /// A choice this machine cannot honour draws on what is here instead.
+    #[test]
+    fn falls_back_where_the_chosen_backend_is_not_on_this_machine() {
+        let chosen = preview_encoder(
+            &capabilities_with("h264_qsv", HardwareAccel::Qsv),
+            Some(HardwareAccel::Nvenc),
+        );
+
+        assert_eq!(chosen, PreviewEncoder::Hardware("h264_qsv".to_owned()));
     }
 
     #[test]
@@ -759,7 +816,10 @@ mod tests {
             .expect("a filter chain");
 
         assert!(chain.starts_with("hwdownload,format=p010le,"), "{chain}");
-        assert!(chain.ends_with(",format=nv12,hwupload"), "{chain}");
+        assert!(
+            chain.ends_with(",format=nv12,hwupload=extra_hw_frames=64"),
+            "{chain}"
+        );
     }
 
     #[test]
@@ -783,8 +843,8 @@ mod tests {
             .map(|pair| pair[1].clone())
             .expect("a filter chain");
 
-        assert!(!chain.contains(",format=nv12,hwupload"), "{chain}");
-        assert!(chain.ends_with(",hwupload"), "{chain}");
+        assert!(!chain.contains("format=nv12,hwupload"), "{chain}");
+        assert!(chain.ends_with(",hwupload=extra_hw_frames=64"), "{chain}");
     }
 
     #[test]

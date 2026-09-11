@@ -1168,7 +1168,7 @@ async fn start_trickplay(
     let config = state.registry.config();
     let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
     let accel = capabilities
-        .best_encoder("h264")
+        .encoder_for("h264", request.hardware_accel)
         .map(|found| found.accel)
         .filter(|found| {
             crate::chains::runs_here(

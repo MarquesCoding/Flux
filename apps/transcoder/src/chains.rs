@@ -85,9 +85,9 @@ fn chain_for(shape: ChainShape, pipeline: HardwarePipeline, bit_depth: u8) -> St
         ChainShape::Preview => {
             let narrow = if bit_depth > 8 { ",format=nv12" } else { "" };
             let up = if pipeline.encodes_from_device {
-                ",hwupload"
+                format!(",{}", pipeline.upload)
             } else {
-                ""
+                String::new()
             };
 
             format!(
@@ -371,7 +371,7 @@ mod tests {
             "/dev/dri/renderD128",
         ));
 
-        assert!(chain.ends_with(",hwupload"), "{chain}");
+        assert!(chain.ends_with(",hwupload=extra_hw_frames=64"), "{chain}");
     }
 
     #[test]

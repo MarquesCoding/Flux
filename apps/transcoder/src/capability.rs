@@ -298,6 +298,36 @@ impl Capabilities {
             .or_else(|| self.encoders.iter().find(|encoder| encoder.codec == codec))
     }
 
+    /// Picks an encoder for a codec, honouring a backend chosen by hand.
+    ///
+    /// The operator's choice governs every encode or it governs nothing worth
+    /// having. Previews and sheets asked `best_encoder` instead, which takes
+    /// whichever hardware encoder is listed first — so a machine set to VAAPI
+    /// drew every preview on QSV and said nothing about it.
+    ///
+    /// A choice this machine cannot honour falls back rather than failing.
+    /// Refusing to draw anything is a worse answer than drawing it on what is
+    /// actually here, and the rejection is already reported elsewhere.
+    #[must_use]
+    pub fn encoder_for(
+        &self,
+        codec: &str,
+        chosen: Option<HardwareAccel>,
+    ) -> Option<&VerifiedEncoder> {
+        match chosen {
+            Some(HardwareAccel::None) => self
+                .encoders
+                .iter()
+                .find(|encoder| encoder.codec == codec && encoder.accel == HardwareAccel::None),
+            Some(wanted) => self
+                .encoders
+                .iter()
+                .find(|encoder| encoder.codec == codec && encoder.accel == wanted)
+                .or_else(|| self.best_encoder(codec)),
+            None => self.best_encoder(codec),
+        }
+    }
+
     /// Whether any hardware encoder was verified.
     #[must_use]
     pub fn has_hardware(&self) -> bool {
