@@ -569,21 +569,21 @@ const createDatabaseLibraryService = ({
         .from(
           sql`${mediaItem}, jsonb_array_elements_text(coalesce(${mediaItem.genres}, '[]'::jsonb)) as genre`,
         )
-        .where(isNull(mediaItem.parentId))
+        .where(isNull(mediaItem.extraKind))
         .groupBy(sql`genre`)
         .orderBy(sql`genre asc`);
 
       const decadeRows = await db
         .select({ value: sql<number>`((${mediaItem.year} / 10) * 10)::int` })
         .from(mediaItem)
-        .where(and(isNotNull(mediaItem.year), isNull(mediaItem.parentId)))
+        .where(and(isNotNull(mediaItem.year), isNull(mediaItem.extraKind)))
         .groupBy(sql`(${mediaItem.year} / 10) * 10`)
         .orderBy(sql`(${mediaItem.year} / 10) * 10 desc`);
 
       const [best] = await db
         .select({ rating: sql<number>`coalesce(max(${mediaItem.rating}), 0)::float` })
         .from(mediaItem)
-        .where(isNull(mediaItem.parentId));
+        .where(isNull(mediaItem.extraKind));
 
       return {
         genres: genreRows.map((row) => row.value),
@@ -616,7 +616,7 @@ const createDatabaseLibraryService = ({
         ...(options.yearTo === undefined ? [] : [lte(mediaItem.year, options.yearTo)]),
         ...(options.minRating === undefined ? [] : [gte(mediaItem.rating, options.minRating)]),
         ...(options.ids === undefined
-          ? [isNull(mediaItem.parentId)]
+          ? [isNull(mediaItem.extraKind)]
           : options.ids.length === 0
             ? [sql`false`]
             : [inArray(mediaItem.id, options.ids)]),
@@ -776,7 +776,7 @@ const createDatabaseLibraryService = ({
             : eq(mediaItem.id, scope.mediaId)
           : scope.seriesId === null
             ? null
-            : and(eq(mediaItem.seriesId, scope.seriesId), isNull(mediaItem.parentId));
+            : and(eq(mediaItem.seriesId, scope.seriesId), isNull(mediaItem.extraKind));
 
       if (where === null) {
         return [];
@@ -850,7 +850,7 @@ const createDatabaseLibraryService = ({
         .where(
           and(
             sql`${mediaItem.castMembers} @> ${JSON.stringify([{ personId }])}::jsonb`,
-            isNull(mediaItem.parentId),
+            isNull(mediaItem.extraKind),
           ),
         )
         .orderBy(asc(mediaItem.title))

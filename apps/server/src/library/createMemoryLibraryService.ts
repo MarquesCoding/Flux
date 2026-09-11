@@ -178,7 +178,7 @@ const createMemoryLibraryService = (
       .filter((item) => matchesFilters(item, options))
       .filter((item) =>
         options.ids === undefined
-          ? (item.parentId ?? null) === null
+          ? (item.extraKind ?? null) === null
           : options.ids.includes(item.id),
       )
       .filter(
