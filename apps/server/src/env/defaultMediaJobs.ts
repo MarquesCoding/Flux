@@ -1,25 +1,21 @@
-import { cpus } from 'node:os';
-
-const PER_JOB_CORES = 2;
-const FEWEST = 1;
-const MOST = 16;
+const AT_A_TIME = 1;
 
 /**
  * How many files the library works on at once, where the operator has not said.
  *
- * Scaled to the machine rather than fixed. This was capped at four however many cores were present,
- * which gave a twenty core server the concurrency of a four core one — and the cap was the reason a
- * scan used a single core of twenty.
+ * One, and the number is not the interesting part — what changed is who decides. This was worked
+ * out from the core count, which was wrong twice over: it gave a twenty core server ten renders
+ * against one graphics chip and took the API down with them, and it was measuring processors for
+ * work that turned out to wait on a disk.
  *
- * Two cores apiece, because a render is given two threads. The ceiling is there because the work is
- * more often waiting on a disk than on a processor, and past some width more readers on one array
- * make each other slower rather than faster. Where that width is depends on the storage, which is
- * why this is a default and MEDIA_JOBS is a setting.
+ * The media service is the one that knows. It holds a queue of its own over every render it is
+ * asked for, and that queue is now the only limit that matters. Asking for more files than it will
+ * draw does not make it draw faster; it only means more of them are waiting, somewhere else.
  *
- * @param cores - How many processors the machine has. Read from the machine where not given.
+ * MEDIA_JOBS still overrides this for an operator who knows their storage better than either of us.
+ *
  * @returns How many files to work on at once.
  */
-const defaultMediaJobs = (cores: number = cpus().length): number =>
-  Math.max(FEWEST, Math.min(MOST, Math.floor(cores / PER_JOB_CORES)));
+const defaultMediaJobs = (): number => AT_A_TIME;
 
 export { defaultMediaJobs };
