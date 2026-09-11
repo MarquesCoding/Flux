@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { regeneratePreviews } from './regeneratePreviews';
 import type { PreviewStore } from './regeneratePreviews';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
@@ -383,5 +383,102 @@ describe('regeneratePreviews', () => {
     });
 
     expect(asked[0]).not.toHaveProperty('hardwareAccel');
+  });
+  it('stops within one ask when the scan is cancelled mid-render', async () => {
+    vi.useFakeTimers();
+
+    let asked = 0;
+    let stopped = false;
+    const completed: string[] = [];
+    const transcoder = stubTranscoder(() => {
+      asked += 1;
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: false });
+    });
+
+    const running = regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () =>
+          Promise.resolve([{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]),
+        markComplete: (id) => {
+          completed.push(id);
+
+          return Promise.resolve();
+        },
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+      isCancelled: () => stopped,
+    });
+
+    await vi.advanceTimersByTimeAsync(20_000);
+
+    expect(asked).toBeGreaterThan(1);
+
+    stopped = true;
+    await vi.advanceTimersByTimeAsync(10_000);
+    await running;
+
+    expect(completed).toEqual([]);
+
+    vi.useRealTimers();
+  });
+
+  it('asks again for a film that is taking a long time rather than giving up', async () => {
+    vi.useFakeTimers();
+
+    let asked = 0;
+    const transcoder = stubTranscoder(() => {
+      asked += 1;
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: asked > 4 });
+    });
+
+    await Promise.all([
+      regeneratePreviews({
+        libraryId: LIBRARY_ID,
+        generation: 0,
+        store: {
+          listOutstanding: () =>
+            Promise.resolve([{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]),
+          markComplete: () => Promise.resolve(),
+        },
+        transcoder,
+        defaultAudioLanguage: null,
+        quality: 'high',
+      }),
+      vi.advanceTimersByTimeAsync(60_000),
+    ]);
+
+    expect(asked).toBe(5);
+
+    vi.useRealTimers();
+  });
+
+  it('does not hold the request open for the whole encode', async () => {
+    const asked: { wait?: boolean }[] = [];
+    const transcoder = stubTranscoder((request) => {
+      asked.push(request);
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: true });
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () =>
+          Promise.resolve([{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+    });
+
+    expect(asked[0]?.wait).toBe(false);
   });
 });

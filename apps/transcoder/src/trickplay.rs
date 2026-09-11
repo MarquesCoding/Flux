@@ -9,18 +9,19 @@
 //! every ten seconds is 720 images, and 720 requests to draw one hover is a
 //! worse trade than four sheet downloads.
 
-use std::collections::HashMap;
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::Mutex;
 
+use crate::capability::Capabilities;
 use crate::integrity::decodes;
+use crate::media::VideoRange;
+use crate::render_registry::RenderRegistry;
+use crate::steps_aside::steps_aside;
 use crate::transcode_plan::HardwareAccel;
 
 /// Written only when every sheet is on disk.
@@ -224,88 +225,234 @@ pub struct SheetSource {
     pub duration_seconds: f64,
     /// What the source says it is, which decides what its frames come down as.
     pub bit_depth: Option<u8>,
+    /// How many frames a second the source really runs at, where it says.
+    ///
+    /// Only used to normalise its timestamps. See [`extract_arguments`].
+    pub frames_per_second: Option<f64>,
+    /// Whether it needs converting to something a browser draws.
+    ///
+    /// Sheets were never converted at all, on any path, so every HDR film in a
+    /// library had washed-out thumbnails under its scrub bar while its preview
+    /// clip beside them was converted properly.
+    pub range: VideoRange,
 }
+
+/// What a render is drawn with, and what the machine proved it can do.
+#[derive(Clone, Copy)]
+pub struct Tools<'a> {
+    pub ffmpeg: &'a str,
+    pub device: &'a str,
+    pub capabilities: &'a Capabilities,
+}
+
+/// What the first pass writes, one image per interval.
+const THUMBNAIL_PATTERN: &str = "frame-%08d.jpg";
+
+/// What the single thumbnails are named, which nothing outside the render reads.
+const THUMBNAIL_PREFIX: &str = "frame-";
+
+/// What the second pass writes, a grid of them.
+const SHEET_PATTERN: &str = "sheet-%03d.jpg";
+
+/// What a finished sheet is named.
+///
+/// Read rather than assumed, because both passes write JPEGs into one directory
+/// and counting every JPEG as a sheet would count the thumbnails twice over.
+const SHEET_PREFIX: &str = "sheet-";
+
+/// How hard the JPEG encoder tries, on ffmpeg's own quality scale.
+///
+/// One to thirty-one, where one is best. Four is what Jellyfin ships.
+const JPEG_QUALITY: u32 = 4;
+
+/// The steps between the scales, which is what the conversions below divide by.
+const QUALITY_STEPS: u32 = 30;
+
+/// What a source that will not say its frame rate is taken to run at.
+const ASSUMED_RATE: f64 = 30.0;
 
 /// How many threads a thumbnail render may use.
 ///
-/// Deliberately a fraction of the machine. Rendering thumbnails is background
-/// work that nobody is waiting for, and a decode allowed to take every core
-/// will starve the transcode of whatever somebody is actually watching — which
-/// is a stalled film in exchange for seek previews of a different one.
-const RENDER_THREADS: u32 = 2;
+/// One. Two was a guess at how much of a machine to leave alone, and the
+/// measurement says it was answering the wrong question: four sheet renders
+/// together held about one core of twenty, because this work waits on a disk
+/// rather than on a processor. Nvidia's decoder also has no threading of its
+/// own and Jellyfin passes it one explicitly, so one is required there rather
+/// than merely tidy.
+///
+/// What actually keeps a render out of a viewer's way is niceness, which costs
+/// nothing when nobody is watching. See [`crate::steps_aside`].
+const RENDER_THREADS: u32 = 1;
 
-/// The ffmpeg arguments that render the sheets.
+/// Which encoder draws the thumbnails, and therefore where the frames go.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum SheetEncoder {
+    /// The device draws them, so the frames never come down.
+    Hardware(String),
+    /// The processor draws them, so the frames come down first.
+    Software,
+}
+
+/// Picks the encoder that draws a film's thumbnails.
 ///
-/// One decode pass drives both the sampling and the tiling, so the file is
-/// read once. `fps` before `scale` means the expensive resize only runs on the
-/// frames that survive.
+/// JPEG is something four of these backends make — `mjpeg_vaapi`, `mjpeg_qsv`,
+/// `mjpeg_videotoolbox`, `mjpeg_rkmpp` — which this build denied for a long
+/// time, so every thumbnail in a library was drawn by the processor and every
+/// frame had to leave the device to reach it.
 ///
-/// Only keyframes are decoded, and only in software. A seek preview is a rough
-/// idea of where the timeline is about to land, and the nearest keyframe
-/// answers that as well as the exact frame does — at a fraction of the cost,
-/// because the decoder skips everything between them. Measured on a ninety
-/// minute film: fifteen seconds against several minutes. The `fps` filter still
-/// emits one image per interval, so the index and the sheets line up as before.
-///
-/// `-skip_frame` is not asked of a decoder on the device. Telling a hardware
-/// decoder to throw away everything between keyframes is not a thing every one
-/// of them will do, and QSV does not merely refuse it: an Intel iGPU reading
-/// this library returned "Error during QSV decoding: GPU Hang (-21)" over and
-/// over, which resets the device and takes down whatever else was using it.
-/// Jellyfin draws the same line — its keyframe-only setting says it will fall
-/// back to the software decoder where the hardware one does not support the
-/// mode, and it ships with that setting off.
-///
-/// So the choice is one or the other, and on the device wins. Decoding is the
-/// expensive half: a 10-bit HEVC keyframe costs plenty in software, and handing
-/// the pass to the decoder already in the machine took a fifty minute episode
-/// from thirteen processor-seconds to two and a half.
+/// The encoder has to sit on the same backend the frames are already on. A
+/// machine with both Intel paths verified could otherwise be handed VAAPI
+/// surfaces and a QSV encoder, which is not a chain, so anything that does not
+/// match falls to the processor rather than being forced.
 #[must_use]
-pub fn sheet_arguments(
+pub fn sheet_encoder(capabilities: &Capabilities, accel: Option<HardwareAccel>) -> SheetEncoder {
+    let Some(wanted) = accel.filter(|found| *found != HardwareAccel::None) else {
+        return SheetEncoder::Software;
+    };
+
+    match capabilities.encoder_for("mjpeg", Some(wanted)) {
+        Some(found) if found.accel == wanted => SheetEncoder::Hardware(found.encoder.clone()),
+        _ => SheetEncoder::Software,
+    }
+}
+
+/// How this encoder is told how hard to try, on the scale it actually reads.
+///
+/// Not one scale but four, and they do not even point the same way. ffmpeg's
+/// own `qscale` runs one to thirty-one with **one** being best. The `VAAPI` and
+/// `QSV` JPEG encoders take a JPEG quality, nought to a hundred, with a
+/// **hundred** being best. `VideoToolbox` takes the same idea scaled to
+/// QP2LAMBDA, so up to a hundred and eighteen. Rockchip takes a quantiser that
+/// stops at ninety-nine.
+///
+/// So a number written for one of them does not merely mistune another, it
+/// means close to the opposite: four is nearly the best picture ffmpeg will
+/// give and nearly the worst that `mjpeg_vaapi` will. The flag differs too, and
+/// a quality under the wrong flag is ignored without complaint.
+///
+/// The arithmetic is Jellyfin's, including that each divisor floors to three.
+fn quality_arguments(encoder: &str) -> [String; 2] {
+    let asked = JPEG_QUALITY.clamp(1, 31);
+    let stepped = |top: u32| top - ((asked - 1) * (top / QUALITY_STEPS));
+
+    let (flag, quality) = if encoder.contains("vaapi") || encoder.contains("qsv") {
+        ("-global_quality:v", stepped(100))
+    } else if encoder.contains("rkmpp") {
+        ("-qp_init:v", stepped(99))
+    } else if encoder.contains("videotoolbox") {
+        ("-qscale:v", stepped(118))
+    } else {
+        ("-qscale:v", asked)
+    };
+
+    [flag.to_owned(), quality.to_string()]
+}
+
+/// The ffmpeg arguments that draw one thumbnail per interval.
+///
+/// The first of two passes, and the one that costs anything. It writes single
+/// images rather than a grid, which is the whole reason the frames can stay on
+/// the device: `tile` is a software filter, so asking for a grid here forced
+/// every frame down to system memory and made a hardware JPEG encoder
+/// unreachable. Jellyfin writes single images for the same reason and tiles
+/// them afterwards.
+///
+/// `fps` comes first so the expensive filters only run on the frames that
+/// survive it. Conversion comes before the scale, because converting an
+/// already-resampled picture loses highlight detail, and before the mapping
+/// onto the backend's own frames, because on `QSV` the converter is `VAAPI`'s
+/// and the decoder is handing over `VAAPI` surfaces.
+///
+/// `-skip_frame nokey` is asked only of a decoder in software. Telling a
+/// hardware decoder to throw away everything between keyframes is not a thing
+/// every one of them will do, and `QSV` does not merely refuse it: it hangs the
+/// device, which resets it and takes down whatever else was using it.
+///
+/// Where every frame is decoded, the timestamps are rebuilt from the frame
+/// count before they are sampled. A container that lies about its timestamps —
+/// and plenty do — otherwise hands `fps` a clock that jumps, and what comes out
+/// is thumbnails that do not land where the index says they do. Jellyfin
+/// inserts the same filter immediately before `fps`, and only in this mode,
+/// because skipping to keyframes takes its timing from the keyframes instead.
+///
+/// `-fps_mode passthrough` for the same reason at the other end: the muxer is
+/// told to write exactly the frames it is given rather than making up a
+/// constant rate, so the count matches what the index was built for.
+///
+/// Not asked for here: `-hwaccel_flags +low_priority`, which Jellyfin passes to
+/// `VideoToolbox` for exactly this work. It is not in every build — this one
+/// rejects it and takes the whole render down with it — and Jellyfin only sends
+/// it where it has checked. Until there is a check worth trusting, the flag is
+/// worth less than the renders it would break.
+#[must_use]
+pub fn extract_arguments(
     request: &TrickplayRequest,
     tile_height: u32,
-    accel: Option<HardwareAccel>,
-    device: &str,
-    bit_depth: Option<u8>,
+    source: SheetSource,
+    on_device: Option<(HardwareAccel, &str)>,
+    encoder: &SheetEncoder,
     directory: &Path,
 ) -> Vec<String> {
-    let onto_the_device =
-        accel.and_then(|found| found.pipeline().map(|pipeline| (found, pipeline)));
+    let onto_the_device = on_device
+        .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
+    let draws_on_the_device = matches!(encoder, SheetEncoder::Hardware(_));
+    let skips_to_keyframes = onto_the_device.is_none();
 
-    let filter = match onto_the_device {
-        Some((_, pipeline)) => format!(
-            "{mapping}fps=1/{interval},{scaler}=w={width}:h={height},hwdownload,format={down},tile={columns}x{rows}",
-            mapping = pipeline
-                .maps_onto_device
-                .map_or_else(String::new, |filter| format!("{filter},")),
-            interval = request.interval_seconds,
-            scaler = pipeline.scaler,
+    let mut filters = Vec::new();
+
+    if !skips_to_keyframes {
+        filters.push(format!(
+            "setpts=N/{:.3}/TB",
+            source
+                .frames_per_second
+                .filter(|rate| *rate > 0.0)
+                .unwrap_or(ASSUMED_RATE)
+        ));
+    }
+
+    filters.push(format!("fps=1/{}", request.interval_seconds));
+
+    match onto_the_device {
+        Some((_, pipeline, _)) => {
+            if source.range != VideoRange::Sdr {
+                if let Some(mapper) = pipeline.tone_map {
+                    filters.push(mapper.to_owned());
+                }
+            }
+
+            if let Some(mapping) = pipeline.maps_onto_device {
+                filters.push(mapping.to_owned());
+            }
+
+            filters.push(format!(
+                "{scaler}=w={width}:h={height}",
+                scaler = pipeline.scaler,
+                width = request.tile_width,
+                height = tile_height,
+            ));
+
+            if !draws_on_the_device {
+                filters.push(format!(
+                    "hwdownload,format={}",
+                    pipeline.download_format_for(source.bit_depth)
+                ));
+            }
+        }
+        None => filters.push(format!(
+            "scale={width}:{height}",
             width = request.tile_width,
             height = tile_height,
-            down = pipeline.download_format_for(bit_depth),
-            columns = request.columns,
-            rows = request.rows,
-        ),
-        None => format!(
-            "fps=1/{interval},scale={width}:{height},tile={columns}x{rows}",
-            interval = request.interval_seconds,
-            width = request.tile_width,
-            height = tile_height,
-            columns = request.columns,
-            rows = request.rows,
-        ),
-    };
+        )),
+    }
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),
         "-loglevel".to_owned(),
         "error".to_owned(),
         "-nostdin".to_owned(),
-        "-threads".to_owned(),
-        RENDER_THREADS.to_string(),
     ];
 
-    if let Some((found, pipeline)) = onto_the_device {
+    if let Some((found, pipeline, device)) = onto_the_device {
         arguments.extend(found.filter_device_arguments(device));
 
         if found.ffmpeg_flag().is_some() {
@@ -313,26 +460,159 @@ pub fn sheet_arguments(
             arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
             arguments.push(pipeline.decoded_format.to_owned());
+            arguments.push("-noautorotate".to_owned());
         }
+    } else {
+        arguments.extend([
+            "-threads".to_owned(),
+            RENDER_THREADS.to_string(),
+            "-skip_frame".to_owned(),
+            "nokey".to_owned(),
+        ]);
     }
 
-    if onto_the_device.is_none() {
-        arguments.extend(["-skip_frame".to_owned(), "nokey".to_owned()]);
-    }
+    let drawn_by = match encoder {
+        SheetEncoder::Hardware(name) => name.clone(),
+        SheetEncoder::Software => "mjpeg".to_owned(),
+    };
 
     arguments.extend([
         "-i".to_owned(),
         request.input_path.clone(),
-        "-vf".to_owned(),
-        filter,
         "-an".to_owned(),
         "-sn".to_owned(),
-        "-qscale:v".to_owned(),
-        "5".to_owned(),
-        directory.join("sheet-%03d.jpg").to_string_lossy().into(),
+        "-vf".to_owned(),
+        filters.join(","),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
+        "-c:v".to_owned(),
+        drawn_by.clone(),
+    ]);
+
+    arguments.extend(quality_arguments(&drawn_by));
+
+    if drawn_by.contains("videotoolbox") {
+        arguments.extend(["-allow_sw".to_owned(), "1".to_owned()]);
+    }
+
+    arguments.extend([
+        "-fps_mode".to_owned(),
+        "passthrough".to_owned(),
+        "-f".to_owned(),
+        "image2".to_owned(),
+        directory.join(THUMBNAIL_PATTERN).to_string_lossy().into(),
     ]);
 
     arguments
+}
+
+/// The ffmpeg arguments that gather the thumbnails into sheets.
+///
+/// The second pass, and a cheap one: it reads images a few hundred pixels wide
+/// and writes them back in a grid. Nothing here touches the device, and nothing
+/// needs to — the work that was worth accelerating happened in the first pass.
+#[must_use]
+pub fn tile_arguments(request: &TrickplayRequest, directory: &Path) -> Vec<String> {
+    vec![
+        "-hide_banner".to_owned(),
+        "-loglevel".to_owned(),
+        "error".to_owned(),
+        "-nostdin".to_owned(),
+        "-threads".to_owned(),
+        RENDER_THREADS.to_string(),
+        "-i".to_owned(),
+        directory.join(THUMBNAIL_PATTERN).to_string_lossy().into(),
+        "-vf".to_owned(),
+        format!("tile={}x{}", request.columns, request.rows),
+        "-qscale:v".to_owned(),
+        JPEG_QUALITY.to_string(),
+        directory.join(SHEET_PATTERN).to_string_lossy().into(),
+    ]
+}
+
+/// Draws the thumbnails and gathers them, leaving the sheets on disk.
+///
+/// Split out so that a failure anywhere in it clears the directory. A part-drawn
+/// set is worse than none: the thumbnails of one attempt outnumbering the next
+/// would be gathered into the next one's sheets, and what a viewer would see is
+/// somebody else's film halfway along the scrub bar. Jellyfin deletes the
+/// directory on failure for the same reason.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one linear render, and grouping these would only move the list"
+)]
+async fn draw_sheets(
+    ffmpeg: &str,
+    device: &str,
+    request: &TrickplayRequest,
+    tile_height: u32,
+    source: SheetSource,
+    accel: Option<HardwareAccel>,
+    capabilities: &Capabilities,
+    directory: &Path,
+) -> Result<Vec<String>, TrickplayError> {
+    let drawn_by = sheet_encoder(capabilities, accel);
+    let extracted = steps_aside(&mut Command::new(ffmpeg))
+        .args(extract_arguments(
+            request,
+            tile_height,
+            source,
+            accel.map(|found| (found, device)),
+            &drawn_by,
+            directory,
+        ))
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
+
+    if !extracted.status.success() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&extracted.stderr).trim().to_owned(),
+        ));
+    }
+
+    let gathered = steps_aside(&mut Command::new(ffmpeg))
+        .args(tile_arguments(request, directory))
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
+
+    forget_thumbnails(directory).await;
+
+    let sheets = list_sheets(directory).await;
+
+    if sheets.is_empty() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&gathered.stderr).trim().to_owned(),
+        ));
+    }
+
+    if let Some(corrupt) = unreadable_sheet(ffmpeg, directory, &sheets).await {
+        return Err(TrickplayError::Corrupt(corrupt));
+    }
+
+    Ok(sheets)
+}
+
+/// Clears the single thumbnails away once they have been gathered into sheets.
+///
+/// A two hour film leaves seven hundred of them, and nothing reads them again.
+async fn forget_thumbnails(directory: &Path) {
+    let Ok(mut entries) = tokio::fs::read_dir(directory).await else {
+        return;
+    };
+
+    while let Ok(Some(entry)) = entries.next_entry().await {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(THUMBNAIL_PREFIX)
+        {
+            let _ = tokio::fs::remove_file(entry.path()).await;
+        }
+    }
 }
 
 /// Builds the `WebVTT` index.
@@ -401,9 +681,10 @@ async fn list_sheets(directory: &Path) -> Vec<String> {
 
     while let Ok(Some(entry)) = entries.next_entry().await {
         let name = entry.file_name().to_string_lossy().into_owned();
-        let is_sheet = Path::new(&name)
-            .extension()
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("jpg"));
+        let is_sheet = name.starts_with(SHEET_PREFIX)
+            && Path::new(&name)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("jpg"));
 
         if is_sheet {
             names.push(name);
@@ -440,15 +721,7 @@ async fn unreadable_sheet(ffmpeg: &str, directory: &Path, sheets: &[String]) -> 
 /// finished.
 #[derive(Clone, Default)]
 pub struct TrickplayRegistry {
-    in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
-    /// What went wrong the last time this set was drawn, until somebody asks.
-    ///
-    /// A render that fails in the background has nobody to tell. Without this
-    /// the next ask finds no claim and no sheets, starts another render, and
-    /// fails the same way for ever — which is what a deadline was standing in
-    /// for. Kept until it is read so that the answer reaches whoever asks next,
-    /// and cleared by reading so a later ask is free to try again.
-    failures: Arc<Mutex<HashMap<String, String>>>,
+    renders: RenderRegistry,
 }
 
 impl TrickplayRegistry {
@@ -457,64 +730,24 @@ impl TrickplayRegistry {
         Self::default()
     }
 
-    async fn gate(&self, id: &str) -> Arc<Mutex<()>> {
-        let mut in_flight = self.in_flight.lock().await;
-
-        Arc::clone(in_flight.entry(id.to_owned()).or_default())
-    }
-
     /// Takes this set of thumbnails to render, unless something already has.
-    ///
-    /// A caller that means to render in the background has to say so before it
-    /// spawns anything, because the work sits in a queue before it begins and
-    /// nothing is marked as under way until it does. Without this, every ask
-    /// while a long render was still queued started another one: a 4K remux
-    /// asked about every five seconds gathered fourteen jobs for one film.
-    ///
-    /// The caller that is told yes owns the release, which [`Self::generate`]
-    /// does when it finishes.
-    ///
     pub async fn claim(&self, id: &str) -> bool {
-        let mut in_flight = self.in_flight.lock().await;
-
-        if in_flight.contains_key(id) {
-            return false;
-        }
-
-        in_flight.insert(id.to_owned(), Arc::default());
-
-        true
+        self.renders.claim(id).await
     }
 
     /// Remembers that a render failed, for whoever asks next.
     pub async fn remember_failure(&self, id: &str, reason: String) {
-        self.failures.lock().await.insert(id.to_owned(), reason);
+        self.renders.remember_failure(id, reason).await;
     }
 
     /// Takes what went wrong, where anything did, and forgets it.
     pub async fn take_failure(&self, id: &str) -> Option<String> {
-        self.failures.lock().await.remove(id)
+        self.renders.take_failure(id).await
     }
 
     /// Lets go of a claim whose work never ran.
-    ///
-    /// [`Self::generate`] releases its own claim when it finishes, so this is
-    /// only reached where the work was dropped before it began — a queue shut
-    /// down mid-render, say. Without it the claim would outlive the process's
-    /// interest in it and that film could never be asked for again.
     pub async fn give_up(&self, id: &str) {
-        self.release(id).await;
-    }
-
-    async fn release(&self, id: &str) {
-        let mut in_flight = self.in_flight.lock().await;
-
-        if in_flight
-            .get(id)
-            .is_some_and(|gate| Arc::strong_count(gate) <= 2)
-        {
-            in_flight.remove(id);
-        }
+        self.renders.give_up(id).await;
     }
 
     /// Renders the sheets and the index, or reuses what is already there.
@@ -528,21 +761,20 @@ impl TrickplayRegistry {
     /// cannot be started, it writes no sheets, or the index cannot be saved.
     pub async fn generate(
         &self,
-        ffmpeg: &str,
-        device: &str,
+        tools: Tools<'_>,
         cache_root: &Path,
         request: &TrickplayRequest,
         source: SheetSource,
         accel: Option<HardwareAccel>,
     ) -> Result<TrickplayIndex, TrickplayError> {
         let id = request.id();
-        let gate = self.gate(&id).await;
+        let gate = self.renders.gate(&id).await;
         let permit = gate.lock().await;
 
-        let outcome = generate(ffmpeg, device, cache_root, request, source, accel).await;
+        let outcome = generate(tools, cache_root, request, source, accel).await;
 
         drop(permit);
-        self.release(&id).await;
+        self.renders.release(&id).await;
 
         outcome
     }
@@ -564,13 +796,17 @@ impl TrickplayRegistry {
 /// be started, it writes no sheets, the sheets it wrote will not open even in
 /// software, or the index cannot be saved.
 pub async fn generate(
-    ffmpeg: &str,
-    device: &str,
+    tools: Tools<'_>,
     cache_root: &Path,
     request: &TrickplayRequest,
     source: SheetSource,
     accel: Option<HardwareAccel>,
 ) -> Result<TrickplayIndex, TrickplayError> {
+    let Tools {
+        ffmpeg,
+        device,
+        capabilities,
+    } = tools;
     let tile_height = tile_height_for(request.tile_width, source.width, source.height);
     let count = thumbnail_count(source.duration_seconds, request.interval_seconds);
 
@@ -601,30 +837,26 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Directory)?;
 
-    let output = Command::new(ffmpeg)
-        .args(sheet_arguments(
-            request,
-            tile_height,
-            accel,
-            device,
-            source.bit_depth,
-            &directory,
-        ))
-        .output()
-        .await
-        .map_err(TrickplayError::Spawn)?;
+    let drawn = draw_sheets(
+        ffmpeg,
+        device,
+        request,
+        tile_height,
+        source,
+        accel,
+        capabilities,
+        &directory,
+    )
+    .await;
 
-    let sheets = list_sheets(&directory).await;
+    let sheets = match drawn {
+        Ok(sheets) => sheets,
+        Err(failure) => {
+            let _ = tokio::fs::remove_dir_all(&directory).await;
 
-    if sheets.is_empty() {
-        return Err(TrickplayError::NoOutput(
-            String::from_utf8_lossy(&output.stderr).trim().to_owned(),
-        ));
-    }
-
-    if let Some(corrupt) = unreadable_sheet(ffmpeg, &directory, &sheets).await {
-        return Err(TrickplayError::Corrupt(corrupt));
-    }
+            return Err(failure);
+        }
+    };
 
     tokio::fs::write(
         directory.join(INDEX_NAME),
@@ -676,9 +908,11 @@ pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::{
-        build_index, format_timestamp, sheet_arguments, thumbnail_count, tile_height_for,
-        HardwareAccel, TrickplayRegistry, TrickplayRequest,
+        build_index, extract_arguments, format_timestamp, quality_arguments, sheet_encoder,
+        thumbnail_count, tile_arguments, tile_height_for, Capabilities, HardwareAccel,
+        SheetEncoder, SheetSource, TrickplayRegistry, TrickplayRequest, VideoRange,
     };
+    use crate::capability::VerifiedEncoder;
     use std::path::Path;
 
     #[tokio::test]
@@ -710,6 +944,39 @@ otherwise start a second one"
         );
     }
 
+    fn source_of(range: VideoRange) -> SheetSource {
+        SheetSource {
+            width: 1920,
+            height: 1080,
+            duration_seconds: 600.0,
+            bit_depth: Some(8),
+            frames_per_second: Some(23.976),
+            range,
+        }
+    }
+
+    fn on_qsv() -> Vec<String> {
+        extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_qsv".to_owned()),
+            Path::new("/cache"),
+        )
+    }
+
+    fn in_software() -> Vec<String> {
+        extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            None,
+            &SheetEncoder::Software,
+            Path::new("/cache"),
+        )
+    }
+
     fn request() -> TrickplayRequest {
         TrickplayRequest {
             input_path: "/media/film.mkv".to_owned(),
@@ -728,14 +995,7 @@ otherwise start a second one"
     /// device and takes down whatever else on the machine was using it.
     #[test]
     fn does_not_ask_a_decoder_on_the_device_to_skip_frames() {
-        let arguments = sheet_arguments(
-            &request(),
-            180,
-            Some(HardwareAccel::Qsv),
-            "/dev/dri/renderD128",
-            Some(8),
-            Path::new("/cache/sheets"),
-        );
+        let arguments = on_qsv();
 
         assert!(
             !arguments.iter().any(|argument| argument == "-skip_frame"),
@@ -859,14 +1119,7 @@ otherwise start a second one"
     /// sheet. Left to ffmpeg the graph will not configure at all on QSV.
     #[test]
     fn decodes_on_the_device_and_brings_the_frames_down() {
-        let arguments = sheet_arguments(
-            &request(),
-            180,
-            Some(HardwareAccel::Qsv),
-            "/dev/dri/renderD128",
-            Some(8),
-            Path::new("/cache"),
-        );
+        let arguments = on_qsv();
 
         let chain = arguments
             .windows(2)
@@ -882,14 +1135,17 @@ otherwise start a second one"
             .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
         assert_eq!(
             chain,
-            "hwmap=derive_device=qsv,format=qsv,fps=1/10,vpp_qsv=w=320:h=180,hwdownload,format=nv12,tile=2x2",
-            "the scale happens on the device, so only the thumbnails come down"
+            "setpts=N/23.976/TB,fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180",
+            "nothing comes down: the device draws the thumbnails too"
         );
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-c:v", "mjpeg_qsv"]));
     }
 
     #[test]
     fn draws_entirely_in_software_on_a_machine_with_no_device() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
         assert!(!arguments
@@ -899,7 +1155,7 @@ otherwise start a second one"
 
     #[test]
     fn still_only_decodes_keyframes() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(arguments
             .windows(2)
@@ -908,22 +1164,300 @@ otherwise start a second one"
 
     #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
             .and_then(|index| arguments.get(index + 1))
             .expect("the filter chain is passed");
 
-        assert_eq!(filter, "fps=1/10,scale=320:180,tile=2x2");
+        assert_eq!(
+            filter, "fps=1/10,scale=320:180",
+            "keyframes carry their own timing"
+        );
     }
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, None, "", Some(8), Path::new("/cache"));
+        let arguments = in_software();
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));
+    }
+
+    /// Sheets were never converted at all, so every HDR film in a library had
+    /// washed-out thumbnails under a scrub bar while its clip was converted
+    /// properly a few pixels away.
+    #[test]
+    fn converts_an_hdr_film_before_drawing_its_thumbnails() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Hdr10),
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_vaapi".to_owned()),
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert_eq!(
+            chain,
+            "setpts=N/23.976/TB,fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180"
+        );
+    }
+
+    /// The converter is VAAPI's and the decoder hands over VAAPI surfaces, so
+    /// it has to run before the frames are mapped onto QSV.
+    #[test]
+    fn converts_before_mapping_the_frames_onto_qsv() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Hdr10),
+            Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_qsv".to_owned()),
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.find("tonemap_vaapi") < chain.find("hwmap"), "{chain}");
+    }
+
+    /// NVIDIA has no JPEG encoder, so the frames have to come down for it.
+    #[test]
+    fn brings_the_frames_down_where_the_device_cannot_draw_jpeg() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            source_of(VideoRange::Sdr),
+            Some((HardwareAccel::Nvenc, "")),
+            &SheetEncoder::Software,
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.contains("hwdownload"), "{chain}");
+        assert!(arguments.windows(2).any(|pair| pair == ["-c:v", "mjpeg"]));
+    }
+
+    #[test]
+    fn writes_single_images_rather_than_a_grid_so_they_can_stay_on_the_device() {
+        let arguments = on_qsv();
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(!chain.contains("tile="), "{chain}");
+        assert!(arguments.windows(2).any(|pair| pair == ["-f", "image2"]));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("frame-%08d.jpg")));
+    }
+
+    #[test]
+    fn gathers_the_thumbnails_into_sheets_in_a_second_pass() {
+        let arguments = tile_arguments(&request(), Path::new("/cache"));
+
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("frame-%08d.jpg")));
+        assert!(arguments.windows(2).any(|pair| pair == ["-vf", "tile=2x2"]));
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.ends_with("sheet-%03d.jpg")));
+        assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+    }
+
+    /// A number written for one scale means something else on another, and the
+    /// flag it is written under is simply ignored.
+    #[test]
+    fn tells_each_encoder_how_hard_to_try_on_the_scale_it_reads() {
+        assert_eq!(
+            quality_arguments("mjpeg_vaapi"),
+            ["-global_quality:v".to_owned(), "91".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_qsv"),
+            ["-global_quality:v".to_owned(), "91".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_rkmpp"),
+            ["-qp_init:v".to_owned(), "90".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg_videotoolbox"),
+            ["-qscale:v".to_owned(), "109".to_owned()]
+        );
+        assert_eq!(
+            quality_arguments("mjpeg"),
+            ["-qscale:v".to_owned(), "4".to_owned()]
+        );
+    }
+
+    /// Passthrough, so the muxer writes the frames it is given rather than
+    /// inventing a constant rate the index was not built for.
+    #[test]
+    fn tells_the_muxer_not_to_invent_a_frame_rate() {
+        assert!(on_qsv()
+            .windows(2)
+            .any(|pair| pair == ["-fps_mode", "passthrough"]));
+        assert!(in_software()
+            .windows(2)
+            .any(|pair| pair == ["-fps_mode", "passthrough"]));
+    }
+
+    #[test]
+    fn rebuilds_the_timestamps_only_where_every_frame_is_decoded() {
+        let chain_of = |arguments: Vec<String>| {
+            arguments
+                .windows(2)
+                .find(|pair| pair[0] == "-vf")
+                .map(|pair| pair[1].clone())
+                .expect("a filter chain")
+        };
+
+        assert!(chain_of(on_qsv()).starts_with("setpts=N/"));
+        assert!(
+            !chain_of(in_software()).contains("setpts"),
+            "keyframes carry their own timing"
+        );
+    }
+
+    #[test]
+    fn takes_a_source_that_will_not_say_its_rate_as_thirty() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            SheetSource {
+                frames_per_second: None,
+                ..source_of(VideoRange::Sdr)
+            },
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_vaapi".to_owned()),
+            Path::new("/cache"),
+        );
+
+        assert!(arguments
+            .iter()
+            .any(|argument| argument.starts_with("setpts=N/30.000/TB")));
+    }
+
+    /// A machine with both Intel paths verified could otherwise be handed VAAPI
+    /// surfaces and a QSV encoder, which is not a chain.
+    #[test]
+    fn only_draws_on_the_device_the_frames_are_already_on() {
+        let intel = Capabilities {
+            encoders: vec![
+                VerifiedEncoder {
+                    codec: "mjpeg".to_owned(),
+                    encoder: "mjpeg_vaapi".to_owned(),
+                    accel: HardwareAccel::Vaapi,
+                    verified: true,
+                },
+                VerifiedEncoder {
+                    codec: "mjpeg".to_owned(),
+                    encoder: "mjpeg_qsv".to_owned(),
+                    accel: HardwareAccel::Qsv,
+                    verified: true,
+                },
+            ],
+            ..Capabilities::default()
+        };
+
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Vaapi)),
+            SheetEncoder::Hardware("mjpeg_vaapi".to_owned())
+        );
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Qsv)),
+            SheetEncoder::Hardware("mjpeg_qsv".to_owned())
+        );
+        assert_eq!(
+            sheet_encoder(&intel, Some(HardwareAccel::Nvenc)),
+            SheetEncoder::Software,
+            "nvidia has no jpeg encoder, and vaapi's is not on its frames"
+        );
+        assert_eq!(sheet_encoder(&intel, None), SheetEncoder::Software);
+    }
+
+    /// Measured, not guessed: four sheet renders together held one core of
+    /// twenty, and nvidia's decoder has no threading of its own.
+    #[test]
+    fn asks_for_one_thread_because_the_work_waits_on_a_disk() {
+        assert!(on_qsv().windows(2).any(|pair| pair == ["-threads", "1"]));
+        assert!(in_software()
+            .windows(2)
+            .any(|pair| pair == ["-threads", "1"]));
+    }
+
+    #[test]
+    fn leaves_a_rotated_source_for_the_player_to_turn() {
+        assert!(on_qsv().iter().any(|argument| argument == "-noautorotate"));
+    }
+
+    /// Both passes write JPEGs into one directory, so counting every JPEG
+    /// would count the thumbnails as sheets and put somebody else's film
+    /// halfway along the scrub bar.
+    #[tokio::test]
+    async fn counts_only_the_gathered_sheets_and_not_the_thumbnails_beside_them() {
+        let directory = std::env::temp_dir().join("valence-test-sheet-listing");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+        tokio::fs::create_dir_all(&directory)
+            .await
+            .expect("a directory");
+
+        for name in [
+            "frame-00000001.jpg",
+            "frame-00000002.jpg",
+            "sheet-001.jpg",
+            "thumbnails.vtt",
+        ] {
+            tokio::fs::write(directory.join(name), b"")
+                .await
+                .expect("a file");
+        }
+
+        assert_eq!(super::list_sheets(&directory).await, vec!["sheet-001.jpg"]);
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+    }
+
+    #[tokio::test]
+    async fn clears_the_thumbnails_once_they_have_been_gathered() {
+        let directory = std::env::temp_dir().join("valence-test-sheet-sweeping");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+        tokio::fs::create_dir_all(&directory)
+            .await
+            .expect("a directory");
+
+        for name in ["frame-00000001.jpg", "sheet-001.jpg"] {
+            tokio::fs::write(directory.join(name), b"")
+                .await
+                .expect("a file");
+        }
+
+        super::forget_thumbnails(&directory).await;
+
+        assert!(!directory.join("frame-00000001.jpg").exists());
+        assert!(directory.join("sheet-001.jpg").exists(), "sheets are kept");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
     }
 
     #[test]

@@ -93,7 +93,7 @@ pub const INIT_SEGMENT_NAME: &str = "init.mp4";
 /// `tonemap` alone cannot: it expects linear light, and feeding it PQ-encoded
 /// samples produces a washed out picture that looks broken rather than
 /// obviously wrong. See ADR-0010.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ToneMapping {
     /// `zscale` plus `tonemap`. The usual route, needs libzimg.
@@ -102,6 +102,9 @@ pub enum ToneMapping {
     Libplacebo,
     /// This build cannot tone map. Colours will be wrong, so callers must say
     /// so rather than pretending the conversion happened.
+    ///
+    /// The default, because it is what is true before anything has been asked.
+    #[default]
     Unavailable,
 }
 
@@ -661,6 +664,13 @@ fn on_device_tone_map(spec: &SessionSpec, filters: DeviceFilters) -> bool {
 /// converting the already-resampled picture loses highlight detail. On the
 /// device the full-size conversion costs a fraction of what it does in system
 /// memory, so the order stays and the price does not.
+///
+/// It also precedes the mapping onto the backend's own frames, which matters on
+/// `QSV`: the converter there is `VAAPI`'s, the decoder hands over `VAAPI`
+/// surfaces, and converting before mapping means the frames are the kind the
+/// converter takes at the moment it runs. Jellyfin reaches the same filter from
+/// the other direction — it decodes on `QSV` and maps to `VAAPI` and back — and
+/// arrives at `tonemap_vaapi` either way.
 #[must_use]
 fn device_chain(
     pipeline: HardwarePipeline,
@@ -674,14 +684,14 @@ fn device_chain(
         _ => String::new(),
     };
     let scale = format!("{}=w={width}:h={height}{narrowing}", pipeline.scaler);
-    let chain = match tone_map {
-        Some(mapper) => format!("{mapper},{scale}"),
+    let onto = match pipeline.maps_onto_device {
+        Some(mapping) => format!("{mapping},{scale}"),
         None => scale,
     };
 
-    match pipeline.maps_onto_device {
-        Some(mapping) => format!("{mapping},{chain}"),
-        None => chain,
+    match tone_map {
+        Some(mapper) => format!("{mapper},{onto}"),
+        None => onto,
     }
 }
 
@@ -967,7 +977,7 @@ impl HardwareAccel {
                 decodes_with: "vaapi",
                 decoded_format: "vaapi",
                 maps_onto_device: Some("hwmap=derive_device=qsv,format=qsv"),
-                tone_map: Some("vpp_qsv=tonemap=1:format=nv12"),
+                tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
                 upload: "hwupload=extra_hw_frames=64",
@@ -1052,7 +1062,7 @@ impl HardwareAccel {
             ],
             Self::Qsv => vec![
                 "-init_hw_device".to_owned(),
-                format!("vaapi=va:{device}"),
+                format!("vaapi=va:{device},driver=iHD"),
                 "-init_hw_device".to_owned(),
                 "qsv=qs@va".to_owned(),
                 "-filter_hw_device".to_owned(),
@@ -1641,6 +1651,7 @@ impl TranscodePlan {
                 args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.decoded_format.into());
+                args.push("-noautorotate".into());
             }
         }
 
@@ -1688,6 +1699,7 @@ impl TranscodePlan {
                 args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.decoded_format.into());
+                args.push("-noautorotate".into());
             }
         }
 
@@ -2130,10 +2142,10 @@ mod tests {
     /// hardware frames arriving at a software filter — a graph ffmpeg cannot
     /// configure, reported as "Impossible to convert between the formats" and
     /// ending with no output file at all.
-    /// Intel converts HDR with an option on the scaler it already runs, which is
-    /// what Jellyfin's "VPP tone mapping" turns on. Without it every HDR film
-    /// came off the device to be converted and went back up, and that round
-    /// trip is where 2160p previews were failing.
+    /// Intel converts HDR with VAAPI's own converter, which is what Jellyfin's
+    /// "VPP tone mapping" turns on. Without it every HDR film came off the
+    /// device to be converted and went back up, and that round trip is where
+    /// 2160p previews were failing.
     #[test]
     fn converts_hdr_on_the_device_on_qsv_rather_than_coming_down_for_it() {
         let spec = SessionSpec {
@@ -2156,9 +2168,13 @@ mod tests {
             .and_then(|at| args.get(at + 1))
             .expect("a filter chain");
 
-        assert!(filters.contains("tonemap=1"), "{filters}");
+        assert!(filters.starts_with("tonemap_vaapi"), "{filters}");
         assert!(!filters.contains("hwdownload"), "{filters}");
         assert!(!filters.contains("zscale"), "{filters}");
+        assert!(
+            filters.find("tonemap_vaapi") < filters.find("hwmap"),
+            "the converter takes the frames the decoder hands over: {filters}"
+        );
     }
 
     #[test]
@@ -3079,6 +3095,26 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
         }
     }
 
+    /// Jellyfin passes it on every backend. A rotated source otherwise has the
+    /// rotation applied twice: once by the decoder and once by the player
+    /// reading the tag that is still on the stream.
+    #[test]
+    fn leaves_a_rotated_source_for_the_player_to_turn() {
+        for accel in [
+            HardwareAccel::Vaapi,
+            HardwareAccel::Qsv,
+            HardwareAccel::Nvenc,
+            HardwareAccel::VideoToolbox,
+        ] {
+            let args = plan(on_gpu(accel)).to_ffmpeg_args();
+
+            assert!(
+                args.iter().any(|argument| argument == "-noautorotate"),
+                "{accel:?}"
+            );
+        }
+    }
+
     #[test]
     fn opens_a_render_node_for_the_backends_that_need_one() {
         let args = plan(on_gpu(HardwareAccel::Vaapi)).to_ffmpeg_args();
@@ -3091,13 +3127,16 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             .any(|pair| pair == ["-filter_hw_device", "va"]));
     }
 
+    /// The driver is named, as Jellyfin names it. QSV does not exist on i965
+    /// at all, so a machine that would resolve to it should say so when the
+    /// device is opened rather than somewhere further down the chain.
     #[test]
     fn derives_the_qsv_device_from_a_vaapi_one() {
         let args = plan(on_gpu(HardwareAccel::Qsv)).to_ffmpeg_args();
 
         assert!(args
             .windows(2)
-            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128"]));
+            .any(|pair| pair == ["-init_hw_device", "vaapi=va:/dev/dri/renderD128,driver=iHD"]));
         assert!(args
             .windows(2)
             .any(|pair| pair == ["-init_hw_device", "qsv=qs@va"]));

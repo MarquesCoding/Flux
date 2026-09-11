@@ -11,21 +11,20 @@
 //! megabytes, and it can be played by any number of browsers at once because
 //! nothing is running behind it.
 
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
-use std::sync::Arc;
 
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use thiserror::Error;
 use tokio::process::Command;
-use tokio::sync::Mutex;
 
 use crate::capability::Capabilities;
 use crate::chains::{runs_here, ChainShape};
 use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::monitor::{record, LogLevel};
+use crate::render_registry::RenderRegistry;
+use crate::steps_aside::steps_aside;
 use crate::transcode_plan::{
     tone_map_filter, HardwareAccel, HardwarePipeline, ToneMapping, NO_EMBEDDED_CAPTIONS,
 };
@@ -422,6 +421,10 @@ fn preview_filters(
             }
         }
 
+        if let Some(mapping) = pipeline.maps_onto_device {
+            filters.push(mapping.to_owned());
+        }
+
         filters.push(format!(
             "{scaler}=w={width}:h={height}{narrowing}",
             scaler = pipeline.scaler,
@@ -429,10 +432,6 @@ fn preview_filters(
                 .narrows_to_eight_bit
                 .map_or_else(String::new, |option| format!(":{option}")),
         ));
-
-        if let Some(mapping) = pipeline.maps_onto_device {
-            filters.insert(0, mapping.to_owned());
-        }
 
         return filters;
     }
@@ -537,6 +536,7 @@ pub fn preview_arguments(
             arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
             arguments.push(pipeline.decoded_format.to_owned());
+            arguments.push("-noautorotate".to_owned());
         }
     }
 
@@ -659,7 +659,7 @@ pub async fn generate(
             PreviewEncoder::Software => None,
         };
 
-        let outcome = Command::new(tools.ffmpeg)
+        let outcome = steps_aside(&mut Command::new(tools.ffmpeg))
             .args(preview_arguments(
                 request,
                 start,
@@ -669,6 +669,7 @@ pub async fn generate(
                 accel.map(|found| (found, tools.device)),
                 &output,
             ))
+            .kill_on_drop(true)
             .output()
             .await
             .map_err(PreviewError::Spawn)?;
@@ -732,7 +733,7 @@ pub async fn generate(
 /// software to that same path, so four callers are up to eight writers.
 #[derive(Clone, Default)]
 pub struct PreviewRegistry {
-    in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+    renders: RenderRegistry,
 }
 
 impl PreviewRegistry {
@@ -741,21 +742,24 @@ impl PreviewRegistry {
         Self::default()
     }
 
-    async fn gate(&self, id: &str) -> Arc<Mutex<()>> {
-        let mut in_flight = self.in_flight.lock().await;
-
-        Arc::clone(in_flight.entry(id.to_owned()).or_default())
+    /// Takes this clip to render, unless something already has.
+    pub async fn claim(&self, id: &str) -> bool {
+        self.renders.claim(id).await
     }
 
-    async fn release(&self, id: &str) {
-        let mut in_flight = self.in_flight.lock().await;
+    /// Remembers that a render failed, for whoever asks next.
+    pub async fn remember_failure(&self, id: &str, reason: String) {
+        self.renders.remember_failure(id, reason).await;
+    }
 
-        if in_flight
-            .get(id)
-            .is_some_and(|gate| Arc::strong_count(gate) <= 2)
-        {
-            in_flight.remove(id);
-        }
+    /// Takes what went wrong, where anything did, and forgets it.
+    pub async fn take_failure(&self, id: &str) -> Option<String> {
+        self.renders.take_failure(id).await
+    }
+
+    /// Lets go of a claim whose work never ran.
+    pub async fn give_up(&self, id: &str) {
+        self.renders.give_up(id).await;
     }
 
     /// Renders the clip, or reuses what is already there.
@@ -777,7 +781,7 @@ impl PreviewRegistry {
         duration_seconds: f64,
     ) -> Result<PreviewClip, PreviewError> {
         let id = request.id();
-        let gate = self.gate(&id).await;
+        let gate = self.renders.gate(&id).await;
         let permit = gate.lock().await;
 
         let outcome = generate(
@@ -791,7 +795,7 @@ impl PreviewRegistry {
         .await;
 
         drop(permit);
-        self.release(&id).await;
+        self.renders.release(&id).await;
 
         outcome
     }

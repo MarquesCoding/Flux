@@ -236,27 +236,33 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     registry.stop_all().await;
 }
 
-/// The most background jobs to run at once, unless told otherwise.
+/// The most background renders to run at once, unless told otherwise.
 ///
-/// Each is an ffmpeg process that will happily take every core it is given, so
-/// the useful number is well below the core count: half of them leaves a
-/// machine responsive while a library is worked through, and the ceiling keeps
-/// a big server from running out of memory rather than out of time.
+/// One. This was worked out from the core count — half of them, capped at four
+/// — on the reasoning that an ffmpeg process takes every core it is given. That
+/// reasoning is about processors, and a render on a graphics chip is not bound
+/// by processors: it costs a session and a share of the device's memory, of
+/// which there are a fixed number however many cores sit beside them. Four
+/// renders at once against one iGPU exhausted it, which read as
+/// "-17 (File exists)" and an encoder that would not open; ten took the whole
+/// API down with it.
 ///
-/// One — which is what this was — leaves most of a machine idle for hours.
+/// Measured rather than reasoned about, twice over. Four sheet renders together
+/// held about one core of twenty, so this work waits on a disk and not on a
+/// processor and the cores were never the resource being shared. And Jellyfin,
+/// reading the same library on the same machine without trouble, draws
+/// thumbnails behind a lock of exactly one.
+///
+/// It costs less than it looks. Nothing waits on a render any more — a caller
+/// is answered at once and asks again — so a queue of one is a queue, not a
+/// stall, and the library is worked through in the same order either way.
 fn background_jobs() -> usize {
-    const CEILING: usize = 4;
+    const AT_A_TIME: usize = 1;
 
-    if let Some(asked) = env::var("VALENCE_BACKGROUND_JOBS")
+    env::var("VALENCE_BACKGROUND_JOBS")
         .ok()
         .and_then(|value| value.parse().ok())
-    {
-        return asked;
-    }
-
-    let cores = std::thread::available_parallelism().map_or(1, std::num::NonZeroUsize::get);
-
-    (cores / 2).clamp(1, CEILING)
+        .unwrap_or(AT_A_TIME)
 }
 
 #[tokio::main]

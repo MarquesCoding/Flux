@@ -704,6 +704,10 @@ async fn start_preview(
         return already_drawn(id);
     }
 
+    if let Some(failure) = state.previews.take_failure(&id).await {
+        return error(StatusCode::INTERNAL_SERVER_ERROR, &failure);
+    }
+
     let probe = match probe_media(&state.ffprobe, &path).await {
         Ok(probe) => probe,
         Err(failure) => return error(StatusCode::BAD_REQUEST, &failure.to_string()),
@@ -720,40 +724,21 @@ async fn start_preview(
     let duration = probe.duration_seconds;
 
     if !request.wait {
-        let queue = state.queue.clone();
-        let subject = name_of(&path);
-        let queued = request.clone();
-        let ffmpeg = config.ffmpeg.clone();
-        let device = config.device.clone();
-        let cache_root = config.cache_root.clone();
-        let found = capabilities.clone();
-        let previews = state.previews.clone();
-        let owner = request.owner.clone();
-
-        tokio::spawn(async move {
-            let _ = queue
-                .run(
-                    "preview",
-                    &subject,
-                    owner.as_deref(),
-                    previews.generate(
-                        crate::preview::Tools {
-                            ffmpeg: &ffmpeg,
-                            device: &device,
-                        },
-                        &cache_root,
-                        &queued,
-                        crate::preview::Source {
-                            range,
-                            bit_depth,
-                            size,
-                        },
-                        &found,
-                        duration,
-                    ),
-                )
-                .await;
-        });
+        if state.previews.claim(&id).await {
+            cut_in_the_background(
+                &state,
+                &request,
+                &path,
+                crate::preview::Source {
+                    range,
+                    bit_depth,
+                    size,
+                },
+                &capabilities,
+                duration,
+                id.clone(),
+            );
+        }
 
         return (
             StatusCode::ACCEPTED,
@@ -1119,12 +1104,67 @@ fn prepare_in_the_background(state: &AppState, request: &DownloadRequest, path: 
     });
 }
 
+/// Cuts a clip without holding the asker, and remembers what went wrong.
+///
+/// The same shape sheets use. A caller that will not wait is answered at once
+/// and asks again; the failure that would otherwise have nobody to tell is kept
+/// against the address until somebody does.
+fn cut_in_the_background(
+    state: &AppState,
+    request: &PreviewRequest,
+    path: &Path,
+    source: crate::preview::Source,
+    capabilities: &Capabilities,
+    duration_seconds: f64,
+    claimed: String,
+) {
+    let config = state.registry.config();
+    let previews = state.previews.clone();
+    let queue = state.queue.clone();
+    let ffmpeg = config.ffmpeg.clone();
+    let device = config.device.clone();
+    let cache_root = config.cache_root.clone();
+    let queued = request.clone();
+    let owner = request.owner.clone();
+    let subject = name_of(path);
+    let found = capabilities.clone();
+
+    let id = claimed.clone();
+
+    tokio::spawn(async move {
+        let outcome = queue
+            .run(
+                "preview",
+                &subject,
+                owner.as_deref(),
+                previews.generate(
+                    crate::preview::Tools {
+                        ffmpeg: &ffmpeg,
+                        device: &device,
+                    },
+                    &cache_root,
+                    &queued,
+                    source,
+                    &found,
+                    duration_seconds,
+                ),
+            )
+            .await;
+
+        if let Err(failure) = outcome {
+            previews.remember_failure(&id, failure.to_string()).await;
+        }
+
+        previews.give_up(&claimed).await;
+    });
+}
+
 fn draw_in_the_background(
     state: &AppState,
     request: &TrickplayRequest,
     path: &Path,
     source: SheetSource,
-    accel: Option<HardwareAccel>,
+    on_device: (Option<HardwareAccel>, Capabilities),
     claimed: String,
 ) {
     let config = state.registry.config();
@@ -1136,6 +1176,7 @@ fn draw_in_the_background(
     let queued = request.clone();
     let owner = request.owner.clone();
     let subject = name_of(path);
+    let (accel, found) = on_device;
 
     let id = claimed.clone();
 
@@ -1145,7 +1186,17 @@ fn draw_in_the_background(
                 "thumbnails",
                 &subject,
                 owner.as_deref(),
-                trickplay.generate(&ffmpeg, &device, &cache_root, &queued, source, accel),
+                trickplay.generate(
+                    crate::trickplay::Tools {
+                        ffmpeg: &ffmpeg,
+                        device: &device,
+                        capabilities: &found,
+                    },
+                    &cache_root,
+                    &queued,
+                    source,
+                    accel,
+                ),
             )
             .await;
 
@@ -1196,6 +1247,8 @@ async fn start_trickplay(
     let source = SheetSource {
         width: video.width,
         height: video.height,
+        range: video.range,
+        frames_per_second: video.frame_rate,
         bit_depth: video.bit_depth,
         duration_seconds: probe.duration_seconds,
     };
@@ -1215,7 +1268,14 @@ async fn start_trickplay(
                 return (StatusCode::ACCEPTED, Json(pending)).into_response();
             }
 
-            draw_in_the_background(&state, &request, &path, source, accel, id);
+            draw_in_the_background(
+                &state,
+                &request,
+                &path,
+                source,
+                (accel, capabilities.clone()),
+                id,
+            );
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
@@ -1223,8 +1283,11 @@ async fn start_trickplay(
         return match state
             .trickplay
             .generate(
-                &config.ffmpeg,
-                &config.device,
+                crate::trickplay::Tools {
+                    ffmpeg: &config.ffmpeg,
+                    device: &config.device,
+                    capabilities: &capabilities,
+                },
                 &config.cache_root,
                 &request,
                 source,
@@ -1244,8 +1307,11 @@ async fn start_trickplay(
             &name_of(&path),
             request.owner.as_deref(),
             state.trickplay.generate(
-                &config.ffmpeg,
-                &config.device,
+                crate::trickplay::Tools {
+                    ffmpeg: &config.ffmpeg,
+                    device: &config.device,
+                    capabilities: &capabilities,
+                },
                 &config.cache_root,
                 &request,
                 source,

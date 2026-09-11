@@ -1,4 +1,5 @@
 import { mapWithLimit } from '@ValenceCore/functions/mapWithLimit';
+import { wait } from '@ValenceCore/functions/wait';
 import { previewRequestFor } from './previewRequestFor';
 import type { AudioStream } from '@ValenceContracts/schemas/MediaItem';
 import type { PreviewQuality } from '@ValenceContracts/schemas/PreviewQuality';
@@ -9,6 +10,14 @@ type PreviewStore = {
     libraryId: string,
   ) => Promise<{ id: string; path: string; audioStreams: AudioStream[] }[]>;
   markComplete: (mediaItemId: string) => Promise<void>;
+};
+
+const ASK_AGAIN_MILLISECONDS = 5_000;
+
+type CutClipOptions = {
+  transcoder: Transcoder;
+  request: Parameters<Transcoder['requestPreview']>[0];
+  isCancelled: (() => boolean) | undefined;
 };
 
 type RegeneratePreviewsOptions = {
@@ -24,6 +33,36 @@ type RegeneratePreviewsOptions = {
   onProblem?: (path: string, reason: string) => void;
   onProgress?: (processed: number, total: number) => void;
   isCancelled?: () => boolean;
+};
+
+/**
+ * Cuts one clip, asking the media service to begin and then asking again until it says it is done.
+ *
+ * Nothing waits on the render itself. Holding the request open for the whole encode was what made a
+ * scan impossible to stop: the call had no clock and no way to be abandoned, so a cancelled job sat
+ * in it until every clip in flight had finished — minutes, and sometimes far longer. Asking again
+ * every few seconds costs one quick answer each time and can be given up between any two of them.
+ *
+ * A render that fails says so: the media service remembers what went wrong and answers the next ask
+ * with it, so this ends on a fault rather than on a clock. The same shape the sheets use.
+ *
+ * @param options - The media service, what to cut, and whether the scan has been stopped.
+ * @returns Whether the clip was cut, which is false where the scan was stopped.
+ */
+const cutClip = async ({ transcoder, request, isCancelled }: CutClipOptions): Promise<boolean> => {
+  let clip = await transcoder.requestPreview(request);
+
+  while (!clip.isReady) {
+    if (isCancelled?.() === true) {
+      return false;
+    }
+
+    await wait(ASK_AGAIN_MILLISECONDS);
+
+    clip = await transcoder.requestPreview(request);
+  }
+
+  return true;
 };
 
 /**
@@ -59,26 +98,29 @@ const regeneratePreviews = async ({
       return;
     }
 
-    const rendered = await transcoder
-      .requestPreview({
+    const rendered = await cutClip({
+      transcoder,
+      request: {
         ...previewRequestFor(item, generation, defaultAudioLanguage, quality),
         ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
-        wait: true,
+        wait: false,
         ...(owner === undefined ? {} : { owner }),
-      })
-      .then(() => true)
-      .catch((error: Error) => {
-        onProblem?.(item.path, error.message);
+      },
+      isCancelled,
+    }).catch((error: Error) => {
+      onProblem?.(item.path, error.message);
 
-        return false;
-      });
+      return false;
+    });
 
     if (rendered) {
       await store.markComplete(item.id);
     }
 
-    processed += 1;
-    onProgress?.(processed, items.length);
+    if (isCancelled?.() !== true) {
+      processed += 1;
+      onProgress?.(processed, items.length);
+    }
   });
 };
 
