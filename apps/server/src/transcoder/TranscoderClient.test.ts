@@ -36,6 +36,7 @@ describe('what the transcoder says it can do', () => {
     toneMapping: 'zscale',
     canBurnTextSubtitles: true,
     canBurnImageSubtitles: true,
+    chains: [],
   };
 
   it('keeps the tone mapping it was told about, rather than dropping it', async () => {

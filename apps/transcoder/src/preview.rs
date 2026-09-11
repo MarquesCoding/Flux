@@ -22,6 +22,7 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 
 use crate::capability::Capabilities;
+use crate::chains::{runs_here, ChainShape};
 use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::monitor::{record, LogLevel};
@@ -432,9 +433,17 @@ pub async fn generate(
 
     loop {
         let accel = match &chosen {
-            PreviewEncoder::Hardware(_) => {
-                capabilities.best_encoder("h264").map(|found| found.accel)
-            }
+            PreviewEncoder::Hardware(_) => capabilities
+                .best_encoder("h264")
+                .map(|found| found.accel)
+                .filter(|found| {
+                    runs_here(
+                        &capabilities.chains,
+                        *found,
+                        ChainShape::Preview,
+                        source.bit_depth,
+                    )
+                }),
             PreviewEncoder::Software => None,
         };
 
@@ -617,6 +626,7 @@ mod tests {
             hardware_tone_maps: Vec::new(),
             can_burn_text_subtitles: true,
             can_burn_image_subtitles: true,
+            chains: Vec::new(),
         }
     }
 

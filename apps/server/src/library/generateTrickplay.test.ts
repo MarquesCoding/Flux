@@ -59,6 +59,7 @@ const stubTranscoder = (requestTrickplay: Transcoder['requestTrickplay']): Trans
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
       canBurnImageSubtitles: true,
+      chains: [],
     }),
 });
 

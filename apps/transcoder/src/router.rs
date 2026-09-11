@@ -1160,10 +1160,18 @@ async fn start_trickplay(
     };
 
     let config = state.registry.config();
-    let accel = detect_capabilities(&config.ffmpeg, &config.device)
-        .await
+    let capabilities = detect_capabilities(&config.ffmpeg, &config.device).await;
+    let accel = capabilities
         .best_encoder("h264")
-        .map(|found| found.accel);
+        .map(|found| found.accel)
+        .filter(|found| {
+            crate::chains::runs_here(
+                &capabilities.chains,
+                *found,
+                crate::chains::ChainShape::Sheet,
+                video.bit_depth,
+            )
+        });
 
     let source = SheetSource {
         width: video.width,

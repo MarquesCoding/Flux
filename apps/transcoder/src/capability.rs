@@ -201,6 +201,13 @@ pub struct Capabilities {
     /// manage one and not the other.
     pub can_burn_text_subtitles: bool,
     pub can_burn_image_subtitles: bool,
+    /// The whole chains this machine was asked to prove, and what it said.
+    ///
+    /// Filters being present and encoders running on their own were already
+    /// checked, and a library still failed every preview and every sheet: what
+    /// breaks is the joins between them. See [`crate::chains`].
+    #[serde(default)]
+    pub chains: Vec<crate::chains::VerifiedChain>,
     /// Encoders that were offered and would not run, and what they said.
     #[serde(default)]
     pub rejected: Vec<RejectedEncoder>,
@@ -715,6 +722,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
     };
 
     let version = read_version(ffmpeg).await;
+    let encoders_for_chains = encoders.clone();
 
     Capabilities {
         ffmpeg_supported: meets_minimum(&version),
@@ -737,6 +745,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
         rejected,
         can_burn_text_subtitles: filters.iter().any(|filter| filter == "subtitles"),
         can_burn_image_subtitles: filters.iter().any(|filter| filter == "overlay"),
+        chains: crate::chains::verify_chains(ffmpeg, device, &encoders_for_chains).await,
     }
 }
 
@@ -1152,6 +1161,7 @@ reported anything else would either reprobe forever or never"
             hardware_scalers: Vec::new(),
             can_burn_text_subtitles: false,
             can_burn_image_subtitles: false,
+            chains: Vec::new(),
         }
     }
 

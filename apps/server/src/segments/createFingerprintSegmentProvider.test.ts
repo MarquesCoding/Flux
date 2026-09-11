@@ -119,6 +119,7 @@ const transcoderThat = (
       toneMapping: 'unavailable' as const,
       canBurnTextSubtitles: true,
       canBurnImageSubtitles: true,
+      chains: [],
     }),
 });
 

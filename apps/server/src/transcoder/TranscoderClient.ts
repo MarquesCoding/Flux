@@ -114,6 +114,17 @@ const CapabilitiesSchema = z.object({
   toneMapping: z.enum(['zscale', 'libplacebo', 'unavailable']).default('unavailable'),
   canBurnTextSubtitles: z.boolean().default(false),
   canBurnImageSubtitles: z.boolean().default(false),
+  chains: z
+    .array(
+      z.object({
+        accel: z.string(),
+        shape: z.enum(['preview', 'sheet', 'transcode']),
+        bitDepth: z.number().int(),
+        works: z.boolean(),
+        reason: z.string().nullish(),
+      }),
+    )
+    .default([]),
 });
 
 const FingerprintSchema = z.object({
