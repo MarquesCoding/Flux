@@ -260,18 +260,24 @@ pub struct Source {
 /// before the input, which makes taking a clip from the middle of a long film
 /// a matter of a second rather than of minutes.
 ///
-/// Decoded on the device where there is one, and brought down explicitly.
+/// Decoded on the device, brought down for the filters, and sent back up to be
+/// encoded.
 ///
 /// Every filter here works in system memory — the scale always, the tone mapper
-/// when the source is HDR — so the frames have to come back. `hwdownload` is
-/// named rather than left to ffmpeg, which is the whole of what was wrong
-/// before: `-hwaccel` alone leaves some backends handing device frames straight
-/// into a software filter, and QSV is one of them. ffmpeg will not insert the
-/// download itself, so the graph simply would not configure and the clip was
-/// never written.
+/// when the source is HDR — so the frames have to come down, and `hwdownload`
+/// is named rather than left to ffmpeg: `-hwaccel` alone leaves some backends
+/// handing device frames straight into a software filter, and QSV is one of
+/// them.
+///
+/// They have to go back up again just as explicitly. A hardware encoder fed
+/// from a device that is already open wants that device's surfaces, and handing
+/// it system memory instead is refused at the first frame — "Invalid
+/// FrameType:0", then "Error submitting video frame to the encoder". A bare
+/// `hwupload` is enough here because the download earlier in the same chain
+/// leaves a frames context in hand.
 ///
 /// Decoding is still worth doing on the device. It is the expensive half, and a
-/// 10-bit source costs several times in software what the transfer down costs.
+/// 10-bit source costs several times in software what the two transfers do.
 #[must_use]
 pub fn preview_arguments(
     request: &PreviewRequest,
@@ -300,6 +306,10 @@ pub fn preview_arguments(
     }
 
     filters.push(format!("scale='min({width},iw)':-2", width = request.width));
+
+    if onto_the_device.is_some_and(|(_, pipeline, _)| pipeline.encodes_from_device) {
+        filters.push("hwupload".to_owned());
+    }
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),

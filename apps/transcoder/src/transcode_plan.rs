@@ -804,6 +804,17 @@ pub struct HardwarePipeline {
     /// built, and the expression below was run against it on Apple silicon
     /// rather than inferred from the patch.
     pub tone_map: Option<&'static str>,
+    /// Whether this backend's encoder has to be handed the device's own frames.
+    ///
+    /// Not all of them do. `h264_videotoolbox` and `h264_nvenc` take system
+    /// memory and upload it themselves, where `h264_vaapi` and `h264_qsv` want
+    /// surfaces from the device already open — handed system memory instead,
+    /// QSV refuses the first frame with "Invalid FrameType:0" and VAAPI will
+    /// not configure at all.
+    ///
+    /// So a chain that came down for its filters has to go back up for these
+    /// two, and must not for the others.
+    pub encodes_from_device: bool,
 }
 
 impl HardwarePipeline {
@@ -858,6 +869,7 @@ impl HardwareAccel {
                 tone_map: Some(
                     "tonemap_videotoolbox=format=nv12:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
+                encodes_from_device: false,
             }),
             Self::Nvenc => Some(HardwarePipeline {
                 output_format: "cuda",
@@ -870,6 +882,7 @@ impl HardwareAccel {
                 tone_map: Some(
                     "tonemap_cuda=format=yuv420p:p=bt709:t=bt709:m=bt709:tonemap=bt2390",
                 ),
+                encodes_from_device: false,
             }),
             Self::Qsv => Some(HardwarePipeline {
                 output_format: "qsv",
@@ -880,6 +893,7 @@ impl HardwareAccel {
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
                 tone_map: None,
+                encodes_from_device: true,
             }),
             Self::Vaapi => Some(HardwarePipeline {
                 output_format: "vaapi",
@@ -890,6 +904,7 @@ impl HardwareAccel {
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=vaapi",
                 tone_map: Some("tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709"),
+                encodes_from_device: true,
             }),
             Self::Rkmpp => Some(HardwarePipeline {
                 output_format: "drm_prime",
@@ -900,6 +915,7 @@ impl HardwareAccel {
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=rkmpp",
                 tone_map: None,
+                encodes_from_device: false,
             }),
             Self::None | Self::Amf => None,
         }
