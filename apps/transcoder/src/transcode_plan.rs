@@ -934,7 +934,7 @@ impl HardwareAccel {
                 overlay: "overlay_qsv",
                 overlay_format: "bgra",
                 overlay_upload: "hwupload=derive_device=qsv:extra_hw_frames=64",
-                tone_map: None,
+                tone_map: Some("vpp_qsv=tonemap=1:format=nv12"),
                 encodes_from_device: true,
                 narrows_to_eight_bit: Some("format=nv12"),
                 upload: "hwupload=extra_hw_frames=64",
@@ -2097,6 +2097,37 @@ mod tests {
     /// hardware frames arriving at a software filter — a graph ffmpeg cannot
     /// configure, reported as "Impossible to convert between the formats" and
     /// ending with no output file at all.
+    /// Intel converts HDR with an option on the scaler it already runs, which is
+    /// what Jellyfin's "VPP tone mapping" turns on. Without it every HDR film
+    /// came off the device to be converted and went back up, and that round
+    /// trip is where 2160p previews were failing.
+    #[test]
+    fn converts_hdr_on_the_device_on_qsv_rather_than_coming_down_for_it() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::Qsv)
+        };
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::OnDevice);
+
+        let args = plan_on(spec, FULL).to_ffmpeg_args();
+        let filters = args
+            .iter()
+            .position(|argument| argument == "-vf")
+            .and_then(|at| args.get(at + 1))
+            .expect("a filter chain");
+
+        assert!(filters.contains("tonemap=1"), "{filters}");
+        assert!(!filters.contains("hwdownload"), "{filters}");
+        assert!(!filters.contains("zscale"), "{filters}");
+    }
+
     #[test]
     fn does_not_decode_on_the_device_for_a_chain_that_cannot_take_its_frames() {
         let spec = SessionSpec {
@@ -2107,7 +2138,7 @@ mod tests {
                 max_height: 720,
                 tone_map: Some(ToneMapping::Zscale),
             },
-            ..on_gpu(HardwareAccel::Qsv)
+            ..on_gpu(HardwareAccel::Rkmpp)
         };
 
         assert_eq!(frame_route(&spec, FULL), FrameRoute::InSoftware);
@@ -2310,7 +2341,8 @@ subtitles='/media/film.mkv':si=2,hwupload"
     /// deliberate fallback rather than a chain that will not run.
     #[test]
     fn converts_in_software_where_the_backend_has_no_tone_mapper() {
-        for accel in [HardwareAccel::Qsv, HardwareAccel::Rkmpp] {
+        {
+            let accel = HardwareAccel::Rkmpp;
             let spec = SessionSpec {
                 video: VideoAction::Encode {
                     encoder: "h264".to_owned(),

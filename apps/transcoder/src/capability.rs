@@ -537,13 +537,19 @@ async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, devic
 /// Two gates, and the second is the one that matters: a filter can be compiled
 /// in and still be refused by the driver underneath it. Only backends with a
 /// tone mapper of their own are asked, which is what keeps this to a few short
-/// probes rather than a sweep — and only one of the three can be present on any
-/// given machine.
+/// probes rather than a sweep.
+///
+/// `QSV` converts with an option on `vpp_qsv` rather than with a filter of its
+/// own, so the presence gate reads the scaler it already uses and proves
+/// nothing — the option is newer than the filter and a build can have one
+/// without the other. The run is the whole of the answer there, which is what
+/// it was always meant to be.
 async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> Vec<String> {
     let mut verified = Vec::new();
 
     for accel in [
         HardwareAccel::Vaapi,
+        HardwareAccel::Qsv,
         HardwareAccel::Nvenc,
         HardwareAccel::VideoToolbox,
     ] {
