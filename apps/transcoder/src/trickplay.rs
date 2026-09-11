@@ -21,6 +21,7 @@ use tokio::process::Command;
 use tokio::sync::Mutex;
 
 use crate::integrity::decodes;
+use crate::transcode_plan::HardwareAccel;
 
 /// Written only when every sheet is on disk.
 ///
@@ -247,16 +248,33 @@ const RENDER_THREADS: u32 = 2;
 pub fn sheet_arguments(
     request: &TrickplayRequest,
     tile_height: u32,
+    accel: Option<HardwareAccel>,
+    device: &str,
     directory: &Path,
 ) -> Vec<String> {
-    let filter = format!(
-        "fps=1/{interval},scale={width}:{height},tile={columns}x{rows}",
-        interval = request.interval_seconds,
-        width = request.tile_width,
-        height = tile_height,
-        columns = request.columns,
-        rows = request.rows,
-    );
+    let onto_the_device =
+        accel.and_then(|found| found.pipeline().map(|pipeline| (found, pipeline)));
+
+    let filter = match onto_the_device {
+        Some((_, pipeline)) => format!(
+            "fps=1/{interval},{scaler}=w={width}:h={height},hwdownload,format={down},tile={columns}x{rows}",
+            interval = request.interval_seconds,
+            scaler = pipeline.scaler,
+            width = request.tile_width,
+            height = tile_height,
+            down = pipeline.download_format,
+            columns = request.columns,
+            rows = request.rows,
+        ),
+        None => format!(
+            "fps=1/{interval},scale={width}:{height},tile={columns}x{rows}",
+            interval = request.interval_seconds,
+            width = request.tile_width,
+            height = tile_height,
+            columns = request.columns,
+            rows = request.rows,
+        ),
+    };
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),
@@ -266,6 +284,17 @@ pub fn sheet_arguments(
         "-threads".to_owned(),
         RENDER_THREADS.to_string(),
     ];
+
+    if let Some((found, pipeline)) = onto_the_device {
+        arguments.extend(found.filter_device_arguments(device));
+
+        if let Some(flag) = found.ffmpeg_flag() {
+            arguments.push("-hwaccel".to_owned());
+            arguments.push(flag.to_owned());
+            arguments.push("-hwaccel_output_format".to_owned());
+            arguments.push(pipeline.output_format.to_owned());
+        }
+    }
 
     arguments.extend([
         "-skip_frame".to_owned(),
@@ -460,15 +489,17 @@ impl TrickplayRegistry {
     pub async fn generate(
         &self,
         ffmpeg: &str,
+        device: &str,
         cache_root: &Path,
         request: &TrickplayRequest,
         source: SheetSource,
+        accel: Option<HardwareAccel>,
     ) -> Result<TrickplayIndex, TrickplayError> {
         let id = request.id();
         let gate = self.gate(&id).await;
         let permit = gate.lock().await;
 
-        let outcome = generate(ffmpeg, cache_root, request, source).await;
+        let outcome = generate(ffmpeg, device, cache_root, request, source, accel).await;
 
         drop(permit);
         self.release(&id).await;
@@ -494,9 +525,11 @@ impl TrickplayRegistry {
 /// software, or the index cannot be saved.
 pub async fn generate(
     ffmpeg: &str,
+    device: &str,
     cache_root: &Path,
     request: &TrickplayRequest,
     source: SheetSource,
+    accel: Option<HardwareAccel>,
 ) -> Result<TrickplayIndex, TrickplayError> {
     let tile_height = tile_height_for(request.tile_width, source.width, source.height);
     let count = thumbnail_count(source.duration_seconds, request.interval_seconds);
@@ -529,7 +562,13 @@ pub async fn generate(
         .map_err(TrickplayError::Directory)?;
 
     let output = Command::new(ffmpeg)
-        .args(sheet_arguments(request, tile_height, &directory))
+        .args(sheet_arguments(
+            request,
+            tile_height,
+            accel,
+            device,
+            &directory,
+        ))
         .output()
         .await
         .map_err(TrickplayError::Spawn)?;
@@ -597,7 +636,7 @@ pub fn directory_for(cache_root: &Path, id: &str) -> PathBuf {
 mod tests {
     use super::{
         build_index, format_timestamp, sheet_arguments, thumbnail_count, tile_height_for,
-        TrickplayRegistry, TrickplayRequest,
+        HardwareAccel, TrickplayRegistry, TrickplayRequest,
     };
     use std::path::Path;
 
@@ -752,19 +791,47 @@ otherwise start a second one"
         assert_ne!(request().id(), coarse.id());
     }
 
-    /// Every filter drawing a sheet works in system memory, so the decode does
-    /// too. Asking the hardware for frames it cannot take is a graph ffmpeg
-    /// will not configure, and sheets that are never written.
+    /// Decoded on the device, and brought down for the filters that draw the
+    /// sheet. Left to ffmpeg the graph will not configure at all on QSV.
     #[test]
-    fn never_decodes_on_the_device() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+    fn decodes_on_the_device_and_brings_the_frames_down() {
+        let arguments = sheet_arguments(
+            &request(),
+            180,
+            Some(HardwareAccel::Qsv),
+            "/dev/dri/renderD128",
+            Path::new("/cache"),
+        );
+
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]));
+        assert!(arguments
+            .windows(2)
+            .any(|pair| pair == ["-hwaccel_output_format", "qsv"]));
+        assert_eq!(
+            chain, "fps=1/10,vpp_qsv=w=320:h=180,hwdownload,format=nv12,tile=2x2",
+            "the scale happens on the device, so only the thumbnails come down"
+        );
+    }
+
+    #[test]
+    fn draws_entirely_in_software_on_a_machine_with_no_device() {
+        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
 
         assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+        assert!(!arguments
+            .iter()
+            .any(|argument| argument.contains("hwdownload")));
     }
 
     #[test]
     fn still_only_decodes_keyframes() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
 
         assert!(arguments
             .windows(2)
@@ -773,7 +840,7 @@ otherwise start a second one"
 
     #[test]
     fn sampling_happens_before_scaling_so_only_kept_frames_are_resized() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
         let filter = arguments
             .iter()
             .position(|argument| argument == "-vf")
@@ -785,7 +852,7 @@ otherwise start a second one"
 
     #[test]
     fn audio_and_subtitles_are_dropped_from_the_thumbnail_pass() {
-        let arguments = sheet_arguments(&request(), 180, Path::new("/cache"));
+        let arguments = sheet_arguments(&request(), 180, None, "", Path::new("/cache"));
 
         assert!(arguments.iter().any(|argument| argument == "-an"));
         assert!(arguments.iter().any(|argument| argument == "-sn"));

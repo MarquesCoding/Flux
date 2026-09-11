@@ -24,6 +24,7 @@ use crate::probe::probe_media;
 use crate::queue::WorkQueue;
 use crate::session::{await_run, segment_number, Reuse, SessionRegistry};
 use crate::subtitle::{extract_subtitle, SubtitleRequest};
+use crate::transcode_plan::HardwareAccel;
 use crate::transcode_plan::{DeviceFilters, SegmentStart, TranscodePlan};
 use crate::transcode_plan::{SessionSpec, MANIFEST_NAME};
 use crate::trickplay::{
@@ -716,6 +717,7 @@ async fn start_preview(
         let subject = name_of(&path);
         let queued = request.clone();
         let ffmpeg = config.ffmpeg.clone();
+        let device = config.device.clone();
         let cache_root = config.cache_root.clone();
         let found = capabilities.clone();
         let previews = state.previews.clone();
@@ -727,7 +729,17 @@ async fn start_preview(
                     "preview",
                     &subject,
                     owner.as_deref(),
-                    previews.generate(&ffmpeg, &cache_root, &queued, range, &found, duration),
+                    previews.generate(
+                        crate::preview::Tools {
+                            ffmpeg: &ffmpeg,
+                            device: &device,
+                        },
+                        &cache_root,
+                        &queued,
+                        range,
+                        &found,
+                        duration,
+                    ),
                 )
                 .await;
         });
@@ -750,7 +762,10 @@ async fn start_preview(
             &name_of(&path),
             request.owner.as_deref(),
             state.previews.generate(
-                &config.ffmpeg,
+                crate::preview::Tools {
+                    ffmpeg: &config.ffmpeg,
+                    device: &config.device,
+                },
                 &config.cache_root,
                 &request,
                 range,
@@ -1094,12 +1109,14 @@ fn draw_in_the_background(
     request: &TrickplayRequest,
     path: &Path,
     source: SheetSource,
+    accel: Option<HardwareAccel>,
     claimed: String,
 ) {
     let config = state.registry.config();
     let trickplay = state.trickplay.clone();
     let queue = state.queue.clone();
     let ffmpeg = config.ffmpeg.clone();
+    let device = config.device.clone();
     let cache_root = config.cache_root.clone();
     let queued = request.clone();
     let owner = request.owner.clone();
@@ -1111,7 +1128,7 @@ fn draw_in_the_background(
                 "thumbnails",
                 &subject,
                 owner.as_deref(),
-                trickplay.generate(&ffmpeg, &cache_root, &queued, source),
+                trickplay.generate(&ffmpeg, &device, &cache_root, &queued, source, accel),
             )
             .await;
 
@@ -1142,6 +1159,10 @@ async fn start_trickplay(
     };
 
     let config = state.registry.config();
+    let accel = detect_capabilities(&config.ffmpeg, &config.device)
+        .await
+        .best_encoder("h264")
+        .map(|found| found.accel);
 
     let source = SheetSource {
         width: video.width,
@@ -1160,14 +1181,21 @@ async fn start_trickplay(
                 return (StatusCode::ACCEPTED, Json(pending)).into_response();
             }
 
-            draw_in_the_background(&state, &request, &path, source, id);
+            draw_in_the_background(&state, &request, &path, source, accel, id);
 
             return (StatusCode::ACCEPTED, Json(pending)).into_response();
         }
 
         return match state
             .trickplay
-            .generate(&config.ffmpeg, &config.cache_root, &request, source)
+            .generate(
+                &config.ffmpeg,
+                &config.device,
+                &config.cache_root,
+                &request,
+                source,
+                accel,
+            )
             .await
         {
             Ok(index) => (StatusCode::OK, Json(index)).into_response(),
@@ -1181,9 +1209,14 @@ async fn start_trickplay(
             "thumbnails",
             &name_of(&path),
             request.owner.as_deref(),
-            state
-                .trickplay
-                .generate(&config.ffmpeg, &config.cache_root, &request, source),
+            state.trickplay.generate(
+                &config.ffmpeg,
+                &config.device,
+                &config.cache_root,
+                &request,
+                source,
+                accel,
+            ),
         )
         .await
     {

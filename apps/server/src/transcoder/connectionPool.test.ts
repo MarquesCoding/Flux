@@ -19,6 +19,8 @@ vi.mock('undici', async () => {
 
 const { createTranscoderClient } = await import('./TranscoderClient');
 
+const AGENTS_PER_CLIENT = 3;
+
 describe('the connection pool', () => {
   it('is made once for a client, not once per stream opened', async () => {
     agentsMade.count = 0;
@@ -29,6 +31,6 @@ describe('the connection pool', () => {
     await client.openMonitorStream();
     await client.openMonitorStream();
 
-    expect(agentsMade.count).toBeLessThanOrEqual(2);
+    expect(agentsMade.count).toBeLessThanOrEqual(AGENTS_PER_CLIENT);
   });
 });

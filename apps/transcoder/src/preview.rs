@@ -231,6 +231,18 @@ pub async fn is_complete(cache_root: &Path, id: &str) -> bool {
         .unwrap_or(false)
 }
 
+/// Where ffmpeg is, and the device it may render on.
+#[derive(Clone, Copy)]
+pub struct Tools<'a> {
+    /// The ffmpeg binary to run.
+    pub ffmpeg: &'a str,
+    /// The render node to open, where this machine has one.
+    pub device: &'a str,
+}
+
+/// A backend to decode on, and the device to open for it.
+pub type OnDevice<'a> = Option<(HardwareAccel, &'a str)>;
+
 /// The ffmpeg arguments that cut and encode the clip.
 ///
 /// Encoded rather than copied, and to something every browser plays without
@@ -239,13 +251,18 @@ pub async fn is_complete(cache_root: &Path, id: &str) -> bool {
 /// before the input, which makes taking a clip from the middle of a long film
 /// a matter of a second rather than of minutes.
 ///
-/// Decoded in software, whatever encodes it. Every filter here works in system
-/// memory — the scale always, the tone mapper when the source is HDR — and a
-/// hardware decoder hands out frames on the device. Some backends quietly bring
-/// those down and QSV does not, so asking for hardware decode here produced a
-/// graph ffmpeg could not configure and a clip that was never written. A
-/// preview is a few seconds long; what that decode saves is not worth a filter
-/// chain that only works on some machines.
+/// Decoded on the device where there is one, and brought down explicitly.
+///
+/// Every filter here works in system memory — the scale always, the tone mapper
+/// when the source is HDR — so the frames have to come back. `hwdownload` is
+/// named rather than left to ffmpeg, which is the whole of what was wrong
+/// before: `-hwaccel` alone leaves some backends handing device frames straight
+/// into a software filter, and QSV is one of them. ffmpeg will not insert the
+/// download itself, so the graph simply would not configure and the clip was
+/// never written.
+///
+/// Decoding is still worth doing on the device. It is the expensive half, and a
+/// 10-bit source costs several times in software what the transfer down costs.
 #[must_use]
 pub fn preview_arguments(
     request: &PreviewRequest,
@@ -253,9 +270,16 @@ pub fn preview_arguments(
     range: VideoRange,
     tone_mapping: ToneMapping,
     encoder: &PreviewEncoder,
+    on_device: OnDevice<'_>,
     output: &Path,
 ) -> Vec<String> {
     let mut filters = Vec::new();
+    let onto_the_device = on_device
+        .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
+
+    if let Some((_, pipeline, _)) = onto_the_device {
+        filters.push(format!("hwdownload,format={}", pipeline.download_format));
+    }
 
     if range != VideoRange::Sdr {
         if let Some(filter) = tone_map_filter(tone_mapping) {
@@ -271,6 +295,17 @@ pub fn preview_arguments(
         "error".to_owned(),
         "-nostdin".to_owned(),
     ];
+
+    if let Some((found, pipeline, device)) = onto_the_device {
+        arguments.extend(found.filter_device_arguments(device));
+
+        if let Some(flag) = found.ffmpeg_flag() {
+            arguments.push("-hwaccel".to_owned());
+            arguments.push(flag.to_owned());
+            arguments.push("-hwaccel_output_format".to_owned());
+            arguments.push(pipeline.output_format.to_owned());
+        }
+    }
 
     arguments.extend([
         "-ss".to_owned(),
@@ -344,7 +379,7 @@ pub fn preview_arguments(
 /// started, it writes nothing, or what it wrote will not decode even in
 /// software.
 pub async fn generate(
-    ffmpeg: &str,
+    tools: Tools<'_>,
     cache_root: &Path,
     request: &PreviewRequest,
     range: VideoRange,
@@ -374,13 +409,21 @@ pub async fn generate(
     let mut chosen = preview_encoder(capabilities);
 
     loop {
-        let outcome = Command::new(ffmpeg)
+        let accel = match &chosen {
+            PreviewEncoder::Hardware(_) => {
+                capabilities.best_encoder("h264").map(|found| found.accel)
+            }
+            PreviewEncoder::Software => None,
+        };
+
+        let outcome = Command::new(tools.ffmpeg)
             .args(preview_arguments(
                 request,
                 start,
                 range,
                 tone_mapping,
                 &chosen,
+                accel.map(|found| (found, tools.device)),
                 &output,
             ))
             .output()
@@ -392,7 +435,7 @@ pub async fn generate(
             .map_or(0, |file| file.len());
 
         let failure = if outcome.status.success() && written > 0 {
-            decodes(ffmpeg, &output)
+            decodes(tools.ffmpeg, &output)
                 .await
                 .err()
                 .map(PreviewError::Corrupt)
@@ -483,7 +526,7 @@ impl PreviewRegistry {
     /// Returns [`PreviewError`] for the same reasons [`generate`] does.
     pub async fn generate(
         &self,
-        ffmpeg: &str,
+        tools: Tools<'_>,
         cache_root: &Path,
         request: &PreviewRequest,
         range: VideoRange,
@@ -495,7 +538,7 @@ impl PreviewRegistry {
         let permit = gate.lock().await;
 
         let outcome = generate(
-            ffmpeg,
+            tools,
             cache_root,
             request,
             range,
@@ -583,6 +626,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Hardware("h264_videotoolbox".to_owned()),
+            Some((HardwareAccel::VideoToolbox, "/dev/dri/renderD128")),
             Path::new("/cache/preview.mp4"),
         );
 
@@ -593,9 +637,10 @@ mod tests {
         assert!(!arguments.iter().any(|argument| argument == "-crf"));
     }
 
-    /// Every filter here works in system memory, so the decode does too.
+    /// The frames come down where the filters are, and are told what to come
+    /// down as. Left to ffmpeg the graph does not configure at all on QSV.
     #[test]
-    fn never_decodes_on_the_device_however_it_encodes() {
+    fn decodes_on_the_device_and_brings_the_frames_down() {
         for range in [VideoRange::Sdr, VideoRange::Hdr10] {
             let arguments = preview_arguments(
                 &request(),
@@ -603,14 +648,49 @@ mod tests {
                 range,
                 ToneMapping::Zscale,
                 &PreviewEncoder::Hardware("h264_qsv".to_owned()),
+                Some((HardwareAccel::Qsv, "/dev/dri/renderD128")),
                 Path::new("/cache/preview.mp4"),
             );
 
+            let chain = arguments
+                .windows(2)
+                .find(|pair| pair[0] == "-vf")
+                .map(|pair| pair[1].clone())
+                .expect("a filter chain");
+
             assert!(
-                !arguments.iter().any(|argument| argument == "-hwaccel"),
+                arguments.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]),
                 "{range:?}: {arguments:?}"
             );
+            assert!(
+                arguments
+                    .windows(2)
+                    .any(|pair| pair == ["-hwaccel_output_format", "qsv"]),
+                "{range:?}: {arguments:?}"
+            );
+            assert!(
+                chain.starts_with("hwdownload,format=nv12,"),
+                "{range:?}: {chain}"
+            );
         }
+    }
+
+    #[test]
+    fn encodes_in_software_without_asking_the_device_for_anything() {
+        let arguments = preview_arguments(
+            &request(),
+            600,
+            VideoRange::Sdr,
+            ToneMapping::Zscale,
+            &PreviewEncoder::Software,
+            None,
+            Path::new("/cache/preview.mp4"),
+        );
+
+        assert!(!arguments.iter().any(|argument| argument == "-hwaccel"));
+        assert!(!arguments
+            .iter()
+            .any(|argument| argument.contains("hwdownload")));
     }
 
     #[test]
@@ -621,6 +701,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -642,6 +723,7 @@ mod tests {
                 VideoRange::Sdr,
                 ToneMapping::Zscale,
                 &encoder,
+                None,
                 Path::new("/cache/preview.mp4"),
             );
 
@@ -665,6 +747,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -682,6 +765,7 @@ mod tests {
             VideoRange::Hdr10,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -705,6 +789,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -794,6 +879,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 
@@ -813,6 +899,7 @@ mod tests {
             VideoRange::Sdr,
             ToneMapping::Zscale,
             &PreviewEncoder::Software,
+            None,
             Path::new("/cache/preview.mp4"),
         );
 

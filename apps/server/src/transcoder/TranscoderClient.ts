@@ -345,13 +345,18 @@ const httpFetch: FetchLike = async (url, init) => narrow(await fetch(url, init))
 
 const REQUEST_TIMEOUT_MILLISECONDS = 60_000;
 
+const RENDER_TIMEOUT_MILLISECONDS = 30 * 60_000;
+
 const HEALTH_TIMEOUT_MILLISECONDS = 5_000;
 
-const createSocketFetch = (socketPath: string): FetchLike => {
+const createSocketFetch = (
+  socketPath: string,
+  timeout = REQUEST_TIMEOUT_MILLISECONDS,
+): FetchLike => {
   const agent = new Agent({
     connect: { socketPath },
-    headersTimeout: REQUEST_TIMEOUT_MILLISECONDS,
-    bodyTimeout: REQUEST_TIMEOUT_MILLISECONDS,
+    headersTimeout: timeout,
+    bodyTimeout: timeout,
   });
 
   return async (url, init) => narrow(await undiciFetch(url, { ...init, dispatcher: agent }));
@@ -398,6 +403,10 @@ const createTranscoderClient = ({
   const socketPath = readSocketPath(baseUrl);
   const origin = socketPath === null ? baseUrl : 'http://transcoder.local';
   const call2 = fetchImpl ?? (socketPath === null ? httpFetch : createSocketFetch(socketPath));
+
+  const callSlowly =
+    fetchImpl ??
+    (socketPath === null ? httpFetch : createSocketFetch(socketPath, RENDER_TIMEOUT_MILLISECONDS));
   const call = async (path: string, init?: HttpRequestInit): Promise<HttpResponse> => {
     const response = await call2(`${origin}${path}`, init);
 
@@ -439,6 +448,32 @@ const createTranscoderClient = ({
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify(body),
     });
+
+  /**
+   * Asks for something that is rendered rather than read, and waits as long as that takes.
+   *
+   * A preview is an encode and a sheet is hundreds of thumbnails, and both queue behind whatever the
+   * media service is already drawing. Sixty seconds is the right patience for a question about a
+   * file and the wrong patience for a job — it reported work that was progressing normally as a
+   * network failure, and left the item looking unreadable.
+   *
+   * @param path - What to ask for.
+   * @param body - The request.
+   * @returns What the media service answered.
+   */
+  const postRender = async (path: string, body: object): Promise<HttpResponse> => {
+    const response = await callSlowly(`${origin}${path}`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+
+    if (!response.ok) {
+      throw new TranscoderError(`The media service rejected ${path}.`, response.status);
+    }
+
+    return response;
+  };
 
   return {
     isReachable: async () => {
@@ -484,7 +519,7 @@ const createTranscoderClient = ({
     readFrame: async (request) => (await postJson('/frame', request)).arrayBuffer(),
 
     requestPreview: async (request) =>
-      PreviewClipSchema.parse(await (await postJson('/previews', request)).json()),
+      PreviewClipSchema.parse(await (await postRender('/previews', request)).json()),
 
     readPreviewFile: async (id, name, range) =>
       openStream(
@@ -548,7 +583,7 @@ const createTranscoderClient = ({
       StopReportSchema.parse(await (await postJson('/downloads/stop', { id })).json()).stopped,
 
     requestTrickplay: async (request) =>
-      TrickplayIndexSchema.parse(await (await postJson('/trickplay', request)).json()),
+      TrickplayIndexSchema.parse(await (await postRender('/trickplay', request)).json()),
 
     readTrickplayFile: async (id, name) => {
       const response = await call2(
