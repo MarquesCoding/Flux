@@ -1499,14 +1499,12 @@ impl TranscodePlan {
 
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
-        }
 
-        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-            args.push("-hwaccel".into());
-            args.push(flag.into());
-        }
+            if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
+                args.push("-hwaccel".into());
+                args.push(flag.into());
+            }
 
-        if on_the_gpu {
             if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.output_format.into());
@@ -1551,14 +1549,12 @@ impl TranscodePlan {
 
         if on_the_gpu {
             args.extend(self.spec.hardware_accel.device_arguments(&self.device));
-        }
 
-        if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
-            args.push("-hwaccel".into());
-            args.push(flag.into());
-        }
+            if let Some(flag) = self.spec.hardware_accel.ffmpeg_flag() {
+                args.push("-hwaccel".into());
+                args.push(flag.into());
+            }
 
-        if on_the_gpu {
             if let Some(pipeline) = self.spec.hardware_accel.pipeline() {
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.output_format.into());
@@ -1993,6 +1989,52 @@ mod tests {
             },
             ..spec()
         }
+    }
+
+    /// Deciding to convert in software has to reach the decoder as well.
+    ///
+    /// `-hwaccel` was emitted whatever the route, while the device arguments
+    /// and `-hwaccel_output_format` beside it were not. QSV defaults its output
+    /// format to `qsv` frames, so a session routed into software still had
+    /// hardware frames arriving at a software filter — a graph ffmpeg cannot
+    /// configure, reported as "Impossible to convert between the formats" and
+    /// ending with no output file at all.
+    #[test]
+    fn does_not_decode_on_the_device_for_a_chain_that_cannot_take_its_frames() {
+        let spec = SessionSpec {
+            video: VideoAction::Encode {
+                encoder: "h264".to_owned(),
+                max_bitrate_kbps: 8000,
+                max_width: 1280,
+                max_height: 720,
+                tone_map: Some(ToneMapping::Zscale),
+            },
+            ..on_gpu(HardwareAccel::Qsv)
+        };
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::InSoftware);
+
+        let args = plan(spec).to_ffmpeg_args();
+
+        assert!(
+            !args.iter().any(|argument| argument == "-hwaccel"),
+            "a software chain cannot be fed hardware frames: {args:?}"
+        );
+    }
+
+    /// A backend that keeps its frames still says so.
+    #[test]
+    fn still_decodes_on_the_device_where_the_chain_can_take_its_frames() {
+        let spec = on_gpu(HardwareAccel::Qsv);
+
+        assert_eq!(frame_route(&spec, FULL), FrameRoute::OnDevice);
+
+        let args = plan(spec).to_ffmpeg_args();
+
+        assert!(
+            args.windows(2).any(|pair| pair == ["-hwaccel", "qsv"]),
+            "{args:?}"
+        );
     }
 
     /// A burned-in subtitle used to send the whole session into software.
@@ -2923,15 +2965,22 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
             .any(|a| a == "-hwaccel"));
     }
 
+    /// A copy never decodes, so there is nothing to accelerate.
+    ///
+    /// This asked for the flag on a remux, where it does nothing, and passed
+    /// because the flag was emitted whatever the session was doing.
     #[test]
-    fn includes_hwaccel_flag_when_available() {
+    fn omits_hwaccel_flag_for_a_copy_whatever_the_backend() {
         let args = plan(SessionSpec {
             hardware_accel: HardwareAccel::VideoToolbox,
             ..spec()
         })
         .to_ffmpeg_args();
 
-        assert!(args.windows(2).any(|w| w == ["-hwaccel", "videotoolbox"]));
+        assert!(
+            !args.iter().any(|argument| argument == "-hwaccel"),
+            "{args:?}"
+        );
     }
 
     #[test]
