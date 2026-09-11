@@ -248,8 +248,17 @@ pub struct Tools<'a> {
 /// What the first pass writes, one image per interval.
 const THUMBNAIL_PATTERN: &str = "frame-%08d.jpg";
 
+/// What the single thumbnails are named, which nothing outside the render reads.
+const THUMBNAIL_PREFIX: &str = "frame-";
+
 /// What the second pass writes, a grid of them.
 const SHEET_PATTERN: &str = "sheet-%03d.jpg";
+
+/// What a finished sheet is named.
+///
+/// Read rather than assumed, because both passes write JPEGs into one directory
+/// and counting every JPEG as a sheet would count the thumbnails twice over.
+const SHEET_PREFIX: &str = "sheet-";
 
 /// How hard the JPEG encoder tries, on ffmpeg's own quality scale.
 ///
@@ -521,6 +530,72 @@ pub fn tile_arguments(request: &TrickplayRequest, directory: &Path) -> Vec<Strin
     ]
 }
 
+/// Draws the thumbnails and gathers them, leaving the sheets on disk.
+///
+/// Split out so that a failure anywhere in it clears the directory. A part-drawn
+/// set is worse than none: the thumbnails of one attempt outnumbering the next
+/// would be gathered into the next one's sheets, and what a viewer would see is
+/// somebody else's film halfway along the scrub bar. Jellyfin deletes the
+/// directory on failure for the same reason.
+#[allow(
+    clippy::too_many_arguments,
+    reason = "one linear render, and grouping these would only move the list"
+)]
+async fn draw_sheets(
+    ffmpeg: &str,
+    device: &str,
+    request: &TrickplayRequest,
+    tile_height: u32,
+    source: SheetSource,
+    accel: Option<HardwareAccel>,
+    capabilities: &Capabilities,
+    directory: &Path,
+) -> Result<Vec<String>, TrickplayError> {
+    let drawn_by = sheet_encoder(capabilities, accel);
+    let extracted = steps_aside(&mut Command::new(ffmpeg))
+        .args(extract_arguments(
+            request,
+            tile_height,
+            source,
+            accel.map(|found| (found, device)),
+            &drawn_by,
+            directory,
+        ))
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
+
+    if !extracted.status.success() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&extracted.stderr).trim().to_owned(),
+        ));
+    }
+
+    let gathered = steps_aside(&mut Command::new(ffmpeg))
+        .args(tile_arguments(request, directory))
+        .kill_on_drop(true)
+        .output()
+        .await
+        .map_err(TrickplayError::Spawn)?;
+
+    forget_thumbnails(directory).await;
+
+    let sheets = list_sheets(directory).await;
+
+    if sheets.is_empty() {
+        return Err(TrickplayError::NoOutput(
+            String::from_utf8_lossy(&gathered.stderr).trim().to_owned(),
+        ));
+    }
+
+    if let Some(corrupt) = unreadable_sheet(ffmpeg, directory, &sheets).await {
+        return Err(TrickplayError::Corrupt(corrupt));
+    }
+
+    Ok(sheets)
+}
+
 /// Clears the single thumbnails away once they have been gathered into sheets.
 ///
 /// A two hour film leaves seven hundred of them, and nothing reads them again.
@@ -530,7 +605,11 @@ async fn forget_thumbnails(directory: &Path) {
     };
 
     while let Ok(Some(entry)) = entries.next_entry().await {
-        if entry.file_name().to_string_lossy().starts_with("frame-") {
+        if entry
+            .file_name()
+            .to_string_lossy()
+            .starts_with(THUMBNAIL_PREFIX)
+        {
             let _ = tokio::fs::remove_file(entry.path()).await;
         }
     }
@@ -602,9 +681,10 @@ async fn list_sheets(directory: &Path) -> Vec<String> {
 
     while let Ok(Some(entry)) = entries.next_entry().await {
         let name = entry.file_name().to_string_lossy().into_owned();
-        let is_sheet = Path::new(&name)
-            .extension()
-            .is_some_and(|extension| extension.eq_ignore_ascii_case("jpg"));
+        let is_sheet = name.starts_with(SHEET_PREFIX)
+            && Path::new(&name)
+                .extension()
+                .is_some_and(|extension| extension.eq_ignore_ascii_case("jpg"));
 
         if is_sheet {
             names.push(name);
@@ -757,47 +837,26 @@ pub async fn generate(
         .await
         .map_err(TrickplayError::Directory)?;
 
-    let drawn_by = sheet_encoder(capabilities, accel);
-    let extracted = steps_aside(&mut Command::new(ffmpeg))
-        .args(extract_arguments(
-            request,
-            tile_height,
-            source,
-            accel.map(|found| (found, device)),
-            &drawn_by,
-            &directory,
-        ))
-        .kill_on_drop(true)
-        .output()
-        .await
-        .map_err(TrickplayError::Spawn)?;
+    let drawn = draw_sheets(
+        ffmpeg,
+        device,
+        request,
+        tile_height,
+        source,
+        accel,
+        capabilities,
+        &directory,
+    )
+    .await;
 
-    if !extracted.status.success() {
-        return Err(TrickplayError::NoOutput(
-            String::from_utf8_lossy(&extracted.stderr).trim().to_owned(),
-        ));
-    }
+    let sheets = match drawn {
+        Ok(sheets) => sheets,
+        Err(failure) => {
+            let _ = tokio::fs::remove_dir_all(&directory).await;
 
-    let gathered = steps_aside(&mut Command::new(ffmpeg))
-        .args(tile_arguments(request, &directory))
-        .kill_on_drop(true)
-        .output()
-        .await
-        .map_err(TrickplayError::Spawn)?;
-
-    forget_thumbnails(&directory).await;
-
-    let sheets = list_sheets(&directory).await;
-
-    if sheets.is_empty() {
-        return Err(TrickplayError::NoOutput(
-            String::from_utf8_lossy(&gathered.stderr).trim().to_owned(),
-        ));
-    }
-
-    if let Some(corrupt) = unreadable_sheet(ffmpeg, &directory, &sheets).await {
-        return Err(TrickplayError::Corrupt(corrupt));
-    }
+            return Err(failure);
+        }
+    };
 
     tokio::fs::write(
         directory.join(INDEX_NAME),
@@ -1348,6 +1407,57 @@ otherwise start a second one"
     #[test]
     fn leaves_a_rotated_source_for_the_player_to_turn() {
         assert!(on_qsv().iter().any(|argument| argument == "-noautorotate"));
+    }
+
+    /// Both passes write JPEGs into one directory, so counting every JPEG
+    /// would count the thumbnails as sheets and put somebody else's film
+    /// halfway along the scrub bar.
+    #[tokio::test]
+    async fn counts_only_the_gathered_sheets_and_not_the_thumbnails_beside_them() {
+        let directory = std::env::temp_dir().join("valence-test-sheet-listing");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+        tokio::fs::create_dir_all(&directory)
+            .await
+            .expect("a directory");
+
+        for name in [
+            "frame-00000001.jpg",
+            "frame-00000002.jpg",
+            "sheet-001.jpg",
+            "thumbnails.vtt",
+        ] {
+            tokio::fs::write(directory.join(name), b"")
+                .await
+                .expect("a file");
+        }
+
+        assert_eq!(super::list_sheets(&directory).await, vec!["sheet-001.jpg"]);
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+    }
+
+    #[tokio::test]
+    async fn clears_the_thumbnails_once_they_have_been_gathered() {
+        let directory = std::env::temp_dir().join("valence-test-sheet-sweeping");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
+        tokio::fs::create_dir_all(&directory)
+            .await
+            .expect("a directory");
+
+        for name in ["frame-00000001.jpg", "sheet-001.jpg"] {
+            tokio::fs::write(directory.join(name), b"")
+                .await
+                .expect("a file");
+        }
+
+        super::forget_thumbnails(&directory).await;
+
+        assert!(!directory.join("frame-00000001.jpg").exists());
+        assert!(directory.join("sheet-001.jpg").exists(), "sheets are kept");
+
+        let _ = tokio::fs::remove_dir_all(&directory).await;
     }
 
     #[test]
