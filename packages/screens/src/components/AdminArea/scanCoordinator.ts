@@ -9,6 +9,7 @@ import type { ScanJob } from '@ValenceClient/library/fetchLibrary';
 import type { Library } from '@ValenceContracts/schemas/Library';
 
 type ScanEntry = {
+  libraryId: string;
   kind: string;
   phase: string | null;
   processed: number | null;
@@ -32,6 +33,20 @@ const listeners = new Set<() => void>();
  * Publishes a fresh snapshot and tells every listener about it. The snapshot is rebuilt rather than
  * mutated, since `useSyncExternalStore` decides whether to render by comparing the two.
  */
+/**
+ * Names one piece of work, which is a library and a kind rather than a library alone.
+ *
+ * A library can be read while its thumbnails are still being drawn, so more than one thing runs
+ * against it at once. Keyed by library, the two overwrote each other every poll, whichever finished
+ * first hid the other by clearing the entry, and stopping one could only ever find the kind that
+ * happened to be written down.
+ *
+ * @param libraryId - The library the work is against, or a kind for work about no library.
+ * @param kind - What the work is.
+ * @returns The key it is tracked under.
+ */
+const keyOf = (libraryId: string, kind: string): string => `${libraryId}:${kind}`;
+
 const notify = () => {
   snapshot = { progress, isScanningAll, isResettingAll };
 
@@ -69,8 +84,8 @@ const getSnapshot = (): ScanSnapshot => snapshot;
  * @param libraryId - The library being worked on.
  * @param entry - What its job is doing.
  */
-const track = (libraryId: string, entry: ScanEntry) => {
-  progress = new Map(progress).set(libraryId, entry);
+const track = (key: string, entry: ScanEntry) => {
+  progress = new Map(progress).set(key, entry);
   notify();
 };
 
@@ -80,14 +95,14 @@ const track = (libraryId: string, entry: ScanEntry) => {
  *
  * @param libraryId - The library to forget.
  */
-const untrack = (libraryId: string) => {
-  if (!progress.has(libraryId)) {
+const untrack = (key: string) => {
+  if (!progress.has(key)) {
     return;
   }
 
   const next = new Map(progress);
 
-  next.delete(libraryId);
+  next.delete(key);
   progress = next;
   notify();
 };
@@ -107,16 +122,26 @@ const runAndTrack = async (
   kind: string,
   enqueue: () => Promise<ScanJob | null>,
 ): Promise<void> => {
-  track(libraryId, { kind, phase: null, processed: null, total: null, jobId: null });
+  const key = keyOf(libraryId, kind);
+
+  track(key, { libraryId, kind, phase: null, processed: null, total: null, jobId: null });
 
   try {
     const job = await enqueue();
 
     if (job !== null) {
-      track(libraryId, { kind, phase: null, processed: null, total: null, jobId: job.jobId });
+      track(key, {
+        libraryId,
+        kind,
+        phase: null,
+        processed: null,
+        total: null,
+        jobId: job.jobId,
+      });
 
       await waitForScanCompletion(job.jobId, (found) => {
-        track(libraryId, {
+        track(key, {
+          libraryId,
           kind,
           phase: found.phase,
           processed: found.processed,
@@ -126,14 +151,16 @@ const runAndTrack = async (
       });
     }
   } finally {
-    untrack(libraryId);
+    untrack(key);
   }
 };
 
 /**
- * Picks up scans the server is already running, so that reloading the page mid-scan shows its
- * progress rather than an idle library. Ignores any library this page is already tracking, since a
- * scan started here is already being followed.
+ * Picks up work the server is already running, so that reloading the page mid-scan shows its
+ * progress rather than an idle library. Ignores work this page is already following.
+ *
+ * Keyed by library this dropped the second of two jobs on one library before it was ever tracked,
+ * so a thumbnail render begun before a reload was invisible for the whole of its life.
  */
 const resumeRunning = async (): Promise<void> => {
   const running = await fetchRunningScans().catch(() => []);
@@ -143,12 +170,14 @@ const resumeRunning = async (): Promise<void> => {
       .filter((scan) => scan.libraryId !== null)
       .map(async (scan) => {
         const libraryId = scan.libraryId ?? '';
+        const key = keyOf(libraryId, scan.kind);
 
-        if (snapshot.progress.has(libraryId)) {
+        if (snapshot.progress.has(key)) {
           return;
         }
 
-        track(libraryId, {
+        track(key, {
+          libraryId,
           kind: scan.kind,
           phase: scan.phase,
           processed: scan.processed,
@@ -158,7 +187,8 @@ const resumeRunning = async (): Promise<void> => {
 
         try {
           await waitForScanCompletion(scan.jobId, (found) => {
-            track(libraryId, {
+            track(key, {
+              libraryId,
               kind: scan.kind,
               phase: found.phase,
               processed: found.processed,
@@ -167,7 +197,7 @@ const resumeRunning = async (): Promise<void> => {
             });
           });
         } finally {
-          untrack(libraryId);
+          untrack(key);
         }
       }),
   );

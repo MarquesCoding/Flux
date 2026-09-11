@@ -182,7 +182,14 @@ describe('JobRunner', () => {
     const progress = new Map<string, ScanEntry>([
       [
         'lib-movies',
-        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+        {
+          libraryId: 'lib-movies',
+          kind: 'library.scan',
+          phase: 'probing',
+          processed: 1,
+          total: 4,
+          jobId: 'job-1',
+        },
       ],
     ]);
 
@@ -206,11 +213,25 @@ describe('JobRunner', () => {
     const progress = new Map<string, ScanEntry>([
       [
         'lib-movies',
-        { kind: 'library.scan', phase: 'previews', processed: 1, total: 4, jobId: 'job-1' },
+        {
+          libraryId: 'lib-movies',
+          kind: 'library.scan',
+          phase: 'previews',
+          processed: 1,
+          total: 4,
+          jobId: 'job-1',
+        },
       ],
       [
         'lib-shows',
-        { kind: 'library.scan', phase: 'previews', processed: 2, total: 6, jobId: 'job-1' },
+        {
+          libraryId: 'lib-shows',
+          kind: 'library.scan',
+          phase: 'previews',
+          processed: 2,
+          total: 6,
+          jobId: 'job-1',
+        },
       ],
     ]);
 
@@ -236,7 +257,14 @@ describe('JobRunner', () => {
     const progress = new Map<string, ScanEntry>([
       [
         'lib-movies',
-        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+        {
+          libraryId: 'lib-movies',
+          kind: 'library.scan',
+          phase: 'probing',
+          processed: 1,
+          total: 4,
+          jobId: 'job-1',
+        },
       ],
     ]);
 
@@ -283,7 +311,14 @@ describe('JobRunner', () => {
     const progress = new Map<string, ScanEntry>([
       [
         'lib-movies',
-        { kind: 'library.scan', phase: 'probing', processed: 1, total: 4, jobId: 'job-1' },
+        {
+          libraryId: 'lib-movies',
+          kind: 'library.scan',
+          phase: 'probing',
+          processed: 1,
+          total: 4,
+          jobId: 'job-1',
+        },
       ],
     ]);
 
@@ -355,7 +390,14 @@ describe('JobRunner', () => {
     const progress = new Map<string, ScanEntry>([
       [
         'catalogue.rematch',
-        { kind: 'catalogue.rematch', phase: null, processed: 3, total: 10, jobId: 'job-1' },
+        {
+          libraryId: 'lib-movies',
+          kind: 'catalogue.rematch',
+          phase: null,
+          processed: 3,
+          total: 10,
+          jobId: 'job-1',
+        },
       ],
     ]);
 

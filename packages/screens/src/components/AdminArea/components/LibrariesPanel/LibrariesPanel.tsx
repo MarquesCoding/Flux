@@ -30,6 +30,7 @@ import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { Library } from '@ValenceContracts/schemas/Library';
 import type { LibrariesPanelProps } from './LibrariesPanel.types';
 import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
+import { readingOf } from '@ValenceScreens/components/AdminArea/readingOf';
 
 /**
  * The folders Valence reads and what it is doing to them: adding one, scanning one or all of them,
@@ -70,7 +71,9 @@ const LibrariesPanel = ({
   const [deleting, setDeleting] = useState<Library | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const isBusy = libraries.length === 0 || progress.size > 0;
+  const isBusy =
+    libraries.length === 0 ||
+    libraries.some((entry) => readingOf(progress, entry.id) !== undefined);
 
   const live = useRef({
     progress,
@@ -139,7 +142,7 @@ const LibrariesPanel = ({
         header: 'State',
         enableSorting: false,
         cell: ({ row }) => {
-          const scanning = live.current.progress.get(row.original.id);
+          const scanning = readingOf(live.current.progress, row.original.id);
 
           if (scanning === undefined) {
             return (
@@ -193,7 +196,7 @@ const LibrariesPanel = ({
                       id: 'scan',
                       label: 'Scan for changes',
                       icon: <Icon of={RefreshIcon} size={15} />,
-                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      isDisabled: readingOf(live.current.progress, row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id);
                       },
@@ -202,7 +205,7 @@ const LibrariesPanel = ({
                       id: 'reread',
                       label: 'Read every file again',
                       icon: <Icon of={ReloadIcon} size={15} />,
-                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      isDisabled: readingOf(live.current.progress, row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onScan(row.original.id, true);
                       },
@@ -211,7 +214,7 @@ const LibrariesPanel = ({
                       id: 'previews',
                       label: 'Generate missing previews',
                       icon: <Icon of={Image02Icon} size={15} />,
-                      isDisabled: live.current.progress.get(row.original.id) !== undefined,
+                      isDisabled: readingOf(live.current.progress, row.original.id) !== undefined,
                       onChoose: () => {
                         live.current.onRegeneratePreviews(row.original.id);
                       },
