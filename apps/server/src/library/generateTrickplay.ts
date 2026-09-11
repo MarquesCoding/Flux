@@ -4,8 +4,6 @@ import type { Transcoder } from '@ValenceServer/transcoder/TranscoderClient';
 
 const ASK_AGAIN_MILLISECONDS = 5_000;
 
-const GIVE_UP_MILLISECONDS = 30 * 60 * 1_000;
-
 type TrickplayStore = {
   listOutstanding: (libraryId: string) => Promise<{ id: string; path: string }[]>;
   markComplete: (mediaItemId: string) => Promise<void>;
@@ -46,6 +44,12 @@ type RenderSheetsOptions = {
  * failed every time by three. Asking it to render in the background and saying so each time it is
  * asked costs one quick answer every few seconds and has no length of film it cannot survive.
  *
+ * Asked for as long as it takes, with no deadline of its own. Any number would be a guess at how
+ * long a stranger's film takes on a machine nobody has seen, and being wrong about it fails work
+ * that was going fine — which is what a four hour library of 4K remuxes looked like. A render that
+ * genuinely fails says so instead: the media service remembers what went wrong and answers the next
+ * ask with it, so this ends on a fault rather than on a clock.
+ *
  * @param options - The media service, what to render, and whether the scan has been stopped.
  * @returns Whether the sheets were rendered, which is false where the scan was stopped.
  */
@@ -54,19 +58,11 @@ const renderSheets = async ({
   request,
   isCancelled,
 }: RenderSheetsOptions): Promise<boolean> => {
-  const giveUpAt = Date.now() + GIVE_UP_MILLISECONDS;
-
   let index = await transcoder.requestTrickplay(request);
 
   while (!index.isReady) {
     if (isCancelled?.() === true) {
       return false;
-    }
-
-    if (Date.now() >= giveUpAt) {
-      throw new Error(
-        `Its thumbnails were still being drawn after ${(GIVE_UP_MILLISECONDS / 60_000).toString()} minutes.`,
-      );
     }
 
     await wait(ASK_AGAIN_MILLISECONDS);

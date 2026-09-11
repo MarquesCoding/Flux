@@ -422,6 +422,14 @@ async fn unreadable_sheet(ffmpeg: &str, directory: &Path, sheets: &[String]) -> 
 #[derive(Clone, Default)]
 pub struct TrickplayRegistry {
     in_flight: Arc<Mutex<HashMap<String, Arc<Mutex<()>>>>>,
+    /// What went wrong the last time this set was drawn, until somebody asks.
+    ///
+    /// A render that fails in the background has nobody to tell. Without this
+    /// the next ask finds no claim and no sheets, starts another render, and
+    /// fails the same way for ever — which is what a deadline was standing in
+    /// for. Kept until it is read so that the answer reaches whoever asks next,
+    /// and cleared by reading so a later ask is free to try again.
+    failures: Arc<Mutex<HashMap<String, String>>>,
 }
 
 impl TrickplayRegistry {
@@ -457,6 +465,16 @@ impl TrickplayRegistry {
         in_flight.insert(id.to_owned(), Arc::default());
 
         true
+    }
+
+    /// Remembers that a render failed, for whoever asks next.
+    pub async fn remember_failure(&self, id: &str, reason: String) {
+        self.failures.lock().await.insert(id.to_owned(), reason);
+    }
+
+    /// Takes what went wrong, where anything did, and forgets it.
+    pub async fn take_failure(&self, id: &str) -> Option<String> {
+        self.failures.lock().await.remove(id)
     }
 
     /// Lets go of a claim whose work never ran.

@@ -1123,8 +1123,10 @@ fn draw_in_the_background(
     let owner = request.owner.clone();
     let subject = name_of(path);
 
+    let id = claimed.clone();
+
     tokio::spawn(async move {
-        let _ = queue
+        let outcome = queue
             .run(
                 "thumbnails",
                 &subject,
@@ -1132,6 +1134,10 @@ fn draw_in_the_background(
                 trickplay.generate(&ffmpeg, &device, &cache_root, &queued, source, accel),
             )
             .await;
+
+        if let Err(failure) = outcome {
+            trickplay.remember_failure(&id, failure.to_string()).await;
+        }
 
         trickplay.give_up(&claimed).await;
     });
@@ -1182,6 +1188,10 @@ async fn start_trickplay(
 
     if !request.wait {
         let id = request.id();
+
+        if let Some(failure) = state.trickplay.take_failure(&id).await {
+            return error(StatusCode::INTERNAL_SERVER_ERROR, &failure);
+        }
 
         if !is_complete(&config.cache_root, &id).await {
             let tile_height = tile_height_for(request.tile_width, video.width, video.height);

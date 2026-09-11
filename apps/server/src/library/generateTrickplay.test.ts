@@ -312,14 +312,18 @@ describe('generateTrickplay', () => {
     expect(asks).toBeLessThan(5);
   });
 
-  it('gives up on a render that never finishes rather than asking forever', async () => {
+  it('keeps asking for a film that is taking a long time, rather than calling it failed', async () => {
     vi.useFakeTimers();
 
     const problems: string[] = [];
     const completed: string[] = [];
-    const transcoder = stubTranscoder(() =>
-      Promise.resolve({ ...TRICKPLAY_INDEX, isReady: false }),
-    );
+    let asked = 0;
+
+    const transcoder = stubTranscoder(() => {
+      asked += 1;
+
+      return Promise.resolve({ ...TRICKPLAY_INDEX, isReady: false });
+    });
 
     const running = generateTrickplay({
       libraryId: LIBRARY_ID,
@@ -337,11 +341,54 @@ describe('generateTrickplay', () => {
       onProblem: (_path, reason) => problems.push(reason),
     });
 
-    await vi.advanceTimersByTimeAsync(31 * 60 * 1_000);
+    await vi.advanceTimersByTimeAsync(45 * 60 * 1_000);
+
+    expect(asked).toBeGreaterThan(100);
+    expect(problems).toEqual([]);
+    expect(completed).toEqual([]);
+
+    void running;
+    vi.useRealTimers();
+  });
+
+  it('stops on a fault the media service reports, which is what a deadline stood in for', async () => {
+    vi.useFakeTimers();
+
+    const problems: string[] = [];
+    const completed: string[] = [];
+    let asked = 0;
+
+    const transcoder = stubTranscoder(() => {
+      asked += 1;
+
+      return asked > 2
+        ? Promise.reject(new Error('That file has no video stream.'))
+        : Promise.resolve({ ...TRICKPLAY_INDEX, isReady: false });
+    });
+
+    const running = generateTrickplay({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => Promise.resolve([{ id: 'item-0', path: '/media/a.mkv' }]),
+        markComplete: (id) => {
+          completed.push(id);
+
+          return Promise.resolve();
+        },
+      },
+      transcoder,
+      trickplay: PARAMS,
+      onProblem: (_path, reason) => problems.push(reason),
+    });
+
+    await vi.advanceTimersByTimeAsync(20_000);
     await running;
 
     expect(completed).toEqual([]);
-    expect(problems.join(' ')).toContain('still being drawn');
+    expect(problems.join(' ')).toContain('no video stream');
+
+    vi.useRealTimers();
   });
 
   it('says which job asked for the sheets, so the media service can name the scan', async () => {
