@@ -24,6 +24,7 @@ use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::monitor::{record, LogLevel};
 use crate::render_registry::RenderRegistry;
+use crate::steps_aside::steps_aside;
 use crate::transcode_plan::{
     tone_map_filter, HardwareAccel, HardwarePipeline, ToneMapping, NO_EMBEDDED_CAPTIONS,
 };
@@ -535,6 +536,7 @@ pub fn preview_arguments(
             arguments.push(pipeline.decodes_with.to_owned());
             arguments.push("-hwaccel_output_format".to_owned());
             arguments.push(pipeline.decoded_format.to_owned());
+            arguments.push("-noautorotate".to_owned());
         }
     }
 
@@ -657,7 +659,7 @@ pub async fn generate(
             PreviewEncoder::Software => None,
         };
 
-        let outcome = Command::new(tools.ffmpeg)
+        let outcome = steps_aside(&mut Command::new(tools.ffmpeg))
             .args(preview_arguments(
                 request,
                 start,

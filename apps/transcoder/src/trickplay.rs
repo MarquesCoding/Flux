@@ -21,6 +21,7 @@ use crate::capability::Capabilities;
 use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::render_registry::RenderRegistry;
+use crate::steps_aside::steps_aside;
 use crate::transcode_plan::HardwareAccel;
 
 /// Written only when every sheet is on disk.
@@ -251,11 +252,16 @@ const JPEG_QUALITY: u32 = 4;
 
 /// How many threads a thumbnail render may use.
 ///
-/// Deliberately a fraction of the machine. Rendering thumbnails is background
-/// work that nobody is waiting for, and a decode allowed to take every core
-/// will starve the transcode of whatever somebody is actually watching — which
-/// is a stalled film in exchange for seek previews of a different one.
-const RENDER_THREADS: u32 = 2;
+/// One. Two was a guess at how much of a machine to leave alone, and the
+/// measurement says it was answering the wrong question: four sheet renders
+/// together held about one core of twenty, because this work waits on a disk
+/// rather than on a processor. Nvidia's decoder also has no threading of its
+/// own and Jellyfin passes it one explicitly, so one is required there rather
+/// than merely tidy.
+///
+/// What actually keeps a render out of a viewer's way is niceness, which costs
+/// nothing when nobody is watching. See [`crate::steps_aside`].
+const RENDER_THREADS: u32 = 1;
 
 /// Which encoder draws the thumbnails, and therefore where the frames go.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -685,7 +691,7 @@ pub async fn generate(
         .map_err(TrickplayError::Directory)?;
 
     let drawn_by = sheet_encoder(capabilities, accel);
-    let extracted = Command::new(ffmpeg)
+    let extracted = steps_aside(&mut Command::new(ffmpeg))
         .args(extract_arguments(
             request,
             tile_height,
@@ -705,7 +711,7 @@ pub async fn generate(
         ));
     }
 
-    let gathered = Command::new(ffmpeg)
+    let gathered = steps_aside(&mut Command::new(ffmpeg))
         .args(tile_arguments(request, &directory))
         .kill_on_drop(true)
         .output()
@@ -1201,6 +1207,21 @@ otherwise start a second one"
             "nvidia has no jpeg encoder, and vaapi's is not on its frames"
         );
         assert_eq!(sheet_encoder(&intel, None), SheetEncoder::Software);
+    }
+
+    /// Measured, not guessed: four sheet renders together held one core of
+    /// twenty, and nvidia's decoder has no threading of its own.
+    #[test]
+    fn asks_for_one_thread_because_the_work_waits_on_a_disk() {
+        assert!(on_qsv().windows(2).any(|pair| pair == ["-threads", "1"]));
+        assert!(in_software()
+            .windows(2)
+            .any(|pair| pair == ["-threads", "1"]));
+    }
+
+    #[test]
+    fn leaves_a_rotated_source_for_the_player_to_turn() {
+        assert!(on_qsv().iter().any(|argument| argument == "-noautorotate"));
     }
 
     #[test]

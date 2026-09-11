@@ -19,6 +19,7 @@ use std::path::Path;
 use tokio::process::Command;
 
 use crate::capability::summarise_failure;
+use crate::steps_aside::steps_aside;
 
 /// What is said when a decode fails without ffmpeg explaining itself.
 const SILENT_FAILURE: &str = "the file would not decode, and ffmpeg said nothing about why";
@@ -55,7 +56,7 @@ pub fn decode_arguments(path: &Path) -> Vec<String> {
 /// ffmpeg could not be started when it could not be started. A caller cannot
 /// tell those apart, and should not: both mean the file is not fit to keep.
 pub async fn decodes(ffmpeg: &str, path: &Path) -> Result<(), String> {
-    let outcome = Command::new(ffmpeg)
+    let outcome = steps_aside(&mut Command::new(ffmpeg))
         .args(decode_arguments(path))
         .kill_on_drop(true)
         .output()

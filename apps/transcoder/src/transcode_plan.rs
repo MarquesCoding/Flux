@@ -1651,6 +1651,7 @@ impl TranscodePlan {
                 args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.decoded_format.into());
+                args.push("-noautorotate".into());
             }
         }
 
@@ -1698,6 +1699,7 @@ impl TranscodePlan {
                 args.push(pipeline.decodes_with.into());
                 args.push("-hwaccel_output_format".into());
                 args.push(pipeline.decoded_format.into());
+                args.push("-noautorotate".into());
             }
         }
 
@@ -3088,6 +3090,26 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
 
             assert!(
                 args.windows(2).any(|pair| pair == ["-hwaccel", flag]),
+                "{accel:?}"
+            );
+        }
+    }
+
+    /// Jellyfin passes it on every backend. A rotated source otherwise has the
+    /// rotation applied twice: once by the decoder and once by the player
+    /// reading the tag that is still on the stream.
+    #[test]
+    fn leaves_a_rotated_source_for_the_player_to_turn() {
+        for accel in [
+            HardwareAccel::Vaapi,
+            HardwareAccel::Qsv,
+            HardwareAccel::Nvenc,
+            HardwareAccel::VideoToolbox,
+        ] {
+            let args = plan(on_gpu(accel)).to_ffmpeg_args();
+
+            assert!(
+                args.iter().any(|argument| argument == "-noautorotate"),
                 "{accel:?}"
             );
         }

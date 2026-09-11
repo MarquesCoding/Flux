@@ -19,6 +19,9 @@ sysinfo = "0.36.1"
 async-stream = "0.3.6"
 rustfft = "6.4.1"
 
+[target.'cfg(unix)'.dependencies]
+libc = "0.2"
+
 [dev-dependencies]
 http-body-util = "0.1"
 tower = { version = "0.5", features = ["util"] }

@@ -29,6 +29,7 @@ pub mod render_registry;
 pub mod router;
 pub mod session;
 pub mod session_sweep;
+pub mod steps_aside;
 pub mod subtitle;
 pub mod transcode_plan;
 pub mod trickplay;
