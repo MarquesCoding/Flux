@@ -248,3 +248,28 @@ describe('buildShowDetail', () => {
     expect(built?.seasons.map((one) => one.seasonNumber)).toEqual([1, 2, null]);
   });
 });
+
+describe('a programme that has specials', () => {
+  const held = [
+    episode({ id: identified(1), seasonNumber: 0, episodeNumber: 1, title: 'A Christmas one' }),
+    episode({ id: identified(2), seasonNumber: 1, episodeNumber: 1, title: 'The first' }),
+    episode({ id: identified(3), seasonNumber: 1, episodeNumber: 2, title: 'The second' }),
+  ];
+
+  it('puts the specials after the seasons rather than ahead of them', () => {
+    const show = buildShowDetail(held, 'a-sign-of-affection');
+
+    expect(show?.seasons.map((season) => season.seasonNumber)).toEqual([1, 0]);
+  });
+
+  it('offers the first episode of the first season to somebody who has watched none of it', () => {
+    const show = buildShowDetail(held, 'a-sign-of-affection');
+    const first = show?.seasons.flatMap((season) => season.episodes)[0];
+
+    expect(first).toMatchObject({ seasonNumber: 1, episodeNumber: 1 });
+  });
+
+  it('does not take a special as the artwork standing for the whole programme', () => {
+    expect(groupIntoShows(held)[0]?.coverMediaId).toBe(identified(2));
+  });
+});

@@ -1,4 +1,5 @@
-import { readSeasonDirectory, tidy } from './readEpisodeFromPath';
+import { tidy } from './readEpisodeFromPath';
+import { readSeasonDirectory } from './readSeasonDirectory';
 
 const BARE_NUMBER = /^(?<stem>.+?)[\s._-]+(?<number>\d{1,3})(?=[\s._-]|$)/;
 

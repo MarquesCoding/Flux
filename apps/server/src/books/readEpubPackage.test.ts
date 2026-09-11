@@ -88,3 +88,24 @@ describe('readEpubPackage', () => {
     expect(readEpubPackage('content.opf', '<package></package>').spine).toEqual([]);
   });
 });
+
+describe('a package that describes the book', () => {
+  const described = `<package version="3.0">
+  <metadata>
+    <dc:title>Moby-Dick</dc:title>
+    <dc:description>A sailor goes after a whale.</dc:description>
+  </metadata>
+  <manifest><item id="one" href="one.xhtml" media-type="application/xhtml+xml"/></manifest>
+  <spine><itemref idref="one"/></spine>
+</package>`;
+
+  it('reads the description, which is what a shelf shows under a cover', () => {
+    expect(readEpubPackage('content.opf', described).description).toBe(
+      'A sailor goes after a whale.',
+    );
+  });
+
+  it('reports nothing for a package that describes nothing', () => {
+    expect(readEpubPackage('content.opf', A_PACKAGE).description).toBeNull();
+  });
+});

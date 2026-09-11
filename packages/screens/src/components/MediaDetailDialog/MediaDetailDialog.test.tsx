@@ -510,3 +510,124 @@ describe('opening one item after another', () => {
     });
   });
 });
+
+describe('the extras a film carries', () => {
+  const anExtra = (overrides: Partial<MediaSummary> = {}): MediaSummary => ({
+    ...summary,
+    id: 'extra-1',
+    title: 'Scoring the film',
+    parentId: 'media-1',
+    extraKind: 'featurette',
+    ...overrides,
+  });
+
+  it('says nothing of them where a film carries none', async () => {
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Synopsis')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByText('Extras')).not.toBeInTheDocument();
+  });
+
+  it('lists them under a heading of their own', async () => {
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra()] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Extras')).toBeInTheDocument();
+    });
+
+    expect(screen.getByText('Scoring the film')).toBeInTheDocument();
+  });
+
+  it('says what sort of extra each one is, so a trailer is not mistaken for the film', async () => {
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra({ extraKind: 'trailer' })] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Trailer')).toBeInTheDocument();
+    });
+  });
+
+  it('plays one when it is chosen, from the beginning', async () => {
+    const onPlay = vi.fn();
+    detailMock.mockResolvedValue({ ...detail(), extras: [anExtra()] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Scoring the film')).toBeInTheDocument();
+    });
+
+    await userEvent.setup().click(screen.getByText('Scoring the film'));
+
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ id: 'extra-1' }), 0);
+  });
+});
+
+describe('a film held as more than one cut of itself', () => {
+  const blackAndWhite: MediaSummary = {
+    ...summary,
+    id: 'version-1',
+    parentId: 'media-1',
+    versionLabel: 'B&W',
+  };
+
+  it('offers no choice where a film is held only one way', async () => {
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: /Play/ })).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: 'Which version to play' })).not.toBeInTheDocument();
+  });
+
+  it('offers the choice before playing rather than during', async () => {
+    detailMock.mockResolvedValue({ ...detail(), versions: [blackAndWhite] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Which version to play' })).toBeInTheDocument();
+    });
+  });
+
+  it('starts on the film itself, which is what somebody pressing play expects', async () => {
+    const onPlay = vi.fn();
+    detailMock.mockResolvedValue({ ...detail(), versions: [blackAndWhite] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Which version to play' })).toBeInTheDocument();
+    });
+
+    await userEvent.setup().click(screen.getByRole('button', { name: /Play/ }));
+
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ id: 'media-1' }), 0);
+  });
+
+  it('plays the cut that was chosen instead', async () => {
+    const onPlay = vi.fn();
+    detailMock.mockResolvedValue({ ...detail(), versions: [blackAndWhite] });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={onPlay} />);
+
+    const actor = userEvent.setup();
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Which version to play' })).toBeInTheDocument();
+    });
+
+    await actor.click(screen.getByRole('button', { name: 'Which version to play' }));
+    await actor.click(await screen.findByRole('menuitemradio', { name: 'B&W' }));
+    await actor.click(screen.getByRole('button', { name: /Play/ }));
+
+    expect(onPlay).toHaveBeenCalledWith(expect.objectContaining({ id: 'version-1' }), 0);
+  });
+});

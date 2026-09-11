@@ -91,6 +91,8 @@ const harness = (options: {
   trickplay?: { intervalSeconds: number; tileWidth: number; columns: number; rows: number };
   overrides?: { path: string; externalId: string; externalKind: 'tv' | 'movie' }[];
   defaultAudioLanguage?: string | null;
+  onAdded?: (item: ScannedItem) => void;
+  linkExtras?: (libraryId: string, links: { path: string; parentPath: string }[]) => Promise<void>;
 }) => {
   const rows: MediaRow[] = [];
   const removedPaths: string[] = [];
@@ -174,6 +176,7 @@ const harness = (options: {
           return Promise.resolve(paths.map((path) => departed(path)));
         },
         listOverrides: () => Promise.resolve(options.overrides ?? []),
+        ...(options.linkExtras === undefined ? {} : { linkExtras: options.linkExtras }),
         markScanned,
       },
       transcoder,
@@ -186,6 +189,7 @@ const harness = (options: {
       ...(options.isCancelled === undefined ? {} : { isCancelled: options.isCancelled }),
       ...(options.onProblem === undefined ? {} : { onProblem: options.onProblem }),
       ...(options.onProgress === undefined ? {} : { onProgress: options.onProgress }),
+      ...(options.onAdded === undefined ? {} : { onAdded: options.onAdded }),
       ...(options.trickplay === undefined ? {} : { trickplay: options.trickplay }),
     });
 
@@ -900,5 +904,55 @@ describe('a scan somebody stopped partway', () => {
 
     expect(problems).toHaveLength(1);
     expect(problems[0]).toContain('stopped');
+  });
+});
+
+describe('a library holding extras', () => {
+  const FILM = '/media/films/Arrival (2016)/Arrival (2016).mkv';
+  const MAKING_OF = '/media/films/Arrival (2016)/Featurettes/Scoring.mkv';
+
+  it('says what sort of extra each one is, and nothing for what is not one', async () => {
+    const { run, rows } = harness({ found: [file(FILM), file(MAKING_OF)] });
+
+    await run();
+
+    expect(rows.find((row) => row.path === FILM)?.extraKind).toBeNull();
+    expect(rows.find((row) => row.path === MAKING_OF)?.extraKind).toBe('featurette');
+  });
+
+  it('hangs it off the film once both are written, rather than while one is half there', async () => {
+    const linkExtras = vi.fn().mockResolvedValue(undefined);
+
+    await harness({ found: [file(FILM), file(MAKING_OF)], linkExtras }).run();
+
+    expect(linkExtras).toHaveBeenCalledWith(LIBRARY_ID, [{ path: MAKING_OF, parentPath: FILM }]);
+  });
+
+  it('does not announce an extra as something that arrived', async () => {
+    const arrived: string[] = [];
+
+    await harness({
+      found: [file(FILM), file(MAKING_OF)],
+      onAdded: (item) => arrived.push(item.title),
+    }).run();
+
+    expect(arrived).toEqual(['Arrival']);
+  });
+
+  it('gives a programme its extras without pretending they are episodes', async () => {
+    const { run, rows } = harness({
+      found: [
+        file('/media/tv/Some Show/Season 1/Some.Show.S01E01.mkv'),
+        file('/media/tv/Some Show/Extras/Making Of.mkv'),
+      ],
+    });
+
+    await run();
+
+    const extra = rows.find((row) => row.path === '/media/tv/Some Show/Extras/Making Of.mkv');
+
+    expect(extra?.extraKind).toBe('other');
+    expect(extra?.episode.seriesTitle).toBe('Some Show');
+    expect(extra?.episode.episodeNumber).toBeNull();
   });
 });

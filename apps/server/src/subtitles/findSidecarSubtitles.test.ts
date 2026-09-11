@@ -3,6 +3,7 @@ import {
   findSidecarSubtitles,
   describeTags,
   describeLabel,
+  isBitmapSubtitle,
   splitName,
 } from './findSidecarSubtitles';
 import type { SidecarFile } from './findSidecarSubtitles';
@@ -147,5 +148,51 @@ describe('findSidecarSubtitles', () => {
     const found = findSidecarSubtitles('Arrival.mkv', [file('Arrival 2.en.srt')]);
 
     expect(found).toHaveLength(0);
+  });
+});
+
+describe('a tag that is a language and a marker at once', () => {
+  it('reads hi as Hindi where nothing else named a language', () => {
+    expect(describeTags(['hi'])).toMatchObject({ language: 'hi', isHearingImpaired: false });
+  });
+
+  it('reads hi as hearing impaired where another tag already named the language', () => {
+    expect(describeTags(['en', 'hi'])).toMatchObject({ language: 'en', isHearingImpaired: true });
+  });
+
+  it('leaves the tags that mean only one thing alone', () => {
+    expect(describeTags(['sdh'])).toMatchObject({ isHearingImpaired: true });
+    expect(describeTags(['cc'])).toMatchObject({ isHearingImpaired: true });
+  });
+});
+
+describe('a tag that says how to use a track rather than what is in it', () => {
+  it('does not mistake default for a language', () => {
+    expect(describeTags(['default', 'en']).language).toBe('en');
+  });
+});
+
+describe('isBitmapSubtitle', () => {
+  it('knows the ones held as pictures', () => {
+    expect(isBitmapSubtitle('Arrival (2016).sup')).toBe(true);
+    expect(isBitmapSubtitle('Arrival (2016).idx')).toBe(true);
+  });
+
+  it('leaves the ones held as text', () => {
+    expect(isBitmapSubtitle('Arrival (2016).srt')).toBe(false);
+  });
+});
+
+describe('a subtitle that does not repeat the video name', () => {
+  it('is left alone even where it is the only thing it could belong to', () => {
+    const alone = [file(VIDEO), file('English.srt')];
+
+    expect(findSidecarSubtitles(VIDEO, alone)).toHaveLength(0);
+  });
+
+  it('is taken once it sits in a subtitle folder, where that is the convention', () => {
+    expect(
+      findSidecarSubtitles(VIDEO, [file('English.srt')], { fromSubtitleDirectory: true }),
+    ).toHaveLength(1);
   });
 });

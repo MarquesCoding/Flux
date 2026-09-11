@@ -118,6 +118,21 @@ external subtitles. `Arrival (2016).en.srt`, `Arrival (2016).fr.forced.srt` and
 a `Subs/English.srt` are all found, with the language, forced and SDH flags
 read from the filename.
 
+A file has to repeat the video's name to be found beside it, which is the
+convention every tool that writes subtitles already targets. A bare
+`English.srt` is picked up only from a `Subs` or `Subtitles` folder, where
+that is how it is done — and such a folder holding a folder per video is looked
+inside, into the one named for what is playing.
+
+Where a language code also means something else, what the rest of the name says
+decides: `film.hi.srt` is Hindi, and `film.en.hi.srt` is English for the hard of
+hearing.
+
+Subtitles held as pictures rather than text — `.sup` from a Blu-ray, `.sub` and
+`.idx` from a DVD — are not offered, since there is no text in them to show.
+They are reported rather than passed over silently, so an empty menu has a
+reason attached to it.
+
 SubRip, WebVTT and Advanced SubStation are supported. Everything is converted
 to WebVTT on the way out because that is the only format a browser renders; an
 ASS script keeps its dialogue and loses its own fonts, colours and positioning,

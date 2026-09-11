@@ -46,11 +46,18 @@ const store = (): BookStore => ({
 const listing = (paths: string[]): ScannedFile[] =>
   paths.map((path) => ({ path, sizeBytes: 10, modifiedAtMs: 100 }));
 
-const aComic = async (path: string, pages: number): Promise<void> => {
+const DESCRIBED =
+  '<ComicInfo><Series>Rent-A-Girlfriend</Series><Writer>Reiji Miyajima</Writer><Summary>A student hires a girlfriend.</Summary></ComicInfo>';
+
+const aComic = async (path: string, pages: number, described?: string): Promise<void> => {
   const files: Record<string, Uint8Array> = {};
 
   for (let at = 1; at <= pages; at += 1) {
     files[`p${String(at).padStart(3, '0')}.png`] = A_PNG;
+  }
+
+  if (described !== undefined) {
+    files['ComicInfo.xml'] = new TextEncoder().encode(described);
   }
 
   await writeFile(path, zipSync(files));
@@ -63,6 +70,17 @@ beforeAll(async () => {
   await aComic(join(where, 'Rent-A-Girlfriend (Digital)', 'Rent-A-Girlfriend v01 (2020).cbz'), 3);
   await aComic(join(where, 'Rent-A-Girlfriend (Digital)', 'Rent-A-Girlfriend v02 (2020).cbz'), 4);
   await aComic(join(where, 'Loose Volume.cbz'), 2);
+  await aComic(join(where, 'Described Volume.cbz'), 2, DESCRIBED);
+
+  await mkdir(join(where, 'A Series Folder'), { recursive: true });
+  await aComic(join(where, 'A Series Folder', 'v01.cbz'), 2, DESCRIBED);
+
+  await mkdir(join(where, 'A Titled Volume'), { recursive: true });
+  await aComic(
+    join(where, 'A Titled Volume', 'v01.cbz'),
+    2,
+    '<ComicInfo><Title>The Black Swordsman</Title></ComicInfo>',
+  );
 });
 
 afterAll(async () => {
@@ -280,5 +298,41 @@ describe('scanBookLibrary, saying what arrived', () => {
     await scanReporting([first, second], (book) => arrived.push(book));
 
     expect(arrived).toEqual([]);
+  });
+});
+
+describe('a comic that describes itself', () => {
+  it('takes the author and the summary its packer left inside it', async () => {
+    await scan([join(where, 'Described Volume.cbz')]);
+
+    expect(books[0]).toMatchObject({
+      authors: ['Reiji Miyajima'],
+      overview: 'A student hires a girlfriend.',
+    });
+  });
+
+  it('is named by what it says it is, where it stands on the shelf alone', async () => {
+    await scan([join(where, 'Described Volume.cbz')]);
+
+    expect(books[0]?.title).toBe('Rent-A-Girlfriend');
+  });
+
+  it('names a folder by the series its chapters claim, the way Komga and Kavita do', async () => {
+    await scan([join(where, 'A Series Folder', 'v01.cbz')]);
+
+    expect(books[0]?.title).toBe('Rent-A-Girlfriend');
+    expect(books[0]?.authors).toEqual(['Reiji Miyajima']);
+  });
+
+  it('does not rename a folder after one volume’s own title, which is not the series', async () => {
+    await scan([join(where, 'A Titled Volume', 'v01.cbz')]);
+
+    expect(books[0]?.title).toBe('A Titled Volume');
+  });
+
+  it('leaves a book that says nothing about itself with nothing made up for it', async () => {
+    await scan([join(where, 'Loose Volume.cbz')]);
+
+    expect(books[0]).toMatchObject({ title: 'Loose Volume', authors: [], overview: null });
   });
 });

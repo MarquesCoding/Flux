@@ -2,11 +2,19 @@ import { describeLanguage, readLanguage } from '@ValenceCore/functions/describeT
 
 const SUBTITLE_EXTENSIONS = new Set(['srt', 'vtt', 'ass', 'ssa']);
 
+const BITMAP_SUBTITLE_EXTENSIONS = new Set(['sup', 'sub', 'idx']);
+
 const SUBTITLE_DIRECTORIES = new Set(['subs', 'subtitles']);
 
 const FORCED_MARKERS = new Set(['forced']);
 
-const HEARING_IMPAIRED_MARKERS = new Set(['sdh', 'cc', 'hi']);
+const HEARING_IMPAIRED_MARKERS = new Set(['sdh', 'cc']);
+
+const HINDI = 'hi';
+
+const AMBIGUOUS_MARKERS = new Set([HINDI]);
+
+const IGNORED_MARKERS = new Set(['default']);
 
 type SidecarFile = {
   path: string;
@@ -48,31 +56,26 @@ const splitName = (name: string): { stem: string; extension: string } => {
 const describeTags = (
   tags: string[],
 ): { language: string | null; isForced: boolean; isHearingImpaired: boolean } => {
-  let language: string | null = null;
-  let isForced = false;
-  let isHearingImpaired = false;
+  const lowered = tags.map((tag) => tag.toLowerCase()).filter((tag) => tag !== '');
 
-  for (const tag of tags) {
-    const lowered = tag.toLowerCase();
+  const named = lowered.filter(
+    (tag) =>
+      !FORCED_MARKERS.has(tag) &&
+      !HEARING_IMPAIRED_MARKERS.has(tag) &&
+      !AMBIGUOUS_MARKERS.has(tag) &&
+      !IGNORED_MARKERS.has(tag),
+  );
 
-    if (FORCED_MARKERS.has(lowered)) {
-      isForced = true;
+  const spoken = named.map((tag) => readLanguage(tag)).find((one) => one !== null) ?? null;
+  const saysAmbiguous = lowered.some((tag) => AMBIGUOUS_MARKERS.has(tag));
 
-      continue;
-    }
-
-    if (HEARING_IMPAIRED_MARKERS.has(lowered)) {
-      isHearingImpaired = true;
-
-      continue;
-    }
-
-    if (language === null && lowered !== '') {
-      language = readLanguage(lowered);
-    }
-  }
-
-  return { language, isForced, isHearingImpaired };
+  return {
+    language: spoken ?? (saysAmbiguous ? readLanguage(HINDI) : null),
+    isForced: lowered.some((tag) => FORCED_MARKERS.has(tag)),
+    isHearingImpaired:
+      lowered.some((tag) => HEARING_IMPAIRED_MARKERS.has(tag)) ||
+      (spoken !== null && saysAmbiguous),
+  };
 };
 
 /**
@@ -99,8 +102,23 @@ const describeLabel = (
 };
 
 /**
+ * Says whether a subtitle file is one Valence cannot draw — a disc's, which is pictures of text
+ * rather than text, and needs burning in or a renderer of its own.
+ *
+ * @param name - The file's name.
+ * @returns Whether it is a subtitle held as pictures.
+ */
+const isBitmapSubtitle = (name: string): boolean =>
+  BITMAP_SUBTITLE_EXTENSIONS.has(splitName(name).extension);
+
+/**
  * Picks the subtitle files belonging to one video from the files beside it, matching on the video's
  * own name so that a folder holding a season does not offer every episode's subtitles for each.
+ *
+ * A file that does not repeat the video's name is left alone even where it is the only thing it
+ * could belong to. This is the convention every tool that writes subtitles already targets, and
+ * loosening it buys one folder shape at the cost of attaching the wrong track wherever a name was
+ * left behind by something that has gone.
  *
  * @param videoName - The video being played.
  * @param files - The files found beside it and in any subtitle directories.
@@ -115,7 +133,6 @@ const findSidecarSubtitles = (
 ): SidecarSubtitle[] => {
   const { stem } = splitName(videoName);
   const found: SidecarSubtitle[] = [];
-
   for (const file of files) {
     const { stem: fileStem, extension } = splitName(file.name);
 
@@ -150,4 +167,11 @@ const findSidecarSubtitles = (
 
 export type { SidecarFile };
 
-export { findSidecarSubtitles, describeTags, describeLabel, splitName, SUBTITLE_DIRECTORIES };
+export {
+  findSidecarSubtitles,
+  describeTags,
+  describeLabel,
+  isBitmapSubtitle,
+  splitName,
+  SUBTITLE_DIRECTORIES,
+};

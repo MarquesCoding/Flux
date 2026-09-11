@@ -96,3 +96,48 @@ describe('a file with no extension at all', () => {
     expect(isMediaFile('Arrival')).toBe(false);
   });
 });
+
+describe('a film in a folder of its own', () => {
+  it('takes the name and year from the folder when the file carries neither', () => {
+    expect(readTitleFromPath('/media/films/Arrival (2016)/movie.mkv')).toEqual({
+      title: 'Arrival',
+      year: 2016,
+    });
+  });
+
+  it('reads a disc rip that kept the name its ripper gave it', () => {
+    expect(readTitleFromPath('/media/films/Parasite (2019)/title00.mkv')).toEqual({
+      title: 'Parasite',
+      year: 2019,
+    });
+  });
+
+  it('believes the folder over a file that disagrees with it, since somebody named the folder', () => {
+    expect(readTitleFromPath('/media/films/The Thing (1982)/The.Thing.2011.1080p.mkv')).toEqual({
+      title: 'The Thing',
+      year: 1982,
+    });
+  });
+
+  it('leaves a film loose among others alone, since that folder names no film', () => {
+    expect(readTitleFromPath('/media/films/Arrival (2016).mkv')).toEqual({
+      title: 'Arrival',
+      year: 2016,
+    });
+  });
+
+  it('leaves a folder that names a year and no film alone', () => {
+    expect(readTitleFromPath('/media/films/2019/Parasite.mkv')).toEqual({
+      title: 'Parasite',
+      year: null,
+    });
+  });
+
+  it('does not read a season folder as a film, since that is a programme', () => {
+    expect(readTitleFromPath('/media/tv/Some Show/Season 1/s01e02.mkv').title).toBe('s01e02');
+  });
+
+  it('does not read a specials folder as a film either', () => {
+    expect(readTitleFromPath('/media/tv/Some Show/Specials/s00e01.mkv').title).toBe('s00e01');
+  });
+});

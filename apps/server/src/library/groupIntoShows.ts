@@ -1,5 +1,6 @@
 import { addedAtMs } from '@ValenceCore/functions/addedAtMs';
 import { inBroadcastOrder } from '@ValenceCore/functions/inBroadcastOrder';
+import { inSeasonOrder } from '@ValenceCore/functions/inSeasonOrder';
 import { showSlug } from '@ValenceCore/functions/showSlug';
 import type { MediaSummary } from '@ValenceContracts/schemas/Library';
 import type { ShowDetail, ShowSummary } from '@ValenceContracts/schemas/Show';
@@ -118,7 +119,7 @@ const buildShowDetail = (items: MediaSummary[], showId: string): ShowDetail | nu
     ...summary,
     seasons: [...seasons]
       .map(([seasonNumber, ofSeason]) => ({ seasonNumber, episodes: ofSeason }))
-      .sort((left, right) => (left.seasonNumber ?? Infinity) - (right.seasonNumber ?? Infinity)),
+      .sort((left, right) => inSeasonOrder(left.seasonNumber, right.seasonNumber)),
   };
 };
 

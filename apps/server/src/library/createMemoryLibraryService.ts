@@ -27,6 +27,9 @@ const toSummary = (item: MediaDetail): MediaSummary => ({
   hasBackdrop: item.metadata.hasBackdrop,
   hasLogo: false,
   seriesId: null,
+  parentId: item.parentId ?? null,
+  extraKind: item.extraKind ?? null,
+  versionLabel: item.versionLabel ?? null,
   rating: item.metadata.rating ?? null,
   seriesTitle: item.metadata.seriesTitle ?? null,
   seasonNumber: item.metadata.seasonNumber ?? null,
@@ -174,7 +177,11 @@ const createMemoryLibraryService = (
           options.genre === undefined || (item.metadata.genres ?? []).includes(options.genre),
       )
       .filter((item) => matchesFilters(item, options))
-      .filter((item) => options.ids === undefined || options.ids.includes(item.id))
+      .filter((item) =>
+        options.ids === undefined
+          ? (item.extraKind ?? null) === null
+          : options.ids.includes(item.id),
+      )
       .filter(
         (item) =>
           options.minYourStars === undefined ||
@@ -197,7 +204,23 @@ const createMemoryLibraryService = (
     return Promise.resolve({ items, total: matching.length });
   },
 
-  getMedia: (id) => Promise.resolve(state.media.find((item) => item.id === id) ?? null),
+  getMedia: (id) => {
+    const found = state.media.find((item) => item.id === id) ?? null;
+
+    return Promise.resolve(
+      found === null
+        ? null
+        : {
+            ...found,
+            extras: state.media
+              .filter((item) => item.parentId === id && (item.extraKind ?? null) !== null)
+              .map(toSummary),
+            versions: state.media
+              .filter((item) => item.parentId === id && (item.extraKind ?? null) === null)
+              .map(toSummary),
+          },
+    );
+  },
 
   getSeries: (seriesId) =>
     Promise.resolve((state.series ?? []).find((entry) => entry.id === seriesId) ?? null),

@@ -8,9 +8,12 @@ const TITLE = /<dc:title\b[^>]*>([^<]*)<\/dc:title>/i;
 
 const CREATOR = /<dc:creator\b[^>]*>([^<]*)<\/dc:creator>/gi;
 
+const DESCRIPTION = /<dc:description\b[^>]*>([^<]*)<\/dc:description>/i;
+
 type EpubPackage = {
   title: string | null;
   authors: string[];
+  description: string | null;
   spine: { href: string; mediaType: string }[];
   manifest: Map<string, string>;
 };
@@ -126,10 +129,12 @@ const readEpubPackage = (packageAt: string, packageXml: string): EpubPackage => 
   }
 
   const title = TITLE.exec(packageXml)?.[1]?.trim();
+  const description = DESCRIPTION.exec(packageXml)?.[1]?.trim();
 
   return {
     title: title === undefined || title === '' ? null : title,
     authors,
+    description: description === undefined || description === '' ? null : description,
     spine,
     manifest,
   };

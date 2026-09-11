@@ -79,9 +79,15 @@ const openEpub = async (
     title: nameFor(at),
   }));
 
+  const about =
+    read.title === null && read.authors.length === 0 && read.description === null
+      ? null
+      : { series: null, title: read.title, authors: read.authors, description: read.description };
+
   return {
     layout: 'reflow',
     spine,
+    ...(about === null ? {} : { about }),
     readDocument: async (href) => {
       const wanted = read.spine.find((part) => part.href === href);
       const entry = wanted === undefined ? undefined : held.get(wanted.href);

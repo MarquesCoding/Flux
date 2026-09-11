@@ -22,3 +22,13 @@ describe('mediaKindOf', () => {
     expect(mediaKindOf({ seriesTitle: null }, 'music')).toBe('song');
   });
 });
+
+describe('something that hangs off another thing', () => {
+  it('is a video rather than a film, whatever the library reads', () => {
+    expect(mediaKindOf({ seriesTitle: null, extraKind: 'trailer' }, 'movies')).toBe('video');
+  });
+
+  it('is a video rather than an episode, even carrying the programme it belongs to', () => {
+    expect(mediaKindOf({ seriesTitle: 'Some Show', extraKind: 'other' }, 'shows')).toBe('video');
+  });
+});

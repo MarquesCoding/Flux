@@ -213,10 +213,19 @@ const createDatabaseBookService = (db: ValenceDatabase, cacheDir: string): BookS
           layout: row.layout,
           direction: row.direction,
           year: row.year,
+          authors: row.authors.length === 0 ? null : row.authors,
+          overview: row.overview,
         })
         .onConflictDoUpdate({
           target: [book.libraryId, book.path],
-          set: { title: row.title, layout: row.layout, year: row.year, updatedAt: new Date() },
+          set: {
+            title: row.title,
+            layout: row.layout,
+            year: row.year,
+            updatedAt: new Date(),
+            ...(row.authors.length === 0 ? {} : { authors: row.authors }),
+            ...(row.overview === null ? {} : { overview: row.overview }),
+          },
         })
         .returning({ id: book.id });
 

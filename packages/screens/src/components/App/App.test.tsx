@@ -5,6 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { JsonValueSchema, type JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type { RealtimeEvent } from '@ValenceContracts/schemas/Realtime';
 
+const RECENTLY = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
 type FetchLike = (
   input: string,
   init?: RequestInit,
@@ -120,7 +122,7 @@ const arrivalInFull = {
   bitrateKbps: 12000,
   audioStreams: [{ index: 1, codec: 'aac', channels: 2, isDefault: true, isAtmos: false }],
   subtitleStreams: [],
-  addedAt: '2026-08-10T00:00:00.000Z',
+  addedAt: RECENTLY,
   metadata: { hasPoster: false, hasBackdrop: false, hasLogo: false },
 } satisfies JsonValue;
 
@@ -152,7 +154,7 @@ const aLibraryWithArrival = {
         height: 1080,
         videoCodec: 'hevc',
         videoRange: 'HDR10',
-        addedAt: '2026-08-10T00:00:00.000Z',
+        addedAt: RECENTLY,
         hasPoster: false,
         hasBackdrop: false,
         hasLogo: false,

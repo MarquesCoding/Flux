@@ -50,6 +50,12 @@ describe('AddLibraryDialog', () => {
     expect(screen.getByRole('button', { name: 'Movies' })).toHaveAttribute('aria-pressed', 'true');
   });
 
+  it('does not offer music, which would scan to nothing for ever', () => {
+    render(<AddLibraryDialog isOpen onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    expect(screen.queryByRole('button', { name: 'Music' })).not.toBeInTheDocument();
+  });
+
   it('switches kind on request', async () => {
     const actor = userEvent.setup();
     render(<AddLibraryDialog isOpen onClose={vi.fn()} onCreated={vi.fn()} />);

@@ -5,7 +5,7 @@ import { z } from 'zod';
 import { serve } from '@hono/node-server';
 import { createNodeWebSocket } from '@hono/node-ws';
 import { drizzleAdapter } from 'better-auth/adapters/drizzle';
-import { and, count, eq, gt, lt, lte, sql } from 'drizzle-orm';
+import { and, count, eq, gt, isNull, lt, lte, sql } from 'drizzle-orm';
 import { createApp } from './App';
 import { createRealtimeRegistry } from '@ValenceServer/realtime/createRealtimeRegistry';
 import { createRealtimeHandler } from '@ValenceServer/realtime/createRealtimeHandler';
@@ -1073,7 +1073,13 @@ const jobs = await createJobQueue({
             seriesTitle: mediaItem.seriesTitle,
           })
           .from(mediaItem)
-          .where(and(gt(mediaItem.addedAt, since), lte(mediaItem.addedAt, now)));
+          .where(
+            and(
+              gt(mediaItem.addedAt, since),
+              lte(mediaItem.addedAt, now),
+              isNull(mediaItem.extraKind),
+            ),
+          );
 
         const summary = summariseNewMedia(arrived);
 

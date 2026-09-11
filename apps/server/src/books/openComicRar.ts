@@ -2,7 +2,8 @@ import { readFile } from 'node:fs/promises';
 import { createExtractorFromData } from 'node-unrar-js';
 import { imageTypeFor } from './imageTypeFor';
 import { inPageOrder } from './inPageOrder';
-import type { FixedBook } from './BookFile';
+import { COMIC_INFO, readComicInfo } from './readComicInfo';
+import type { BookAbout, FixedBook } from './BookFile';
 
 /**
  * Opens a comic archive that is a RAR rather than a zip.
@@ -33,11 +34,20 @@ const openComicRar = async (path: string): Promise<FixedBook | null> => {
   }
 
   const names: string[] = [];
+  let describedName: string | null = null;
 
   try {
     for (const header of listing.getFileList().fileHeaders) {
-      if (!header.flags.directory && imageTypeFor(header.name) !== null) {
+      if (header.flags.directory) {
+        continue;
+      }
+
+      if (imageTypeFor(header.name) !== null) {
         names.push(header.name);
+      }
+
+      if (header.name.toLowerCase().endsWith(COMIC_INFO)) {
+        describedName = header.name;
       }
     }
   } catch {
@@ -50,9 +60,25 @@ const openComicRar = async (path: string): Promise<FixedBook | null> => {
     return null;
   }
 
+  const about = ((): BookAbout | null => {
+    if (describedName === null) {
+      return null;
+    }
+
+    try {
+      const [found] = [...listing.extract({ files: [describedName] }).files];
+      const bytes = found?.extraction;
+
+      return bytes === undefined ? null : readComicInfo(new TextDecoder().decode(bytes));
+    } catch {
+      return null;
+    }
+  })();
+
   return {
     layout: 'fixed',
     pageCount: ordered.length,
+    ...(about === null ? {} : { about }),
     readPage: async (at) => {
       const name = ordered[at];
       const contentType = name === undefined ? null : imageTypeFor(name);

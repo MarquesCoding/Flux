@@ -132,6 +132,8 @@ const createMediaStore = (
       posterUrl: row.metadata.posterUrl ?? null,
       backdropUrl: row.metadata.backdropUrl ?? null,
       externalId: row.metadata.externalId ?? null,
+      extraKind: row.extraKind,
+      versionLabel: row.versionLabel,
       updatedAt: new Date(),
     };
 
@@ -186,6 +188,25 @@ const createMediaStore = (
 
   markScanned: async (libraryId) => {
     await db.update(library).set({ lastScannedAt: new Date() }).where(eq(library.id, libraryId));
+  },
+
+  linkExtras: async (libraryId, links) => {
+    for (const link of links) {
+      const [parent] = await db
+        .select({ id: mediaItem.id })
+        .from(mediaItem)
+        .where(and(eq(mediaItem.libraryId, libraryId), eq(mediaItem.path, link.parentPath)))
+        .limit(1);
+
+      if (parent === undefined) {
+        continue;
+      }
+
+      await db
+        .update(mediaItem)
+        .set({ parentId: parent.id })
+        .where(and(eq(mediaItem.libraryId, libraryId), eq(mediaItem.path, link.path)));
+    }
   },
 
   listOverrides: async (libraryId) => {

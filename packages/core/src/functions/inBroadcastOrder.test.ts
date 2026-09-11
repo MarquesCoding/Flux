@@ -20,7 +20,11 @@ describe('inBroadcastOrder', () => {
     expect(inBroadcastOrder(episode(1, 1, 'Arrival'), episode(1, 1, 'Belfast'))).toBeLessThan(0);
   });
 
-  it('treats an unnumbered episode as the beginning, rather than dropping it', () => {
-    expect(inBroadcastOrder({ title: 'Pilot' }, episode(1, 2))).toBeLessThan(0);
+  it('leaves an episode nobody could place at the end, rather than at the front', () => {
+    expect(inBroadcastOrder({ title: 'Pilot' }, episode(1, 2))).toBeGreaterThan(0);
+  });
+
+  it('puts the specials after the seasons, which is when they are watched', () => {
+    expect(inBroadcastOrder(episode(0, 1), episode(1, 1))).toBeGreaterThan(0);
   });
 });

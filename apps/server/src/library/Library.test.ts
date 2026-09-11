@@ -1049,3 +1049,53 @@ describe('adding a library', () => {
     expect(body.items[0]?.year).toBeNull();
   });
 });
+
+describe('an extra hanging off something else', () => {
+  const EXTRA_ID = '1a2b3c4d-5e6f-4a7b-8c9d-0e1f2a3b4c5d';
+
+  const withAnExtra = () =>
+    build([
+      detail(),
+      detail({
+        id: EXTRA_ID,
+        title: 'Making Of',
+        parentId: MEDIA_ID,
+        extraKind: 'behindTheScenes',
+      }),
+    ]);
+
+  it('is not one of the things a library holds', async () => {
+    const response = await withAnExtra().app.request(`${BASE}/api/libraries/${LIBRARY_ID}/items`);
+    const body = z
+      .object({ items: z.array(MediaSummarySchema), total: z.number() })
+      .parse(await response.json());
+
+    expect(body.items.map((item) => item.title)).toEqual(['Arrival']);
+    expect(body.total).toBe(1);
+  });
+
+  it('is offered on the thing it belongs to', async () => {
+    const response = await withAnExtra().app.request(`${BASE}/api/media/${MEDIA_ID}`);
+    const body = z
+      .object({ extras: z.array(MediaSummarySchema).optional() })
+      .parse(await response.json());
+
+    expect(body.extras?.map((extra) => extra.title)).toEqual(['Making Of']);
+    expect(body.extras?.[0]?.extraKind).toBe('behindTheScenes');
+  });
+
+  it('can still be played, since it is a real thing on disk', async () => {
+    const response = await withAnExtra().app.request(`${BASE}/api/media/${EXTRA_ID}`);
+
+    expect(response.status).toBe(200);
+  });
+
+  it('offers nothing of its own, being what hangs off something rather than a thing hung off', async () => {
+    const response = await withAnExtra().app.request(`${BASE}/api/media/${EXTRA_ID}`);
+    const body = z
+      .object({ extras: z.array(MediaSummarySchema).optional() })
+      .parse(await response.json());
+
+    expect(body.extras ?? []).toEqual([]);
+  });
+});

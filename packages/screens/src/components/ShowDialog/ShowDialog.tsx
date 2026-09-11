@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { nameSeason } from '@ValenceClient/library/nameSeason';
+import { inSeasonOrder } from '@ValenceCore/functions/inSeasonOrder';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { ActionBar } from '@ValenceUI/ActionBar';
@@ -124,7 +125,7 @@ const ShowDialog = ({
   const chooseFrom = [
     ...seasons.map((one) => ({ seasonNumber: one.seasonNumber, isHeld: true })),
     ...(gaps?.seasons ?? []).map((number) => ({ seasonNumber: number, isHeld: false })),
-  ].sort((left, right) => (left.seasonNumber ?? Infinity) - (right.seasonNumber ?? Infinity));
+  ].sort((left, right) => inSeasonOrder(left.seasonNumber, right.seasonNumber));
 
   const chosen = chooseFrom.find((one) => one.seasonNumber === chosenSeason) ?? chooseFrom[0];
   const showing = chosen?.seasonNumber ?? null;

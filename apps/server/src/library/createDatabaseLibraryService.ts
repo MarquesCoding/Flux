@@ -569,19 +569,21 @@ const createDatabaseLibraryService = ({
         .from(
           sql`${mediaItem}, jsonb_array_elements_text(coalesce(${mediaItem.genres}, '[]'::jsonb)) as genre`,
         )
+        .where(isNull(mediaItem.extraKind))
         .groupBy(sql`genre`)
         .orderBy(sql`genre asc`);
 
       const decadeRows = await db
         .select({ value: sql<number>`((${mediaItem.year} / 10) * 10)::int` })
         .from(mediaItem)
-        .where(isNotNull(mediaItem.year))
+        .where(and(isNotNull(mediaItem.year), isNull(mediaItem.extraKind)))
         .groupBy(sql`(${mediaItem.year} / 10) * 10`)
         .orderBy(sql`(${mediaItem.year} / 10) * 10 desc`);
 
       const [best] = await db
         .select({ rating: sql<number>`coalesce(max(${mediaItem.rating}), 0)::float` })
-        .from(mediaItem);
+        .from(mediaItem)
+        .where(isNull(mediaItem.extraKind));
 
       return {
         genres: genreRows.map((row) => row.value),
@@ -614,7 +616,7 @@ const createDatabaseLibraryService = ({
         ...(options.yearTo === undefined ? [] : [lte(mediaItem.year, options.yearTo)]),
         ...(options.minRating === undefined ? [] : [gte(mediaItem.rating, options.minRating)]),
         ...(options.ids === undefined
-          ? []
+          ? [isNull(mediaItem.extraKind)]
           : options.ids.length === 0
             ? [sql`false`]
             : [inArray(mediaItem.id, options.ids)]),
@@ -774,7 +776,7 @@ const createDatabaseLibraryService = ({
             : eq(mediaItem.id, scope.mediaId)
           : scope.seriesId === null
             ? null
-            : eq(mediaItem.seriesId, scope.seriesId);
+            : and(eq(mediaItem.seriesId, scope.seriesId), isNull(mediaItem.extraKind));
 
       if (where === null) {
         return [];
@@ -845,7 +847,12 @@ const createDatabaseLibraryService = ({
           genres: mediaItem.genres,
         })
         .from(mediaItem)
-        .where(sql`${mediaItem.castMembers} @> ${JSON.stringify([{ personId }])}::jsonb`)
+        .where(
+          and(
+            sql`${mediaItem.castMembers} @> ${JSON.stringify([{ personId }])}::jsonb`,
+            isNull(mediaItem.extraKind),
+          ),
+        )
         .orderBy(asc(mediaItem.title))
         .limit(CREDITS_LIMIT);
 
@@ -875,9 +882,53 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
+      const held = await db
+        .select({
+          id: mediaItem.id,
+          libraryId: mediaItem.libraryId,
+          title: mediaItem.title,
+          year: mediaItem.year,
+          durationSeconds: mediaItem.durationSeconds,
+          width: mediaItem.width,
+          height: mediaItem.height,
+          videoCodec: mediaItem.videoCodec,
+          videoRange: mediaItem.videoRange,
+          addedAt: mediaItem.addedAt,
+          posterUrl: mediaItem.posterUrl,
+          extraKind: mediaItem.extraKind,
+          versionLabel: mediaItem.versionLabel,
+          parentId: mediaItem.parentId,
+        })
+        .from(mediaItem)
+        .where(eq(mediaItem.parentId, id))
+        .orderBy(asc(mediaItem.extraKind), asc(mediaItem.title));
+
       const detail: MediaDetail = MediaDetailSchema.parse({
         id: row.id,
         libraryId: row.libraryId,
+        parentId: row.parentId,
+        extraKind: row.extraKind,
+        versionLabel: row.versionLabel,
+        extras: held
+          .filter((one) => one.extraKind !== null)
+          .map(({ posterUrl, ...extra }) => ({
+            ...extra,
+            addedAt: extra.addedAt.toISOString(),
+            hasPoster: posterUrl !== null,
+            posterUrl,
+            hasBackdrop: false,
+            hasLogo: false,
+          })),
+        versions: held
+          .filter((one) => one.extraKind === null)
+          .map(({ posterUrl, ...version }) => ({
+            ...version,
+            addedAt: version.addedAt.toISOString(),
+            hasPoster: posterUrl !== null,
+            posterUrl,
+            hasBackdrop: false,
+            hasLogo: false,
+          })),
         title: row.title,
         year: row.year,
         container: row.container,

@@ -5,7 +5,7 @@ import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { TextField } from '@ValenceUI/TextField';
-import { LIBRARY_KINDS } from '@ValenceContracts/schemas/Library';
+import { SELECTABLE_LIBRARY_KINDS } from '@ValenceContracts/schemas/Library';
 import { createLibrary } from '@ValenceClient/library/fetchLibrary';
 import { validateAddLibraryForm } from './validateAddLibraryForm';
 import type { LibraryKind } from '@ValenceContracts/schemas/Library';
@@ -86,7 +86,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
           <legend className="text-sm font-medium text-text">Kind</legend>
 
           <div className="flex flex-wrap gap-2">
-            {LIBRARY_KINDS.map((entry) => (
+            {SELECTABLE_LIBRARY_KINDS.map((entry) => (
               <Button
                 key={entry}
                 size="sm"

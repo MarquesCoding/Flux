@@ -1,3 +1,5 @@
+import { readSeasonDirectory } from './readSeasonDirectory';
+
 const MEDIA_EXTENSIONS = new Set([
   'mkv',
   'mp4',
@@ -135,20 +137,17 @@ const findYear = (text: string): { year: number; index: number } | null => {
 };
 
 /**
- * Reads a title and a year out of a filename, stripping the scene-release noise that surrounds them:
- * resolutions, codecs, source tags, group names. This is the whole of the built-in metadata provider,
- * and what a library falls back to when no catalogue is configured or none recognises a file.
+ * Reads a title and a year out of one name, stripping the scene-release noise that surrounds them:
+ * resolutions, codecs, source tags, group names.
  *
- * @param filePath - The file's path inside the library.
- * @returns The title as it should be shown, and the year where the name gave one.
+ * @param name - A filename without its extension, or a folder's name.
+ * @returns The year where the name gave one, and the title, which is null where nothing survived
+ *   the stripping — a folder called `2019` names a year and no film.
  */
-const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
-  const fileName = filePath.split('/').pop() ?? filePath;
-  const base = stripExtension(fileName);
-
-  const found = findYear(base);
+const readName = (name: string): { title: string | null; year: number | null } => {
+  const found = findYear(name);
   const year = found?.year ?? null;
-  const beforeYear = found === null ? base : base.slice(0, found.index);
+  const beforeYear = found === null ? name : name.slice(0, found.index);
 
   const words = beforeYear
     .replace(/[[\]()_.]+/g, ' ')
@@ -158,7 +157,46 @@ const readTitleFromPath = (filePath: string): { title: string; year: number | nu
 
   const title = words.join(' ').trim();
 
-  return { title: title.length > 0 ? title : stripExtension(fileName), year };
+  return { title: title.length > 0 ? title : null, year };
+};
+
+/**
+ * Reads a title and a year for a file, from its own name and from the folder holding it. This is the
+ * whole of the built-in metadata provider, and what a library falls back to when no catalogue is
+ * configured or none recognises a file.
+ *
+ * A folder deliberately called `Arrival (2016)` is what somebody named, and a filename is whatever
+ * the tool that wrote it happened to use, so the folder is believed — the same way Jellyfin takes a
+ * folder-per-film layout as naming the film and reads the files inside as versions of it. That is
+ * what makes such a collection readable when whatever filled it left `movie.mkv` or `title00.mkv`
+ * inside, and what keeps a folder right when the file in it disagrees.
+ *
+ * Edition wording carried only by the filename is lost with it. Keeping it means holding several
+ * files as one film, which nothing here can do yet.
+ *
+ * A folder that names a season is never read this way. That is a programme, and the file's own name
+ * is all there is to go on.
+ *
+ * @param filePath - The file's path inside the library.
+ * @returns The title as it should be shown, and the year where either name gave one.
+ */
+const readTitleFromPath = (filePath: string): { title: string; year: number | null } => {
+  const parts = filePath.split('/').filter((part) => part !== '');
+  const fileName = parts[parts.length - 1] ?? filePath;
+  const folderName = parts[parts.length - 2] ?? '';
+
+  const fromFile = readName(stripExtension(fileName));
+  const own = { title: fromFile.title ?? stripExtension(fileName), year: fromFile.year };
+
+  if (readSeasonDirectory(folderName) !== null) {
+    return own;
+  }
+
+  const fromFolder = readName(folderName);
+
+  return fromFolder.year !== null && fromFolder.title !== null
+    ? { title: fromFolder.title, year: fromFolder.year }
+    : own;
 };
 
 export { isMediaFile, readTitleFromPath, findYear };
