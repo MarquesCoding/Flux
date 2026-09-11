@@ -1037,6 +1037,7 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
+      await jobs.cancelFor(libraryId);
       await store.clear(libraryId);
 
       await db
