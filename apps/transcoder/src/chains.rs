@@ -112,8 +112,16 @@ fn chain_for(
                 format!(",hwdownload,format={down}")
             };
 
+            let narrowing = if draws_on_device {
+                pipeline
+                    .narrows_to_eight_bit
+                    .map_or_else(String::new, |option| format!(":{option}"))
+            } else {
+                String::new()
+            };
+
             format!(
-                "fps=1/1,{mapping}{scaler}=w={}:h={}{coming_down}",
+                "fps=1/1,{mapping}{scaler}=w={}:h={}{narrowing}{coming_down}",
                 half.0,
                 half.1,
                 scaler = pipeline.scaler,
