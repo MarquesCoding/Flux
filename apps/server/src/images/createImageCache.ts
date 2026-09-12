@@ -20,7 +20,7 @@ type CreateImageCacheOptions = {
   onProblem?: (url: string, reason: string) => void;
 };
 
-const MAX_BYTES = 8 * 1024 * 1024;
+const MAX_BYTES = 32 * 1024 * 1024;
 
 const IMAGE_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp', 'image/avif']);
 
@@ -72,7 +72,10 @@ const createImageCache = ({ directory, fetchImpl, onProblem }: CreateImageCacheO
         const body = await response.arrayBuffer();
 
         if (body.byteLength > MAX_BYTES) {
-          onProblem?.(url, 'That image is far larger than any artwork should be.');
+          onProblem?.(
+            url,
+            `That image is ${Math.round(body.byteLength / 1024 / 1024).toString()}MB, which is too large to be artwork.`,
+          );
 
           return null;
         }
