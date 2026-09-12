@@ -103,6 +103,7 @@ pub async fn read_keyframes(
             "csv=p=0",
         ])
         .arg(path)
+        .kill_on_drop(true)
         .output()
         .await?;
 

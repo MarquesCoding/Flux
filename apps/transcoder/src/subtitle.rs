@@ -72,6 +72,7 @@ pub async fn extract_subtitle(
 ) -> Result<SubtitleTrack, SubtitleError> {
     let output = Command::new(ffmpeg)
         .args(extract_arguments(path, stream_index))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(SubtitleError::Spawn)?;

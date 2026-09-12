@@ -76,6 +76,7 @@ pub async fn take_frame(
 ) -> Result<Vec<u8>, FrameError> {
     let output = Command::new(ffmpeg)
         .args(frame_arguments(path, at_seconds, width))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(FrameError::Spawn)?;

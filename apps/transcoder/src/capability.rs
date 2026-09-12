@@ -557,6 +557,7 @@ pub fn tone_map_probe_arguments(accel: HardwareAccel, filter: &str, device: &str
 async fn verify_tone_map(ffmpeg: &str, accel: HardwareAccel, filter: &str, device: &str) -> bool {
     let Ok(outcome) = Command::new(ffmpeg)
         .args(tone_map_probe_arguments(accel, filter, device))
+        .kill_on_drop(true)
         .output()
         .await
     else {
@@ -623,6 +624,7 @@ async fn verify_encoder(
 ) -> Result<(), String> {
     let outcome = Command::new(ffmpeg)
         .args(probe_arguments(candidate, device))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(|error| format!("could not start ffmpeg: {error}"))?;
@@ -750,7 +752,12 @@ pub fn meets_minimum(banner: &str) -> bool {
 
 /// The first line of what `FFmpeg` says about itself, or "unknown".
 pub async fn read_version(ffmpeg: &str) -> String {
-    let Ok(output) = Command::new(ffmpeg).arg("-version").output().await else {
+    let Ok(output) = Command::new(ffmpeg)
+        .arg("-version")
+        .kill_on_drop(true)
+        .output()
+        .await
+    else {
         return "unknown".to_owned();
     };
 
@@ -789,6 +796,7 @@ pub async fn detect_capabilities(ffmpeg: &str, device: &str) -> Capabilities {
 async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilities {
     let listed = match Command::new(ffmpeg)
         .args(["-hide_banner", "-encoders"])
+        .kill_on_drop(true)
         .output()
         .await
     {
@@ -834,6 +842,7 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 
     let filters = match Command::new(ffmpeg)
         .args(["-hide_banner", "-filters"])
+        .kill_on_drop(true)
         .output()
         .await
     {

@@ -81,7 +81,13 @@ async fn width_holds(
         let ffmpeg = ffmpeg.to_owned();
         let arguments = session_arguments(accel, encoder, device);
 
-        running.spawn(async move { Command::new(ffmpeg).args(arguments).output().await });
+        running.spawn(async move {
+            Command::new(ffmpeg)
+                .args(arguments)
+                .kill_on_drop(true)
+                .output()
+                .await
+        });
     }
 
     let every = async move {
