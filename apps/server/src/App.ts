@@ -2846,7 +2846,7 @@ const createApp = ({
       const { mediaId, quality } = context.req.valid('param');
       const clientId = context.req.header('x-valence-client') ?? profileId;
 
-      await downloads.release(clientId, mediaId, quality);
+      await downloads.release(profileId, clientId, mediaId, quality);
 
       return context.body(null, 204);
     });

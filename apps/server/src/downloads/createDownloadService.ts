@@ -473,11 +473,12 @@ const createDownloadService = ({
         .onConflictDoNothing();
     },
 
-    release: async (clientId, mediaId, quality) => {
+    release: async (profileId, clientId, mediaId, quality) => {
       await db
         .delete(downloadHolding)
         .where(
           and(
+            eq(downloadHolding.profileId, profileId),
             eq(downloadHolding.clientId, clientId),
             eq(downloadHolding.mediaItemId, mediaId),
             eq(downloadHolding.quality, quality),

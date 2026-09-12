@@ -326,7 +326,12 @@ const downloadHolding = pgTable(
     heldAt: timestamp('heldAt').notNull().defaultNow(),
   },
   (table) => [
-    uniqueIndex('download_holding_one_idx').on(table.clientId, table.mediaItemId, table.quality),
+    uniqueIndex('download_holding_one_idx').on(
+      table.profileId,
+      table.clientId,
+      table.mediaItemId,
+      table.quality,
+    ),
     index('download_holding_profile_idx').on(table.profileId, table.heldAt),
   ],
 );
