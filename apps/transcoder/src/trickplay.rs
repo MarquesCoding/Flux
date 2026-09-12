@@ -22,7 +22,7 @@ use crate::integrity::decodes;
 use crate::media::VideoRange;
 use crate::render_registry::RenderRegistry;
 use crate::steps_aside::steps_aside;
-use crate::transcode_plan::HardwareAccel;
+use crate::transcode_plan::{HardwareAccel, HardwarePipeline};
 
 /// Written only when every sheet is on disk.
 ///
@@ -348,6 +348,83 @@ fn quality_arguments(encoder: &str) -> [String; 2] {
     [flag.to_owned(), quality.to_string()]
 }
 
+/// The filters between the decoder and the encoder, and where each of them runs.
+///
+/// `fps` comes first so the expensive ones only see the frames that survive it. Conversion precedes
+/// the scale, because converting an already-resampled picture loses highlight detail, and precedes
+/// the mapping onto the backend's own frames, because on `QSV` the converter is `VAAPI`'s and the
+/// decoder is handing over `VAAPI` surfaces.
+///
+/// A thumbnail is narrowed to eight bits where the device draws it, because a JPEG has no other
+/// depth. The scale happens regardless so it costs nothing, and without it a ten-bit film hands
+/// `p010` surfaces to an encoder that cannot take them — reported as "Nothing was written into
+/// output file", the same silence the ten-bit H.264 chains gave before they were narrowed. Where
+/// the processor draws them the frames come down first and ffmpeg converts on the way.
+fn extract_filters(
+    request: &TrickplayRequest,
+    tile_height: u32,
+    source: SheetSource,
+    onto_the_device: Option<(HardwareAccel, HardwarePipeline, &str)>,
+    draws_on_the_device: bool,
+) -> Vec<String> {
+    let skips_to_keyframes = onto_the_device.is_none();
+    let mut filters = Vec::new();
+
+    if !skips_to_keyframes {
+        filters.push(format!(
+            "setpts=N/{:.3}/TB",
+            source
+                .frames_per_second
+                .filter(|rate| *rate > 0.0)
+                .unwrap_or(ASSUMED_RATE)
+        ));
+    }
+
+    filters.push(format!("fps=1/{}", request.interval_seconds));
+
+    match onto_the_device {
+        Some((_, pipeline, _)) => {
+            if source.range != VideoRange::Sdr {
+                if let Some(mapper) = pipeline.tone_map {
+                    filters.push(mapper.to_owned());
+                }
+            }
+
+            if let Some(mapping) = pipeline.maps_onto_device {
+                filters.push(mapping.to_owned());
+            }
+
+            filters.push(format!(
+                "{scaler}=w={width}:h={height}{narrowing}",
+                scaler = pipeline.scaler,
+                width = request.tile_width,
+                height = tile_height,
+                narrowing = if draws_on_the_device {
+                    pipeline
+                        .narrows_to_eight_bit
+                        .map_or_else(String::new, |option| format!(":{option}"))
+                } else {
+                    String::new()
+                },
+            ));
+
+            if !draws_on_the_device {
+                filters.push(format!(
+                    "hwdownload,format={}",
+                    pipeline.download_format_for(source.bit_depth)
+                ));
+            }
+        }
+        None => filters.push(format!(
+            "scale={width}:{height}",
+            width = request.tile_width,
+            height = tile_height,
+        )),
+    }
+
+    filters
+}
+
 /// The ffmpeg arguments that draw one thumbnail per interval.
 ///
 /// The first of two passes, and the one that costs anything. It writes single
@@ -362,6 +439,13 @@ fn quality_arguments(encoder: &str) -> [String; 2] {
 /// already-resampled picture loses highlight detail, and before the mapping
 /// onto the backend's own frames, because on `QSV` the converter is `VAAPI`'s
 /// and the decoder is handing over `VAAPI` surfaces.
+///
+/// A thumbnail is narrowed to eight bits where the device draws it, because a JPEG has no other
+/// depth. The scale is happening regardless so it costs nothing, and without it a ten-bit film
+/// hands `p010` surfaces to an encoder that cannot take them — which this machine reported as
+/// "Nothing was written into output file", the same silence the ten-bit H.264 chains gave before
+/// they were narrowed. Where the processor draws them the frames come down first and ffmpeg
+/// converts on the way, so there is nothing to say.
 ///
 /// `-skip_frame nokey` is asked only of a decoder in software. Telling a
 /// hardware decoder to throw away everything between keyframes is not a thing
@@ -396,54 +480,14 @@ pub fn extract_arguments(
     let onto_the_device = on_device
         .and_then(|(found, device)| found.pipeline().map(|pipeline| (found, pipeline, device)));
     let draws_on_the_device = matches!(encoder, SheetEncoder::Hardware(_));
-    let skips_to_keyframes = onto_the_device.is_none();
 
-    let mut filters = Vec::new();
-
-    if !skips_to_keyframes {
-        filters.push(format!(
-            "setpts=N/{:.3}/TB",
-            source
-                .frames_per_second
-                .filter(|rate| *rate > 0.0)
-                .unwrap_or(ASSUMED_RATE)
-        ));
-    }
-
-    filters.push(format!("fps=1/{}", request.interval_seconds));
-
-    match onto_the_device {
-        Some((_, pipeline, _)) => {
-            if source.range != VideoRange::Sdr {
-                if let Some(mapper) = pipeline.tone_map {
-                    filters.push(mapper.to_owned());
-                }
-            }
-
-            if let Some(mapping) = pipeline.maps_onto_device {
-                filters.push(mapping.to_owned());
-            }
-
-            filters.push(format!(
-                "{scaler}=w={width}:h={height}",
-                scaler = pipeline.scaler,
-                width = request.tile_width,
-                height = tile_height,
-            ));
-
-            if !draws_on_the_device {
-                filters.push(format!(
-                    "hwdownload,format={}",
-                    pipeline.download_format_for(source.bit_depth)
-                ));
-            }
-        }
-        None => filters.push(format!(
-            "scale={width}:{height}",
-            width = request.tile_width,
-            height = tile_height,
-        )),
-    }
+    let filters = extract_filters(
+        request,
+        tile_height,
+        source,
+        onto_the_device,
+        draws_on_the_device,
+    );
 
     let mut arguments = vec![
         "-hide_banner".to_owned(),
@@ -1135,7 +1179,7 @@ otherwise start a second one"
             .any(|pair| pair == ["-hwaccel_output_format", "vaapi"]));
         assert_eq!(
             chain,
-            "setpts=N/23.976/TB,fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180",
+            "setpts=N/23.976/TB,fps=1/10,hwmap=derive_device=qsv,format=qsv,vpp_qsv=w=320:h=180:format=nv12",
             "nothing comes down: the device draws the thumbnails too"
         );
         assert!(arguments
@@ -1206,7 +1250,7 @@ otherwise start a second one"
 
         assert_eq!(
             chain,
-            "setpts=N/23.976/TB,fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180"
+            "setpts=N/23.976/TB,fps=1/10,tonemap_vaapi=format=nv12:p=bt709:t=bt709:m=bt709,scale_vaapi=w=320:h=180:format=nv12"
         );
     }
 
@@ -1458,6 +1502,57 @@ otherwise start a second one"
         assert!(directory.join("sheet-001.jpg").exists(), "sheets are kept");
 
         let _ = tokio::fs::remove_dir_all(&directory).await;
+    }
+
+    /// A JPEG has no other depth, and a ten-bit film handed to one of these
+    /// encoders reports only that nothing was written.
+    #[test]
+    fn narrows_a_thumbnail_to_eight_bits_where_the_device_draws_it() {
+        let chain = |arguments: Vec<String>| {
+            arguments
+                .windows(2)
+                .find(|pair| pair[0] == "-vf")
+                .map(|pair| pair[1].clone())
+                .expect("a filter chain")
+        };
+        let wide = SheetSource {
+            bit_depth: Some(10),
+            ..source_of(VideoRange::Sdr)
+        };
+
+        assert!(chain(extract_arguments(
+            &request(),
+            180,
+            wide,
+            Some((HardwareAccel::Vaapi, "/dev/dri/renderD128")),
+            &SheetEncoder::Hardware("mjpeg_vaapi".to_owned()),
+            Path::new("/cache"),
+        ))
+        .ends_with("scale_vaapi=w=320:h=180:format=nv12"));
+    }
+
+    /// The frames come down first, and ffmpeg converts on the way.
+    #[test]
+    fn says_nothing_about_depth_where_the_processor_draws_them() {
+        let arguments = extract_arguments(
+            &request(),
+            180,
+            SheetSource {
+                bit_depth: Some(10),
+                ..source_of(VideoRange::Sdr)
+            },
+            Some((HardwareAccel::Nvenc, "")),
+            &SheetEncoder::Software,
+            Path::new("/cache"),
+        );
+        let chain = arguments
+            .windows(2)
+            .find(|pair| pair[0] == "-vf")
+            .map(|pair| pair[1].clone())
+            .expect("a filter chain");
+
+        assert!(chain.contains("hwdownload,format=p010le"), "{chain}");
+        assert!(!chain.contains(":format=nv12"), "{chain}");
     }
 
     #[test]
