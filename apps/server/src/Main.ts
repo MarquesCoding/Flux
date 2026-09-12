@@ -1700,6 +1700,7 @@ const realtimeHandler = createRealtimeHandler({
   registry: realtime,
   newId: () => randomUUID(),
   now: () => Date.now(),
+  ownsProfile: (accountId, profileId) => profileService.belongsTo(accountId, profileId),
   party: {
     registry: parties,
     tell: (connectionIds, payload) => {

@@ -840,8 +840,12 @@ const createApp = ({
       : context.json(rebuilt, 200);
   });
 
-  app.openapi(runningScansRoute, (context) =>
-    context.json(
+  app.openapi(runningScansRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json(
       {
         scans: listRunningJobs().map((job) => ({
           jobId: job.jobId,
@@ -853,10 +857,14 @@ const createApp = ({
         })),
       },
       200,
-    ),
-  );
+    );
+  });
 
   app.openapi(scanStateRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const { jobId } = context.req.valid('param');
     const { state, phase, processed, total } = await library.readScanState(jobId);
 
@@ -1484,7 +1492,7 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    await notifications.removePushEndpoint(context.req.valid('json').endpoint);
+    await notifications.removePushEndpoint(account.id, context.req.valid('json').endpoint);
 
     return context.body(null, 204);
   });
@@ -1878,6 +1886,15 @@ const createApp = ({
     const { kind } = context.req.valid('param');
     const { libraryId, force } = context.req.valid('json');
 
+    const definition = JOB_DEFINITIONS.find((job) => job.kind === kind);
+
+    if (
+      definition?.destructive === true &&
+      !(await requires(context.req.raw.headers, 'jobs.runDestructive'))
+    ) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const maintenanceRunners: Record<
       string,
       () => Promise<{ jobId: string | null; state: string }>
@@ -1998,6 +2015,33 @@ const createApp = ({
       highestPosition: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
     };
   };
+
+  /**
+   * Whether an account is at or above the actor's own rank, and so not theirs to change.
+   *
+   * Rank alone, where banning and removing also refuse somebody acting on their own account.
+   * Changing what you hold yourself is a legitimate thing to do, and what stops the last
+   * administrator undoing themselves is whether the change would strand the server rather than
+   * whose account it is.
+   *
+   * @param actor - Who is asking, and how senior they are.
+   * @param targetId - Whose account is being changed.
+   * @param targetRoles - The roles that account holds.
+   * @returns Whether to refuse.
+   */
+  const outranks = (
+    actor: NonNullable<Awaited<ReturnType<typeof readActor>>>,
+    targetId: string,
+    targetRoles: readonly { position: number }[],
+  ): boolean =>
+    checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId,
+      targetHighestPosition:
+        targetRoles.length === 0 ? null : Math.max(...targetRoles.map((role) => role.position)),
+    }) === 'outranked';
 
   /**
    * Whether taking something away would leave the server with nobody able to administer it.
@@ -2249,6 +2293,10 @@ const createApp = ({
     const { userId } = context.req.valid('param');
     const grant = context.req.valid('json');
 
+    if (outranks(actor, userId, await permissions.rolesFor(userId))) {
+      return context.json({ error: describeAccountRefusal('outranked') }, 403);
+    }
+
     if (grant.effect === 'allow' && !actor.permissions.has(grant.permission)) {
       return context.json({ error: describeRefusal('escalation') }, 403);
     }
@@ -2290,9 +2338,19 @@ const createApp = ({
     }
 
     const { userId, permission } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    if (outranks(actor, userId, target)) {
+      return context.json({ error: describeAccountRefusal('outranked') }, 403);
+    }
+
     const previous = (await permissions.overridesFor(userId)).find(
       (existing) => existing.permission === permission,
     );
+
+    if (previous?.effect === 'deny' && !actor.permissions.has(permission)) {
+      return context.json({ error: describeRefusal('escalation') }, 403);
+    }
 
     const stranded = await wouldStrandTheServer(
       async () => {
@@ -2387,11 +2445,29 @@ const createApp = ({
   });
 
   app.openapi(unbanAccountRoute, async (context) => {
-    if (!(await requires(context.req.raw.headers, 'account.ban'))) {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.ban')) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    if (!(await unbanAccount?.(context.req.valid('param').userId))) {
+    const { userId } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if (!(await unbanAccount?.(userId))) {
       return context.json({ error: 'No such account.' }, 404);
     }
 
