@@ -73,8 +73,9 @@ type PresenceArrival = {
 };
 
 type PresenceService = {
-  connect: (arrival: PresenceArrival) => void;
+  connect: (arrival: PresenceArrival) => boolean;
   disconnect: (clientId: string) => void;
+  ownerOf: (clientId: string) => string | null;
   startPlayback: (clientId: string, playback: PresenceStartPlaybackInput) => void;
   stopPlayback: (clientId: string) => void;
   heartbeatPlayback: (
@@ -150,6 +151,12 @@ const createPresenceService = (watchers: PresenceWatchers = {}): PresenceService
 
   return {
     connect: ({ clientId, accountId = null, profileId, profileName, deviceLabel, send }) => {
+      const already = connections.get(clientId);
+
+      if (already !== undefined && already.entry.accountId !== accountId) {
+        return false;
+      }
+
       connections.set(clientId, {
         entry: {
           clientId,
@@ -164,7 +171,11 @@ const createPresenceService = (watchers: PresenceWatchers = {}): PresenceService
       });
 
       announce();
+
+      return true;
     },
+
+    ownerOf: (clientId) => connections.get(clientId)?.entry.accountId ?? null,
 
     disconnect: (clientId) => {
       const connection = connections.get(clientId);

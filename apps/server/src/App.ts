@@ -965,7 +965,13 @@ const createApp = ({
       }
     }
 
-    if (clientId !== undefined) {
+    const owner = clientId === undefined ? null : presence.ownerOf(clientId);
+
+    const whoIsAsking = owner === null ? null : await readAccount(context.req.raw.headers);
+
+    const isTheirOwnDevice = owner === null || owner === whoIsAsking?.id;
+
+    if (clientId !== undefined && isTheirOwnDevice) {
       const item = await library.getMedia(mediaId);
 
       if (item !== null) {
@@ -3318,12 +3324,20 @@ const createApp = ({
   });
 
   app.openapi(presenceHeartbeatRoute, async (context) => {
-    if ((await readAccount(context.req.raw.headers)) === null) {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
     const { clientId } = context.req.valid('param');
     const { isPlaying, health } = context.req.valid('json');
+
+    const owner = presence.ownerOf(clientId);
+
+    if (owner !== null && owner !== account.id) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
 
     presence.heartbeatPlayback(clientId, isPlaying, health);
 
@@ -3331,11 +3345,21 @@ const createApp = ({
   });
 
   app.openapi(presenceStopWatchingRoute, async (context) => {
-    if ((await readAccount(context.req.raw.headers)) === null) {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    presence.stopPlayback(context.req.valid('param').clientId);
+    const { clientId } = context.req.valid('param');
+
+    const owner = presence.ownerOf(clientId);
+
+    if (owner !== null && owner !== account.id) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
+
+    presence.stopPlayback(clientId);
 
     return context.body(null, 204);
   });

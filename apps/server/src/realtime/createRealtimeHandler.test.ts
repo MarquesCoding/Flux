@@ -49,6 +49,8 @@ const createWorld = (granted: Permission[] = []) => {
       presenceCalls.connected.push(clientId);
       presenceCalls.labels.push(deviceLabel);
       announce = send;
+
+      return true;
     },
     disconnect: (clientId) => {
       presenceCalls.disconnected.push(clientId);
@@ -357,7 +359,7 @@ describe('a connection that is part of a watch party', () => {
       registry,
       now: () => 1000,
       presence: {
-        connect: () => {},
+        connect: () => true,
         disconnect: () => {},
         nameOf: () => Promise.resolve('Sam'),
       },
@@ -453,7 +455,7 @@ describe('naming somebody in a party', () => {
       registry,
       now: () => 1000,
       presence: {
-        connect: () => {},
+        connect: () => true,
         disconnect: () => {},
         nameOf: (accountId) => {
           asked.push(accountId);

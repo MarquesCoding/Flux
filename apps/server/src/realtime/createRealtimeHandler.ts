@@ -36,7 +36,7 @@ type PresenceBinding = {
     profileName: string | null;
     deviceLabel: string;
     send: (event: PresenceControl) => void;
-  }) => void;
+  }) => boolean;
   disconnect: (clientId: string) => void;
   nameOf: (accountId: string, profileId: string | null) => Promise<string | null>;
 };
@@ -195,13 +195,11 @@ const createRealtimeHandler = ({
           return;
         }
 
-        claimed = clientId;
-
         const named = await presence.nameOf(who.accountId, profileId);
 
         myName = named ?? myName;
 
-        presence.connect({
+        const took = presence.connect({
           clientId,
           accountId: who.accountId,
           profileId,
@@ -217,6 +215,10 @@ const createRealtimeHandler = ({
             });
           },
         });
+
+        if (took) {
+          claimed = clientId;
+        }
       },
 
       ping: () => {

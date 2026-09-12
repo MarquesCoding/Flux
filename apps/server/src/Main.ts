@@ -1713,9 +1713,7 @@ const realtimeHandler = createRealtimeHandler({
     },
   },
   presence: {
-    connect: (arrival) => {
-      presence.connect(arrival);
-    },
+    connect: (arrival) => presence.connect(arrival),
     disconnect: (clientId) => {
       presence.disconnect(clientId);
     },
