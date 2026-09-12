@@ -113,7 +113,7 @@ describe('SharePage', () => {
   });
 
   it('takes the picture away as soon as the link stops working', async () => {
-    vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
+    vi.mocked(shareEndingFor).mockResolvedValue(null);
 
     const user = userEvent.setup();
 
@@ -122,6 +122,8 @@ describe('SharePage', () => {
     await user.click(screen.getByRole('button', { name: 'Play it' }));
 
     expect(await screen.findByText('playing Arrival')).toBeInTheDocument();
+
+    vi.mocked(shareEndingFor).mockResolvedValue('withdrawn');
 
     await waitFor(() => {
       expect(screen.queryByText('playing Arrival')).not.toBeInTheDocument();
