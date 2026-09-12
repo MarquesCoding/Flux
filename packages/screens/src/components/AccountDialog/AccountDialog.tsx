@@ -19,6 +19,7 @@ import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace'
 import { saveProfile, uploadProfilePhoto } from '@ValenceClient/profiles/fetchProfiles';
 import { useSignOut } from '@ValenceScreens/session/useSignOut';
 import { useShell } from '@ValenceClient/shell/useShell';
+import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileDraft } from '@ValenceScreens/components/AccountArea/components/ProfileSettings/ProfileSettings.types';
 import type { AccountDialogProps } from './AccountDialog.types';
@@ -59,6 +60,7 @@ const draftOf = (profile: ViewerProfile): ProfileDraft => ({
  */
 const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
   const { user, refresh } = useShell();
+  const { mayAdminister } = useWhatIMayDo();
   const cache = useQueryClient();
   const leave = useSignOut();
 
@@ -154,7 +156,7 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
             />
           }
         >
-          {user.role !== 'admin' ? null : <Badge size="sm">admin</Badge>}
+          {mayAdminister ? <Badge size="sm">admin</Badge> : null}
 
           <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={16} />

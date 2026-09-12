@@ -1,11 +1,21 @@
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { renderInAShell } from '@ValenceScreens/testing/renderInAShell';
 import { BooksPage } from './BooksPage';
 import type { BookShelfProps } from '@ValenceScreens/components/BookShelf/BookShelf.types';
 
 const drawn = vi.hoisted((): { props: BookShelfProps | null } => ({ props: null }));
+
+const mayAdminister = vi.hoisted(() => vi.fn<() => boolean>());
+
+vi.mock('@ValenceClient/session/useWhatIMayDo', () => ({
+  useWhatIMayDo: () => ({ may: () => false, mayAdminister: mayAdminister() }),
+}));
+
+beforeEach(() => {
+  mayAdminister.mockReset().mockReturnValue(false);
+});
 
 vi.mock('@ValenceScreens/components/BookShelf/BookShelf', () => ({
   BookShelf: (props: BookShelfProps) => {
@@ -36,6 +46,8 @@ describe('BooksPage', () => {
   });
 
   it('offers an administrator somewhere to add a library of books', async () => {
+    mayAdminister.mockReturnValue(true);
+
     renderInAShell(<BooksPage />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Add a library' }));
@@ -44,16 +56,13 @@ describe('BooksPage', () => {
   });
 
   it('offers that to nobody who could not act on it', () => {
-    renderInAShell(<BooksPage />, {
-      user: {
-        id: '00000000-0000-4000-8000-000000000002',
-        name: 'Watcher',
-        email: 'watcher@valence.test',
-        role: 'user',
-        image: null,
-        emailVerified: true,
-      },
-    });
+    renderInAShell(<BooksPage />);
+
+    expect(drawn.props?.onAddLibrary).toBeUndefined();
+  });
+
+  it('offers nothing while the server has not yet said what this account may do', () => {
+    renderInAShell(<BooksPage />);
 
     expect(drawn.props?.onAddLibrary).toBeUndefined();
   });

@@ -7,6 +7,12 @@ import type { LibraryBrowserProps } from '@ValenceScreens/components/LibraryBrow
 
 const drawn = vi.hoisted((): { props: LibraryBrowserProps | null } => ({ props: null }));
 
+const mayAdminister = vi.hoisted(() => vi.fn<() => boolean>());
+
+vi.mock('@ValenceClient/session/useWhatIMayDo', () => ({
+  useWhatIMayDo: () => ({ may: () => false, mayAdminister: mayAdminister() }),
+}));
+
 vi.mock('@ValenceScreens/components/LibraryBrowser/LibraryBrowser', () => ({
   LibraryBrowser: (props: LibraryBrowserProps) => {
     drawn.props = props;
@@ -43,6 +49,7 @@ const ARRIVAL = {
 
 beforeEach(() => {
   drawn.props = null;
+  mayAdminister.mockReset().mockReturnValue(false);
   window.history.replaceState(null, '', '/');
 });
 
@@ -84,5 +91,19 @@ describe('HomePage', () => {
     drawn.props?.onItemsLoaded?.([ARRIVAL]);
 
     expect(rememberItems).toHaveBeenCalledWith([ARRIVAL]);
+  });
+
+  it('offers somewhere to add a library to anybody who may administer the server', () => {
+    mayAdminister.mockReturnValue(true);
+
+    renderInAShell(<HomePage />);
+
+    expect(drawn.props?.onAddLibrary).toBeDefined();
+  });
+
+  it('offers that to nobody who could not act on it, nor before the server has said', () => {
+    renderInAShell(<HomePage />);
+
+    expect(drawn.props?.onAddLibrary).toBeUndefined();
   });
 });
