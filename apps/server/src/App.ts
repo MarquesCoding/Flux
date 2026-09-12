@@ -3331,6 +3331,16 @@ const createApp = ({
 
     const stopped = await playback.stop(sessionId, clientId);
 
+    const letGoBy = getCookie(context, SHARE_COOKIE);
+
+    if (letGoBy !== undefined && shares !== undefined && shareSessions !== undefined) {
+      const held = await shares.resolve(letGoBy);
+
+      if (held !== null) {
+        shareSessions.release(sessionId, held.id);
+      }
+    }
+
     if (!stopped) {
       return context.json({ error: 'No such session.' }, 404);
     }
