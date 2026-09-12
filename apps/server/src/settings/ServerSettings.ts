@@ -8,6 +8,7 @@ const ServerSettingsSchema = z.object({
   catalogueApiKey: z.string().default(''),
   hardwareAccel: z.string().default(''),
   previewQuality: PreviewQualitySchema.default('high'),
+  showsProfilesBeforeSignIn: z.boolean().default(false),
   seededJobTriggerKinds: z.array(z.string()).default([]),
   seededRoleNames: z.array(z.string()).default([]),
   pushPublicKey: z.string().default(''),

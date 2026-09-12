@@ -540,22 +540,25 @@ const createApp = ({
 
   app.use(
     '/api/*',
-    createSessionGate(
+    createSessionGate({
       auth,
-      shares === undefined || shareSessions === undefined
-        ? undefined
-        : createShareGate({
-            shares,
-            sessions: shareSessions,
-            itemOf: async (mediaId) => {
-              const item = await library.getMedia(mediaId);
+      showsFaces: async () => (await settings.read()).showsProfilesBeforeSignIn,
+      ...(shares === undefined || shareSessions === undefined
+        ? {}
+        : {
+            shareGate: createShareGate({
+              shares,
+              sessions: shareSessions,
+              itemOf: async (mediaId) => {
+                const item = await library.getMedia(mediaId);
 
-              return item === null
-                ? null
-                : { id: item.id, seriesId: await library.seriesOf(mediaId) };
-            },
+                return item === null
+                  ? null
+                  : { id: item.id, seriesId: await library.seriesOf(mediaId) };
+              },
+            }),
           }),
-    ),
+    }),
   );
 
   /**
@@ -1645,11 +1648,18 @@ const createApp = ({
       return context.json({ error: 'No such profile.' }, 404);
     }
 
-    return auth.api.signInEmail({
-      body: { email, password: parsed.data.password },
-      asResponse: true,
-      headers: context.req.raw.headers,
-    });
+    const forwarded = new Headers(context.req.raw.headers);
+
+    forwarded.set('content-type', 'application/json');
+    forwarded.delete('content-length');
+
+    return auth.handler(
+      new Request(new URL('/api/auth/sign-in/email', context.req.url), {
+        method: 'POST',
+        headers: forwarded,
+        body: JSON.stringify({ email, password: parsed.data.password }),
+      }),
+    );
   });
 
   app.get('/api/profiles/avatars/:style', (context) => {
@@ -1736,6 +1746,7 @@ const createApp = ({
           hasCatalogueKey: current.catalogueApiKey !== '',
           hardwareAccel: current.hardwareAccel,
           previewQuality: current.previewQuality,
+          showsProfilesBeforeSignIn: current.showsProfilesBeforeSignIn,
           trustedOrigins: current.trustedOrigins,
           cookieSecure: current.cookieSecure,
         },
@@ -1773,6 +1784,9 @@ const createApp = ({
       ...(patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey }),
       ...(patch.hardwareAccel === undefined ? {} : { hardwareAccel: patch.hardwareAccel }),
       ...(patch.previewQuality === undefined ? {} : { previewQuality: patch.previewQuality }),
+      ...(patch.showsProfilesBeforeSignIn === undefined
+        ? {}
+        : { showsProfilesBeforeSignIn: patch.showsProfilesBeforeSignIn }),
     });
 
     if (updated.previewQuality !== before.previewQuality) {
@@ -1792,6 +1806,7 @@ const createApp = ({
         cookieSecure: updated.cookieSecure,
         hardwareAccel: updated.hardwareAccel,
         previewQuality: updated.previewQuality,
+        showsProfilesBeforeSignIn: updated.showsProfilesBeforeSignIn,
       },
       200,
     );

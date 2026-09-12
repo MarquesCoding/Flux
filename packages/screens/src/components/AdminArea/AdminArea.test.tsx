@@ -34,6 +34,7 @@ const OVERVIEW: AdminOverview = {
     cookieSecure: false,
     hardwareAccel: '',
     previewQuality: 'high' as const,
+    showsProfilesBeforeSignIn: false,
   },
   transcoder: {
     isReachable: true,
