@@ -116,6 +116,10 @@ const stopRoute = createRoute({
   },
   responses: {
     204: { description: 'The session was stopped' },
+    403: {
+      description: 'The device named belongs to another account',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
     404: {
       description: 'No such session',
       content: { 'application/json': { schema: PlaybackError } },
@@ -136,10 +140,15 @@ const heartbeatRoute = createRoute({
   summary: 'Report that a session is still wanted, and whether it is playing',
   request: {
     params: z.object({ sessionId: z.string().min(1) }),
+    query: z.object({ clientId: z.string().min(1).optional() }),
     body: { content: { 'application/json': { schema: HeartbeatRequest } } },
   },
   responses: {
     204: { description: 'The heartbeat was recorded' },
+    403: {
+      description: 'The device named belongs to another account',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
     404: {
       description: 'No such session',
       content: { 'application/json': { schema: PlaybackError } },

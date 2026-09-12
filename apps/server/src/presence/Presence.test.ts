@@ -239,6 +239,33 @@ describe('presence over HTTP', () => {
     expect(presence.list()[0]?.playback).toMatchObject({ isPlaying: true });
   });
 
+  it('refuses to stop a playback session named against another account’s tab', async () => {
+    const { app, presence, store } = build();
+    const mine = await signedIn(app);
+    const theirs = await signedIn(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: store.user[0]?.id ?? null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/direct-media-1?clientId=tab-1`,
+      { method: 'DELETE', headers: { cookie: theirs, origin: BASE } },
+    );
+
+    expect(theirs).not.toBe(mine);
+    expect(response.status).toBe(403);
+  });
+
   it('refuses to stop a tab belonging to another account', async () => {
     const { app, presence, store } = build();
     const mine = await signedIn(app);

@@ -965,11 +965,7 @@ const createApp = ({
       }
     }
 
-    const owner = clientId === undefined ? null : presence.ownerOf(clientId);
-
-    const whoIsAsking = owner === null ? null : await readAccount(context.req.raw.headers);
-
-    const isTheirOwnDevice = owner === null || owner === whoIsAsking?.id;
+    const isTheirOwnDevice = await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId);
 
     if (clientId !== undefined && isTheirOwnDevice) {
       const item = await library.getMedia(mediaId);
@@ -1119,6 +1115,34 @@ const createApp = ({
    */
   const readAccount = async (headers: Headers) =>
     (await readSessionOnce(auth, headers))?.user ?? null;
+
+  /**
+   * Whether a device named in a request may be spoken for by whoever is asking.
+   *
+   * A client identifier is a value the caller chooses, so a route acting on one has to ask whose it
+   * is. Presence holds the answer, and holds it from the account its socket was authenticated as
+   * rather than from anything a client sent.
+   *
+   * A device nobody is holding is nobody's to take, so it passes: a tab whose socket has not
+   * identified yet goes on working, and a guest holding a share link has no account to match in the
+   * first place. What is refused is a device somebody else is holding.
+   *
+   * @param headers - The request's headers, for reading who is asking.
+   * @param clientId - The device named, where one was named at all.
+   * @returns Whether the request may act on that device.
+   */
+  const isTheDeviceOfWhoeverIsAsking = async (
+    headers: Headers,
+    clientId: string | undefined,
+  ): Promise<boolean> => {
+    const owner = clientId === undefined ? null : presence.ownerOf(clientId);
+
+    if (owner === null) {
+      return true;
+    }
+
+    return owner === (await readAccount(headers))?.id;
+  };
 
   /**
    * Whoever is asking, if they may hold keys at all.
@@ -3301,6 +3325,10 @@ const createApp = ({
     const { sessionId } = context.req.valid('param');
     const { clientId } = context.req.valid('query');
 
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
+
     const stopped = await playback.stop(sessionId, clientId);
 
     if (!stopped) {
@@ -3312,7 +3340,12 @@ const createApp = ({
 
   app.openapi(heartbeatRoute, async (context) => {
     const { sessionId } = context.req.valid('param');
+    const { clientId } = context.req.valid('query');
     const { isPlaying } = context.req.valid('json');
+
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
 
     const known = await playback.heartbeat(sessionId, isPlaying);
 
@@ -3333,9 +3366,7 @@ const createApp = ({
     const { clientId } = context.req.valid('param');
     const { isPlaying, health } = context.req.valid('json');
 
-    const owner = presence.ownerOf(clientId);
-
-    if (owner !== null && owner !== account.id) {
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
       return context.json({ error: 'That is not your device.' }, 403);
     }
 
@@ -3353,9 +3384,7 @@ const createApp = ({
 
     const { clientId } = context.req.valid('param');
 
-    const owner = presence.ownerOf(clientId);
-
-    if (owner !== null && owner !== account.id) {
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
       return context.json({ error: 'That is not your device.' }, 403);
     }
 

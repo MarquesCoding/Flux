@@ -81,7 +81,7 @@ fn offered_ceiling(bitrate_kbps: Option<u32>) -> f64 {
 /// written by an older Valence describes files that will never be produced now,
 /// and a playlist naming them is a film that cannot play. The boundaries are
 /// then worked out again and the playlist rewritten, which costs one probe.
-const LAYOUT: u32 = 7;
+pub const LAYOUT: u32 = 7;
 
 /// The longest segment a copied stream may produce before copying is refused.
 ///
