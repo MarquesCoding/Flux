@@ -96,12 +96,23 @@ describe('createImageCache', () => {
     expect(onProblem).toHaveBeenCalledWith(POSTER, expect.stringContaining('not an image'));
   });
 
-  it('refuses something far larger than any poster', async () => {
+  it('refuses something that is a film rather than a poster, and says how big', async () => {
     const onProblem = vi.fn();
-    const { instance } = await cache(respondWith({ bytes: 20 * 1024 * 1024 }), onProblem);
+    const { instance } = await cache(respondWith({ bytes: 40 * 1024 * 1024 }), onProblem);
 
     await expect(instance.read(POSTER)).resolves.toBeNull();
-    expect(onProblem).toHaveBeenCalledWith(POSTER, expect.stringContaining('larger'));
+    expect(onProblem).toHaveBeenCalledWith(
+      POSTER,
+      'That image is 40MB, which is too large to be artwork.',
+    );
+  });
+
+  it('keeps the full-size lettering the catalogue actually serves', async () => {
+    const onProblem = vi.fn();
+    const { instance } = await cache(respondWith({ bytes: 10 * 1024 * 1024 }), onProblem);
+
+    await expect(instance.read(POSTER)).resolves.not.toBeNull();
+    expect(onProblem).not.toHaveBeenCalled();
   });
 
   it('reports an unreachable catalogue rather than throwing', async () => {
