@@ -140,4 +140,42 @@ describe('a film in a folder of its own', () => {
   it('does not read a specials folder as a film either', () => {
     expect(readTitleFromPath('/media/tv/Some Show/Specials/s00e01.mkv').title).toBe('s00e01');
   });
+  it('keeps a sequel its number, which is most of what the number ever is', () => {
+    expect(readTitleFromPath('/media/Zootopia 2 (2025) WEBDL-2160p.mkv')).toEqual({
+      title: 'Zootopia 2',
+      year: 2025,
+    });
+    expect(readTitleFromPath('/media/Toy Story 5 (2026) WEBDL-2160p.mp4')).toEqual({
+      title: 'Toy Story 5',
+      year: 2026,
+    });
+    expect(readTitleFromPath('/media/Spider-Man 3 (2007) Bluray-2160p.mkv')).toEqual({
+      title: 'Spider Man 3',
+      year: 2007,
+    });
+  });
+
+  it('keeps it with no year to lean on, which is where this went wrong', () => {
+    expect(readTitleFromPath('/media/Zootopia 2 WEBDL-2160p TrueHD 7 1.mkv')).toEqual({
+      title: 'Zootopia 2',
+      year: null,
+    });
+  });
+
+  it('still drops a channel count, which follows the noise rather than leading it', () => {
+    expect(
+      readTitleFromPath('/media/Pride and Prejudice 2160p UHD BluRay TrueHD 7 1 Atmos.mkv'),
+    ).toEqual({ title: 'Pride and Prejudice', year: null });
+    expect(readTitleFromPath('/media/Arrival Bluray-1080p TrueHD 5.1.mkv')).toEqual({
+      title: 'Arrival',
+      year: null,
+    });
+  });
+
+  it('leaves a number that is the whole title alone', () => {
+    expect(readTitleFromPath('/media/1917 (2019) Bluray-1080p.mkv')).toEqual({
+      title: '1917',
+      year: 2019,
+    });
+  });
 });

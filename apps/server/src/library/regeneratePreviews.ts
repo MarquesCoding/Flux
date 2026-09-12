@@ -88,40 +88,59 @@ const regeneratePreviews = async ({
   onProgress,
   isCancelled,
 }: RegeneratePreviewsOptions): Promise<void> => {
-  const items = await store.listOutstanding(libraryId);
+  const attempted = new Set<string>();
   let processed = 0;
+  let total = 0;
 
-  onProgress?.(processed, items.length);
-
-  await mapWithLimit(items, atOnce, async (item) => {
+  for (;;) {
     if (isCancelled?.() === true) {
       return;
     }
 
-    const rendered = await cutClip({
-      transcoder,
-      request: {
-        ...previewRequestFor(item, generation, defaultAudioLanguage, quality),
-        ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
-        wait: false,
-        ...(owner === undefined ? {} : { owner }),
-      },
-      isCancelled,
-    }).catch((error: Error) => {
-      onProblem?.(item.path, error.message);
+    const outstanding = await store.listOutstanding(libraryId);
+    const items = outstanding.filter((item) => !attempted.has(item.id));
 
-      return false;
+    if (items.length === 0) {
+      return;
+    }
+
+    for (const item of items) {
+      attempted.add(item.id);
+    }
+
+    total += items.length;
+    onProgress?.(processed, total);
+
+    await mapWithLimit(items, atOnce, async (item) => {
+      if (isCancelled?.() === true) {
+        return;
+      }
+
+      const rendered = await cutClip({
+        transcoder,
+        request: {
+          ...previewRequestFor(item, generation, defaultAudioLanguage, quality),
+          ...(hardwareAccel === undefined || hardwareAccel === '' ? {} : { hardwareAccel }),
+          wait: false,
+          ...(owner === undefined ? {} : { owner }),
+        },
+        isCancelled,
+      }).catch((error: Error) => {
+        onProblem?.(item.path, error.message);
+
+        return false;
+      });
+
+      if (rendered) {
+        await store.markComplete(item.id);
+      }
+
+      if (isCancelled?.() !== true) {
+        processed += 1;
+        onProgress?.(processed, total);
+      }
     });
-
-    if (rendered) {
-      await store.markComplete(item.id);
-    }
-
-    if (isCancelled?.() !== true) {
-      processed += 1;
-      onProgress?.(processed, items.length);
-    }
-  });
+  }
 };
 
 export type { PreviewStore };

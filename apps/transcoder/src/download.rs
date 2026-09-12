@@ -500,6 +500,7 @@ async fn join(ffmpeg: &str, directory: &Path) -> Result<(), DownloadError> {
 
     let joined = Command::new(ffmpeg)
         .args(join_arguments(directory))
+        .kill_on_drop(true)
         .output()
         .await
         .map_err(DownloadError::Spawn)?;

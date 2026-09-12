@@ -1848,7 +1848,10 @@ const createApp = ({
     const { kind } = context.req.valid('param');
     const { libraryId, force } = context.req.valid('json');
 
-    const maintenanceRunners: Record<string, () => Promise<{ jobId: string; state: string }>> = {
+    const maintenanceRunners: Record<
+      string,
+      () => Promise<{ jobId: string | null; state: string }>
+    > = {
       [CLEANUP_IMAGE_CACHE_JOB]: () => maintenance.cleanupImageCache(),
       [CLEANUP_ARTEFACT_CACHE_JOB]: () => maintenance.cleanupArtefactCache(),
       [CLEANUP_SESSIONS_JOB]: () => maintenance.cleanupSessions(),
@@ -1858,7 +1861,11 @@ const createApp = ({
     const maintenanceRunner = maintenanceRunners[kind];
 
     if (maintenanceRunner !== undefined) {
-      return context.json(await maintenanceRunner(), 202);
+      const asked = await maintenanceRunner();
+
+      return asked.jobId === null
+        ? context.json({ error: 'Nothing is running that under any id.' }, 404)
+        : context.json({ jobId: asked.jobId, state: asked.state }, 202);
     }
 
     if (libraryId === undefined) {

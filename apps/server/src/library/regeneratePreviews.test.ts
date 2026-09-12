@@ -481,4 +481,64 @@ describe('regeneratePreviews', () => {
 
     expect(asked[0]?.wait).toBe(false);
   });
+  it('picks up a film that arrives while it is already cutting clips', async () => {
+    const cut: string[] = [];
+    let rounds = 0;
+    const transcoder = stubTranscoder((request) => {
+      cut.push(request.inputPath);
+
+      return Promise.resolve({ id: 'p', url: '/p', isReady: true });
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () => {
+          rounds += 1;
+
+          return Promise.resolve(
+            rounds === 1
+              ? [{ id: 'item-0', path: '/media/a.mkv', audioStreams: multilingual }]
+              : [{ id: 'item-1', path: '/media/late.mkv', audioStreams: multilingual }],
+          );
+        },
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+    });
+
+    expect(cut).toEqual(['/media/a.mkv', '/media/late.mkv']);
+  });
+
+  it('does not hand back a film whose clip already failed', async () => {
+    const cut: string[] = [];
+    const problems: string[] = [];
+    const transcoder = stubTranscoder((request) => {
+      cut.push(request.inputPath);
+
+      return Promise.reject(new Error('that file has no video stream'));
+    });
+
+    await regeneratePreviews({
+      libraryId: LIBRARY_ID,
+      generation: 0,
+      store: {
+        listOutstanding: () =>
+          Promise.resolve([
+            { id: 'item-0', path: '/media/broken.mkv', audioStreams: multilingual },
+          ]),
+        markComplete: () => Promise.resolve(),
+      },
+      transcoder,
+      defaultAudioLanguage: null,
+      quality: 'high',
+      onProblem: (_path, reason) => problems.push(reason),
+    });
+
+    expect(cut).toEqual(['/media/broken.mkv']);
+    expect(problems).toHaveLength(1);
+  });
 });

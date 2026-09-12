@@ -63,14 +63,14 @@ describe('scanCoordinator', () => {
 
     const seen: boolean[] = [];
     const stop = subscribe(() => {
-      seen.push(getSnapshot().progress.has('library-1'));
+      seen.push(getSnapshot().progress.has('library-1:scan'));
     });
 
     await startScan('library-1');
     stop();
 
     expect(seen).toContain(true);
-    expect(getSnapshot().progress.has('library-1')).toBe(false);
+    expect(getSnapshot().progress.has('library-1:scan')).toBe(false);
   });
 
   it('survives no listener being subscribed, the same as an unmounted admin page', async () => {
@@ -138,7 +138,7 @@ describe('scanCoordinator', () => {
 
     let sawRegenerateKind = false;
     const stop = subscribe(() => {
-      const entry = getSnapshot().progress.get('library-regen');
+      const entry = getSnapshot().progress.get('library-regen:regeneratePreviews');
 
       if (entry?.kind === 'regeneratePreviews') {
         sawRegenerateKind = true;
@@ -156,7 +156,7 @@ describe('scanCoordinator', () => {
 
     await startScan('library-null');
 
-    expect(getSnapshot().progress.has('library-null')).toBe(false);
+    expect(getSnapshot().progress.has('library-null:scan')).toBe(false);
   });
 
   it('tracks a job started by kind, from the Work tab picker', async () => {
@@ -167,7 +167,7 @@ describe('scanCoordinator', () => {
 
     let sawKind: string | null = null;
     const stop = subscribe(() => {
-      const entry = getSnapshot().progress.get('library-defined');
+      const entry = getSnapshot().progress.get('library-defined:library.reset');
 
       if (entry !== undefined) {
         sawKind = entry.kind;
@@ -179,7 +179,7 @@ describe('scanCoordinator', () => {
 
     expect(runJobMock).toHaveBeenCalledWith('library.reset', 'library-defined', true);
     expect(sawKind).toBe('library.reset');
-    expect(getSnapshot().progress.has('library-defined')).toBe(false);
+    expect(getSnapshot().progress.has('library-defined:library.reset')).toBe(false);
   });
 
   it('runs a job by kind against every library at once', async () => {
@@ -232,7 +232,7 @@ describe('a page opened while a scan is already running', () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    expect(getSnapshot().progress.get('library-1')).toMatchObject({
+    expect(getSnapshot().progress.get('library-1:scan')).toMatchObject({
       kind: 'scan',
       processed: 3,
       total: 12,
@@ -263,7 +263,7 @@ describe('a page opened while a scan is already running', () => {
 
     await resumeRunning();
 
-    expect(getSnapshot().progress.has('library-1')).toBe(false);
+    expect(getSnapshot().progress.has('library-1:scan')).toBe(false);
   });
 
   it('leaves a job about no library alone, having nothing to attach it to', async () => {
@@ -313,5 +313,88 @@ describe('reading a library again', () => {
     await startScan('library-1');
 
     expect(scanLibraryMock).toHaveBeenCalledWith('library-1', false);
+  });
+  it('follows a scan and a render on one library without either hiding the other', async () => {
+    fetchRunningScansMock.mockResolvedValue([
+      {
+        jobId: 'job-reading',
+        kind: 'scan',
+        libraryId: 'library-1',
+        phase: 'probing',
+        processed: 2,
+        total: 9,
+      },
+      {
+        jobId: 'job-sheets',
+        kind: 'library.regenerateTrickplay',
+        libraryId: 'library-1',
+        phase: 'trickplay',
+        processed: 1,
+        total: 300,
+      },
+    ]);
+
+    let finishSheets: () => void = () => {};
+
+    readScanStateMock.mockImplementation((jobId: string) =>
+      jobId === 'job-reading'
+        ? Promise.resolve({ jobId, state: 'completed', phase: null, processed: 9, total: 9 })
+        : new Promise((resolve) => {
+            finishSheets = () => {
+              resolve({ jobId, state: 'completed', phase: null, processed: 300, total: 300 });
+            };
+          }),
+    );
+
+    const running = resumeRunning();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(getSnapshot().progress.get('library-1:scan')).toMatchObject({ kind: 'scan' });
+    expect(getSnapshot().progress.get('library-1:library.regenerateTrickplay')).toMatchObject({
+      kind: 'library.regenerateTrickplay',
+    });
+
+    finishSheets();
+    await running;
+
+    expect(getSnapshot().progress.size).toBe(0);
+  });
+
+  it('keeps the render when the scan beside it finishes first', async () => {
+    fetchRunningScansMock.mockResolvedValue([
+      {
+        jobId: 'job-sheets',
+        kind: 'library.regenerateTrickplay',
+        libraryId: 'library-1',
+        phase: 'trickplay',
+        processed: 1,
+        total: 300,
+      },
+    ]);
+
+    let finishSheets: () => void = () => {};
+
+    readScanStateMock.mockImplementation(
+      (jobId: string) =>
+        new Promise((resolve) => {
+          finishSheets = () => {
+            resolve({ jobId, state: 'completed', phase: null, processed: 300, total: 300 });
+          };
+        }),
+    );
+
+    const running = resumeRunning();
+
+    await Promise.resolve();
+    await Promise.resolve();
+
+    scanLibraryMock.mockResolvedValue({ jobId: 'job-reading', state: 'queued' });
+
+    expect(getSnapshot().progress.has('library-1:library.regenerateTrickplay')).toBe(true);
+
+    finishSheets();
+    await running;
   });
 });

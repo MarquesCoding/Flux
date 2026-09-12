@@ -6,8 +6,6 @@ import type { ScanResult } from '@ValenceContracts/schemas/Library';
 type SpyingWork = {
   scan: Mock<() => Promise<ScanResult | null>>;
   fetchLogos: Mock<() => Promise<void>>;
-  regeneratePreviews: Mock<() => Promise<void>>;
-  regenerateTrickplay: Mock<() => Promise<void>>;
   detectSegments: Mock<() => Promise<void>>;
 };
 
@@ -28,16 +26,6 @@ const spying = (ran: string[]): SpyingWork => ({
 
     return Promise.resolve();
   }),
-  regeneratePreviews: vi.fn(() => {
-    ran.push('regeneratePreviews');
-
-    return Promise.resolve();
-  }),
-  regenerateTrickplay: vi.fn(() => {
-    ran.push('regenerateTrickplay');
-
-    return Promise.resolve();
-  }),
   detectSegments: vi.fn(() => {
     ran.push('detectSegments');
 
@@ -46,46 +34,63 @@ const spying = (ran: string[]): SpyingWork => ({
 });
 
 describe('runScanPhases', () => {
-  it('makes everything an item is missing, lettering included', async () => {
+  it('reads the library, letters it, and finds the intros', async () => {
     const ran: string[] = [];
 
     await runScanPhases({
       work: spying(ran),
       isCancelled: () => false,
       onScanned: () => Promise.resolve(),
+      onRead: () => Promise.resolve(),
     });
 
-    expect(ran).toEqual([
-      'scan',
-      'fetchLogos',
-      'regeneratePreviews',
-      'detectSegments',
-      'regenerateTrickplay',
-    ]);
+    expect(ran).toEqual(['scan', 'fetchLogos', 'detectSegments']);
   });
 
-  it('fetches lettering, which is the phase a scan used to leave out', async () => {
+  it('draws nothing itself, which is what a scan waited days for', async () => {
     const ran: string[] = [];
 
     await runScanPhases({
       work: spying(ran),
       isCancelled: () => false,
       onScanned: () => Promise.resolve(),
+      onRead: () => Promise.resolve(),
     });
 
-    expect(ran).toContain('fetchLogos');
+    expect(ran).not.toContain('regeneratePreviews');
+    expect(ran).not.toContain('regenerateTrickplay');
   });
 
-  it('fetches lettering before the renders, since it is cheap and a scan is watched', async () => {
+  it('asks for the renders once the reading is done, rather than doing them', async () => {
+    const ran: string[] = [];
+    const onRead = vi.fn(() => {
+      ran.push('onRead');
+
+      return Promise.resolve();
+    });
+
+    await runScanPhases({
+      work: spying(ran),
+      isCancelled: () => false,
+      onScanned: () => Promise.resolve(),
+      onRead,
+    });
+
+    expect(onRead).toHaveBeenCalledOnce();
+    expect(ran).toEqual(['scan', 'fetchLogos', 'detectSegments', 'onRead']);
+  });
+
+  it('fetches lettering before it looks for intros, being the cheaper of the two', async () => {
     const ran: string[] = [];
 
     await runScanPhases({
       work: spying(ran),
       isCancelled: () => false,
       onScanned: () => Promise.resolve(),
+      onRead: () => Promise.resolve(),
     });
 
-    expect(ran.indexOf('fetchLogos')).toBeLessThan(ran.indexOf('regeneratePreviews'));
+    expect(ran.indexOf('fetchLogos')).toBeLessThan(ran.indexOf('detectSegments'));
   });
 
   it('reports what the reading phase changed', async () => {
@@ -94,7 +99,12 @@ describe('runScanPhases', () => {
 
     work.scan.mockResolvedValue({ added: 3, updated: 1, removed: 0, failed: 0 });
 
-    await runScanPhases({ work, isCancelled: () => false, onScanned });
+    await runScanPhases({
+      work,
+      isCancelled: () => false,
+      onScanned,
+      onRead: () => Promise.resolve(),
+    });
 
     expect(onScanned).toHaveBeenCalledWith({ added: 3, updated: 1, removed: 0, failed: 0 });
   });
@@ -105,40 +115,45 @@ describe('runScanPhases', () => {
 
     work.scan.mockResolvedValue(null);
 
-    await runScanPhases({ work, isCancelled: () => false, onScanned });
+    await runScanPhases({
+      work,
+      isCancelled: () => false,
+      onScanned,
+      onRead: () => Promise.resolve(),
+    });
 
     expect(onScanned).not.toHaveBeenCalled();
   });
 
-  it('still makes what is missing when the reading phase reported nothing', async () => {
-    const ran: string[] = [];
-    const work = spying(ran);
+  it('still asks for the renders when the reading phase reported nothing', async () => {
+    const work = spying([]);
+    const onRead = vi.fn(() => Promise.resolve());
 
-    work.scan.mockImplementation(() => {
-      ran.push('scan');
-
-      return Promise.resolve(null);
-    });
+    work.scan.mockResolvedValue(null);
 
     await runScanPhases({
       work,
       isCancelled: () => false,
       onScanned: () => Promise.resolve(),
+      onRead,
     });
 
-    expect(ran).toContain('fetchLogos');
+    expect(onRead).toHaveBeenCalledOnce();
   });
 
   it('does nothing at all once cancelled', async () => {
     const ran: string[] = [];
+    const onRead = vi.fn(() => Promise.resolve());
 
     await runScanPhases({
       work: spying(ran),
       isCancelled: () => true,
       onScanned: () => Promise.resolve(),
+      onRead,
     });
 
     expect(ran).toEqual([]);
+    expect(onRead).not.toHaveBeenCalled();
   });
 
   it('stops at the next phase boundary when cancelled part-way', async () => {
@@ -148,20 +163,24 @@ describe('runScanPhases', () => {
       work: spying(ran),
       isCancelled: () => ran.length >= 2,
       onScanned: () => Promise.resolve(),
+      onRead: () => Promise.resolve(),
     });
 
     expect(ran).toEqual(['scan', 'fetchLogos']);
   });
 
-  it('finds the intros before it spends a minute a film drawing thumbnails', async () => {
+  it('asks for no renders when it was stopped, so stopping starts nothing', async () => {
     const ran: string[] = [];
+    const onRead = vi.fn(() => Promise.resolve());
 
     await runScanPhases({
       work: spying(ran),
-      isCancelled: () => false,
+      isCancelled: () => ran.length >= 3,
       onScanned: () => Promise.resolve(),
+      onRead,
     });
 
-    expect(ran.indexOf('detectSegments')).toBeLessThan(ran.indexOf('regenerateTrickplay'));
+    expect(ran).toEqual(['scan', 'fetchLogos', 'detectSegments']);
+    expect(onRead).not.toHaveBeenCalled();
   });
 });

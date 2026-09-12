@@ -166,6 +166,21 @@ const createJobQueue = async ({
         progress: progressByJobId.get(jobId) ?? null,
       })),
 
+    liveJob: async (kind, subject) => {
+      for (const [jobId, about] of running) {
+        if (about.kind === kind && (subject === undefined || about.subject === subject)) {
+          return jobId;
+        }
+      }
+
+      const waiting = await boss.findJobs(kind, {
+        ...(subject === undefined ? {} : { data: { libraryId: subject } }),
+        queued: true,
+      });
+
+      return waiting[0]?.id ?? null;
+    },
+
     cancel: async (jobId) => {
       if (running.has(jobId)) {
         cancelled.add(jobId);

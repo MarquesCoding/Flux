@@ -208,6 +208,7 @@ async fn verify_chain(
         .args(chain_probe_arguments(
             accel, shape, bit_depth, encoder, device,
         ))
+        .kill_on_drop(true)
         .output()
         .await;
 

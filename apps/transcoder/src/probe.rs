@@ -455,6 +455,7 @@ pub async fn probe_media(ffprobe: &str, path: &Path) -> Result<MediaProbe, Probe
             "%+#1",
         ])
         .arg(path)
+        .kill_on_drop(true)
         .output()
         .await?;
 

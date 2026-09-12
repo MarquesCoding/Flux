@@ -21,7 +21,6 @@ import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describe
 import { summariseProgress } from './summariseProgress';
 import type { DataTableColumn } from '@ValenceUI/DataTable.types';
 import type { JobDefinition } from '@ValenceClient/admin/fetchAdmin';
-import type { ScanEntry } from '@ValenceScreens/components/AdminArea/scanCoordinator';
 import type { JobRunnerProps } from './JobRunner.types';
 
 const WORKING_SHOWN = 4;
@@ -47,7 +46,6 @@ const QUEUED_AS: Record<string, string[]> = {
  */
 const JobRunner = ({
   definitions,
-  libraries,
   progress,
   working,
   onRun,
@@ -58,12 +56,8 @@ const JobRunner = ({
 
   const summaryFor = useCallback(
     (kind: string) =>
-      summariseProgress(
-        [...libraries.map((library) => progress.get(library.id)), progress.get(kind)].filter(
-          (entry): entry is ScanEntry => entry?.kind === kind,
-        ),
-      ),
-    [libraries, progress],
+      summariseProgress([...progress.values()].filter((entry) => entry.kind === kind)),
+    [progress],
   );
 
   const askOrRun = useCallback(

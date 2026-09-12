@@ -56,10 +56,6 @@ const NOISE = new Set([
   'flac',
   'mp3',
   'opus',
-  '5',
-  '1',
-  '7',
-  '2',
   'proper',
   'repack',
   'extended',
@@ -137,6 +133,44 @@ const findYear = (text: string): { year: number; index: number } | null => {
 };
 
 /**
+ * Keeps the words of a name that belong to the title, dropping the release noise after them.
+ *
+ * A bare number is the hard part, because it is two different things depending on where it sits. In
+ * `Zootopia 2` it is the film; in `TrueHD 7 1` it is how many channels the sound has, which arrives
+ * as two numbers of its own once the dots have become spaces. Listing `1`, `2`, `5` and `7` as noise
+ * answered the second and broke the first: every numbered sequel lost its number, so `Zootopia 2`
+ * and `Zootopia` were the same film as far as anything downstream could tell. The catalogue hid it
+ * wherever a year happened to disambiguate the search and showed it plainly wherever one did not.
+ *
+ * Position settles it. A sequel's number comes before the release noise and a channel count comes
+ * after it, so a number is part of the title until the noise has started and release metadata from
+ * then on.
+ *
+ * @param words - The name, split into words, with nothing dropped yet.
+ * @returns The words of the title.
+ */
+const keptWords = (words: string[]): string[] => {
+  const kept: string[] = [];
+  let noiseHasStarted = false;
+
+  for (const word of words) {
+    if (NOISE.has(word.toLowerCase())) {
+      noiseHasStarted = true;
+
+      continue;
+    }
+
+    if (noiseHasStarted && /^\d+$/.test(word)) {
+      continue;
+    }
+
+    kept.push(word);
+  }
+
+  return kept;
+};
+
+/**
  * Reads a title and a year out of one name, stripping the scene-release noise that surrounds them:
  * resolutions, codecs, source tags, group names.
  *
@@ -152,10 +186,9 @@ const readName = (name: string): { title: string | null; year: number | null } =
   const words = beforeYear
     .replace(/[[\]()_.]+/g, ' ')
     .split(/[\s-]+/)
-    .filter((word) => word.length > 0)
-    .filter((word) => !NOISE.has(word.toLowerCase()));
+    .filter((word) => word.length > 0);
 
-  const title = words.join(' ').trim();
+  const title = keptWords(words).join(' ').trim();
 
   return { title: title.length > 0 ? title : null, year };
 };

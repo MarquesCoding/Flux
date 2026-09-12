@@ -16,14 +16,27 @@ type CreateDatabaseMaintenanceServiceOptions = {
  * joins the run already queued rather than starting a second sweep beside it. Different kinds stay
  * independent: a cache cleanup and a session cleanup may run at once.
  *
+ * One of a kind runs at a time, so asking twice gets nothing back the second time. The answer used
+ * to be an invented id — `pending-<kind>` — which was worse than no answer: nothing has that id, so
+ * reading its state says "unknown", the client reads unknown as finished and stops watching, and
+ * the work carries on untracked. The job already doing it is found and returned instead.
+ *
  * @param jobs - The queue to put it on.
  * @param kind - The job being asked for.
- * @returns The job to watch.
+ * @returns The job doing the work, with no id only where there is none and none could be started.
  */
 const enqueueSingleton = async (jobs: JobQueue, kind: string): Promise<QueuedJob> => {
   const jobId = await jobs.enqueue(kind, {}, kind);
 
-  return { jobId: jobId ?? `pending-${kind}`, state: 'queued' };
+  if (jobId !== null) {
+    return { jobId, state: 'queued' };
+  }
+
+  const running = await jobs.liveJob(kind);
+
+  return running === null
+    ? { jobId: null, state: 'unavailable' }
+    : { jobId: running, state: 'running' };
 };
 
 /**

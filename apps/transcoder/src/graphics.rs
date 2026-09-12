@@ -59,7 +59,7 @@ pub struct GraphicsUse {
 /// thing here: this machine cannot answer, and Valence says so rather than
 /// guessing.
 async fn run(program: &str, args: &[&str]) -> Option<String> {
-    let call = Command::new(program).args(args).output();
+    let call = Command::new(program).args(args).kill_on_drop(true).output();
     let outcome = tokio::time::timeout(PROBE_TIMEOUT, call).await.ok()?.ok()?;
 
     outcome

@@ -104,6 +104,7 @@ type JobQueue = {
   readProgress: (jobId: string) => JobProgress | null;
   reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;
   listRunning: () => RunningJob[];
+  liveJob: (kind: string, subject?: string) => Promise<string | null>;
   cancel: (jobId: string) => Promise<boolean>;
   cancelFor: (subject: string) => Promise<number>;
   isCancelled: (jobId: string) => boolean;

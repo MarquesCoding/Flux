@@ -19,6 +19,7 @@ const library = (overrides: Partial<Library> = {}): Library => ({
 
 const scanning = (overrides: Partial<ScanEntry> = {}): ScanEntry =>
   ({
+    libraryId: library().id,
     kind: 'scan',
     phase: 'probing',
     processed: 1,
