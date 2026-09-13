@@ -9,18 +9,56 @@
       "draft": false,
       "prerelease": false,
       "bump-minor-pre-major": true,
+      "initial-version": "0.1.0",
       "changelog-sections": [
-        { "type": "feat", "section": "Added" },
-        { "type": "fix", "section": "Fixed" },
-        { "type": "perf", "section": "Faster" },
-        { "type": "refactor", "section": "Changed" },
-        { "type": "docs", "section": "Documentation" },
-        { "type": "build", "section": "Build" },
-        { "type": "ci", "section": "Build", "hidden": true },
-        { "type": "chore", "section": "Housekeeping", "hidden": true },
-        { "type": "test", "section": "Tests", "hidden": true },
-        { "type": "style", "section": "Style", "hidden": true },
-        { "type": "revert", "section": "Reverted" }
+        {
+          "type": "feat",
+          "section": "Added"
+        },
+        {
+          "type": "fix",
+          "section": "Fixed"
+        },
+        {
+          "type": "perf",
+          "section": "Faster"
+        },
+        {
+          "type": "refactor",
+          "section": "Changed"
+        },
+        {
+          "type": "docs",
+          "section": "Documentation"
+        },
+        {
+          "type": "build",
+          "section": "Build"
+        },
+        {
+          "type": "ci",
+          "section": "Build",
+          "hidden": true
+        },
+        {
+          "type": "chore",
+          "section": "Housekeeping",
+          "hidden": true
+        },
+        {
+          "type": "test",
+          "section": "Tests",
+          "hidden": true
+        },
+        {
+          "type": "style",
+          "section": "Style",
+          "hidden": true
+        },
+        {
+          "type": "revert",
+          "section": "Reverted"
+        }
       ]
     }
   }
