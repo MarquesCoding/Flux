@@ -38,12 +38,6 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
 
-      - uses: dtolnay/rust-toolchain@stable
-        with:
-          components: clippy, rustfmt
-
-      - uses: Swatinem/rust-cache@v2
-
       - run: pnpm install --frozen-lockfile
 
       - run: pnpm lint
@@ -54,15 +48,58 @@ jobs:
 
       - run: pnpm test
 
+  # A job of its own, because it needs a different operating system. The transcoder's tests decode
+  # against the FFmpeg Valence ships, which is packaged for Debian and wants libraries the runner's
+  # Ubuntu does not carry — and a decode is exactly what they are for, so running them against some
+  # other FFmpeg proves nothing about what is being released.
+  #
+  # This is also where the pull request gate's speed is paid back. Those tests do not run on every
+  # branch, so a release is the moment they must.
+  verify-rust:
+    name: The transcoder must pass too
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm-slim
+    env:
+      VALENCE_FFMPEG_VERSION: 8.1.2-2flux2
+      VALENCE_FFMPEG_SUITE: bookworm
+      VALENCE_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
+      VALENCE_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
+    steps:
+      - name: Everything the image does not carry
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git xz-utils build-essential pkg-config
+
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
       - run: cargo fmt --all --check
 
       - run: cargo clippy --all-targets -- -D warnings
+
+      - name: Install the FFmpeg Valence ships
+        run: |
+          curl -fsSL -o /tmp/flux-ffmpeg.deb \
+            "https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
+          apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
+          "$VALENCE_FFMPEG" -version | head -1
+          # On the path as well as in the variables: a slim image carries no system FFmpeg, so a
+          # test reaching for the bare name finds nothing.
+          ln -sf "$VALENCE_FFMPEG" /usr/local/bin/ffmpeg
+          ln -sf "$VALENCE_FFPROBE" /usr/local/bin/ffprobe
 
       - run: cargo test
 
   image:
     name: Image
-    needs: verify
+    needs: [verify, verify-rust]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -115,7 +152,7 @@ jobs:
 
   artefacts:
     name: What is worth downloading
-    needs: verify
+    needs: [verify, verify-rust]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

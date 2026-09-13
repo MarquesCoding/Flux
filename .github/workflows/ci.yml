@@ -47,6 +47,15 @@ jobs:
   rust:
     name: Transcoder lint and tests
     runs-on: ubuntu-latest
+    # Not on pull requests. A Debian container, a cold Rust build and a decode against the shipped
+    # FFmpeg is minutes of waiting, and paying it on every push to every branch buys less than it
+    # costs: the pre-push hook has already run cargo clippy and cargo test on the machine the change
+    # was written on.
+    #
+    # So it runs where being slow is affordable and being wrong is expensive: on the merge to main,
+    # in the gate a release must pass, and once a week against the corpus in media-pipeline.yml. The
+    # trade is that a transcoder break is caught just after a merge rather than just before one.
+    if: github.event_name != 'pull_request'
     # In Debian, against the FFmpeg Valence ships, because these tests decode rather than merely
     # calling something that does. One of them scribbles over the middle of a clip and requires the
     # decoder to notice; Ubuntu's 6.1.1 decodes the damage without complaint and the test fails,
