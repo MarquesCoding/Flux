@@ -9,7 +9,7 @@ type FixturesDirectoryOptions = {
 /**
  * Where the corpus lives.
  *
- * Outside the working tree, always. ADR-0012 keeps the bytes out of the repository so that cloning
+ * Outside the working tree, always. The bytes stay out of the repository so that cloning
  * stays fast for the majority who never touch the media pipeline, and a cache inside the tree would
  * give that back the first time somebody forgot to ignore it.
  *

@@ -82,7 +82,7 @@ const entryFor = (fixture: Fixture, file: string, path: string): ManifestEntry =
  *
  * A build that fails takes its half-written output with it. Leaving it behind is what made a
  * previous run report two broken fixtures as present and zero bytes long, which is exactly the
- * "skipped mistaken for passed" that ADR-0012 forbids.
+ * "skipped mistaken for passed" that a corpus must never allow.
  *
  * A checksum that does not match is a signal rather than a failure here, unlike a fetched fixture
  * where it means somebody else's bytes changed underneath us. These bytes are ours: they differ
@@ -150,7 +150,7 @@ const requestedTier = (argv: readonly string[]): FixtureTier => {
 /**
  * Fetches one fixture that cannot be generated, unless it is already on disk and intact.
  *
- * A checksum mismatch is a hard failure rather than a warning, as ADR-0012 requires, because the
+ * A checksum mismatch is a hard failure rather than a warning, because the
  * bytes are coming from somebody else's server and a silent substitution is the thing a checksum
  * exists to catch.
  *
