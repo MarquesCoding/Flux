@@ -56,6 +56,25 @@ pnpm fixtures:sync --tier 1
 Tests requiring an absent tier skip with a message naming the command; they
 never silently pass.
 
+`pnpm install` reports an unmet peer and it is expected:
+
+```
+apps/desktop
+└─┬ electron-vite 5.0.0
+  └── ✕ unmet peer vite@"^5.0.0 || ^6.0.0 || ^7.0.0": found 8.3.0
+```
+
+Nothing is broken. The desktop builds, and the warning is electron-vite
+describing a version of Vite it was released before rather than one it refuses
+to work with.
+
+It stays until electron-vite ships a stable 6. Only `6.0.0-beta.1` accepts Vite
+8, and it has been in beta since April, which is a long time to ask the tool
+that builds the desktop binary to spend there. Pinning the desktop back to Vite
+7 trades the warning for a worse one: `@vitejs/plugin-react` requires `^8.0.0`
+and offers no fallback, so the peer that broke would be one the renderer
+actually needs.
+
 ## The rules in brief
 
 Full detail in the standards document. The ones that most often surprise people:
