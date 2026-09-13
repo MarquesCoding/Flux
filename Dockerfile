@@ -13,7 +13,7 @@ COPY Cargo.toml Cargo.lock rustfmt.toml ./
 COPY apps/transcoder ./apps/transcoder
 RUN cargo build --release --bin valence-transcoder
 
-FROM node:22-bookworm-slim AS web-build
+FROM node:24-bookworm-slim AS web-build
 WORKDIR /build
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -33,7 +33,7 @@ RUN pnpm --filter @valence/web build
 # ordinary way.
 RUN pnpm --filter @valence/server bundle
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 # Flux's own FFmpeg, at a version Flux chose, rather than whatever the base
 # image happens to ship. Debian has no 8.x at all, and packages none of Intel's
