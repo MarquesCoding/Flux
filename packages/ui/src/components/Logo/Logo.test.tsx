@@ -130,8 +130,8 @@ describe('the shape of the mark', () => {
     const { container } = render(<Logo size={100} />);
     const held = container.firstElementChild;
 
-    expect(held).toHaveStyle({ height: '6.25rem' });
-    expect(held).not.toHaveStyle({ width: '6.25rem' });
+    expect(held).toHaveStyle({ height: '100px' });
+    expect(held).not.toHaveStyle({ width: '100px' });
   });
 
   it('is sized in rem, so it grows with the text on a large screen', () => {

@@ -44,7 +44,7 @@ describe('MoodBackground', () => {
     const { container } = render(<MoodBackground />);
 
     expect(blooms(container).length).toBeGreaterThan(0);
-    expect(blooms(container)[0]?.style.background).toContain('rgb(56 68 150)');
+    expect(blooms(container)[0]?.style.background).toContain('rgb(56, 68, 150)');
   });
 
   it('ignores a colour that is not one', () => {

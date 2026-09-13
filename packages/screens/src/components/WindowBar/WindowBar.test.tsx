@@ -42,6 +42,6 @@ describe('WindowBar', () => {
   it('can be made deeper where the top of a page would otherwise be the only handle', () => {
     const { container } = render(<WindowBar height="4rem" />);
 
-    expect(container.querySelector('[data-slot="window-bar"]')).toHaveStyle({ height: '4rem' });
+    expect(container.querySelector('[data-slot="window-bar"]')).toHaveStyle({ height: '64px' });
   });
 });
