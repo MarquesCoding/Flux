@@ -3,6 +3,7 @@ import { showSlug } from '@ValenceCore/functions/showSlug';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useShell } from '@ValenceClient/shell/useShell';
 import { useFavourites } from '@ValenceClient/library/useFavourites';
+import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
 import { watchedFraction } from '@ValenceContracts/schemas/WatchProgress';
 import { resumeFor } from '@ValenceClient/playback/resumeFor';
 import type { BrowseKind } from '@ValenceScreens/components/BrowseArea/BrowseArea.types';
@@ -26,6 +27,7 @@ const BrowsePage = () => {
   const { user, rememberItems, progress, setStartOverride } = useShell();
   const { place, go } = usePlace();
   const favourites = useFavourites(user.id);
+  const { mayAdminister } = useWhatIMayDo();
 
   return (
     <BrowseArea
@@ -38,7 +40,7 @@ const BrowsePage = () => {
       onInspect={(media) => {
         go({ inspecting: media.id });
       }}
-      {...(user.role === 'admin'
+      {...(mayAdminister
         ? {
             onAddLibrary: () => {
               go({ admin: 'libraries' });

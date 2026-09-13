@@ -92,9 +92,12 @@ const ok = (body: object | null) =>
     headers: { 'content-type': 'application/json' },
   });
 
+let mayAdminister = true;
+
 beforeEach(() => {
   window.history.replaceState(null, '', '/');
   fetchMock.mockReset();
+  mayAdminister = true;
   turnPushOn.mockClear();
   turnPushOff.mockClear();
 
@@ -127,6 +130,15 @@ beforeEach(() => {
 
     if (input.startsWith('/api/libraries')) {
       return Promise.resolve(ok([A_LIBRARY]));
+    }
+
+    if (input === '/api/account/permissions') {
+      return Promise.resolve(
+        ok({
+          permissions: mayAdminister ? ['administrator'] : [],
+          isAdministrator: mayAdminister,
+        }),
+      );
     }
 
     if (input.startsWith('/api/profiles/everyone')) {
@@ -166,6 +178,32 @@ describe('ValenceShell', () => {
     await actor.click(within(bar).getByRole('button', { name: 'Account' }));
 
     expect(await screen.findByRole('menuitem', { name: 'Admin' })).toBeInTheDocument();
+  });
+
+  it('offers it from what the server says this account may do, not from the session', async () => {
+    const actor = userEvent.setup();
+
+    mayAdminister = false;
+
+    renderTheApp();
+
+    const bar = await screen.findByRole('navigation', { name: 'Sections' });
+
+    await actor.click(within(bar).getByRole('button', { name: 'Account' }));
+
+    expect(await screen.findByRole('menuitem', { name: 'Account' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'Admin' })).not.toBeInTheDocument();
+  });
+
+  it('keeps the server shut to somebody who is not an administrator, however they reached it', async () => {
+    mayAdminister = false;
+
+    window.history.replaceState(null, '', '/admin');
+
+    renderTheApp();
+
+    expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument();
+    expect(screen.queryByRole('dialog', { name: 'The server' })).not.toBeInTheDocument();
   });
 
   it('asks what is waiting again when the bell is opened', async () => {
