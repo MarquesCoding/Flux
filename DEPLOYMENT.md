@@ -142,6 +142,32 @@ Pin a version tag instead if you would rather choose when that happens.
 Migrations run on start and are not reversed automatically. Take a copy of the
 `db-data` volume before a major upgrade.
 
+### Moving to Postgres 18
+
+`compose.yaml` now asks for `postgres:18-alpine`, where it used to ask for
+`postgres:17-alpine`. A major Postgres version cannot read the data directory the
+previous one wrote, so pulling the new image over an existing `db-data` volume
+upgrades nothing: the container starts, finds a directory it does not recognise,
+and stops again. The data has to be carried across by hand.
+
+Dump it while the old version is still the one running, then bring it back:
+
+```bash
+docker compose exec db pg_dumpall -U valence > valence-backup.sql
+docker compose stop db
+docker volume ls | grep db-data
+docker volume rm <the volume that names>
+docker compose up -d db
+docker compose exec -T db psql -U valence -d postgres < valence-backup.sql
+docker compose up -d
+```
+
+Remove the database volume alone. `config`, `cache` and `transcodes` carry
+settings and generated files that the upgrade leaves perfectly good, and
+`docker compose down -v` would take all four rather than the one.
+
+A fresh install needs none of this.
+
 ## When something is wrong
 
 **The container starts and stops again.** Usually `devices` on a machine with

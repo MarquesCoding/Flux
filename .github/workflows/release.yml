@@ -29,11 +29,11 @@ jobs:
     name: Everything must pass first
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -72,7 +72,7 @@ jobs:
           apt-get install -y --no-install-recommends \
             ca-certificates curl git xz-utils build-essential pkg-config
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -102,7 +102,7 @@ jobs:
     needs: [verify, verify-rust]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # A registry accepts a lower case name and this owner is not spelt that way, so it is folded
       # here rather than written out and left to drift.
@@ -114,7 +114,7 @@ jobs:
 
       - name: Work out how to tag it
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           images: ${{ steps.named.outputs.image }}
           tags: |
@@ -127,9 +127,9 @@ jobs:
             org.opencontainers.image.description=A self-hosted streaming platform
             org.opencontainers.image.licenses=MIT
 
-      - uses: docker/setup-buildx-action@v3
+      - uses: docker/setup-buildx-action@v4
 
-      - uses: docker/login-action@v3
+      - uses: docker/login-action@v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -139,7 +139,7 @@ jobs:
       # release-mode Rust build under QEMU takes long enough to be worth deciding on rather than
       # inheriting.
       - name: Build and push
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: .
           platforms: linux/amd64
@@ -155,11 +155,11 @@ jobs:
     needs: [verify, verify-rust]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -179,7 +179,7 @@ jobs:
           cp .env.example release/env.example
           tar -czf release/valence-web.tar.gz -C apps/web dist
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         with:
           name: release-artefacts
           path: release/
@@ -190,11 +190,11 @@ jobs:
     needs: [image, artefacts]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
         with:
           fetch-depth: 0
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v7
         with:
           name: release-artefacts
           path: release
