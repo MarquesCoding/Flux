@@ -544,3 +544,29 @@ Rules with no upstream equivalent — no comments, no index files, export shape,
 no raw elements, no SVG — are **documented here and upheld in review**. This
 document is the reference; when a review comment cites a rule, it cites a section
 number from this file.
+
+### A rule that is off, and why
+
+`react/set-state-in-effect` is disabled in `.oxlintrc.json`. It arrived with
+oxlint 1 and reported thirty-seven findings. Thirty-six of them were correct
+code.
+
+The rule cannot see a cleanup function, so it reads four patterns this codebase
+is built on as mistakes. A timer that resets its state before arming itself and
+clears it on the way out. A subscription to something outside React — a
+reachability listener, a scroll observer, a `fullscreenchange` handler — which
+is the case the rule's own help text says an effect is _for_. A fetch that
+clears, loads and guards against arriving after unmount. And a draft derived
+from a prop, where a dialog fills its form when the thing it is editing changes.
+
+The thirty-seventh was real: `MediaCard` probed the pointer on mount and set
+state from the result, which renders once with the wrong answer and then again
+with the right one. That is now a lazy `useState` initialiser and the effect
+is gone.
+
+Leaving the rule on would mean rewriting working timers, subscriptions and
+loaders across the video player, the watch party and the shell to satisfy an
+analysis that cannot model them, and reviewing eighty-eight warnings a week in
+the hope of noticing the one that matters. Section 6 already names the
+principle: a rule that fights the linter is a rule that gets disabled. This is
+that, pointed the other way.
