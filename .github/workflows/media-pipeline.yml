@@ -117,7 +117,7 @@ jobs:
       # another run.
       - name: Keep what this architecture produced
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fixtures-manifest-amd64
           path: fixtures.manifest.json
