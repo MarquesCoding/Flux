@@ -1,6 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
 import { PlayIcon } from '@hugeicons/core-free-icons';
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion, useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { hasFinePointer } from '@ValenceUI/hasFinePointer';
@@ -45,11 +45,7 @@ const MediaCard = ({
 }: MediaCardProps) => {
   const prefersReducedMotion = useReducedMotion();
   const isLead = emphasis === 'lead';
-  const [canHover, setCanHover] = useState(false);
-
-  useEffect(() => {
-    setCanHover(hasFinePointer());
-  }, []);
+  const [canHover] = useState(hasFinePointer);
 
   return (
     <motion.button
