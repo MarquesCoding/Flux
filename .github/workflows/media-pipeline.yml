@@ -55,7 +55,7 @@ jobs:
             ca-certificates curl git xz-utils build-essential pkg-config \
             unzip mkvtoolnix
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: pnpm/action-setup@v4
 

@@ -27,7 +27,7 @@ jobs:
       packages: write
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # A registry accepts a lower case name and this owner is not spelt that
       # way, so it is folded here rather than written out and left to drift.
