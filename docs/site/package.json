@@ -10,7 +10,7 @@
     "typecheck": "astro check"
   },
   "dependencies": {
-    "@astrojs/starlight": "^0.30.3",
+    "@astrojs/starlight": "^0.42.0",
     "astro": "^5.1.5",
     "sharp": "^0.33.5"
   },
