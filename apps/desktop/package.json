@@ -37,7 +37,7 @@
     "electron": "github:castlabs/electron-releases#v44.1.0+wvcus",
     "electron-builder": "^26.15.3",
     "electron-vite": "^5.0.0",
-    "jsdom": "^26.1.0",
+    "jsdom": "^30.0.0",
     "tailwindcss": "^4.3.3",
     "vite": "^8.3.0",
     "vitest": "^4.1.11"

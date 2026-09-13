@@ -30,7 +30,7 @@ describe('CaptionSettings', () => {
 
     expect(screen.getByLabelText('Caption preview')).toHaveStyle({
       color: 'rgba(255, 255, 0, 1)',
-      fontSize: '200%',
+      fontSize: '32px',
     });
   });
 

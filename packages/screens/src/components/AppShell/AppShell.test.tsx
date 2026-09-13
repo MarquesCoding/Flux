@@ -209,7 +209,7 @@ describe('AppShell', () => {
 
     const bloom = view.container.querySelector<HTMLElement>('.valence-bloom');
 
-    expect(bloom?.style.background).toContain('#5a3c8c');
+    expect(bloom?.style.background).toContain('rgb(90, 60, 140)');
     expect(bloom?.style.background).toContain('20% 30%');
   });
 
