@@ -89,7 +89,7 @@ jobs:
       # A cache hit skips three minutes of encoding; a miss regenerates rather than failing, because
       # a generated fixture is reproducible from its inputs and never downloaded.
       - name: Cache the generated corpus
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/valence-fixtures
           key: >-
