@@ -151,6 +151,8 @@ const Hero = ({
 
   const isRotating = items.length > 1 && rotateAfterMilliseconds > 0;
 
+  const [isPreviewPaused, setIsPreviewPaused] = useState(false);
+
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
       setIndex((current) => (current + 1) % items.length);
@@ -170,7 +172,7 @@ const Hero = ({
   }, [index, turn]);
 
   useAnimationFrame((_, delta) => {
-    if (!isRotating || isHeld) {
+    if (!isRotating || isHeld || isPreviewPaused) {
       return;
     }
 
@@ -252,6 +254,10 @@ const Hero = ({
               backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
               durationSeconds={featured.durationSeconds}
               settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
+              restsOnPause
+              onPlayingChange={(playing) => {
+                setIsPreviewPaused(!playing);
+              }}
               onEnded={showNext}
               {...(onPalette === undefined ? {} : { onPalette })}
               hasSound

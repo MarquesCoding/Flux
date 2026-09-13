@@ -1,5 +1,6 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { Logo } from '@ValenceUI/Logo';
+import { liquidSpring, stillTransition } from '@ValenceUI/animations/reveal';
 import type { SplashScreenProps } from './SplashScreen.types';
 
 const OURS = 'valence';
@@ -16,7 +17,12 @@ const OURS = 'valence';
  * @param name - What the platform is called, which may have been renamed by an operator.
  * @param label - What is being waited for, read out to anybody who cannot see the screen.
  */
-const SplashScreen = ({ name = 'Valence', label = 'Loading' }: SplashScreenProps) => {
+const SplashScreen = ({
+  name = 'Valence',
+  label = 'Loading',
+  isReady = false,
+  marksPlace,
+}: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();
 
   const isOurs = name.toLowerCase() === OURS;
@@ -29,9 +35,14 @@ const SplashScreen = ({ name = 'Valence', label = 'Loading' }: SplashScreenProps
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 bg-surface"
     >
       <motion.span
+        {...(marksPlace === undefined ? {} : { layoutId: marksPlace })}
         initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 10 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, ease: 'easeOut' }}
+        transition={{
+          opacity: { duration: 0.6, ease: 'easeOut' },
+          y: { duration: 0.6, ease: 'easeOut' },
+          layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
+        }}
         className="flex items-center justify-center"
       >
         {isOurs ? (
@@ -43,18 +54,27 @@ const SplashScreen = ({ name = 'Valence', label = 'Loading' }: SplashScreenProps
         )}
       </motion.span>
 
-      <span className="h-0.5 w-48 overflow-hidden rounded-full bg-track sm:w-64">
-        {prefersReducedMotion === true ? (
-          <span className="block h-full w-1/3 rounded-full bg-text/70" />
-        ) : (
+      <AnimatePresence>
+        {isReady ? null : (
           <motion.span
-            initial={{ transform: 'translateX(-100%)' }}
-            animate={{ transform: 'translateX(300%)' }}
-            transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
-            className="block h-full w-1/3 rounded-full bg-text/70"
-          />
+            key="bar"
+            exit={{ opacity: 0 }}
+            transition={{ duration: prefersReducedMotion === true ? 0 : 0.25, ease: 'easeOut' }}
+            className="block h-0.5 w-48 overflow-hidden rounded-full bg-track sm:w-64"
+          >
+            {prefersReducedMotion === true ? (
+              <span className="block h-full w-1/3 rounded-full bg-text/70" />
+            ) : (
+              <motion.span
+                initial={{ x: '-100%' }}
+                animate={{ x: '300%' }}
+                transition={{ duration: 1.4, ease: 'easeInOut', repeat: Infinity }}
+                className="block h-full w-1/3 rounded-full bg-text/70"
+              />
+            )}
+          </motion.span>
         )}
-      </span>
+      </AnimatePresence>
     </div>
   );
 };

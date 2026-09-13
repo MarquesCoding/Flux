@@ -50,6 +50,8 @@ const FADING = 1.2;
 
 const SOLID_WITHIN = 64;
 
+const SHEET_SOLID_BY = 0.5;
+
 /**
  * How far the bar should be painted in, given how far the page has scrolled.
  *
@@ -198,9 +200,10 @@ const AppShell = ({
   const reach = useCallback(
     (travelled: number) => {
       const reached = howSolid(travelled);
+      const covered = Math.min(reached / SHEET_SOLID_BY, 1);
 
       solidity.set(reached);
-      shellRef.current?.style.setProperty('--content-reach', reached.toString());
+      shellRef.current?.style.setProperty('--content-reach', covered.toString());
     },
     [solidity],
   );

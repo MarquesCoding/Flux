@@ -33,6 +33,8 @@ const FADE_MILLISECONDS = 700;
 
 const SETTLE_BACK_MILLISECONDS = 700;
 
+const RESTS_AFTER_MILLISECONDS = 2000;
+
 /**
  * Plays a few seconds of an item where a poster would otherwise sit, once a pointer has rested long
  * enough to mean it. Starts muted and silent by default, since a grid where every card can make a
@@ -67,6 +69,7 @@ const MediaPreview = ({
   hasSound = false,
   controlsAtTop = false,
   isHeld = false,
+  restsOnPause = false,
   repeats,
   onEnded,
   onPlayingChange,
@@ -87,8 +90,26 @@ const MediaPreview = ({
 
   const loops = repeats ?? onEnded === undefined;
 
-  const isShowingFrame = !hasStarted || hasEnded || absence !== null;
+  const [hasRested, setHasRested] = useState(false);
+
+  const isShowingFrame = !hasStarted || hasEnded || absence !== null || hasRested;
   const startSeconds = Math.floor(durationSeconds * startFraction);
+
+  useEffect(() => {
+    if (!restsOnPause || !isPaused || !hasStarted) {
+      setHasRested(false);
+
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setHasRested(true);
+    }, RESTS_AFTER_MILLISECONDS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [restsOnPause, isPaused, hasStarted]);
 
   useEffect(() => {
     const element = videoRef.current;
