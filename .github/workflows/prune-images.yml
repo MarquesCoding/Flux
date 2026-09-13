@@ -1,0 +1,62 @@
+name: Prune images
+
+# Deletes old sha- images from the registry, and nothing else.
+#
+# publish.yml tags every push to main with its commit sha, which is what makes it possible to pull
+# the exact image a commit produced. It is also why the registry holds fifty tags for a project with
+# one release, and why it would hold five hundred before anybody noticed.
+#
+# What is kept is named rather than inferred. latest and main move, so they are never candidates, and
+# a version tag is the whole point of cutting a release, so those are excluded by pattern. A sha tag
+# younger than the cut-off stays, because the reason to pull one is to test something that has just
+# landed.
+#
+# Deliberately tag-driven rather than version-driven. A package version can carry several tags at
+# once: sha-d41262ef and main are the same digest today, and after a release a version tag will share
+# a digest with the sha tag from the same commit. Deleting by version would take the release image
+# along with the sha tag pointing at it.
+
+on:
+  schedule:
+    # Sunday, early. Nothing is waiting on it, and a week is the shortest useful period over which
+    # the registry visibly grows.
+    - cron: '0 5 * * 0'
+  workflow_dispatch:
+    inputs:
+      dry-run:
+        description: List what would go without deleting anything
+        type: boolean
+        required: false
+        default: true
+
+concurrency:
+  group: prune-images
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    name: Old commit images
+    runs-on: ubuntu-latest
+
+    permissions:
+      packages: write
+
+    steps:
+      - name: Delete sha images older than the cut-off
+        uses: snok/container-retention-policy@v3.1.0
+        with:
+          account: ${{ github.repository_owner }}
+          # The workflow's own token rather than a personal one, so this needs no secret to exist.
+          # It comes with a condition: a temporal token cannot list packages, so image-names has to
+          # be the exact name rather than a pattern, and this repository needs the Admin role in the
+          # package settings for the call to be allowed at all.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          image-names: valence
+          # Only sha tags are candidates. That single pattern is the guard: latest, main and every
+          # version tag are unreachable because none of them begins with sha-, so listing them as
+          # exclusions would be theatre rather than protection.
+          image-tags: 'sha-*'
+          tag-selection: tagged
+          cut-off: 8w
+          keep-n-most-recent: 20
+          dry-run: ${{ inputs.dry-run || false }}
