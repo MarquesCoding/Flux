@@ -216,9 +216,24 @@ jobs:
           name: release-artefacts
           path: release
 
-      # The release already exists: release-please created it, with the notes it wrote from the
-      # commits. This only hangs the built things on it. Creating it here as well would fail on the
-      # second attempt and leave a release with no files attached.
+      # The release already exists: release-please created it and tagged it. What it cannot write
+      # is who did the work. Its notes come from commit messages, which carry no author and no pull
+      # request number, so the body is replaced with the one GitHub generates from the merged pull
+      # requests: every line reading "title by @somebody in #number".
+      #
+      # CHANGELOG.md keeps release-please's version, since a file in the repository should read as
+      # a history rather than as a list of pull requests.
+      - name: Notes that say who did the work
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish=main \
+            -q .body > notes.md
+          gh release edit "$TAG" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+
       - name: Hang the artefacts on it
         run: gh release upload "$TAG" release/* --clobber
         env:
