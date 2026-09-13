@@ -471,7 +471,7 @@ async fn the_same_specification_reuses_one_session() {
 /// Two viewers of one film share its segments however differently they came to
 /// it, which is the whole point of addressing the work by the plan. Keying it
 /// on where playback began is what made a seek a second transcode of the rest
-/// of the film. See ADR-0011.
+/// of the film.
 #[tokio::test]
 async fn a_different_seek_joins_the_same_session() {
     let registry = registry("seek");
@@ -709,7 +709,7 @@ async fn produces_a_segment_again_after_the_run_that_wrote_it_has_ended() {
 /// Everybody watching the same thing shares one session, so a stop that
 /// cancelled the transcode outright ended the other viewer's stream — their
 /// manifest went missing mid-film. The session lives until the last of them
-/// lets go. See ADR-0011.
+/// lets go.
 #[tokio::test]
 async fn keeps_a_session_while_another_viewer_is_watching() {
     let registry = registry("shared");

@@ -5,8 +5,7 @@ documentation support, plus integrated media requesting.
 
 ## Read before writing any code
 
-- [`docs/code-standards.md`](docs/code-standards.md) — binding coding rules
-- [`docs/adr/`](docs/adr/README.md) — architecture decisions and their reasoning
+- [`CODING_STANDARD.md`](CODING_STANDARD.md) — binding coding rules
 
 The standards document is authoritative. What follows is a summary for quick
 reference, not a substitute for reading it.
@@ -56,31 +55,28 @@ standalone functions. snake_case for Rust modules.
 
 ## Stack
 
-| Layer        | Choice                              | ADR                                                                                  |
-| ------------ | ----------------------------------- | ------------------------------------------------------------------------------------ |
-| API contract | Hono + `@hono/zod-openapi`          | [0002](docs/adr/0002-api-contract-openapi-first.md)                                  |
-| Docs         | Scalar + Starlight                  | [0003](docs/adr/0003-documentation-scalar-and-starlight.md)                          |
-| Auth         | better-auth                         | [0004](docs/adr/0004-authentication-better-auth.md)                                  |
-| Data         | Postgres + Drizzle + pg-boss        | [0005](docs/adr/0005-data-layer-postgres-drizzle-pgboss.md)                          |
-| Plugins      | Process-per-plugin, brokered        | [0007](docs/adr/0007-plugin-runtime-brokered.md)                                     |
-| Media        | Rust + FFmpeg child process         | [0009](docs/adr/0009-media-pipeline-rust-ffmpeg.md)                                  |
-| UI           | Radix + Tailwind + CVA + Motion     | [0018](docs/adr/0018-valenceui-on-radix-and-shadcn-conventions.md)                   |
-| Dialogs      | Base UI, and nothing else is        | [0021](docs/adr/0021-dialogs-are-built-on-base-ui.md)                                |
-| Desktop      | Electron, a window onto the server  | [0025](docs/adr/0025-the-desktop-client-is-electron.md)                              |
-| Lint         | oxlint + ESLint + husky             | [0014](docs/adr/0014-lint-and-commit-enforcement.md)                                 |
-| Realtime     | One WebSocket, viewer + admin feeds | [0017](docs/adr/0017-realtime-one-socket-two-feeds.md)                               |
-| Web state    | TanStack Query + TanStack Router    | [0019](docs/adr/0019-server-state-in-tanstack-query-addresses-in-tanstack-router.md) |
+| Layer         | Choice                              |
+| ------------- | ----------------------------------- |
+| API contract  | Hono + `@hono/zod-openapi`          |
+| API reference | Scalar, served at `/api/reference`  |
+| Auth          | better-auth                         |
+| Data          | Postgres + Drizzle + pg-boss        |
+| Plugins       | Process-per-plugin, brokered        |
+| Media         | Rust + FFmpeg child process         |
+| UI            | Radix + Tailwind + CVA + Motion     |
+| Dialogs       | Base UI, and nothing else is        |
+| Desktop       | Electron, a window onto the server  |
+| Lint          | oxlint + ESLint + husky             |
+| Realtime      | One WebSocket, viewer + admin feeds |
+| Web state     | TanStack Query + TanStack Router    |
 
 **Not used:** the shadcn registry (its conventions are adopted, its generated code
-is not — see [0018](docs/adr/0018-valenceui-on-radix-and-shadcn-conventions.md)),
-Redis, SQLite, tRPC as a primary API, barrel files.
+is not), Redis, SQLite, tRPC as a primary API, barrel files.
 
 ## Where front-end code goes
 
 The application is `packages/client` and `packages/screens`; a client is a host
-that runs it
-([0022](docs/adr/0022-the-application-is-a-package-and-a-client-is-a-host.md),
-[0023](docs/adr/0023-screens-are-part-of-the-application-not-of-a-host.md)).
+that runs it.
 
 | Directory          | What it holds                                                   |
 | ------------------ | --------------------------------------------------------------- |
@@ -109,5 +105,3 @@ that runs it
   than silently deviating. Rules are amendable; silent exceptions are not.
 - **Never lower a coverage threshold or disable a lint rule to make a build
   pass.** Both are their own PR with their own justification.
-- **Accepted ADRs are immutable.** A changed decision is a new ADR that
-  supersedes the old one, never an edit to the original.

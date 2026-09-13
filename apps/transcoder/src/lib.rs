@@ -2,7 +2,7 @@
 //!
 //! Owns every interaction with `FFmpeg`. `FFmpeg` is driven as a child process
 //! rather than linked, which keeps Valence's licence its own and turns a codec
-//! crash into a retryable job instead of a dead server. See ADR-0009.
+//! crash into a retryable job instead of a dead server.
 
 #![cfg_attr(test, allow(clippy::expect_used, clippy::unwrap_used))]
 

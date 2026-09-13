@@ -12,7 +12,7 @@
 //! compared against what ffmpeg actually wrote rather than against a stored
 //! answer, so a rule that only ever held for one file has nowhere to hide.
 //!
-//! Skips loudly when the corpus is absent, as ADR-0012 requires. Build it with
+//! Skips loudly when the corpus is absent. Build it with
 //! `pnpm fixtures:sync`.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]

@@ -1,6 +1,6 @@
 //! Probing against real media produced by `FFmpeg`.
 //!
-//! These are the Tier 0 fixtures from ADR-0012: generated on the fly rather
+//! These are the Tier 0 fixtures: generated on the fly rather
 //! than downloaded, so they cost no bandwidth and raise no licensing question.
 //! They exist because parsing captured JSON cannot catch the things that
 //! actually break — a colour transfer that never reached the bitstream, a bit

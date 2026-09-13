@@ -1,4 +1,4 @@
--- Manga and ebooks, in tables of their own rather than columns bent onto media_item. ADR-0027 has
+-- Manga and ebooks, in tables of their own rather than columns bent onto media_item. There is
 -- the reasoning: a book has no duration, no codec and no streams, and the only way the scanner
 -- learns anything about a media item is to hand it to FFmpeg, which reads none of these formats.
 --

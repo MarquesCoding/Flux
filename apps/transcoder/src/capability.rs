@@ -305,7 +305,7 @@ pub struct Capabilities {
 /// `libplacebo` is preferred: it does the whole conversion in one filter and
 /// handles more source formats. `zscale` is the widely available fallback. A
 /// build with neither cannot tone map at all, which callers must surface
-/// rather than quietly producing a washed out picture. See ADR-0010.
+/// rather than quietly producing a washed out picture.
 #[must_use]
 pub fn select_tone_mapping(filters: &[String]) -> ToneMapping {
     let has = |name: &str| filters.iter().any(|filter| filter == name);
@@ -612,7 +612,7 @@ async fn verified_tone_maps(ffmpeg: &str, filters: &[String], device: &str) -> V
 /// that the hardware is present, the driver loaded, or the device permitted.
 /// A machine that lists `h264_vaapi` with no usable render node will happily
 /// report the encoder and then fail every playback attempt, so Valence asks it to
-/// encode a frame instead. See ADR-0009.
+/// encode a frame instead.
 ///
 /// The frame has to be big enough for the encoder to entertain it, which is
 /// what [`PROBE_SIZE`] is about, and a backend that wants a device has to be
