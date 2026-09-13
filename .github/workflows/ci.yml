@@ -47,7 +47,30 @@ jobs:
   rust:
     name: Transcoder lint and tests
     runs-on: ubuntu-latest
+    # In Debian, against the FFmpeg Valence ships, because these tests decode rather than merely
+    # calling something that does. One of them scribbles over the middle of a clip and requires the
+    # decoder to notice; Ubuntu's 6.1.1 decodes the damage without complaint and the test fails,
+    # which says nothing about Valence and everything about which FFmpeg was asked. Testing the
+    # transcoder against a build that ships to nobody answers a question nobody has.
+    #
+    # The shipped build is packaged for Debian and wants libraries Ubuntu noble does not carry, so
+    # the container is what makes running the real thing possible at all.
+    container:
+      image: debian:bookworm-slim
+    env:
+      VALENCE_FFMPEG_VERSION: 8.1.2-2flux2
+      VALENCE_FFMPEG_SUITE: bookworm
+      VALENCE_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
+      VALENCE_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
     steps:
+      # Nothing is in a slim image, including what checkout needs to clone with. The corpus tools
+      # are deliberately absent: cargo test shells out to FFmpeg and nothing else.
+      - name: Everything the image does not carry
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git xz-utils build-essential pkg-config
+
       - uses: actions/checkout@v4
 
       - uses: dtolnay/rust-toolchain@stable
@@ -56,23 +79,22 @@ jobs:
 
       - uses: Swatinem/rust-cache@v2
 
+      # Before FFmpeg is fetched, so a formatting slip is not made to wait on a download.
       - run: cargo fmt --all --check
 
       - run: cargo clippy --all-targets -- -D warnings
 
-      # The transcoder's tests drive FFmpeg, and more of them than it looks. Thirty-four across six
-      # suites synthesise their own input with lavfi and probe what comes back, so a runner without
-      # FFmpeg fails them rather than skipping them.
-      #
-      # The runner's own build is enough. What these tests assert is the transcoder's behaviour
-      # rather than the encoder's, and they pass against a stock FFmpeg as readily as against the
-      # one Valence ships. That pinned build exists for tone mapping, and the job that needs it
-      # generates the corpus against it in media-pipeline.yml.
-      - name: FFmpeg, which the tests drive
+      - name: Install the FFmpeg Valence ships
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          ffmpeg -version | head -1
+          curl -fsSL -o /tmp/flux-ffmpeg.deb \
+            "https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
+          apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
+          "$VALENCE_FFMPEG" -version | head -1
+          # On the path as well as in the variables. The package installs beside the system's own
+          # FFmpeg rather than as it, and a slim image has none, so a test reaching for the bare
+          # name finds nothing.
+          ln -sf "$VALENCE_FFMPEG" /usr/local/bin/ffmpeg
+          ln -sf "$VALENCE_FFPROBE" /usr/local/bin/ffprobe
 
       # The corpus is deliberately not generated here. The suites that need one look for it and skip
       # when it is absent, and building it is the three minutes that belongs in media-pipeline.yml.
