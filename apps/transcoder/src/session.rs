@@ -483,6 +483,29 @@ pub fn release_device<S: std::hash::BuildHasher>(
     }
 }
 
+/// Whether a stop is one viewer leaving, and so may take a hold off the count.
+///
+/// The count of holders is what decides whether the transcode ends, so it may
+/// only be lowered by a stop that can be attributed to somebody holding it. A
+/// named device that is holding the session is one viewer leaving. A stop
+/// naming somebody who is not holding it is nobody leaving.
+///
+/// A stop naming no device could be the only viewer or a stranger, and the same
+/// reasoning as [`is_another_viewer`] applies in reverse: inventing a departure
+/// is the worse mistake, so the count is left alone unless no device is being
+/// tracked at all — a session nothing named a device for, where the caller is
+/// the only holder there can be.
+#[must_use]
+pub fn releases_a_hold<S: std::hash::BuildHasher>(
+    devices: &HashMap<String, usize, S>,
+    leaving: Option<&str>,
+) -> bool {
+    match leaving {
+        Some(leaving) => devices.contains_key(leaving),
+        None => devices.is_empty(),
+    }
+}
+
 /// A session that is now serving, and what it turned out to be doing.
 #[derive(Debug, Clone)]
 pub struct Started {
@@ -1147,6 +1170,12 @@ impl SessionRegistry {
     ///
     /// The segments stay on disk either way. What ends is the process writing
     /// more of them.
+    ///
+    /// The count follows the same attribution the device map does, by
+    /// [`releases_a_hold`]. It used to be lowered by every stop whatever it
+    /// named, which left the guard on the map deciding nothing: repeating a
+    /// stop that belonged to nobody reached zero holders and took the transcode
+    /// from the viewers who were still watching it.
     pub async fn stop(&self, id: &str, device: Option<&str>) -> bool {
         let mut sessions = self.sessions.lock().await;
 
@@ -1154,9 +1183,13 @@ impl SessionRegistry {
             return false;
         };
 
-        session.holders = session.holders.saturating_sub(1);
+        let releases = releases_a_hold(&session.devices, device);
 
         release_device(&mut session.devices, device);
+
+        if releases {
+            session.holders = session.holders.saturating_sub(1);
+        }
 
         if session.holders == 0 {
             if let Some(mut last) = sessions.remove(id) {
@@ -1722,10 +1755,14 @@ pub async fn await_run(directory: &Path, timeout: Duration) -> bool {
 mod tests {
     use super::{
         classify_exit, classify_reuse, is_another_viewer, is_segment_ready, release_device,
-        resolve_segment, resume_from, run_has_closed, run_is_writing, should_retry_in_software,
-        ExitClass, Reuse, RunPosition, SegmentPlan, SessionConfig, SessionRegistry,
+        releases_a_hold, resolve_segment, resume_from, run_has_closed, run_is_writing,
+        should_retry_in_software, ExitClass, Reuse, RunPosition, SegmentPlan, SessionConfig,
+        SessionRegistry, COMPLETE_MARKER,
     };
-    use crate::transcode_plan::SegmentContainer;
+    use crate::boundaries::{Boundaries, LAYOUT, LENGTHS_NAME};
+    use crate::transcode_plan::{
+        AudioAction, HardwareAccel, SegmentContainer, SessionSpec, SubtitleAction, VideoAction,
+    };
 
     fn run(from: u64, head: Option<u64>) -> RunPosition {
         RunPosition { from, head }
@@ -1899,6 +1936,147 @@ mod tests {
         release_device(&mut devices, Some("never-here"));
 
         assert!(is_another_viewer(&devices, Some("tab-2")));
+    }
+
+    /// One viewer leaving, which is the stop the count exists to follow.
+    #[test]
+    fn takes_a_hold_off_for_a_device_that_is_holding_the_session() {
+        assert!(releases_a_hold(&holding(&["tab-1"]), Some("tab-1")));
+    }
+
+    /// Somebody naming a device that is not holding it is nobody leaving, so
+    /// repeating it cannot count the holders down to none.
+    #[test]
+    fn takes_no_hold_off_for_a_device_that_never_held_it() {
+        assert!(!releases_a_hold(&holding(&["tab-1"]), Some("tab-2")));
+    }
+
+    /// The stop that took the transcode from everyone: naming no device while
+    /// somebody is holding it.
+    #[test]
+    fn takes_no_hold_off_for_a_stop_it_cannot_attribute() {
+        assert!(!releases_a_hold(&holding(&["tab-1"]), None));
+    }
+
+    /// A session nothing named a device for still has to be stoppable, or it
+    /// would be left to idle collection.
+    #[test]
+    fn takes_a_hold_off_for_a_session_tracking_no_devices() {
+        assert!(releases_a_hold(&holding(&[]), None));
+    }
+
+    /// A directory as a finished transcode leaves it, so a session can be
+    /// started over it without ffmpeg: the lengths are cached, which is what
+    /// `ensure_boundaries` answers from, and the film is marked whole, which is
+    /// what sends `begin` past starting a run at all.
+    fn finished(name: &str) -> (std::path::PathBuf, SessionSpec) {
+        let root = std::env::temp_dir().join(format!("valence-holders-{name}"));
+
+        std::fs::remove_dir_all(&root).ok();
+
+        let spec = SessionSpec {
+            input_path: format!("/media/{name}.mkv"),
+            start_seconds: 0,
+            segment_seconds: 4,
+            hardware_accel: HardwareAccel::None,
+            video: VideoAction::Copy,
+            audio: AudioAction::Copy,
+            audio_stream_index: None,
+            subtitles: SubtitleAction::None,
+            source_size: None,
+            container: SegmentContainer::Fmp4,
+            source_video_codec: None,
+        };
+
+        let directory = root.join(spec.plan_id());
+
+        std::fs::create_dir_all(&directory).expect("the directory can be made");
+
+        let boundaries = Boundaries {
+            layout: LAYOUT,
+            lengths: vec![4.0],
+            cut_seconds: 4.0,
+            seeks_forward: false,
+            can_copy: true,
+            groups: Vec::new(),
+        };
+
+        std::fs::write(
+            directory.join(LENGTHS_NAME),
+            serde_json::to_string(&boundaries).expect("the boundaries serialise"),
+        )
+        .expect("the lengths are written");
+
+        std::fs::write(directory.join(COMPLETE_MARKER), b"ok").expect("the marker is written");
+
+        (root, spec)
+    }
+
+    /// The bug this exists to stop, against the registry rather than the rule:
+    /// repeating a stop that belongs to nobody counted the holders down to none
+    /// and took the transcode away from the viewers who were still watching.
+    #[tokio::test]
+    async fn keeps_a_session_through_stops_that_belong_to_nobody() {
+        let (root, spec) = finished("nobody");
+
+        let registry = SessionRegistry::new(SessionConfig {
+            cache_root: root.clone(),
+            ..SessionConfig::default()
+        });
+
+        let id = spec.plan_id();
+
+        registry
+            .start(spec.clone(), Some("tab-1"))
+            .await
+            .expect("the first viewer starts it");
+        registry
+            .start(spec.clone(), Some("tab-2"))
+            .await
+            .expect("the second viewer joins it");
+
+        assert!(registry.stop(&id, None).await);
+        assert!(registry.stop(&id, None).await);
+        assert!(registry.stop(&id, Some("never-here")).await);
+
+        assert_eq!(
+            registry.len().await,
+            1,
+            "nobody who was holding it let go, so nothing may end"
+        );
+
+        std::fs::remove_dir_all(&root).ok();
+    }
+
+    /// And the counting it must still do, or a transcode would outlive every
+    /// viewer of it.
+    #[tokio::test]
+    async fn ends_a_session_once_every_device_holding_it_has_let_go() {
+        let (root, spec) = finished("everyone");
+
+        let registry = SessionRegistry::new(SessionConfig {
+            cache_root: root.clone(),
+            ..SessionConfig::default()
+        });
+
+        let id = spec.plan_id();
+
+        registry
+            .start(spec.clone(), Some("tab-1"))
+            .await
+            .expect("the first viewer starts it");
+        registry
+            .start(spec.clone(), Some("tab-2"))
+            .await
+            .expect("the second viewer joins it");
+
+        assert!(registry.stop(&id, Some("tab-1")).await);
+        assert_eq!(registry.len().await, 1, "one of two viewers has left");
+
+        assert!(registry.stop(&id, Some("tab-2")).await);
+        assert!(registry.is_empty().await, "both viewers have left");
+
+        std::fs::remove_dir_all(&root).ok();
     }
 
     /// A segment that is whole is served, whatever the transcode is doing.

@@ -77,6 +77,7 @@ const createMemoryAuth = (
     catalogueApiKey: '',
     hardwareAccel: '',
     previewQuality: 'high',
+    showsProfilesBeforeSignIn: false,
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',

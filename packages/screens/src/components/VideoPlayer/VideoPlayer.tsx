@@ -856,7 +856,7 @@ const VideoPlayer = ({
           const current = videoRef.current;
           const playing = current !== null && !current.paused;
 
-          void heartbeatPlaybackSession(sessionId, playing);
+          void heartbeatPlaybackSession(sessionId, playing, clientId);
         }
       }, HEARTBEAT_INTERVAL_MILLISECONDS);
 

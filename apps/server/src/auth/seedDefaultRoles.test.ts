@@ -12,6 +12,7 @@ const emptySettings = () =>
     catalogueApiKey: '',
     hardwareAccel: '',
     previewQuality: 'high' as const,
+    showsProfilesBeforeSignIn: false,
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',

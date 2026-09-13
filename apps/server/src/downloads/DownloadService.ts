@@ -43,7 +43,12 @@ type DownloadService = {
     mediaId: string,
     quality: DownloadQuality,
   ) => Promise<void>;
-  release: (clientId: string, mediaId: string, quality: DownloadQuality) => Promise<void>;
+  release: (
+    profileId: string,
+    clientId: string,
+    mediaId: string,
+    quality: DownloadQuality,
+  ) => Promise<void>;
   held: (profileId: string) => Promise<Holding[]>;
 };
 

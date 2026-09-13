@@ -36,7 +36,7 @@ type PresenceBinding = {
     profileName: string | null;
     deviceLabel: string;
     send: (event: PresenceControl) => void;
-  }) => void;
+  }) => boolean;
   disconnect: (clientId: string) => void;
   nameOf: (accountId: string, profileId: string | null) => Promise<string | null>;
 };
@@ -45,6 +45,7 @@ type HandlerOptions = {
   registry: RealtimeRegistry;
   newId: () => string;
   now: () => number;
+  ownsProfile: (accountId: string, profileId: string) => Promise<boolean>;
   presence?: PresenceBinding;
   party?: PartyBinding;
 };
@@ -99,6 +100,7 @@ const createRealtimeHandler = ({
   registry,
   newId,
   now,
+  ownsProfile,
   presence,
   party,
 }: HandlerOptions): RealtimeHandler => ({
@@ -182,9 +184,14 @@ const createRealtimeHandler = ({
           return;
         }
 
-        registry.identify(id, read.data.profileId);
+        const { clientId, deviceLabel } = read.data;
 
-        const { clientId, deviceLabel, profileId } = read.data;
+        const profileId =
+          read.data.profileId === null || (await ownsProfile(who.accountId, read.data.profileId))
+            ? read.data.profileId
+            : null;
+
+        registry.identify(id, profileId);
 
         if (profileId !== chosenProfileId) {
           chosenProfileId = profileId;
@@ -195,13 +202,11 @@ const createRealtimeHandler = ({
           return;
         }
 
-        claimed = clientId;
-
         const named = await presence.nameOf(who.accountId, profileId);
 
         myName = named ?? myName;
 
-        presence.connect({
+        const took = presence.connect({
           clientId,
           accountId: who.accountId,
           profileId,
@@ -217,6 +222,10 @@ const createRealtimeHandler = ({
             });
           },
         });
+
+        if (took) {
+          claimed = clientId;
+        }
       },
 
       ping: () => {

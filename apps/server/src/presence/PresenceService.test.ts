@@ -47,6 +47,78 @@ describe('createPresenceService', () => {
     ]);
   });
 
+  it('says which account a tab belongs to, and nothing for one it has never heard of', () => {
+    const presence = createPresenceService();
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: 'me',
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+
+    expect(presence.ownerOf('tab-1')).toBe('me');
+    expect(presence.ownerOf('tab-2')).toBeNull();
+  });
+
+  it('refuses to let one account take over a tab belonging to another', () => {
+    const presence = createPresenceService();
+    const mine = vi.fn();
+
+    expect(
+      presence.connect({
+        clientId: 'tab-1',
+        accountId: 'me',
+        profileId: null,
+        profileName: 'Mine',
+        deviceLabel: 'Chrome on Mac',
+        send: mine,
+      }),
+    ).toBe(true);
+
+    expect(
+      presence.connect({
+        clientId: 'tab-1',
+        accountId: 'somebody-else',
+        profileId: null,
+        profileName: 'Theirs',
+        deviceLabel: 'Chrome on Windows',
+        send: vi.fn(),
+      }),
+    ).toBe(false);
+
+    expect(presence.ownerOf('tab-1')).toBe('me');
+    expect(presence.list()).toEqual([
+      expect.objectContaining({ clientId: 'tab-1', profileName: 'Mine' }),
+    ]);
+  });
+
+  it('lets the same account reconnect a tab it already had, as a new socket does', () => {
+    const presence = createPresenceService();
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: 'me',
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on Mac',
+      send: vi.fn(),
+    });
+
+    expect(
+      presence.connect({
+        clientId: 'tab-1',
+        accountId: 'me',
+        profileId: null,
+        profileName: null,
+        deviceLabel: 'Chrome on Mac',
+        send: vi.fn(),
+      }),
+    ).toBe(true);
+  });
+
   it('forgets a tab once it disconnects', () => {
     const presence = createPresenceService();
 

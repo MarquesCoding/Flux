@@ -25,6 +25,7 @@ const AdminOverviewSchema = z.object({
     cookieSecure: z.boolean(),
     hardwareAccel: z.string().default(''),
     previewQuality: PreviewQualitySchema.default('high'),
+    showsProfilesBeforeSignIn: z.boolean().default(false),
   }),
   transcoder: z.object({
     isReachable: z.boolean(),
@@ -613,6 +614,28 @@ const saveHardwareAccel = async (hardwareAccel: string): Promise<boolean> => {
  * @param previewQuality - The preset to make them at.
  * @returns Whether the setting was written.
  */
+/**
+ * Sets whether the way in shows who lives here before anybody has signed in.
+ *
+ * Off, the wall of faces is replaced by an address and a password, and nobody who has not signed in
+ * can read the household's names, pictures or identifiers.
+ *
+ * @param showsProfilesBeforeSignIn - Whether to show the faces.
+ * @returns Whether the setting was written.
+ */
+const saveShowsProfilesBeforeSignIn = async (
+  showsProfilesBeforeSignIn: boolean,
+): Promise<boolean> => {
+  const response = await fetch('/api/admin/settings', {
+    method: 'PATCH',
+    credentials: 'same-origin',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ showsProfilesBeforeSignIn }),
+  }).catch(() => null);
+
+  return response !== null && response.ok;
+};
+
 const savePreviewQuality = async (previewQuality: PreviewQuality): Promise<boolean> => {
   const response = await fetch('/api/admin/settings', {
     method: 'PATCH',
@@ -666,6 +689,7 @@ export {
   saveCatalogueKey,
   saveHardwareAccel,
   savePreviewQuality,
+  saveShowsProfilesBeforeSignIn,
   fetchActiveSessions,
   watchActiveSessions,
   stopSession,

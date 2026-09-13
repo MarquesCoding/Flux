@@ -9,11 +9,15 @@ const saveHardwareAccel = vi.hoisted(() => vi.fn(() => Promise.resolve(true)));
 const savePreviewQuality = vi.hoisted(() =>
   vi.fn<(quality: string) => Promise<boolean>>(() => Promise.resolve(true)),
 );
+const saveShowsProfilesBeforeSignIn = vi.hoisted(() =>
+  vi.fn<(shows: boolean) => Promise<boolean>>(() => Promise.resolve(true)),
+);
 
 vi.mock('@ValenceClient/admin/fetchAdmin', () => ({
   saveCatalogueKey,
   saveHardwareAccel,
   savePreviewQuality,
+  saveShowsProfilesBeforeSignIn,
 }));
 
 const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOverview => ({
@@ -24,6 +28,7 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     trustedOrigins: ['http://localhost:8420'],
     hardwareAccel: '',
     previewQuality: 'high' as const,
+    showsProfilesBeforeSignIn: false,
     ...overrides,
   },
   transcoder: {
@@ -54,6 +59,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -67,6 +73,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -81,6 +88,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -95,6 +103,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -112,6 +121,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -132,6 +142,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={onCatalogueKeySaved}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -154,6 +165,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={onCatalogueKeySaved}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -174,6 +186,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -187,6 +200,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -208,6 +222,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={saved}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -226,6 +241,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={vi.fn()}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -246,6 +262,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={saved}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 
@@ -270,6 +287,7 @@ describe('SettingsPanel', () => {
         onCatalogueKeySaved={vi.fn()}
         onHardwareAccelSaved={vi.fn()}
         onPreviewQualitySaved={saved}
+        onProfileVisibilitySaved={vi.fn()}
       />,
     );
 

@@ -51,6 +51,7 @@ const OVERVIEW = {
     cookieSecure: false,
     hardwareAccel: '',
     previewQuality: 'high',
+    showsProfilesBeforeSignIn: false,
   },
   transcoder: {
     isReachable: true,

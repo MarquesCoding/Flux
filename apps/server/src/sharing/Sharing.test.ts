@@ -487,6 +487,36 @@ describe('what a guest may reach', () => {
     expect(response.headers.get('cache-control')).toBe('no-store');
   });
 
+  it('serves both guests where two links to the same film start the one session', async () => {
+    const built = build();
+    const { app } = built;
+    const cookie = await signedIn(built);
+
+    const mine = await shared(app, cookie);
+    const theirs = await shared(app, cookie);
+
+    const { jar: myJar } = await opened(app, mine.token);
+    const { jar: theirJar } = await opened(app, theirs.token);
+
+    const mySession = await playing(app, myJar);
+    const theirSession = await playing(app, theirJar);
+
+    expect(theirSession).toBe(mySession);
+
+    const forMe = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(mySession)}/index.m3u8`,
+      { headers: { cookie: myJar, origin: BASE } },
+    );
+
+    const forThem = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(theirSession)}/index.m3u8`,
+      { headers: { cookie: theirJar, origin: BASE } },
+    );
+
+    expect(forThem.status).toBe(200);
+    expect(forMe.status).toBe(200);
+  });
+
   it('never reaches a session belonging to somebody else’s link', async () => {
     const built = build();
     const { app } = built;

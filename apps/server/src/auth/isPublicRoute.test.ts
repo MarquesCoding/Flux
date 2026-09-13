@@ -17,17 +17,24 @@ describe('isPublicRoute', () => {
   });
 
   describe('the sign-in screen', () => {
-    it('shows the faces before anybody has signed in', () => {
-      expect(isPublicRoute('GET', '/api/profiles/everyone')).toBe(true);
+    it('keeps who lives here to itself until the server says otherwise', () => {
+      expect(isPublicRoute('GET', '/api/profiles/everyone')).toBe(false);
+      expect(isPublicRoute('GET', '/api/profiles/prf_1/avatar')).toBe(false);
     });
 
-    it('shows each face, and the generated ones', () => {
-      expect(isPublicRoute('GET', '/api/profiles/prf_1/avatar')).toBe(true);
+    it('shows the faces where the server is set to show them', () => {
+      expect(isPublicRoute('GET', '/api/profiles/everyone', true)).toBe(true);
+      expect(isPublicRoute('GET', '/api/profiles/prf_1/avatar', true)).toBe(true);
+    });
+
+    it('draws the generated ones either way, since they say nothing about anybody', () => {
       expect(isPublicRoute('GET', '/api/profiles/avatars/rings')).toBe(true);
+      expect(isPublicRoute('GET', '/api/profiles/avatars/rings', true)).toBe(true);
     });
 
-    it('takes a password for the face somebody picked', () => {
+    it('takes a password for a face either way, which needs the identifier already', () => {
       expect(isPublicRoute('POST', '/api/profiles/prf_1/sign-in')).toBe(true);
+      expect(isPublicRoute('POST', '/api/profiles/prf_1/sign-in', true)).toBe(true);
     });
   });
 

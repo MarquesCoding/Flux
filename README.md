@@ -65,4 +65,5 @@ binding and several are unusual (no comments, no barrel files, no `any`,
 
 ## Licence
 
-TBD.
+MIT — see [`LICENSE.md`](LICENSE.md). Use it, change it, ship it, sell it; keep
+the copyright notice with it and expect no warranty.

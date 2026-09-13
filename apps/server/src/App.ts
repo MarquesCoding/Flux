@@ -18,6 +18,7 @@ import type { FavouriteService } from '@ValenceServer/favourites/FavouriteServic
 import type { RatingService } from '@ValenceServer/ratings/RatingService';
 import type { ShareService } from '@ValenceServer/sharing/ShareService';
 import type { ShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import type { PlaybackSessions } from '@ValenceServer/playback/createPlaybackSessions';
 import type { PlaybackService, PreviewRead } from '@ValenceServer/playback/PlaybackService';
 import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import type { PresenceService } from '@ValenceServer/presence/PresenceService';
@@ -392,6 +393,7 @@ type CreateAppOptions = {
   ratings: RatingService;
   shares?: ShareService;
   shareSessions?: ShareSessions;
+  playbackSessions?: PlaybackSessions;
   profiles?: ProfileService;
   books?: BookService;
   promoteProfile?: (request: {
@@ -462,6 +464,7 @@ const createApp = ({
   ratings,
   shares,
   shareSessions,
+  playbackSessions,
   profiles,
   books,
   promoteProfile,
@@ -541,22 +544,25 @@ const createApp = ({
 
   app.use(
     '/api/*',
-    createSessionGate(
+    createSessionGate({
       auth,
-      shares === undefined || shareSessions === undefined
-        ? undefined
-        : createShareGate({
-            shares,
-            sessions: shareSessions,
-            itemOf: async (mediaId) => {
-              const item = await library.getMedia(mediaId);
+      showsFaces: async () => (await settings.read()).showsProfilesBeforeSignIn,
+      ...(shares === undefined || shareSessions === undefined
+        ? {}
+        : {
+            shareGate: createShareGate({
+              shares,
+              sessions: shareSessions,
+              itemOf: async (mediaId) => {
+                const item = await library.getMedia(mediaId);
 
-              return item === null
-                ? null
-                : { id: item.id, seriesId: await library.seriesOf(mediaId) };
-            },
+                return item === null
+                  ? null
+                  : { id: item.id, seriesId: await library.seriesOf(mediaId) };
+              },
+            }),
           }),
-    ),
+    }),
   );
 
   /**
@@ -841,8 +847,12 @@ const createApp = ({
       : context.json(rebuilt, 200);
   });
 
-  app.openapi(runningScansRoute, (context) =>
-    context.json(
+  app.openapi(runningScansRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
+    return context.json(
       {
         scans: listRunningJobs().map((job) => ({
           jobId: job.jobId,
@@ -854,10 +864,14 @@ const createApp = ({
         })),
       },
       200,
-    ),
-  );
+    );
+  });
 
   app.openapi(scanStateRoute, async (context) => {
+    if (!(await requires(context.req.raw.headers, 'jobs.run'))) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
+
     const { jobId } = context.req.valid('param');
     const { state, phase, processed, total } = await library.readScanState(jobId);
 
@@ -966,7 +980,15 @@ const createApp = ({
       }
     }
 
-    if (clientId !== undefined) {
+    const startedBy = await readProfileId(context.req.raw.headers);
+
+    if (startedBy !== null) {
+      playbackSessions?.claim(outcome.session.sessionId, startedBy);
+    }
+
+    const isTheirOwnDevice = await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId);
+
+    if (clientId !== undefined && isTheirOwnDevice) {
       const item = await library.getMedia(mediaId);
 
       if (item !== null) {
@@ -989,6 +1011,10 @@ const createApp = ({
 
   app.openapi(sessionFileRoute, async (context) => {
     const { sessionId, name } = context.req.valid('param');
+
+    if (!(await isTheSessionOfWhoeverIsAsking(context.req.raw.headers, sessionId))) {
+      return context.json({ error: 'That session belongs to somebody else.' }, 403);
+    }
 
     const file = await playback.readSessionFile(sessionId, name);
 
@@ -1114,6 +1140,63 @@ const createApp = ({
    */
   const readAccount = async (headers: Headers) =>
     (await readSessionOnce(auth, headers))?.user ?? null;
+
+  /**
+   * Whether a device named in a request may be spoken for by whoever is asking.
+   *
+   * A client identifier is a value the caller chooses, so a route acting on one has to ask whose it
+   * is. Presence holds the answer, and holds it from the account its socket was authenticated as
+   * rather than from anything a client sent.
+   *
+   * A device nobody is holding is nobody's to take, so it passes: a tab whose socket has not
+   * identified yet goes on working, and a guest holding a share link has no account to match in the
+   * first place. What is refused is a device somebody else is holding.
+   *
+   * @param headers - The request's headers, for reading who is asking.
+   * @param clientId - The device named, where one was named at all.
+   * @returns Whether the request may act on that device.
+   */
+  /**
+   * Whether a playback session named in a request may be read by whoever is asking.
+   *
+   * A session identifier is the only thing a manifest's addresses carry, so a route serving one has
+   * to ask whose viewing it is. What it protects is the viewing rather than the film: every
+   * signed-in account may already read any item, so this keeps somebody's session from being
+   * watched over their shoulder rather than keeping the catalogue shut.
+   *
+   * A session nobody is holding is nobody's to take, so it passes — a session started before this
+   * server knew to record who started it goes on working. So does a guest holding a share link,
+   * whose own gate has already checked that this share started this session.
+   *
+   * @param headers - The request's headers, for reading whose face is asking.
+   * @param sessionId - The session named.
+   * @returns Whether the request may read it.
+   */
+  const isTheSessionOfWhoeverIsAsking = async (
+    headers: Headers,
+    sessionId: string,
+  ): Promise<boolean> => {
+    if (playbackSessions === undefined || !playbackSessions.isHeld(sessionId)) {
+      return true;
+    }
+
+    const asking = await readProfileId(headers);
+
+    return asking === null || playbackSessions.isClaimedBy(sessionId, asking);
+  };
+
+  const isTheDeviceOfWhoeverIsAsking = async (
+    headers: Headers,
+    clientId: string | undefined,
+  ): Promise<boolean> => {
+    const owner = clientId === undefined ? null : presence.ownerOf(clientId);
+
+    if (owner === null) {
+      return true;
+    }
+
+    return owner === (await readAccount(headers))?.id;
+  };
 
   /**
    * Whoever is asking, if they may hold keys at all.
@@ -1455,7 +1538,7 @@ const createApp = ({
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    await notifications.removePushEndpoint(context.req.valid('json').endpoint);
+    await notifications.removePushEndpoint(account.id, context.req.valid('json').endpoint);
 
     return context.body(null, 204);
   });
@@ -1608,11 +1691,18 @@ const createApp = ({
       return context.json({ error: 'No such profile.' }, 404);
     }
 
-    return auth.api.signInEmail({
-      body: { email, password: parsed.data.password },
-      asResponse: true,
-      headers: context.req.raw.headers,
-    });
+    const forwarded = new Headers(context.req.raw.headers);
+
+    forwarded.set('content-type', 'application/json');
+    forwarded.delete('content-length');
+
+    return auth.handler(
+      new Request(new URL('/api/auth/sign-in/email', context.req.url), {
+        method: 'POST',
+        headers: forwarded,
+        body: JSON.stringify({ email, password: parsed.data.password }),
+      }),
+    );
   });
 
   app.get('/api/profiles/avatars/:style', (context) => {
@@ -1699,6 +1789,7 @@ const createApp = ({
           hasCatalogueKey: current.catalogueApiKey !== '',
           hardwareAccel: current.hardwareAccel,
           previewQuality: current.previewQuality,
+          showsProfilesBeforeSignIn: current.showsProfilesBeforeSignIn,
           trustedOrigins: current.trustedOrigins,
           cookieSecure: current.cookieSecure,
         },
@@ -1736,6 +1827,9 @@ const createApp = ({
       ...(patch.catalogueApiKey === undefined ? {} : { catalogueApiKey: patch.catalogueApiKey }),
       ...(patch.hardwareAccel === undefined ? {} : { hardwareAccel: patch.hardwareAccel }),
       ...(patch.previewQuality === undefined ? {} : { previewQuality: patch.previewQuality }),
+      ...(patch.showsProfilesBeforeSignIn === undefined
+        ? {}
+        : { showsProfilesBeforeSignIn: patch.showsProfilesBeforeSignIn }),
     });
 
     if (updated.previewQuality !== before.previewQuality) {
@@ -1755,6 +1849,7 @@ const createApp = ({
         cookieSecure: updated.cookieSecure,
         hardwareAccel: updated.hardwareAccel,
         previewQuality: updated.previewQuality,
+        showsProfilesBeforeSignIn: updated.showsProfilesBeforeSignIn,
       },
       200,
     );
@@ -1848,6 +1943,15 @@ const createApp = ({
 
     const { kind } = context.req.valid('param');
     const { libraryId, force } = context.req.valid('json');
+
+    const definition = JOB_DEFINITIONS.find((job) => job.kind === kind);
+
+    if (
+      definition?.destructive === true &&
+      !(await requires(context.req.raw.headers, 'jobs.runDestructive'))
+    ) {
+      return context.json({ error: 'That is for administrators.' }, 403);
+    }
 
     const maintenanceRunners: Record<
       string,
@@ -1969,6 +2073,33 @@ const createApp = ({
       highestPosition: held.length === 0 ? null : Math.max(...held.map((role) => role.position)),
     };
   };
+
+  /**
+   * Whether an account is at or above the actor's own rank, and so not theirs to change.
+   *
+   * Rank alone, where banning and removing also refuse somebody acting on their own account.
+   * Changing what you hold yourself is a legitimate thing to do, and what stops the last
+   * administrator undoing themselves is whether the change would strand the server rather than
+   * whose account it is.
+   *
+   * @param actor - Who is asking, and how senior they are.
+   * @param targetId - Whose account is being changed.
+   * @param targetRoles - The roles that account holds.
+   * @returns Whether to refuse.
+   */
+  const outranks = (
+    actor: NonNullable<Awaited<ReturnType<typeof readActor>>>,
+    targetId: string,
+    targetRoles: readonly { position: number }[],
+  ): boolean =>
+    checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId,
+      targetHighestPosition:
+        targetRoles.length === 0 ? null : Math.max(...targetRoles.map((role) => role.position)),
+    }) === 'outranked';
 
   /**
    * Whether taking something away would leave the server with nobody able to administer it.
@@ -2220,6 +2351,10 @@ const createApp = ({
     const { userId } = context.req.valid('param');
     const grant = context.req.valid('json');
 
+    if (outranks(actor, userId, await permissions.rolesFor(userId))) {
+      return context.json({ error: describeAccountRefusal('outranked') }, 403);
+    }
+
     if (grant.effect === 'allow' && !actor.permissions.has(grant.permission)) {
       return context.json({ error: describeRefusal('escalation') }, 403);
     }
@@ -2261,9 +2396,19 @@ const createApp = ({
     }
 
     const { userId, permission } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    if (outranks(actor, userId, target)) {
+      return context.json({ error: describeAccountRefusal('outranked') }, 403);
+    }
+
     const previous = (await permissions.overridesFor(userId)).find(
       (existing) => existing.permission === permission,
     );
+
+    if (previous?.effect === 'deny' && !actor.permissions.has(permission)) {
+      return context.json({ error: describeRefusal('escalation') }, 403);
+    }
 
     const stranded = await wouldStrandTheServer(
       async () => {
@@ -2358,11 +2503,29 @@ const createApp = ({
   });
 
   app.openapi(unbanAccountRoute, async (context) => {
-    if (!(await requires(context.req.raw.headers, 'account.ban'))) {
+    const actor = await readActor(context.req.raw.headers);
+
+    if (actor === null || !actor.permissions.has('account.ban')) {
       return context.json({ error: 'That is for administrators.' }, 403);
     }
 
-    if (!(await unbanAccount?.(context.req.valid('param').userId))) {
+    const { userId } = context.req.valid('param');
+    const target = await permissions.rolesFor(userId);
+
+    const refusal = checkAccountAction({
+      actorId: actor.id,
+      actorPermissions: actor.permissions,
+      actorHighestPosition: actor.highestPosition,
+      targetId: userId,
+      targetHighestPosition:
+        target.length === 0 ? null : Math.max(...target.map((role) => role.position)),
+    });
+
+    if (refusal !== null) {
+      return context.json({ error: describeAccountRefusal(refusal) }, 403);
+    }
+
+    if (!(await unbanAccount?.(userId))) {
       return context.json({ error: 'No such account.' }, 404);
     }
 
@@ -2865,7 +3028,7 @@ const createApp = ({
       const { mediaId, quality } = context.req.valid('param');
       const clientId = context.req.header('x-valence-client') ?? profileId;
 
-      await downloads.release(clientId, mediaId, quality);
+      await downloads.release(profileId, clientId, mediaId, quality);
 
       return context.body(null, 204);
     });
@@ -3314,7 +3477,27 @@ const createApp = ({
     const { sessionId } = context.req.valid('param');
     const { clientId } = context.req.valid('query');
 
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
+
     const stopped = await playback.stop(sessionId, clientId);
+
+    const letGoBy = getCookie(context, SHARE_COOKIE);
+
+    if (letGoBy !== undefined && shares !== undefined && shareSessions !== undefined) {
+      const held = await shares.resolve(letGoBy);
+
+      if (held !== null) {
+        shareSessions.release(sessionId, held.id);
+      }
+    }
+
+    const letGoByProfile = await readProfileId(context.req.raw.headers);
+
+    if (letGoByProfile !== null) {
+      playbackSessions?.release(sessionId, letGoByProfile);
+    }
 
     if (!stopped) {
       return context.json({ error: 'No such session.' }, 404);
@@ -3325,7 +3508,12 @@ const createApp = ({
 
   app.openapi(heartbeatRoute, async (context) => {
     const { sessionId } = context.req.valid('param');
+    const { clientId } = context.req.valid('query');
     const { isPlaying } = context.req.valid('json');
+
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
 
     const known = await playback.heartbeat(sessionId, isPlaying);
 
@@ -3337,12 +3525,18 @@ const createApp = ({
   });
 
   app.openapi(presenceHeartbeatRoute, async (context) => {
-    if ((await readAccount(context.req.raw.headers)) === null) {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
     const { clientId } = context.req.valid('param');
     const { isPlaying, health } = context.req.valid('json');
+
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
 
     presence.heartbeatPlayback(clientId, isPlaying, health);
 
@@ -3350,11 +3544,19 @@ const createApp = ({
   });
 
   app.openapi(presenceStopWatchingRoute, async (context) => {
-    if ((await readAccount(context.req.raw.headers)) === null) {
+    const account = await readAccount(context.req.raw.headers);
+
+    if (account === null) {
       return context.json({ error: 'Nobody is signed in.' }, 401);
     }
 
-    presence.stopPlayback(context.req.valid('param').clientId);
+    const { clientId } = context.req.valid('param');
+
+    if (!(await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId))) {
+      return context.json({ error: 'That is not your device.' }, 403);
+    }
+
+    presence.stopPlayback(clientId);
 
     return context.body(null, 204);
   });

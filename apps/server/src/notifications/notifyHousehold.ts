@@ -71,7 +71,7 @@ const notifyHousehold = async ({
         const outcome = await sendWebPush(endpoint, { title, body, link }, vapid, send);
 
         if (outcome === 'gone') {
-          await store.removePushEndpoint(endpoint.endpoint);
+          await store.removePushEndpoint(userId, endpoint.endpoint);
         }
       }
     }

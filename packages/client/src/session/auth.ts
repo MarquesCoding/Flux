@@ -57,6 +57,8 @@ const client = buildClient();
 
 const CodedSchema = z.object({ code: z.string() });
 
+const TwoFactorRedirectSchema = z.object({ twoFactorRedirect: z.literal(true) });
+
 /**
  * Whether a refusal was somebody changing their mind rather than something going wrong.
  *
@@ -103,6 +105,38 @@ const fetchSession = async (): Promise<SessionUser | null> => {
     role: data.user.role,
     twoFactorEnabled: data.user.twoFactorEnabled,
   };
+};
+
+/**
+ * Signs in with an address and a password, which is the way in for a server that does not show who
+ * lives here.
+ *
+ * The face wall is the ordinary way in and this is the other one: where the server keeps its
+ * profiles to itself, there is nothing to pick from, so somebody types who they are instead. It
+ * answers in the same three ways picking a face does, so the screen can treat them alike — including
+ * a second factor, which better-auth asks for by redirecting rather than by refusing.
+ *
+ * @param email - The address on the account.
+ * @param password - Its password.
+ * @returns Whether it worked, whether a code is wanted next, and why not where it did not.
+ */
+const signInWithEmail = async (
+  email: string,
+  password: string,
+): Promise<{ kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string }> => {
+  const answer = await client.signIn.email({ email, password }).catch(() => null);
+
+  if (answer === null) {
+    return { kind: 'refused', reason: 'Valence could not be reached.' };
+  }
+
+  if (answer.error !== null) {
+    return { kind: 'refused', reason: 'That address and password were not accepted.' };
+  }
+
+  return TwoFactorRedirectSchema.safeParse(answer.data).success
+    ? { kind: 'needsCode' }
+    : { kind: 'signedIn' };
 };
 
 /**
@@ -295,6 +329,7 @@ export type { RegisterOutcome, AuthenticateOutcome, Enrollment };
 
 export {
   fetchSession,
+  signInWithEmail,
   signOut,
   registerPasskey,
   authenticateWithPasskey,

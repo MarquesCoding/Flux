@@ -342,6 +342,35 @@ describe('account administration', () => {
       expect(response.status).toBe(204);
       expect(context.unbanAccount).toHaveBeenCalledWith(OTHER);
     });
+
+    it('refuses to lift a ban on somebody who outranks the actor', async () => {
+      const context = await signedInWith(['account.ban'], 100);
+      const senior = await context.permissions.createRole({
+        name: 'Senior',
+        position: 500,
+        permissions: [],
+      });
+
+      await context.permissions.assignRole(OTHER, senior.id);
+
+      const response = await context.request(`/api/admin/accounts/${OTHER}/ban`, 'DELETE');
+
+      expect(response.status).toBe(403);
+      expect(await response.text()).toContain('at or above your own rank');
+      expect(context.unbanAccount).not.toHaveBeenCalled();
+    });
+
+    it('refuses to lift a ban on yourself, as banning yourself is refused', async () => {
+      const context = await signedInWith(['administrator']);
+      const response = await context.request(
+        `/api/admin/accounts/${context.actorId}/ban`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.text()).toContain('your own account');
+      expect(context.unbanAccount).not.toHaveBeenCalled();
+    });
   });
 
   describe('inviting', () => {

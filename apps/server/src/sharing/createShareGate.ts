@@ -77,7 +77,7 @@ const createShareGate = ({ shares, sessions, itemOf }: ShareGateOptions) =>
     }
 
     if (reach.kind === 'needsSession') {
-      if (sessions.shareOf(reach.sessionId) !== found.id) {
+      if (!sessions.isClaimedBy(reach.sessionId, found.id)) {
         return context.json({ error: 'That is not part of what was shared.' }, 403);
       }
 

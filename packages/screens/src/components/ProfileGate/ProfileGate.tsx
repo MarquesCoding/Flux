@@ -27,7 +27,7 @@ import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
 import { TwoFactorChallenge } from '@ValenceScreens/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import { authenticateWithPasskey, signInWithEmail } from '@ValenceClient/session/auth';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
@@ -84,6 +84,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
   const asking = useQuery(sessionQueries.everyone());
   const everyone = asking.data ?? null;
   const [chosen, setChosen] = useState<ViewerProfile | null>(null);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -179,16 +180,14 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
     facesRef.current.get(everyone?.[at]?.id ?? '')?.focus();
   }, [at, page, chosen, everyone]);
 
-  const submit = async () => {
-    if (chosen === null) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setProblem(null);
-
-    const outcome = await signInAsProfile(chosen.id, password);
-
+  /**
+   * Takes what signing in answered, whichever way somebody signed in.
+   *
+   * @param outcome - What the server said.
+   */
+  const settle = (
+    outcome: { kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string },
+  ) => {
     setIsSubmitting(false);
 
     if (outcome.kind === 'signedIn') {
@@ -206,6 +205,24 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
 
     setProblem(outcome.reason);
     setPassword('');
+  };
+
+  const submit = async () => {
+    if (chosen === null) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setProblem(null);
+
+    settle(await signInAsProfile(chosen.id, password));
+  };
+
+  const submitAddress = async () => {
+    setIsSubmitting(true);
+    setProblem(null);
+
+    settle(await signInWithEmail(email, password));
   };
 
   const signInWithPasskey = async () => {
@@ -269,7 +286,89 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
         )}
       </motion.p>
 
-      {!isTitleOver ? null : everyone === null ? (
+      {!isTitleOver ? null : asking.isError ? (
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+          <motion.h1
+            initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="text-[clamp(1.75rem,5vw,3rem)] font-semibold tracking-[-0.04em] text-text"
+          >
+            Sign in
+          </motion.h1>
+
+          {needsCode ? (
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+              className="flex w-full flex-col gap-4"
+            >
+              <TwoFactorChallenge onVerified={onSignedIn} />
+            </motion.div>
+          ) : (
+            <motion.form
+              noValidate
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14, duration: 0.35, ease: [0.2, 0, 0, 1] }}
+              className="flex w-full flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitAddress();
+              }}
+            >
+              <TextField
+                label="Email"
+                type="email"
+                size="lg"
+                isPill
+                value={email}
+                onValueChange={setEmail}
+                autoComplete="username"
+              />
+
+              <TextField
+                label="Password"
+                type="password"
+                size="lg"
+                isPill
+                value={password}
+                onValueChange={setPassword}
+                autoComplete="current-password"
+                {...(problem === null ? {} : { error: problem })}
+              />
+
+              <Button
+                type="submit"
+                variant="glossy"
+                size="lg"
+                isPill
+                isLoading={isSubmitting}
+                disabled={email === '' || password === ''}
+              >
+                Watch
+                <Icon of={ArrowRight01Icon} size={18} />
+              </Button>
+
+              {!isPasskeySupported() ? null : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isPill
+                  isLoading={isUsingPasskey}
+                  onClick={() => {
+                    void signInWithPasskey();
+                  }}
+                >
+                  <Icon of={Key01Icon} size={16} />
+                  Use a passkey instead
+                </Button>
+              )}
+            </motion.form>
+          )}
+        </div>
+      ) : everyone === null ? (
         <Spinner label="Reading who is here" size="lg" />
       ) : (
         <div className="flex w-full flex-col items-center">

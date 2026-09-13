@@ -11,6 +11,7 @@ const healthyOverview = (overrides: Partial<AdminOverview> = {}): AdminOverview 
     cookieSecure: true,
     hardwareAccel: '',
     previewQuality: 'high' as const,
+    showsProfilesBeforeSignIn: false,
     trustedOrigins: [],
   },
   transcoder: {
@@ -476,6 +477,7 @@ describe('collectConcerns', () => {
             cookieSecure: true,
             hardwareAccel: '',
             previewQuality: 'high' as const,
+            showsProfilesBeforeSignIn: false,
             trustedOrigins: [],
           },
         }),
@@ -663,6 +665,7 @@ describe('collectConcerns', () => {
           cookieSecure: true,
           hardwareAccel: '',
           previewQuality: 'high' as const,
+          showsProfilesBeforeSignIn: false,
           trustedOrigins: [],
         },
       }),
