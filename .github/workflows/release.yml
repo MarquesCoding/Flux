@@ -15,6 +15,14 @@ on:
       tag:
         description: The tag to release, which must already exist
         required: true
+  # Called by release-please.yml once it has cut the tag. A tag pushed with the default
+  # GITHUB_TOKEN starts no workflow of its own, so the release that made it calls this directly.
+  workflow_call:
+    inputs:
+      tag:
+        description: The tag to release, which must already exist
+        required: true
+        type: string
 
 concurrency:
   group: release-${{ github.ref }}
@@ -30,6 +38,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - uses: pnpm/action-setup@v6
 
@@ -73,6 +83,8 @@ jobs:
             ca-certificates curl git xz-utils build-essential pkg-config
 
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - uses: dtolnay/rust-toolchain@stable
         with:
@@ -103,6 +115,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       # A registry accepts a lower case name and this owner is not spelt that way, so it is folded
       # here rather than written out and left to drift.
@@ -156,6 +170,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
 
       - uses: pnpm/action-setup@v6
 
@@ -192,6 +208,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
+          ref: ${{ inputs.tag || github.ref_name }}
           fetch-depth: 0
 
       - uses: actions/download-artifact@v7
@@ -199,18 +216,11 @@ jobs:
           name: release-artefacts
           path: release
 
-      # Notes from the commits, grouped by .github/release.yml. On the first release there is no
-      # previous tag to compare against, which GitHub handles by describing everything.
-      - name: Cut it
-        run: |
-          gh release create "$TAG" \
-            --title "Valence $TAG" \
-            --generate-notes \
-            --verify-tag \
-            release/* || gh release create "$TAG" \
-            --title "Valence $TAG" \
-            --generate-notes \
-            release/*
+      # The release already exists: release-please created it, with the notes it wrote from the
+      # commits. This only hangs the built things on it. Creating it here as well would fail on the
+      # second attempt and leave a release with no files attached.
+      - name: Hang the artefacts on it
+        run: gh release upload "$TAG" release/* --clobber
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           TAG: ${{ inputs.tag || github.ref_name }}
