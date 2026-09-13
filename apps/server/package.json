@@ -45,10 +45,10 @@
     "@types/pg": "^8.23.1",
     "@types/sanitize-html": "^2.16.1",
     "@types/web-push": "^3.6.4",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "drizzle-kit": "^0.31.10",
     "esbuild": "^0.28.2",
     "tsx": "^4.23.13",
-    "vitest": "^4.1.11"
+    "vitest": "^5.0.0"
   }
 }

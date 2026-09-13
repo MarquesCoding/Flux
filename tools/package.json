@@ -11,9 +11,9 @@
   "devDependencies": {
     "@typescript-eslint/rule-tester": "^8.70.0",
     "@typescript-eslint/utils": "^8.70.0",
-    "@vitest/coverage-v8": "^4.1.11",
+    "@vitest/coverage-v8": "^5.0.0",
     "tsx": "^4.23.13",
-    "vitest": "^4.1.11",
+    "vitest": "^5.0.0",
     "zod": "^4.6.4"
   }
 }
