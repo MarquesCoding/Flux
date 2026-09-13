@@ -36,7 +36,7 @@
     "@vitest/coverage-v8": "^4.1.10",
     "electron": "github:castlabs/electron-releases#v43.2.0+wvcus",
     "electron-builder": "^26.0.12",
-    "electron-vite": "^4.0.1",
+    "electron-vite": "^5.0.0",
     "jsdom": "^26.0.0",
     "tailwindcss": "^4.0.0",
     "vite": "^8.2.1",

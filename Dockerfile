@@ -7,7 +7,7 @@
 # looking washed out or missing its subtitles. Pinning the build is why
 # FFmpeg is driven as a child process rather than linked.
 
-FROM rust:1.90-bookworm AS transcoder-build
+FROM rust:1.98-bookworm AS transcoder-build
 WORKDIR /build
 COPY Cargo.toml Cargo.lock rustfmt.toml ./
 COPY apps/transcoder ./apps/transcoder

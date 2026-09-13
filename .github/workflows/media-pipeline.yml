@@ -55,11 +55,11 @@ jobs:
             ca-certificates curl git xz-utils build-essential pkg-config \
             unzip mkvtoolnix
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
 
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v7
         with:
           node-version-file: .nvmrc
           cache: pnpm
@@ -89,7 +89,7 @@ jobs:
       # A cache hit skips three minutes of encoding; a miss regenerates rather than failing, because
       # a generated fixture is reproducible from its inputs and never downloaded.
       - name: Cache the generated corpus
-        uses: actions/cache@v4
+        uses: actions/cache@v6
         with:
           path: /tmp/valence-fixtures
           key: >-
@@ -117,7 +117,7 @@ jobs:
       # another run.
       - name: Keep what this architecture produced
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: fixtures-manifest-amd64
           path: fixtures.manifest.json
