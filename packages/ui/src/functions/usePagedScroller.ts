@@ -16,7 +16,7 @@ type PagedScroller<Element extends HTMLElement> = {
  * the item count, since what fits depends on the window rather than on the data.
  *
  * @param watching - What the contents depend on, so the measurement is taken again when they change.
- * @returns A ref for the track, the pages found, a way to measure again, and a way to scroll to one.
+ * @returns A ref for the track, the pages found, and ways to measure and move it.
  */
 const usePagedScroller = <Element extends HTMLElement>(
   watching: DependencyList = [],
@@ -34,10 +34,14 @@ const usePagedScroller = <Element extends HTMLElement>(
     const step = Math.max(1, track.clientWidth * SCROLL_FRACTION);
     const beyond = Math.max(0, track.scrollWidth - track.clientWidth);
 
-    setPages({
+    const found = {
       count: Math.max(1, Math.ceil(beyond / step) + 1),
       at: Math.round(track.scrollLeft / step),
-    });
+    };
+
+    setPages((current) =>
+      current.count === found.count && current.at === found.at ? current : found,
+    );
   }, []);
 
   useEffect(() => {

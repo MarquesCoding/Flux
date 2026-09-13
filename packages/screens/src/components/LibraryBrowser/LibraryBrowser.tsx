@@ -178,7 +178,13 @@ const LibraryBrowser = ({
   }
 
   if (isReading) {
-    return <SplashScreen {...(name === undefined ? {} : { name })} label="Reading your library" />;
+    return (
+      <SplashScreen
+        {...(name === undefined ? {} : { name })}
+        label="Reading your library"
+        hasMark={false}
+      />
+    );
   }
 
   if (libraries.length === 0) {
@@ -196,7 +202,7 @@ const LibraryBrowser = ({
           ? {}
           : {
               action: (
-                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                <Button variant="glossy" onClick={onAddLibrary}>
                   Add a library
                 </Button>
               ),

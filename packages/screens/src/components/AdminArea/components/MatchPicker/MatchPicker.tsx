@@ -119,7 +119,6 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
 
           <Button
             variant="secondary"
-            isPill
             disabled={query.trim() === ''}
             isLoading={isSearching}
             onClick={() => {
@@ -178,7 +177,6 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
       <DialogFooter>
         <Button
           variant="secondary"
-          isPill
           isLoading={isForgetting}
           onClick={() => {
             void forget();
@@ -188,7 +186,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
           Forget the correction
         </Button>
 
-        <Button variant="secondary" isPill onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           Close
         </Button>
       </DialogFooter>

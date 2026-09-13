@@ -31,11 +31,11 @@ const ResetLibrariesDialog = ({
     </DialogContent>
 
     <DialogFooter>
-      <Button variant="secondary" isPill onClick={onClose} disabled={isResetting}>
+      <Button variant="secondary" onClick={onClose} disabled={isResetting}>
         Cancel
       </Button>
 
-      <Button variant="danger" isPill isLoading={isResetting} onClick={onConfirm}>
+      <Button variant="danger" isLoading={isResetting} onClick={onConfirm}>
         Reset and rebuild
       </Button>
     </DialogFooter>

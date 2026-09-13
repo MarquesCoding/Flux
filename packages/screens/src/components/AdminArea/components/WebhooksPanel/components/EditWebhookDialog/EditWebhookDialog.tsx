@@ -92,11 +92,11 @@ const EditWebhookDialog = ({
           </span>
         )}
 
-        <Button variant="secondary" isPill onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
 
-        <Button variant="primary" isPill disabled={!isReady || isSaving} onClick={save}>
+        <Button variant="primary" disabled={!isReady || isSaving} onClick={save}>
           {isSaving ? 'Saving…' : 'Save changes'}
         </Button>
       </DialogFooter>

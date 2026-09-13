@@ -31,7 +31,6 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
       <Button
         variant="soft"
         size="sm"
-        isPill
         onClick={() => {
           void keepAFile(download);
         }}
@@ -54,7 +53,6 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
           variant="ghost"
           size="sm"
           isIconOnly
-          isPill
           label={`Remove ${download.title} from this device`}
           onClick={() => {
             void dropAFile(download.id);
@@ -71,7 +69,6 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
       <Button
         variant="soft"
         size="sm"
-        isPill
         onClick={() => {
           void pauseAFile(download.id, false);
         }}
@@ -97,7 +94,6 @@ const KeepingControls = ({ download, held }: KeepingControlsProps) => {
         variant="ghost"
         size="sm"
         isIconOnly
-        isPill
         label={
           held.state === 'paused'
             ? `Carry on fetching ${download.title}`

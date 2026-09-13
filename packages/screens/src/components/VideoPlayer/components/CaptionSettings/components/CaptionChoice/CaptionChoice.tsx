@@ -20,7 +20,6 @@ const CaptionChoice = ({ label, options, selectedId, onSelect }: CaptionChoicePr
         <Button
           key={option.id}
           size="sm"
-          isPill
           aria-pressed={option.id === selectedId}
           variant={option.id === selectedId ? 'glossy' : 'ghost'}
           onClick={() => {

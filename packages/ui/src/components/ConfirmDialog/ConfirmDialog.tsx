@@ -37,16 +37,11 @@ const ConfirmDialog = ({
     </DialogContent>
 
     <DialogFooter>
-      <Button variant="secondary" isPill onClick={onClose} disabled={isBusy}>
+      <Button variant="secondary" onClick={onClose} disabled={isBusy}>
         Cancel
       </Button>
 
-      <Button
-        variant={isDestructive ? 'danger' : 'glossy'}
-        isPill
-        isLoading={isBusy}
-        onClick={onConfirm}
-      >
+      <Button variant={isDestructive ? 'danger' : 'glossy'} isLoading={isBusy} onClick={onConfirm}>
         {confirmLabel}
       </Button>
     </DialogFooter>

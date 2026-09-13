@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LayoutGroup } from 'motion/react';
 import { Outlet } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfileGate } from '@ValenceScreens/components/ProfileGate/ProfileGate';
@@ -23,6 +24,10 @@ import type { SignedInProps } from './SignedIn.types';
 
 const PARTY_NOTICE_LINGERS_MS = 6000;
 
+const BAR_LEAVES_MS = 260;
+
+const MARKS_PLACE = 'valence-mark';
+
 /**
  * Everything behind the way in: who is watching, what they have seen, how far through it they are,
  * and the watch party they may be in. Held here rather than in each page, because the player, the
@@ -44,6 +49,24 @@ const SignedIn = ({ title }: SignedInProps) => {
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
 
   const watchParty = useWatchParty();
+
+  const [isHoldingTheScreen, setIsHoldingTheScreen] = useState(session.isPending);
+
+  useEffect(() => {
+    if (session.isPending) {
+      setIsHoldingTheScreen(true);
+
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      setIsHoldingTheScreen(false);
+    }, BAR_LEAVES_MS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [session.isPending]);
 
   useBrowsingPresence();
   useTellTheServerWhatIsHeld();
@@ -247,10 +270,6 @@ const SignedIn = ({ title }: SignedInProps) => {
     ],
   );
 
-  if (session.isPending) {
-    return <SplashScreen name={title} label={`Loading ${title}`} />;
-  }
-
   if (session.isError) {
     return (
       <main className="mx-auto flex max-w-lg flex-col gap-2 p-8">
@@ -262,22 +281,29 @@ const SignedIn = ({ title }: SignedInProps) => {
     );
   }
 
-  if (shell === null) {
-    return (
-      <ProfileGate
-        name={title}
-        onSignedIn={() => {
-          go({ section: 'home', search: '', inspecting: null, playing: null });
-          void refresh();
-        }}
-      />
-    );
-  }
-
   return (
-    <shellContext.Provider value={shell}>
-      <Outlet />
-    </shellContext.Provider>
+    <LayoutGroup>
+      {isHoldingTheScreen ? (
+        <SplashScreen
+          name={title}
+          label={`Loading ${title}`}
+          isReady={!session.isPending}
+          marksPlace={MARKS_PLACE}
+        />
+      ) : shell === null ? (
+        <ProfileGate
+          name={title}
+          onSignedIn={() => {
+            go({ section: 'home', search: '', inspecting: null, playing: null });
+            void refresh();
+          }}
+        />
+      ) : (
+        <shellContext.Provider value={shell}>
+          <Outlet />
+        </shellContext.Provider>
+      )}
+    </LayoutGroup>
   );
 };
 

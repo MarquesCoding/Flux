@@ -15,7 +15,6 @@ import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
 const NONE_ID = 'none';
 
 const SERVER_ID = 'server';
-
 type LanguageOption = { id: string; label: string; detail?: string };
 
 const AT_ONCE_OPTIONS = [
@@ -214,13 +213,12 @@ const LibrarySettingsDialog = ({
           </DialogContent>
 
           <DialogFooter>
-            <Button variant="secondary" isPill onClick={close} disabled={isSaving}>
+            <Button variant="secondary" onClick={close} disabled={isSaving}>
               Cancel
             </Button>
 
             <Button
               variant="primary"
-              isPill
               isLoading={isSaving}
               onClick={() => {
                 void save();
@@ -243,7 +241,6 @@ const LibrarySettingsDialog = ({
           <DialogFooter>
             <Button
               variant="secondary"
-              isPill
               onClick={() => {
                 finish(confirming.saved);
               }}
@@ -251,7 +248,7 @@ const LibrarySettingsDialog = ({
               Not now
             </Button>
 
-            <Button variant="primary" isPill onClick={regenerate}>
+            <Button variant="primary" onClick={regenerate}>
               Regenerate previews
             </Button>
           </DialogFooter>

@@ -88,7 +88,6 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
             <Button
               variant={isReachable ? 'ghost' : 'primary'}
               size="sm"
-              isPill
               onClick={askForADifferentServer}
             >
               <Icon of={HardDriveIcon} size={15} />
@@ -100,7 +99,6 @@ const OfflineApp = ({ title }: OfflineAppProps) => {
             <Button
               variant="soft"
               size="sm"
-              isPill
               onClick={() => {
                 goOffline(false);
               }}

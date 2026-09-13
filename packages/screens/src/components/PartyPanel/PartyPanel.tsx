@@ -95,7 +95,7 @@ const PartyPanel = ({
         </p>
 
         {onLeave === undefined ? null : (
-          <Button variant="ghost" size="sm" isPill onClick={onLeave}>
+          <Button variant="ghost" size="sm" onClick={onLeave}>
             Leave
           </Button>
         )}
@@ -124,7 +124,6 @@ const PartyPanel = ({
             <Button
               variant="secondary"
               size="sm"
-              isPill
               className="shrink-0"
               onClick={() => {
                 void onCopyInvitation?.(invitation).then(() => {
@@ -153,7 +152,6 @@ const PartyPanel = ({
                 <Button
                   variant="ghost"
                   size="sm"
-                  isPill
                   disabled={asked.includes(person.id)}
                   label={`Ask ${person.name} along`}
                   onClick={() => {
@@ -211,7 +209,6 @@ const PartyPanel = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    isPill
                     onClick={() => {
                       onSetRole?.(
                         member.connectionId,
@@ -226,7 +223,6 @@ const PartyPanel = ({
                     <Button
                       variant="ghost"
                       size="sm"
-                      isPill
                       label={`Remove ${member.name} from the party`}
                       onClick={() => {
                         onRemove(member.connectionId);
@@ -288,7 +284,6 @@ const PartyPanel = ({
                 <Button
                   variant="secondary"
                   size="sm"
-                  isPill
                   disabled={password.length === 0}
                   onClick={() => {
                     onSetPassword(password);
@@ -302,7 +297,6 @@ const PartyPanel = ({
                   <Button
                     variant="ghost"
                     size="sm"
-                    isPill
                     onClick={() => {
                       onSetPassword(null);
                       setPassword('');

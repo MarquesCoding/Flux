@@ -22,6 +22,7 @@ const SplashScreen = ({
   label = 'Loading',
   isReady = false,
   marksPlace,
+  hasMark = true,
 }: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -34,25 +35,27 @@ const SplashScreen = ({
       aria-busy="true"
       className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 bg-surface"
     >
-      <motion.span
-        {...(marksPlace === undefined ? {} : { layoutId: marksPlace })}
-        initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{
-          opacity: { duration: 0.6, ease: 'easeOut' },
-          y: { duration: 0.6, ease: 'easeOut' },
-          layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
-        }}
-        className="flex items-center justify-center"
-      >
-        {isOurs ? (
-          <Logo size={112} isDotted hasEdge isAnimated label={name} />
-        ) : (
-          <p className="bg-gradient-to-br from-text via-text to-accent bg-clip-text text-4xl font-semibold tracking-[-0.05em] text-transparent sm:text-5xl">
-            {name}
-          </p>
-        )}
-      </motion.span>
+      {!hasMark ? null : (
+        <motion.span
+          {...(marksPlace === undefined ? {} : { layoutId: marksPlace })}
+          initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{
+            opacity: { duration: 0.6, ease: 'easeOut' },
+            y: { duration: 0.6, ease: 'easeOut' },
+            layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
+          }}
+          className="flex items-center justify-center"
+        >
+          {isOurs ? (
+            <Logo size={112} hasEdge isAnimated label={name} />
+          ) : (
+            <p className="text-4xl font-semibold tracking-[-0.05em] text-text sm:text-5xl">
+              {name}
+            </p>
+          )}
+        </motion.span>
+      )}
 
       <AnimatePresence>
         {isReady ? null : (

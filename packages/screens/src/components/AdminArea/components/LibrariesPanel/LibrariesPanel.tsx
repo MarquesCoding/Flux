@@ -264,7 +264,6 @@ const LibrariesPanel = ({
           <Button
             variant="ghost"
             size="xs"
-            isPill
             isLoading={isScanningAll}
             disabled={isBusy}
             onClick={onScanAll}
@@ -276,7 +275,6 @@ const LibrariesPanel = ({
           <Button
             variant="danger"
             size="xs"
-            isPill
             isLoading={isResettingAll}
             disabled={isBusy}
             onClick={() => {
@@ -290,7 +288,6 @@ const LibrariesPanel = ({
           <Button
             variant="glossy"
             size="xs"
-            isPill
             onClick={() => {
               setIsAdding(true);
             }}

@@ -42,7 +42,6 @@ import type { Account } from '@ValenceClient/admin/fetchAccounts';
 import type { Refusal } from '@ValenceClient/admin/fetchRoles';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
 import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
-
 type Asked = { kind: 'ban' | 'remove'; account: Account };
 
 /**
@@ -291,7 +290,6 @@ const AccountsPanel = () => {
         <DialogFooter>
           <Button
             variant="secondary"
-            isPill
             onClick={() => {
               setIsInviting(false);
             }}
@@ -301,7 +299,6 @@ const AccountsPanel = () => {
 
           <Button
             variant="primary"
-            isPill
             disabled={inviteName === '' || inviteEmail === '' || invitePassword.length < 8}
             onClick={() => {
               void act(() =>
@@ -342,7 +339,6 @@ const AccountsPanel = () => {
               label="Find somebody"
               isLabelHidden
               size="sm"
-              isPill
               type="search"
               placeholder="Find somebody"
               value={search}
@@ -353,7 +349,6 @@ const AccountsPanel = () => {
             <Button
               variant="soft"
               size="xs"
-              isPill
               onClick={() => {
                 setIsInviting(true);
               }}
@@ -432,7 +427,6 @@ const AccountsPanel = () => {
                         key={role.id}
                         variant={has ? 'glossy' : 'ghost'}
                         size="sm"
-                        isPill
                         aria-pressed={has}
                         onClick={() => {
                           void act(() =>
@@ -470,7 +464,6 @@ const AccountsPanel = () => {
                         <Button
                           variant="ghost"
                           size="sm"
-                          isPill
                           aria-label={`Forget the ${grant.effect} on ${grant.permission}`}
                           onClick={() => {
                             void act(() => clearOverride(accountId, grant.permission));
@@ -522,7 +515,6 @@ const AccountsPanel = () => {
                   <Button
                     variant="ghost"
                     size="sm"
-                    isPill
                     disabled={addingPermission === null}
                     onClick={() => {
                       if (addingPermission !== null) {
@@ -538,7 +530,6 @@ const AccountsPanel = () => {
                   <Button
                     variant="danger"
                     size="sm"
-                    isPill
                     disabled={addingPermission === null}
                     onClick={() => {
                       if (addingPermission !== null) {
@@ -577,7 +568,6 @@ const AccountsPanel = () => {
             <DialogFooter>
               <Button
                 variant="secondary"
-                isPill
                 onClick={() => {
                   setAccountId(null);
                   setRefusal(null);

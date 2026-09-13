@@ -77,7 +77,7 @@ const JobsPanel = ({
             </DialogContent>
 
             <DialogFooter>
-              <Button variant="secondary" isPill onClick={onCloseSchedule}>
+              <Button variant="secondary" onClick={onCloseSchedule}>
                 Done
               </Button>
             </DialogFooter>

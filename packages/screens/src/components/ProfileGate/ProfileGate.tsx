@@ -322,7 +322,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 label="Email"
                 type="email"
                 size="lg"
-                isPill
+
                 value={email}
                 onValueChange={setEmail}
                 autoComplete="username"
@@ -332,7 +332,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 label="Password"
                 type="password"
                 size="lg"
-                isPill
+
                 value={password}
                 onValueChange={setPassword}
                 autoComplete="current-password"
@@ -343,7 +343,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 type="submit"
                 variant="glossy"
                 size="lg"
-                isPill
                 isLoading={isSubmitting}
                 disabled={email === '' || password === ''}
               >
@@ -355,7 +354,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  isPill
                   isLoading={isUsingPasskey}
                   onClick={() => {
                     void signInWithPasskey();
@@ -535,7 +533,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     label="Password"
                     type="password"
                     size="lg"
-                    isPill
+
                     value={password}
                     onValueChange={setPassword}
                     autoComplete="current-password"
@@ -546,7 +544,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     type="submit"
                     variant="glossy"
                     size="lg"
-                    isPill
                     isLoading={isSubmitting}
                     disabled={password === ''}
                   >
@@ -558,7 +555,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      isPill
                       isLoading={isUsingPasskey}
                       onClick={() => {
                         void signInWithPasskey();

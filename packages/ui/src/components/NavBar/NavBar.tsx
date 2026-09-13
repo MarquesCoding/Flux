@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
 import { Button } from '@ValenceUI/Button';
@@ -8,6 +8,11 @@ import { useOpenAction } from './useOpenAction';
 import type { NavBarProps } from './NavBar.types';
 
 const MOVES = 'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]';
+
+const OPENS = [
+  'transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
+  'motion-reduce:transition-none',
+].join(' ');
 
 /**
  * The platform's one navigation bar, along the top of the window: the mark, the places, and the
@@ -66,15 +71,13 @@ const NavBar = ({
   const [pointedAt, setPointedAt] = useState<string | null>(null);
   const { actionsRef, openAction } = useOpenAction();
 
-  const [chosen, setChosen] = useState<string | null>(null);
+  const [chosen, setChosen] = useState<{ id: string; from: string } | null>(null);
 
-  useEffect(() => {
-    setChosen(null);
-  }, [selectedId]);
+  const isWaitedOn = chosen !== null && chosen.from === selectedId;
 
-  const lit = pointedAt ?? chosen ?? selectedId;
+  const lit = pointedAt ?? (isWaitedOn ? chosen.id : selectedId);
 
-  const mark = <SlidingMark group="nav-bar-mark" className="rounded-full" />;
+  const mark = <SlidingMark group="nav-bar-mark" />;
 
   return (
     <header className={cn('valence-navbar fixed inset-x-0 top-0 z-30', className)}>
@@ -118,11 +121,11 @@ const NavBar = ({
                     }
                   }}
                   onClick={() => {
-                    setChosen(item.id);
+                    setChosen({ id: item.id, from: selectedId });
                     onSelect(item.id);
                   }}
                   className={cn(
-                    'relative flex h-9 items-center gap-2 rounded-full px-3.5 text-sm',
+                    'relative flex h-9 items-center gap-2 rounded-md px-3.5 text-sm',
                     MOVES,
                     isCurrent
                       ? 'font-medium text-text'
@@ -134,7 +137,13 @@ const NavBar = ({
                   {lit === item.id ? mark : null}
 
                   {item.icon === undefined ? null : (
-                    <span className={cn('relative z-10 flex', isCurrent ? '' : 'md:hidden')}>
+                    <span
+                      className={cn(
+                        'relative z-10 flex overflow-hidden',
+                        OPENS,
+                        isCurrent ? '' : 'md:-ml-2 md:w-0 md:opacity-0',
+                      )}
+                    >
                       <AnimatedIcon
                         isPlaying={!isCurrent && pointedAt === item.id}
                         icon={isCurrent ? (item.activeIcon ?? item.icon) : item.icon}
@@ -176,7 +185,7 @@ const NavBar = ({
                 }}
                 onClick={action.onSelect}
                 className={cn(
-                  'relative flex size-9 items-center justify-center rounded-full text-sm',
+                  'relative flex size-9 items-center justify-center rounded-md text-sm',
                   MOVES,
                   lit === action.id || action.isCurrent === true
                     ? 'font-medium text-text'

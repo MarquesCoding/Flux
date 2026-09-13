@@ -37,7 +37,6 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
           <Button
             variant="ghost"
             size="sm"
-            isPill
             onClick={() => {
               setIsAdding(true);
             }}
@@ -85,7 +84,6 @@ const JobSchedulePage = ({ triggers, onAdd, onRemove, timezone = null }: JobSche
                   <Button
                     variant="ghost"
                     size="sm"
-                    isPill
                     aria-label={`Remove ${describeTrigger(entry.trigger)}`}
                     onClick={() => {
                       onRemove(entry.id);

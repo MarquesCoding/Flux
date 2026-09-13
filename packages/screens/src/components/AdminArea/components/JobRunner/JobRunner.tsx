@@ -255,7 +255,6 @@ const JobRunner = ({
             <DialogFooter>
               <Button
                 variant="secondary"
-                isPill
                 onClick={() => {
                   setConfirming(null);
                 }}
@@ -265,7 +264,6 @@ const JobRunner = ({
 
               <Button
                 variant="danger"
-                isPill
                 onClick={() => {
                   onRun(confirming.kind);
                   setConfirming(null);

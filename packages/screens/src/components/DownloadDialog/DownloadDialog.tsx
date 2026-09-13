@@ -148,7 +148,6 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
                 <Button
                   variant={picked?.quality === option.quality ? 'primary' : 'soft'}
                   size="sm"
-                  isPill
                   onClick={() => {
                     setChosen(option.quality);
                   }}
@@ -182,13 +181,12 @@ const DownloadDialog = ({ media, series = null, onClose }: DownloadDialogProps) 
       </DialogContent>
 
       <DialogFooter>
-        <Button variant="secondary" isPill onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           Not now
         </Button>
 
         <Button
           variant="primary"
-          isPill
           isLoading={isAsking}
           disabled={picked === null || verdict === 'willNotFit'}
           onClick={() => {

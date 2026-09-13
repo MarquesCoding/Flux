@@ -173,7 +173,7 @@ const MediaDetailDialog = ({
           artwork={shown.hasPoster ? artworkUrl(shown.id, 'poster') : null}
           isShowing={hasScrolledPast}
         >
-          <Button isIconOnly variant="ghost" size="sm" isPill label="Close" onClick={onClose}>
+          <Button isIconOnly variant="ghost" size="sm" label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={16} />
           </Button>
         </ScrolledTitle>
@@ -226,7 +226,7 @@ const MediaDetailDialog = ({
 
             {onBack === undefined ? null : (
               <div className="absolute left-4 top-4">
-                <Button variant="overlay" size="sm" isPill onClick={onBack}>
+                <Button variant="overlay" size="sm" onClick={onBack}>
                   <Icon of={ArrowLeft01Icon} size={16} />
                   {backLabel ?? 'Back'}
                 </Button>
@@ -495,7 +495,6 @@ const MediaDetailDialog = ({
               <Button
                 variant="glossy"
                 size="lg"
-                isPill
                 className="min-w-0 flex-1"
                 onClick={() => {
                   onPlay(chosenVersion ?? shown, chosenVersion === null ? (shownResume ?? 0) : 0);

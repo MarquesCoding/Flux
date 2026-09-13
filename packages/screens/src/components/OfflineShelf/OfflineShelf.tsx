@@ -114,7 +114,6 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                   <Button
                     variant="soft"
                     size="sm"
-                    isPill
                     onClick={() => {
                       onWatch(file);
                     }}
@@ -129,7 +128,6 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                     variant="ghost"
                     size="sm"
                     isIconOnly
-                    isPill
                     label={
                       file.state === 'paused'
                         ? `Carry on fetching ${file.title}`
@@ -147,7 +145,6 @@ const OfflineShelf = ({ held, onWatch, onDrop, onPause }: OfflineShelfProps) => 
                   variant="ghost"
                   size="sm"
                   isIconOnly
-                  isPill
                   label={`Remove ${file.title} from this device`}
                   onClick={() => {
                     onDrop(file);

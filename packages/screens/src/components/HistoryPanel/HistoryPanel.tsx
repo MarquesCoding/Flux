@@ -116,7 +116,6 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
               <Button
                 variant="ghost"
                 size="sm"
-                isPill
                 className="ml-auto shrink-0"
                 aria-label={`Forget ${nameOf(viewing)}`}
                 onClick={() => {
@@ -135,7 +134,6 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
           <Button
             variant="ghost"
             size="sm"
-            isPill
             onClick={() => {
               void readMore();
             }}
@@ -151,7 +149,6 @@ const HistoryPanel = ({ now }: HistoryPanelProps) => {
         <Button
           variant="ghost"
           size="sm"
-          isPill
           disabled={isClearing}
           className="ml-auto"
           onClick={() => {

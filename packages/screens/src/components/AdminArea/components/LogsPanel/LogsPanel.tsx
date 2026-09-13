@@ -158,7 +158,6 @@ const LogsPanel = ({
             label="Search the messages"
             isLabelHidden
             size="sm"
-            isPill
             type="search"
             placeholder="skipped, ffmpeg, timed out"
             value={search}
@@ -170,7 +169,6 @@ const LogsPanel = ({
             isIconOnly
             variant="ghost"
             size="xs"
-            isPill
             label="Read the log again"
             hasTooltip
             isLoading={isReading && hasRead.current}
@@ -185,7 +183,6 @@ const LogsPanel = ({
             isIconOnly
             variant="ghost"
             size="xs"
-            isPill
             label={copied ? 'Copied' : 'Copy what is shown'}
             hasTooltip
             onClick={() => {
@@ -201,7 +198,6 @@ const LogsPanel = ({
             isIconOnly
             variant="ghost"
             size="xs"
-            isPill
             label="Download what is shown"
             hasTooltip
             onClick={() => {

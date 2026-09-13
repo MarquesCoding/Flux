@@ -203,10 +203,10 @@
   :root:not([data-theme='light']) {
     @media (prefers-color-scheme: dark) {
       --color-surface: oklch(0.1638 0 0);
-      --color-surface-raised: oklch(0.19 0.016 265);
-      --color-border: oklch(0.3 0.02 265);
+      --color-surface-raised: oklch(0.19 0 0);
+      --color-border: oklch(0.3 0 0);
       --color-text: oklch(0.9555 0.0118 170);
-      --color-text-muted: oklch(0.72 0.014 265);
+      --color-text-muted: oklch(0.72 0 0);
       --color-accent: oklch(0.5635 0.2408 260.8);
       --color-accent-hover: oklch(0.52 0.2408 260.8);
       --color-accent-contrast: oklch(0.99 0 0);
@@ -214,7 +214,7 @@
       --color-highlight-contrast: oklch(0.14 0.012 265);
       --color-danger: oklch(0.68 0.16 25);
       color-scheme: dark;
-      --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
+      --glass-tint: color-mix(in oklab, oklch(0.24 0 0) 62%, transparent);
       --glass-edge: color-mix(in oklab, white 16%, transparent);
       --glass-brightness: 0.55;
       --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);
@@ -236,10 +236,10 @@
 
   :root[data-theme='dark'] {
     --color-surface: oklch(0.1638 0 0);
-    --color-surface-raised: oklch(0.19 0.016 265);
-    --color-border: oklch(0.3 0.02 265);
+    --color-surface-raised: oklch(0.19 0 0);
+    --color-border: oklch(0.3 0 0);
     --color-text: oklch(0.9555 0.0118 170);
-    --color-text-muted: oklch(0.72 0.014 265);
+    --color-text-muted: oklch(0.72 0 0);
     --color-accent: oklch(0.5635 0.2408 260.8);
     --color-accent-hover: oklch(0.52 0.2408 260.8);
     --color-accent-contrast: oklch(0.99 0 0);
@@ -247,7 +247,7 @@
     --color-highlight-contrast: oklch(0.14 0.012 265);
     --color-danger: oklch(0.68 0.16 25);
     color-scheme: dark;
-    --glass-tint: color-mix(in oklab, oklch(0.24 0.018 265) 62%, transparent);
+    --glass-tint: color-mix(in oklab, oklch(0.24 0 0) 62%, transparent);
     --glass-edge: color-mix(in oklab, white 16%, transparent);
     --glass-brightness: 0.55;
     --glass-shadow: 0 32px 80px -28px rgb(0 0 0 / 0.55);

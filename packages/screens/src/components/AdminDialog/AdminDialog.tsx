@@ -107,7 +107,7 @@ const AdminDialog = ({ panel, job, onPanel, onJob, onClose }: AdminDialogProps) 
             </HoverCard>
           )}
 
-          <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
+          <Button variant="ghost" size="sm" isIconOnly label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={16} />
           </Button>
         </DialogTitle>

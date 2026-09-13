@@ -119,7 +119,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
           value={name}
           onValueChange={setName}
           placeholder="Their name"
-          isPill
           size="lg"
           className="flex-1"
         />
@@ -203,7 +202,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
           <Button
             variant="ghost"
             size="sm"
-            isPill
             onClick={() => {
               const next = Math.random().toString(36).slice(2, 10);
 
@@ -257,7 +255,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
             <li key={choice}>
               <Button
                 size="sm"
-                isPill
                 variant={askAfter === choice ? 'glossy' : 'ghost'}
                 isActive={askAfter === choice}
                 onClick={() => {
@@ -275,7 +272,6 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
         <Button
           variant="primary"
           size="sm"
-          isPill
           isLoading={isSaving}
           disabled={trimmed === ''}
           onClick={() => {
@@ -285,7 +281,7 @@ const ProfileEditor = ({ profile, onSaved, onCancel }: ProfileEditorProps) => {
           {profile === null ? 'Add' : 'Save'}
         </Button>
 
-        <Button variant="ghost" size="sm" isPill onClick={onCancel}>
+        <Button variant="ghost" size="sm" onClick={onCancel}>
           Cancel
         </Button>
       </div>

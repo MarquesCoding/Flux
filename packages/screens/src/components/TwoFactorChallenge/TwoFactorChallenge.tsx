@@ -79,11 +79,11 @@ const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
         autoComplete="one-time-code"
         placeholder={isTotp ? '123456' : ''}
         size="lg"
-        isPill
+
         {...(error === null ? {} : { error })}
       />
 
-      <Button type="submit" variant="glossy" size="lg" isPill isLoading={isSubmitting}>
+      <Button type="submit" variant="glossy" size="lg" isLoading={isSubmitting}>
         Verify
       </Button>
 
@@ -91,7 +91,6 @@ const TwoFactorChallenge = ({ onVerified }: TwoFactorChallengeProps) => {
         type="button"
         variant="ghost"
         size="sm"
-        isPill
         onClick={() => {
           setMode(isTotp ? 'backup' : 'totp');
           setCode('');

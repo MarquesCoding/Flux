@@ -189,7 +189,6 @@ const RolesPanel = () => {
           <Button
             variant="soft"
             size="xs"
-            isPill
             onClick={() => {
               setIsCreating(true);
             }}
@@ -278,7 +277,6 @@ const RolesPanel = () => {
         <DialogFooter>
           <Button
             variant="secondary"
-            isPill
             onClick={() => {
               setIsCreating(false);
             }}
@@ -288,7 +286,6 @@ const RolesPanel = () => {
 
           <Button
             variant="primary"
-            isPill
             disabled={newRoleName === ''}
             onClick={() => {
               const position = Number.parseInt(newRolePosition, 10);
@@ -410,7 +407,6 @@ const RolesPanel = () => {
             <DialogFooter>
               <Button
                 variant="secondary"
-                isPill
                 onClick={() => {
                   setSelectedRoleId(null);
                 }}
@@ -420,7 +416,6 @@ const RolesPanel = () => {
 
               <Button
                 variant="primary"
-                isPill
                 disabled={
                   draftName === '' ||
                   (draftName === selected.name && draftPosition === selected.position.toString())

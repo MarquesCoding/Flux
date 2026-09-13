@@ -178,7 +178,6 @@ const DownloadList = () => {
                     variant="ghost"
                     size="sm"
                     isIconOnly
-                    isPill
                     label={
                       download.state === 'paused'
                         ? `Carry on preparing ${download.title}`
@@ -202,7 +201,6 @@ const DownloadList = () => {
                   variant="ghost"
                   size="sm"
                   isIconOnly
-                  isPill
                   label={`Stop keeping ${download.title} on the server`}
                   onClick={() => {
                     void forgetDownload(download.id).then(async () =>

@@ -89,11 +89,11 @@ const AddWebhookDialog = ({
           </span>
         )}
 
-        <Button variant="secondary" isPill onClick={close}>
+        <Button variant="secondary" onClick={close}>
           Cancel
         </Button>
 
-        <Button variant="primary" isPill disabled={!isReady || isSaving} onClick={save}>
+        <Button variant="primary" disabled={!isReady || isSaving} onClick={save}>
           {isSaving ? 'Adding…' : 'Add webhook'}
         </Button>
       </DialogFooter>

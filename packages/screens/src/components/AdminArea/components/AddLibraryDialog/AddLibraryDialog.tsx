@@ -98,7 +98,6 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
               <Button
                 key={entry}
                 size="sm"
-                isPill
                 variant={entry === kind ? 'primary' : 'secondary'}
                 aria-pressed={entry === kind}
                 onClick={() => {
@@ -128,7 +127,6 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
               <Button
                 variant="secondary"
                 size="sm"
-                isPill
                 onClick={() => {
                   setIsBrowsing(true);
                 }}
@@ -161,13 +159,12 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
       </DialogContent>
 
       <DialogFooter>
-        <Button variant="secondary" isPill onClick={close} disabled={isSubmitting}>
+        <Button variant="secondary" onClick={close} disabled={isSubmitting}>
           Cancel
         </Button>
 
         <Button
           variant="primary"
-          isPill
           isLoading={isSubmitting}
           onClick={() => {
             void submit();

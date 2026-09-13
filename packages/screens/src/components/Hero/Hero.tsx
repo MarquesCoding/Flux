@@ -338,7 +338,6 @@ const Hero = ({
             <Button
               variant="glossy"
               size="xl"
-              isPill
               onClick={() => {
                 onPlay(featured, resume ?? 0);
               }}
@@ -349,9 +348,9 @@ const Hero = ({
 
             {onInspect === undefined ? null : (
               <Button
-                variant="overlay"
+                variant="bare"
                 size="xl"
-                isPill
+                className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-on-scrim/25 text-on-scrim hover:bg-on-scrim/10"
                 onClick={() => {
                   onInspect(featured);
                 }}

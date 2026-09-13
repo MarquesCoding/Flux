@@ -162,7 +162,6 @@ const SettingsPanel = ({
             value={catalogueKey}
             onValueChange={setCatalogueKey}
             placeholder="Paste a key"
-            isPill
             size="sm"
             className="w-48"
           />
@@ -170,7 +169,6 @@ const SettingsPanel = ({
           <Button
             variant="soft"
             size="sm"
-            isPill
             isLoading={isSaving}
             disabled={catalogueKey === ''}
             onClick={() => {

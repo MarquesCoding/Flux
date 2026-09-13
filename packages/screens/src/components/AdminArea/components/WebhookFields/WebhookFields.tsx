@@ -111,7 +111,6 @@ const WebhookFields = ({ draft, onChange, accounts, profiles }: WebhookFieldsPro
                   key={candidate}
                   variant={draft.preset === candidate ? 'secondary' : 'bare'}
                   size="none"
-                  isPill
                   aria-pressed={draft.preset === candidate}
                   className="flex flex-col items-start gap-0.5 px-3 py-2 text-left"
                   onClick={() => {
@@ -141,7 +140,6 @@ const WebhookFields = ({ draft, onChange, accounts, profiles }: WebhookFieldsPro
                   <Button
                     variant="bare"
                     size="sm"
-                    isPill
                     onClick={() => {
                       setEvents(
                         isEveryOne

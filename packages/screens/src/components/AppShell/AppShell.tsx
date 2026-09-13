@@ -34,7 +34,13 @@ import { Logo } from '@ValenceUI/Logo';
 import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { useDotFilm } from '@ValenceUI/useDotFilm';
 import { useKonamiCode } from '@ValenceUI/useKonamiCode';
-import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
+import {
+  revealVariants,
+  revealTransition,
+  staggerVariants,
+  liquidSpring,
+  stillTransition,
+} from '@ValenceUI/animations/reveal';
 import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { useTheme } from '@ValenceClient/shell/useTheme';
 import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
@@ -51,6 +57,8 @@ const FADING = 1.2;
 const SOLID_WITHIN = 64;
 
 const SHEET_SOLID_BY = 0.5;
+
+const MARKS_PLACE = 'valence-mark';
 
 /**
  * How far the bar should be painted in, given how far the page has scrolled.
@@ -463,7 +471,28 @@ const AppShell = ({
         className={isFilmPlaying ? 'pointer-events-none' : undefined}
       >
         <NavBar
-          brand={<Logo size={28} isSolid />}
+          brand={
+            <Button
+              variant="bare"
+              size="none"
+              label="Valence, back to the start"
+              hasTooltip={false}
+              onClick={() => {
+                onSectionChange('home');
+              }}
+              className="flex items-center rounded-md"
+            >
+              <motion.span
+                layoutId={MARKS_PLACE}
+                transition={{
+                  layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
+                }}
+                className="flex items-center"
+              >
+                <Logo size={28} isSolid />
+              </motion.span>
+            </Button>
+          }
           solidity={solidity}
           items={items}
           selectedId={section}
