@@ -28,14 +28,14 @@
     "db:check": "tsx tools/drizzle/checkDrizzleSnapshot.ts"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.8.1",
-    "@commitlint/config-conventional": "^19.8.1",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "@types/node": "^22.20.2",
     "@typescript-eslint/utils": "^8.70.0",
     "eslint": "^9.39.5",
     "husky": "^9.1.7",
     "jiti": "^2.7.0",
-    "lint-staged": "^15.5.2",
+    "lint-staged": "^17.0.0",
     "oxlint": "^0.15.15",
     "prettier": "^3.9.6",
     "tsx": "^4.23.13",
