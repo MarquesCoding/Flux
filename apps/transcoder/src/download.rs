@@ -15,6 +15,7 @@
 //! from at thirty thousand feet.
 
 use std::collections::HashMap;
+use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -83,7 +84,14 @@ impl DownloadRequest {
             digest.update(index.to_le_bytes());
         }
 
-        format!("{:x}", digest.finalize())
+        let digest = digest.finalize();
+        let mut id = String::with_capacity(64);
+
+        for byte in &digest {
+            let _ = write!(id, "{byte:02x}");
+        }
+
+        id
     }
 }
 
