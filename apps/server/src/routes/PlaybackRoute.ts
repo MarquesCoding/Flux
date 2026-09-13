@@ -98,6 +98,10 @@ const sessionFileRoute = createRoute({
   },
   responses: {
     200: { description: 'The manifest or segment' },
+    403: {
+      description: 'That session belongs to somebody else',
+      content: { 'application/json': { schema: PlaybackError } },
+    },
     404: {
       description: 'No such session or segment',
       content: { 'application/json': { schema: PlaybackError } },

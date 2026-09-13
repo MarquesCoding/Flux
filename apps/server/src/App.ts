@@ -18,6 +18,7 @@ import type { FavouriteService } from '@ValenceServer/favourites/FavouriteServic
 import type { RatingService } from '@ValenceServer/ratings/RatingService';
 import type { ShareService } from '@ValenceServer/sharing/ShareService';
 import type { ShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import type { PlaybackSessions } from '@ValenceServer/playback/createPlaybackSessions';
 import type { PlaybackService, PreviewRead } from '@ValenceServer/playback/PlaybackService';
 import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import type { PresenceService } from '@ValenceServer/presence/PresenceService';
@@ -391,6 +392,7 @@ type CreateAppOptions = {
   ratings: RatingService;
   shares?: ShareService;
   shareSessions?: ShareSessions;
+  playbackSessions?: PlaybackSessions;
   profiles?: ProfileService;
   books?: BookService;
   promoteProfile?: (request: {
@@ -461,6 +463,7 @@ const createApp = ({
   ratings,
   shares,
   shareSessions,
+  playbackSessions,
   profiles,
   books,
   promoteProfile,
@@ -976,6 +979,12 @@ const createApp = ({
       }
     }
 
+    const startedBy = await readProfileId(context.req.raw.headers);
+
+    if (startedBy !== null) {
+      playbackSessions?.claim(outcome.session.sessionId, startedBy);
+    }
+
     const isTheirOwnDevice = await isTheDeviceOfWhoeverIsAsking(context.req.raw.headers, clientId);
 
     if (clientId !== undefined && isTheirOwnDevice) {
@@ -1001,6 +1010,10 @@ const createApp = ({
 
   app.openapi(sessionFileRoute, async (context) => {
     const { sessionId, name } = context.req.valid('param');
+
+    if (!(await isTheSessionOfWhoeverIsAsking(context.req.raw.headers, sessionId))) {
+      return context.json({ error: 'That session belongs to somebody else.' }, 403);
+    }
 
     const file = await playback.readSessionFile(sessionId, name);
 
@@ -1142,6 +1155,35 @@ const createApp = ({
    * @param clientId - The device named, where one was named at all.
    * @returns Whether the request may act on that device.
    */
+  /**
+   * Whether a playback session named in a request may be read by whoever is asking.
+   *
+   * A session identifier is the only thing a manifest's addresses carry, so a route serving one has
+   * to ask whose viewing it is. What it protects is the viewing rather than the film: every
+   * signed-in account may already read any item, so this keeps somebody's session from being
+   * watched over their shoulder rather than keeping the catalogue shut.
+   *
+   * A session nobody is holding is nobody's to take, so it passes — a session started before this
+   * server knew to record who started it goes on working. So does a guest holding a share link,
+   * whose own gate has already checked that this share started this session.
+   *
+   * @param headers - The request's headers, for reading whose face is asking.
+   * @param sessionId - The session named.
+   * @returns Whether the request may read it.
+   */
+  const isTheSessionOfWhoeverIsAsking = async (
+    headers: Headers,
+    sessionId: string,
+  ): Promise<boolean> => {
+    if (playbackSessions === undefined || !playbackSessions.isHeld(sessionId)) {
+      return true;
+    }
+
+    const asking = await readProfileId(headers);
+
+    return asking === null || playbackSessions.isClaimedBy(sessionId, asking);
+  };
+
   const isTheDeviceOfWhoeverIsAsking = async (
     headers: Headers,
     clientId: string | undefined,
@@ -3430,6 +3472,12 @@ const createApp = ({
       if (held !== null) {
         shareSessions.release(sessionId, held.id);
       }
+    }
+
+    const letGoByProfile = await readProfileId(context.req.raw.headers);
+
+    if (letGoByProfile !== null) {
+      playbackSessions?.release(sessionId, letGoByProfile);
     }
 
     if (!stopped) {

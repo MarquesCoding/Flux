@@ -12,6 +12,8 @@ import { createMemorySubtitleService } from '@ValenceServer/subtitles/createMemo
 import { createPresenceService } from '@ValenceServer/presence/PresenceService';
 import type { MediaDetail } from '@ValenceContracts/schemas/Library';
 import { createMemoryPlaybackService } from './createMemoryPlaybackService';
+import { createPlaybackSessions } from './createPlaybackSessions';
+import { createMemoryProfileService } from '@ValenceServer/profiles/createMemoryProfileService';
 import { z } from 'zod';
 import { PlaybackPlanSchema } from '@ValenceContracts/schemas/PlaybackPlan';
 import type { MediaItem } from '@ValenceContracts/schemas/MediaItem';
@@ -138,6 +140,116 @@ const build = (options: { unsupported?: boolean } = {}) => {
 
   return { app: signedInApp(app, { store, permissions, isAdministrator: true }), playback };
 };
+
+/**
+ * A server two people can sign into, for the questions about whose viewing a session is.
+ */
+const shared = () => {
+  const { auth, settings } = createMemoryAuth();
+  const playback = createMemoryPlaybackService({
+    media: { [MEDIA_ID]: hdrMedia, [MODEST_MEDIA_ID]: modestMedia },
+    sessions: {},
+  });
+
+  const app = createApp({
+    auth,
+    settings,
+    permissions: createMemoryPermissionService(),
+    countUsers: () => Promise.resolve(1),
+    promoteToAdmin: () => Promise.resolve(),
+    library: createMemoryLibraryService(),
+    subtitles: createMemorySubtitleService(),
+    segments: createMemorySegmentService(),
+    progress: createMemoryWatchProgressService(),
+    favourites: createMemoryFavouriteService(),
+    ratings: createMemoryRatingService(),
+    profiles: createMemoryProfileService(),
+    playbackSessions: createPlaybackSessions(),
+    playback,
+  });
+
+  return { app, playback };
+};
+
+/**
+ * Signs somebody up and answers with the cookie that keeps them signed in.
+ */
+const signedInAs = async (
+  app: ReturnType<typeof shared>['app'],
+  email: string,
+): Promise<string> => {
+  const response = await app.request(`${BASE}/api/auth/sign-up/email`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: BASE },
+    body: JSON.stringify({ name: 'Somebody', email, password: 'a-long-enough-password' }),
+  });
+
+  return response.headers.getSetCookie()[0]?.split(';')[0] ?? '';
+};
+
+describe('whose viewing a session is', () => {
+  it('does not serve one account the manifest of another account’s session', async () => {
+    const { app } = shared();
+    const mine = await signedInAs(app, 'mine@valence.local');
+    const theirs = await signedInAs(app, 'theirs@valence.local');
+
+    const started = StartSchema.parse(
+      await (
+        await app.request(`${BASE}/api/playback/${MEDIA_ID}/session`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', cookie: mine, origin: BASE },
+          body: JSON.stringify({ deviceProfile: modestProfile }),
+        })
+      ).json(),
+    );
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(started.sessionId)}/index.m3u8`,
+      { headers: { cookie: theirs, origin: BASE } },
+    );
+
+    expect(theirs).not.toBe(mine);
+    expect(response.status).toBe(403);
+  });
+
+  it('serves it to the account that started it', async () => {
+    const { app } = shared();
+    const mine = await signedInAs(app, 'mine@valence.local');
+
+    const started = StartSchema.parse(
+      await (
+        await app.request(`${BASE}/api/playback/${MEDIA_ID}/session`, {
+          method: 'POST',
+          headers: { 'content-type': 'application/json', cookie: mine, origin: BASE },
+          body: JSON.stringify({ deviceProfile: modestProfile }),
+        })
+      ).json(),
+    );
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/${encodeURIComponent(started.sessionId)}/index.m3u8`,
+      { headers: { cookie: mine, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('serves a session nobody is holding, which is one started before anybody was recorded', async () => {
+    const { app, playback } = shared();
+    const mine = await signedInAs(app, 'mine@valence.local');
+
+    playback.state.sessions['session-nobody-claimed'] = {
+      'index.m3u8': '#EXTM3U\n#EXT-X-VERSION:7\n',
+    };
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/session-nobody-claimed/index.m3u8`,
+      { headers: { cookie: mine, origin: BASE } },
+    );
+
+    expect(response.status).toBe(200);
+  });
+});
 
 const post = (path: string, body: object) =>
   new Request(`${BASE}${path}`, {

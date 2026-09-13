@@ -70,6 +70,7 @@ import { createDatabaseFavouriteService } from '@ValenceServer/favourites/create
 import { createDatabaseRatingService } from '@ValenceServer/ratings/createDatabaseRatingService';
 import { createDatabaseShareService } from '@ValenceServer/sharing/createDatabaseShareService';
 import { createShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import { createPlaybackSessions } from '@ValenceServer/playback/createPlaybackSessions';
 import { createDatabaseSegmentService } from '@ValenceServer/segments/createDatabaseSegmentService';
 import { createFingerprintSegmentProvider } from '@ValenceServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@ValenceServer/subtitles/createSidecarSubtitleService';
@@ -1457,6 +1458,7 @@ const app = createApp({
   ratings: createDatabaseRatingService(db),
   shares: createDatabaseShareService(db),
   shareSessions: createShareSessions(),
+  playbackSessions: createPlaybackSessions(),
   sayALinkWasWithdrawn: async ({ accountId, title, byName }) => {
     await notifyHousehold({
       store: notifications,
