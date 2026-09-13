@@ -38,6 +38,7 @@ import { ACCOUNT_OPENS_ON, ADMIN_OPENS_ON } from '@ValenceClient/navigation/read
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useSignOut } from '@ValenceScreens/session/useSignOut';
 import { useShell } from '@ValenceClient/shell/useShell';
+import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
 import type { ShowSummary } from '@ValenceContracts/schemas/Show';
 import type { ShellSection } from '@ValenceScreens/components/AppShell/AppShell.types';
 import type { Inbox } from '@ValenceClient/notifications/fetchNotifications';
@@ -68,6 +69,7 @@ const ValenceShell = () => {
 
   const favourites = useFavourites(user.id);
   const ratings = useRatings(user.id);
+  const { mayAdminister } = useWhatIMayDo();
   const leave = useSignOut();
 
   const [openShow, setOpenShow] = useState<ShowSummary | null>(null);
@@ -167,7 +169,7 @@ const ValenceShell = () => {
       onOpenAccount={() => {
         go({ account: ACCOUNT_OPENS_ON });
       }}
-      isAdminOpen={place.admin !== null}
+      isAdminOpen={mayAdminister && place.admin !== null}
       onOpenAdmin={() => {
         go({ admin: ADMIN_OPENS_ON });
       }}
@@ -176,7 +178,7 @@ const ValenceShell = () => {
         go({ downloads: true });
       }}
       moodLights={place.section === 'home' ? moodLights : []}
-      isAdministrator={user.role === 'admin'}
+      isAdministrator={mayAdminister}
       {...(libraries.data === undefined ? {} : { libraryKinds })}
       {...(isStockKnown ? { stocked } : {})}
       notifications={
@@ -356,7 +358,7 @@ const ValenceShell = () => {
       />
 
       <AdminDialog
-        panel={place.admin}
+        panel={mayAdminister ? place.admin : null}
         job={place.adminJob}
         onPanel={(next) => {
           replace({ admin: next, adminJob: null });

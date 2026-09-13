@@ -433,9 +433,11 @@ presence.watch(() => {
 const permissions = watchPermissionChanges(storedPermissions, {
   accountChanged: (userId) => {
     void realtime.recheck(userId);
+    realtime.publish('profile', { changed: true }, { kind: 'accounts', accountIds: [userId] });
   },
   everyoneChanged: () => {
     void realtime.recheckAll();
+    realtime.publish('profile', { changed: true }, { kind: 'everyone' });
   },
 });
 

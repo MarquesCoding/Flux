@@ -145,6 +145,7 @@ import {
   endDeviceRoute,
   endOtherDevicesRoute,
 } from '@ValenceServer/routes/DeviceRoute';
+import { listMyPermissionsRoute } from '@ValenceServer/routes/PermissionRoute';
 import { describeDevice } from '@ValenceServer/account/describeDevice';
 import {
   listProfilesRoute,
@@ -193,7 +194,7 @@ import {
   editAccountRoute,
 } from '@ValenceServer/routes/AccountRoute';
 import type { RoleChangeRefusal } from '@ValenceServer/auth/checkRoleChange';
-import { PERMISSIONS } from '@ValenceContracts/schemas/Permission';
+import { ADMINISTRATOR, PERMISSIONS } from '@ValenceContracts/schemas/Permission';
 import {
   listPermissionsRoute,
   listRolesRoute,
@@ -2477,6 +2478,24 @@ const createApp = ({
     }
 
     return context.body(null, 204);
+  });
+
+  app.openapi(listMyPermissionsRoute, async (context) => {
+    const headers = context.req.raw.headers;
+    const session = await readSessionOnce(auth, headers);
+
+    if (session === null) {
+      return context.json({ error: 'Nobody is signed in.' }, 401);
+    }
+
+    const resolved = await permissions.resolve(session.user.id);
+
+    const held =
+      headers.get('x-api-key') === null
+        ? resolved
+        : narrowToKey(resolved, await apiKeys.restrictionFor(headers, session.session.id));
+
+    return context.json({ permissions: [...held], isAdministrator: held.has(ADMINISTRATOR) }, 200);
   });
 
   app.openapi(listDevicesRoute, async (context) => {

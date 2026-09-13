@@ -4,6 +4,7 @@ import { readVersion } from '@ValenceClient/session/readVersion';
 import { fetchProfiles } from '@ValenceClient/profiles/fetchProfiles';
 import { fetchEveryone } from '@ValenceClient/profiles/fetchEveryone';
 import { fetchSetupStatus } from '@ValenceClient/setup/fetchSetupStatus';
+import { fetchMyPermissions } from '@ValenceClient/session/fetchMyPermissions';
 
 const SESSION = ['session'] as const;
 
@@ -67,6 +68,22 @@ const everyone = () =>
     queryFn: () => fetchEveryone(),
   });
 
-const sessionQueries = { setup, who, version, profiles, everyone, key: SESSION };
+/**
+ * What the account signed in may do, which is what every screen with something privileged on it
+ * gates itself on.
+ *
+ * Held under this key rather than a key of its own so that the socket saying somebody's permissions
+ * changed throws it away along with the rest of the session — being promoted reaches an open tab the
+ * same way being renamed does.
+ *
+ * @returns The query.
+ */
+const permissions = () =>
+  queryOptions({
+    queryKey: [...SESSION, 'permissions'],
+    queryFn: () => fetchMyPermissions(),
+  });
+
+const sessionQueries = { setup, who, version, profiles, everyone, permissions, key: SESSION };
 
 export { sessionQueries };

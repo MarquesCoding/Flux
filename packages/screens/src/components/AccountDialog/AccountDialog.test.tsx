@@ -13,6 +13,12 @@ vi.mock('@ValenceScreens/components/AccountArea/AccountArea', () => ({
   AccountArea: () => <p>The panels</p>,
 }));
 
+const mayAdminister = vi.hoisted(() => vi.fn<() => boolean>());
+
+vi.mock('@ValenceClient/session/useWhatIMayDo', () => ({
+  useWhatIMayDo: () => ({ may: () => false, mayAdminister: mayAdminister() }),
+}));
+
 vi.mock('@ValenceClient/session/auth', async (importOriginal) => ({
   ...(await importOriginal<typeof Auth>()),
   signOut: vi.fn(),
@@ -58,6 +64,7 @@ beforeEach(() => {
   fetchMock.mockResolvedValue({ ok: true, json: () => Promise.resolve({ profiles: [PROFILE] }) });
   vi.stubGlobal('fetch', fetchMock);
   ended.mockReset();
+  mayAdminister.mockReset().mockReturnValue(false);
   vi.mocked(notify.failed).mockReset();
 });
 
@@ -122,6 +129,21 @@ describe('AccountDialog', () => {
     await actor.click(await screen.findByRole('button', { name: 'Close' }));
 
     expect(told.onClose).toHaveBeenCalled();
+  });
+
+  it('marks the account of somebody who may administer the server', async () => {
+    mayAdminister.mockReturnValue(true);
+
+    draw();
+
+    expect(await screen.findByText('admin')).toBeInTheDocument();
+  });
+
+  it('does not mark a viewer as one, nor before the server has said', async () => {
+    draw();
+
+    expect(await screen.findByRole('heading', { name: 'Marques' })).toBeInTheDocument();
+    expect(screen.queryByText('admin')).not.toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {
