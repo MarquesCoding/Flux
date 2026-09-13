@@ -92,7 +92,7 @@ pub const INIT_SEGMENT_NAME: &str = "init.mp4";
 /// Tone mapping needs a filter that can linearise a PQ or HLG transfer curve.
 /// `tonemap` alone cannot: it expects linear light, and feeding it PQ-encoded
 /// samples produces a washed out picture that looks broken rather than
-/// obviously wrong. See ADR-0010.
+/// obviously wrong.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ToneMapping {
@@ -176,7 +176,7 @@ pub enum SubtitleAction {
 /// The output directory is deliberately absent: it is derived from this
 /// specification's own hash, so two requests that would produce identical
 /// output share a session rather than transcoding twice. Including the
-/// directory would defeat that. See ADR-0011.
+/// directory would defeat that.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SessionSpec {
@@ -320,7 +320,7 @@ impl SessionSpec {
     /// the beginning and the other forty minutes in, so the segments one of
     /// them causes to be produced are the segments the other finds waiting.
     ///
-    /// This is the address ADR-0011 asks for. Keying the work on where playback
+    /// This is the address the segments are keyed on. Keying the work on where playback
     /// started is what makes a seek a new transcode of the remainder rather
     /// than a request for a segment.
     #[must_use]
@@ -357,7 +357,7 @@ impl SessionSpec {
     ///
     /// Used for the single automatic retry when a hardware encoder fails.
     /// A machine whose GPU is busy, or whose driver has fallen over, should
-    /// still play the film. See ADR-0009.
+    /// still play the film.
     #[must_use]
     pub fn without_hardware(&self) -> Self {
         let video = match &self.video {
@@ -912,7 +912,7 @@ impl HardwareAccel {
     /// The pipeline this backend can run end to end, if it can run one.
     ///
     /// `Amf` has none: its `-hwaccel` here is `d3d11va`, which is Windows only,
-    /// and AMD on Linux goes through `VAAPI` instead — as ADR-0010 says, AMF
+    /// and AMD on Linux goes through `VAAPI` instead: AMF
     /// there wants the closed `amdgpu-pro` driver. It keeps working exactly as
     /// before, on the software filter chain.
     ///
@@ -1292,7 +1292,7 @@ pub struct SegmentStart {
 /// The `FFmpeg` command line is always built from this struct and never
 /// assembled from strings at call sites, so that invocations are
 /// deterministic, unit testable without spawning a process, and loggable in
-/// full for support. See ADR-0009.
+/// full for support.
 #[derive(Debug, Clone, PartialEq)]
 pub struct TranscodePlan {
     pub spec: SessionSpec,

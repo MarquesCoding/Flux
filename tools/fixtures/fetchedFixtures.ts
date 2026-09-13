@@ -54,7 +54,7 @@ const FETCHED: readonly FetchedFixture[] = [
  * Nothing here is generated, because nothing here can be. PGS has a decoder in FFmpeg and no
  * encoder anywhere, and HE-AAC needs libfdk_aac, which the shipped build does not carry.
  *
- * Nor is any of it mirrored. ADR-0012 suggests re-hosting Tier 1 to protect against URL rot, which
+ * Nor is any of it mirrored. Re-hosting Tier 1 would protect against URL rot, which
  * assumed freely licensed material; these are test signals and clips of unstated provenance, so
  * they are fetched into the local cache on demand and never redistributed. The cost is that a dead
  * URL becomes a skipped test rather than a cached one, which is the right trade for material we

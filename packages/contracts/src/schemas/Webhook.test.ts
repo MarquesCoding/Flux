@@ -341,7 +341,7 @@ describe('WebhookFiltersSchema, the allowlists', () => {
     });
   });
 
-  it('admits a book, which ADR-0027 says is not a media item', () => {
+  it('admits a book, which is not a media item', () => {
     expect(WebhookFiltersSchema.safeParse({ itemTypes: ['book'] }).success).toBe(true);
   });
 

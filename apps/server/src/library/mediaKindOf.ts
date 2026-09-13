@@ -7,7 +7,7 @@ import type { MediaKind } from '@ValenceContracts/schemas/MediaKind';
  * `media_item` has no discriminator column — an episode is told from a film by having a series
  * behind it, an extra by saying which sort of extra it is, and everything else is decided by the
  * library it sits in. A book is not a media item
- * at all (ADR-0027), so it never reaches here through the same scan; it is admitted because a
+ * at all, so it never reaches here through the same scan; it is admitted because a
  * subscriber filtering on kind has to be able to name one.
  *
  * @param item - What was found, so far as the scan knows it.

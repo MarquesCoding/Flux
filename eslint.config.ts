@@ -22,7 +22,7 @@ const SHARED_IMPORT_BANS = [
   },
   {
     group: ['@base-ui/react', '@base-ui/react/*'],
-    message: 'Base UI is for Dialog alone — see ADR-0021. Everything else in ValenceUI is Radix.',
+    message: 'Base UI is for Dialog alone. Everything else in ValenceUI is Radix.',
   },
   {
     group: ['@hugeicons/react'],
@@ -152,7 +152,7 @@ export default tseslint.config(
             {
               group: ['@ValenceWeb/*'],
               message:
-                'The application cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0022.',
+                'The application cannot reach into a client. Anything it needs from one is a port on Platform.',
             },
             {
               group: ['@ValenceUI/*'],
@@ -175,7 +175,7 @@ export default tseslint.config(
             {
               group: ['@ValenceWeb/*'],
               message:
-                'A screen cannot reach into a client. Anything it needs from one is a port on Platform — see ADR-0023.',
+                'A screen cannot reach into a client. Anything it needs from one is a port on Platform.',
             },
           ],
         },

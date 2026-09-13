@@ -23,7 +23,7 @@
   "ignorePatterns": ["dist", "coverage", "node_modules", "target"],
   "overrides": [
     {
-      "files": ["**/*.config.ts", "**/*.config.mts", "**/vitest.setup.ts", "docs/site/**"],
+      "files": ["**/*.config.ts", "**/*.config.mts", "**/vitest.setup.ts"],
       "rules": {
         "import/no-default-export": "off"
       }

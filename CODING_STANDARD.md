@@ -38,7 +38,7 @@ Where shared code lives:
 | Server-only helpers used by two services | `packages/core`                       |
 | Plugin-facing anything                   | `packages/plugin-sdk`                 |
 
-The dependency rules in ADR-0001 still apply — extraction must not create a
+The dependency rules still apply: extraction must not create a
 cycle. If extracting would create one, the shared thing belongs further up the
 graph, usually in `contracts`.
 
@@ -202,7 +202,7 @@ step, and CI runs it.
 
 1. **TSDoc on functions and components — and on nothing else.** Required on
    anything exported from `packages/plugin-sdk` or `packages/contracts`, because
-   those generate public documentation (ADR-0003).
+   those generate public documentation.
 
    **One sentence saying what the function does.** Not why it was written that
    way, not what was tried before, not what the alternative would have cost. A
@@ -504,8 +504,8 @@ functions/formatDuration.test.ts
 - Coverage thresholds are enforced in CI and are not lowered to make a build
   pass. Raising them is a PR of its own.
 - Rust code is tested with `cargo test`. Negotiation logic in particular is
-  tested as pure functions over data, per ADR-0011 — no media files, no FFmpeg.
-- Tests that need media fixtures follow ADR-0012 and skip with an actionable
+  tested as pure functions over data: no media files, no FFmpeg.
+- Tests that need media fixtures skip with an actionable
   message when the tier is absent. CI asserts the expected tiers were present.
 
 ---
@@ -527,14 +527,14 @@ Scopes are workspace module names: `web`, `server`, `transcoder`, `ui`,
 `contracts`, `plugin-sdk`, `docs`.
 
 Breaking changes use `!` and a `BREAKING CHANGE:` footer. For anything affecting
-the API contract (ADR-0002) or a plugin extension point (ADR-0007), this is
+the API contract or a plugin extension point, this is
 mandatory and drives the changelog.
 
 ---
 
 ## 14. Enforcement
 
-See ADR-0014 for the full tooling decision. In summary: **oxlint** runs first for
+**oxlint** runs first for
 speed and owns all non-type-aware rules; **ESLint** owns only rules requiring the
 type checker; **husky** blocks anything non-conforming before it reaches the
 remote.

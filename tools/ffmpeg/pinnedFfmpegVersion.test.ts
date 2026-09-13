@@ -29,7 +29,7 @@ describe('pinnedFfmpegVersion', () => {
 
   it('agrees with the version CI installs', () => {
     const dockerfile = readFileSync(join(ROOT, 'Dockerfile'), 'utf8');
-    const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'ci.yml'), 'utf8');
+    const workflow = readFileSync(join(ROOT, '.github', 'workflows', 'media-pipeline.yml'), 'utf8');
 
     expect(CI_VERSION.exec(workflow)?.groups?.['version']).toBe(pinnedFfmpegVersion(dockerfile));
   });

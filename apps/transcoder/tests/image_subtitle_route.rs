@@ -46,7 +46,7 @@
 //! stream on an idle machine, so a second concurrent 4K burn-in eats most of
 //! what is left.
 //!
-//! Skips loudly when the corpus is absent, as ADR-0012 requires. Build it with
+//! Skips loudly when the corpus is absent. Build it with
 //! `pnpm fixtures:sync --tier 1`.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]

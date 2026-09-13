@@ -11,7 +11,7 @@
 //! segment that a browser has to fetch before it can show anything.
 //!
 //! The answer is not to force an encode. It is to know where the cuts actually
-//! land and to say so, which is what ADR-0011's segment addressing needs and
+//! land and to say so, which is what segment addressing needs and
 //! what Jellyfin does for the same case.
 
 use std::path::Path;

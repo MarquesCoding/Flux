@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { MEDIA_KINDS, MEDIA_KIND_LABELS, MediaKindSchema } from './MediaKind';
 
 describe('MEDIA_KINDS', () => {
-  it('admits a book, which ADR-0027 keeps out of media_item but not out of this vocabulary', () => {
+  it('admits a book, which is kept out of media_item but not out of this vocabulary', () => {
     expect(MEDIA_KINDS).toContain('book');
   });
 

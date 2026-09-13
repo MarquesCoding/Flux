@@ -213,7 +213,7 @@ pub struct Session {
     /// A session is addressed by what it produces, so everyone watching the
     /// same film at the same quality is holding the same one. Counting them is
     /// what stops one viewer closing their tab from taking the transcode away
-    /// from the others. See ADR-0011.
+    /// from the others.
     holders: usize,
     /// Which devices are holding this session open.
     ///
@@ -826,8 +826,7 @@ impl SessionRegistry {
     /// Addressed by the plan rather than by where playback began, so everybody
     /// watching the same film at the same quality shares one directory and one
     /// transcode however differently they joined it. Where a viewer joins
-    /// decides where the run starts, not which session they are in. See
-    /// ADR-0011.
+    /// decides where the run starts, not which session they are in.
     ///
     /// # Errors
     ///
@@ -1166,7 +1165,7 @@ impl SessionRegistry {
     /// unconditionally is one viewer closing a tab and taking the transcode
     /// away from everyone else — demonstrated against the running service,
     /// where the second viewer's manifest went missing the moment the first
-    /// stopped. See ADR-0011.
+    /// stopped.
     ///
     /// The segments stay on disk either way. What ends is the process writing
     /// more of them.
@@ -1555,7 +1554,7 @@ fn describe_signal(_status: std::process::ExitStatus) -> String {
 /// A retry that turns out to be pointless costs one attempt. A retry that
 /// should have happened costs the stream, so the doubt is spent on trying.
 ///
-/// A cancelled attempt is nobody asking any more, so it stops. See ADR-0009.
+/// A cancelled attempt is nobody asking any more, so it stops.
 #[must_use]
 pub fn should_retry_in_software(outcome: ExitClass, uses_hardware: bool) -> bool {
     uses_hardware && !matches!(outcome, ExitClass::Completed | ExitClass::Cancelled)
@@ -1649,7 +1648,7 @@ pub fn is_too_far_ahead(head: u64, reached: u64, segment_seconds: u32) -> bool {
 /// Supervises a transcode from start to finish.
 ///
 /// A hardware encoder that fails is retried once in software. A busy or broken
-/// GPU should mean a slower film, not a dead player. See ADR-0009.
+/// GPU should mean a slower film, not a dead player.
 async fn supervise(
     config: SessionConfig,
     plan: TranscodePlan,

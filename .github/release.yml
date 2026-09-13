@@ -1,0 +1,22 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+    authors:
+      - dependabot
+      - renovate
+  categories:
+    - title: Added
+      labels: ['*']
+      # Conventional Commits carry the kind in the title, and a squashed pull request keeps it, so
+      # the heading a change lands under is decided by how it was written rather than by remembering
+      # to label it.
+      exclude:
+        labels:
+          - ignore-for-release
+    - title: Dependencies
+      labels:
+        - dependencies
+    - title: Everything else
+      labels:
+        - '*'

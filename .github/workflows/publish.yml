@@ -51,7 +51,7 @@ jobs:
           labels: |
             org.opencontainers.image.title=Valence
             org.opencontainers.image.description=A self-hosted streaming platform
-            org.opencontainers.image.licenses=AGPL-3.0-or-later
+            org.opencontainers.image.licenses=MIT
 
       - uses: docker/setup-buildx-action@v3
 
