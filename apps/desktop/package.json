@@ -34,7 +34,7 @@
     "@types/react-dom": "^19.0.3",
     "@vitejs/plugin-react": "^6.0.5",
     "@vitest/coverage-v8": "^4.1.10",
-    "electron": "github:castlabs/electron-releases#v43.2.0+wvcus",
+    "electron": "github:castlabs/electron-releases#v43.5.0+wvcus",
     "electron-builder": "^26.0.12",
     "electron-vite": "^4.0.1",
     "jsdom": "^26.0.0",
