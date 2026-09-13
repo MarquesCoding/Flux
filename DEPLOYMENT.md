@@ -126,7 +126,7 @@ server name and certificate paths with yours.
 ## First run
 
 1. Create the stack and start it. The server migrates its own database on the
-   way up (ADR-0029), so the first start takes a little longer than the rest.
+   way up, so the first start takes a little longer than the rest.
 2. Open `PUBLIC_URL`. The first account created is the administrator — make it
    before anyone else can.
 3. Add a library pointing at `/media`, which is where `MEDIA_PATH` appears
