@@ -60,6 +60,20 @@ jobs:
 
       - run: cargo clippy --all-targets -- -D warnings
 
-      # Every test that does not need a generated fixture, which is all of them but the corpus
-      # checks in media-pipeline.yml.
+      # The transcoder's tests drive FFmpeg, and more of them than it looks. Thirty-four across six
+      # suites synthesise their own input with lavfi and probe what comes back, so a runner without
+      # FFmpeg fails them rather than skipping them.
+      #
+      # The runner's own build is enough. What these tests assert is the transcoder's behaviour
+      # rather than the encoder's, and they pass against a stock FFmpeg as readily as against the
+      # one Valence ships. That pinned build exists for tone mapping, and the job that needs it
+      # generates the corpus against it in media-pipeline.yml.
+      - name: FFmpeg, which the tests drive
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg
+          ffmpeg -version | head -1
+
+      # The corpus is deliberately not generated here. The suites that need one look for it and skip
+      # when it is absent, and building it is the three minutes that belongs in media-pipeline.yml.
       - run: cargo test
