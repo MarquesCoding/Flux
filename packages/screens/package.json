@@ -19,7 +19,7 @@
     "@valence/core": "workspace:*",
     "@valence/ui": "workspace:*",
     "better-auth": "^1.7.4",
-    "motion": "^11.18.2",
+    "motion": "^13.0.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "shaka-player": "^5.2.10",

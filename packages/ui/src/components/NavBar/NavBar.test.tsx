@@ -343,7 +343,9 @@ describe('what the bar can carry besides places', () => {
 
     await user.hover(screen.getByRole('button', { name: 'Favourites' }));
 
-    expect(covering).toHaveStyle({ clipPath: 'inset(0% 0% 0% 0%)' });
+    await waitFor(() => {
+      expect(covering).toHaveStyle({ clipPath: 'inset(0% 0% 0% 0%)' });
+    });
   });
 
   it('shows a count on a tool that has something to say', () => {
