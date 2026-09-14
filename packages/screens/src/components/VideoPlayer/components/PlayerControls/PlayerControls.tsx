@@ -1,15 +1,15 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
   Add01Icon,
-  ArrowTurnBackwardIcon,
-  ArrowTurnForwardIcon,
+  ArrowExpandIcon,
+  ArrowShrinkIcon,
   CastIcon,
   Clock01Icon,
   DashboardSpeed01Icon,
   FilterIcon,
+  GoBackward10SecIcon,
+  GoForward10SecIcon,
   HeadphonesIcon,
-  Maximize01Icon,
-  Minimize01Icon,
   MinusSignIcon,
   PauseIcon,
   PictureInPictureOnIcon,
@@ -201,7 +201,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <Icon of={ArrowTurnBackwardIcon} size={22} />
+        <Icon of={GoBackward10SecIcon} size={22} />
       </Button>
 
       <Button
@@ -225,7 +225,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <Icon of={ArrowTurnForwardIcon} size={22} />
+        <Icon of={GoForward10SecIcon} size={22} />
       </Button>
 
       <span className="flex-1" />
@@ -258,7 +258,7 @@ const PlayerControls = ({
               {Math.round(pointedAt).toString()}%
             </span>
           )}
-          className="w-0 overflow-hidden px-0 transition-[width,padding] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
+          className="pointer-events-none w-0 px-0 opacity-0 transition-[width,padding,opacity] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:pointer-events-auto group-hover/volume:w-24 group-hover/volume:px-2 group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:w-24 group-focus-within/volume:px-2 group-focus-within/volume:opacity-100"
         />
       </div>
 
@@ -514,9 +514,9 @@ const PlayerControls = ({
         size="md"
       >
         {isFullscreen ? (
-          <Icon of={Minimize01Icon} size={20} />
+          <Icon of={ArrowShrinkIcon} size={20} />
         ) : (
-          <Icon of={Maximize01Icon} size={20} />
+          <Icon of={ArrowExpandIcon} size={20} />
         )}
       </Button>
     </div>
