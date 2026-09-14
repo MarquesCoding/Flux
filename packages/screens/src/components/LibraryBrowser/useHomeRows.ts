@@ -98,7 +98,13 @@ const useHomeRows = (
   const [genreLimit, setGenreLimit] = useState(FIRST_GENRES);
 
   const favourites = useQuery(viewingQueries.favourites(user.id));
-  const ratings = useQuery(viewingQueries.ratings(user.id));
+  const ratings = useQuery({
+    ...viewingQueries.ratings(user.id),
+    select: (given) =>
+      given.flatMap((rating) =>
+        rating.mediaId !== null && rating.stars >= LIKED_STARS ? [rating.mediaId] : [],
+      ),
+  });
   const facets = useQuery({ ...libraryQueries.facets(), enabled: canAsk });
 
   const resumingIds = useMemo(
@@ -108,15 +114,10 @@ const useHomeRows = (
 
   const likedIds = useMemo(
     () =>
-      [
-        ...new Set([
-          ...(favourites.data ?? []),
-          ...(ratings.data ?? []).flatMap((rating) =>
-            rating.mediaId !== null && rating.stars >= LIKED_STARS ? [rating.mediaId] : [],
-          ),
-          ...progress.keys(),
-        ]),
-      ].slice(0, LIKED_READ),
+      [...new Set([...(favourites.data ?? []), ...(ratings.data ?? []), ...progress.keys()])].slice(
+        0,
+        LIKED_READ,
+      ),
     [favourites.data, ratings.data, progress],
   );
 

@@ -13,7 +13,7 @@ import {
   UserGroupIcon,
 } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -76,7 +76,6 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param backLabel - What going back is called.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
- * @param stars - What this viewer gave it, or null where they have not rated it.
  * @param onRate - Told what they gave it, or null to take the rating back.
  * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
  * @param onShare - Told to hand out a link to it, where this account may share at all.
@@ -94,7 +93,6 @@ const MediaDetailDialog = ({
   backLabel,
   isKept = false,
   onToggleKept,
-  stars = null,
   onRate,
   onOpenPerson,
   onShare,
@@ -118,7 +116,7 @@ const MediaDetailDialog = ({
 
   const prepared = useQuery({ ...downloadQueries.all(), enabled: canKeepFiles() });
 
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   useEffect(() => {
     if (media === null) {
@@ -303,7 +301,6 @@ const MediaDetailDialog = ({
               <RatingPanel
                 subject={{ mediaId: shown.id }}
                 title={shown.title}
-                stars={stars}
                 onRate={(given) => {
                   onRate(shown, given);
                 }}

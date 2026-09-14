@@ -13,7 +13,6 @@ type MediaDetailDialogProps = {
   backLabel?: string;
   isKept?: boolean;
   onToggleKept?: (media: MediaSummary) => void;
-  stars?: number | null;
   onRate?: (media: MediaSummary, stars: number | null) => void;
   onOpenPerson?: (member: CastMember) => void;
   onShare?: (media: MediaSummary) => void;

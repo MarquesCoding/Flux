@@ -9,7 +9,7 @@ import {
   PlayIcon,
 } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { nameSeason } from '@ValenceClient/library/nameSeason';
 import { inSeasonOrder } from '@ValenceCore/functions/inSeasonOrder';
@@ -61,7 +61,6 @@ const artworkUrl = (mediaId: string): string => `/api/media/${mediaId}/image/bac
  * @param watchedFractionFor - How far through each episode this viewer is.
  * @param resumeFor - Where they left each episode.
  * @param isFinished - Whether they have finished each episode.
- * @param stars - What this viewer gave the programme, or null where they have not rated it.
  * @param onRate - Told what they gave it, or null to take the rating back. Offered only for a
  *   programme the scanner resolved to a series of its own, since a rating is keyed on that.
  */
@@ -74,7 +73,6 @@ const ShowDialog = ({
   watchedFractionFor,
   resumeFor,
   isFinished,
-  stars = null,
   onRate,
 }: ShowDialogProps) => {
   const [unlettered, setUnlettered] = useState<string | null>(null);
@@ -83,7 +81,7 @@ const ShowDialog = ({
   const [isDownloading, setIsDownloading] = useState(false);
   const topRef = useRef<HTMLDivElement>(null);
   const { mark: pastTheArtwork, hasPassed: hasScrolledPast } = useHasScrolledPast();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const asked = useQuery(libraryQueries.show(show?.libraryId ?? null, show?.id ?? null));
   const detail = useHeldWhileLeaving(asked.data ?? null, show !== null);
@@ -259,7 +257,6 @@ const ShowDialog = ({
             <RatingPanel
               subject={{ seriesId: shown.seriesId ?? '' }}
               title={shown.title}
-              stars={stars}
               onRate={(given) => {
                 onRate(shown, given);
               }}
