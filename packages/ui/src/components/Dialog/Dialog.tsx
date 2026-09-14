@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { usePortalContainer } from '@ValenceUI/usePortalContainer';
+import { useRoomBeside } from '@ValenceUI/useRoomBeside';
 import { coverPage } from '@ValenceUI/pageCover';
 import { companionContext } from './companionContext';
 import type { CompanionSlot } from './companionContext';
@@ -92,7 +93,10 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * when it opened.
  *
  * Side by side needs a side: below the small breakpoint the two are stacked in the one sheet, since
- * a phone has no room to put anything next to anything.
+ * a phone has no room to put anything next to anything. The width has to be asked for in script
+ * rather than written as a class, because it is animated and an animated width is an inline style
+ * that no breakpoint reaches — left as a fixed `min(26rem, 40vw)`, the stacked column is 156px of
+ * sliver on a phone, which is the arrangement reading as broken rather than as narrow.
  *
  * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
  * draws a focus ring around whatever happens to be first — the favourite button, an icon — which
@@ -115,7 +119,8 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
   const portalContainer = usePortalContainer();
   const panelRef = useRef<HTMLDivElement>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
+  const hasRoomBeside = useRoomBeside();
   const [claimed, setClaimed] = useState<string[]>([]);
   const [column, setColumn] = useState<HTMLElement | null>(null);
 
@@ -192,9 +197,13 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
                   key={current}
                   ref={holdColumn}
                   data-slot="dialog-companion"
-                  initial={{ width: 0, marginLeft: 0, opacity: 0 }}
-                  animate={{ width: BESIDE_WIDTH, marginLeft: BESIDE_GAP, opacity: 1 }}
-                  exit={{ width: 0, marginLeft: 0, opacity: 0 }}
+                  initial={{ width: hasRoomBeside ? 0 : '100%', marginLeft: 0, opacity: 0 }}
+                  animate={{
+                    width: hasRoomBeside ? BESIDE_WIDTH : '100%',
+                    marginLeft: hasRoomBeside ? BESIDE_GAP : 0,
+                    opacity: 1,
+                  }}
+                  exit={{ width: hasRoomBeside ? 0 : '100%', marginLeft: 0, opacity: 0 }}
                   transition={
                     prefersReducedMotion === true
                       ? { duration: 0 }

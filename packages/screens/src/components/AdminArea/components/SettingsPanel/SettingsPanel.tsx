@@ -89,7 +89,7 @@ const SettingsPanel = ({
             }
             triggerShape="field"
             align="end"
-            className="w-44"
+            className="w-44 max-w-full"
           />
         </SettingRow>
 
@@ -163,7 +163,7 @@ const SettingsPanel = ({
             onValueChange={setCatalogueKey}
             placeholder="Paste a key"
             size="sm"
-            className="w-48"
+            className="w-48 max-w-full"
           />
 
           <Button

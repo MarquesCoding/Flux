@@ -172,6 +172,7 @@
       "@ValenceUI/useHasScrolledPast": ["./packages/ui/src/functions/useHasScrolledPast.ts"],
       "@ValenceUI/useTravelDirection": ["./packages/ui/src/functions/useTravelDirection.ts"],
       "@ValenceUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
+      "@ValenceUI/useRoomBeside": ["./packages/ui/src/functions/useRoomBeside.ts"],
       "@ValenceUI/notify": ["./packages/ui/src/functions/notify.ts"],
       "@ValenceUI/readMaskFrames": ["./packages/ui/src/functions/readMaskFrames.ts"],
       "@ValenceUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],
