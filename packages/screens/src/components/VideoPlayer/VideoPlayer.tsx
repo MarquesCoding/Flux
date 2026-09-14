@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { motion, useDragControls } from 'motion/react';
 import {
   Cancel01Icon,
-  CastIcon,
+  MirroringScreenIcon,
   NextIcon,
   PictureInPictureOnIcon,
 } from '@hugeicons/core-free-icons';
@@ -1651,7 +1651,7 @@ const VideoPlayer = ({
 
         {castState !== 'connected' ? null : (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-shade text-center">
-            <Icon of={CastIcon} size={32} className="text-text-muted" />
+            <Icon of={MirroringScreenIcon} size={32} className="text-text-muted" />
 
             <p className="text-sm text-text-muted">Playing on another device</p>
 
