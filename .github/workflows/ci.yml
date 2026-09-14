@@ -21,7 +21,14 @@ concurrency:
 jobs:
   checks:
     name: Lint, types and tests
-    runs-on: ubuntu-latest
+    # Ours where the work is trusted, GitHub's where it is not. A fork's pull request is a
+    # stranger's code, and running that on our own hardware is the one thing self-hosted runners
+    # are genuinely dangerous for — so a pull request from outside this repository goes to a
+    # disposable VM exactly as it did before, and everything else runs here.
+    #
+    # The guarantee is in this line rather than in a job-level `if`, so that removing the `if`
+    # cannot quietly hand the runner to a fork.
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'self-hosted' || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -46,7 +53,10 @@ jobs:
 
   rust:
     name: Transcoder lint and tests
-    runs-on: ubuntu-latest
+    # Ours, with the same guard as the job above. This job already declines pull requests
+    # outright, and the runner choice declines a fork's on its own as well — so neither one
+    # going missing hands the runner to a stranger.
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'self-hosted' || 'ubuntu-latest' }}
     # Not on pull requests. A Debian container, a cold Rust build and a decode against the shipped
     # FFmpeg is minutes of waiting, and paying it on every push to every branch buys less than it
     # costs: the pre-push hook has already run cargo clippy and cargo test on the machine the change

@@ -35,7 +35,7 @@ permissions:
 jobs:
   verify:
     name: Everything must pass first
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
         with:
@@ -67,7 +67,7 @@ jobs:
   # branch, so a release is the moment they must.
   verify-rust:
     name: The transcoder must pass too
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     container:
       image: debian:bookworm-slim
     env:
@@ -112,7 +112,7 @@ jobs:
   image:
     name: Image
     needs: [verify, verify-rust]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
         with:
@@ -171,7 +171,7 @@ jobs:
   artefacts:
     name: What is worth downloading
     needs: [verify, verify-rust]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
         with:
@@ -208,7 +208,7 @@ jobs:
   publish:
     name: Release
     needs: [image, artefacts]
-    runs-on: ubuntu-latest
+    runs-on: self-hosted
     steps:
       - uses: actions/checkout@v7
         with:
