@@ -27,6 +27,8 @@ const OVERVIEW: AdminOverview = {
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
     concurrentRenders: 0,
+    toneMapping: 'unavailable' as const,
+    hardwareToneMaps: [],
     chains: [],
   },
   library: { itemCount: 15, libraryCount: 2, bytes: 0 },

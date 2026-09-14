@@ -38,6 +38,7 @@ const build = (
   waiting: {
     isTranscoderReachable?: () => Promise<boolean>;
     cancelJob?: (jobId: string) => Promise<boolean>;
+    capabilities?: Parameters<typeof createApp>[0]['capabilities'];
   } = {},
 ) => {
   const { auth, settings, store } = createMemoryAuth();
@@ -51,6 +52,7 @@ const build = (
       ? {}
       : { isTranscoderReachable: waiting.isTranscoderReachable }),
     ...(waiting.cancelJob === undefined ? {} : { cancelJob: waiting.cancelJob }),
+    ...(waiting.capabilities === undefined ? {} : { capabilities: waiting.capabilities }),
     auth,
     settings,
     permissions,
@@ -862,6 +864,42 @@ describe('an admin page while the media service is not answering', () => {
     });
 
     expect(response.status).toBe(200);
+  }, 20_000);
+
+  it('says which tone mapper the machine picked, and what the card proved', async () => {
+    const { app, store, permissions } = build({
+      capabilities: () =>
+        Promise.resolve({
+          ffmpegVersion: '8.1.2-Flux',
+          hardwareAccels: ['vaapi'],
+          toneMapping: 'libplacebo' as const,
+          hardwareToneMaps: ['tonemap_vaapi'],
+        }),
+    });
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const body = await (
+      await app.request(`${BASE}/api/admin/overview`, { headers: { cookie, origin: BASE } })
+    ).json();
+
+    expect(body).toMatchObject({
+      transcoder: { toneMapping: 'libplacebo', hardwareToneMaps: ['tonemap_vaapi'] },
+    });
+  }, 20_000);
+
+  it('never reports a tone mapper on a machine that could not be asked', async () => {
+    const { app, store, permissions } = build({
+      isTranscoderReachable: () => new Promise<boolean>(() => undefined),
+    });
+    const cookie = await signedInAsAdmin(app, store, permissions);
+
+    const body = await (
+      await app.request(`${BASE}/api/admin/overview`, { headers: { cookie, origin: BASE } })
+    ).json();
+
+    expect(body).toMatchObject({
+      transcoder: { toneMapping: 'unavailable', hardwareToneMaps: [] },
+    });
   }, 20_000);
 
   it('reports the media service as unreachable rather than guessing it is fine', async () => {
