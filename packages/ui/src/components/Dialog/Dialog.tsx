@@ -1,8 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Dialog as BaseDialog } from '@base-ui/react/dialog';
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { usePortalContainer } from '@ValenceUI/usePortalContainer';
 import { coverPage } from '@ValenceUI/pageCover';
+import { companionContext } from './companionContext';
+import type { CompanionSlot } from './companionContext';
 import type { DialogProps, DialogSize } from './Dialog.types';
 
 const OVERLAY_MOTION = [
@@ -22,6 +25,33 @@ const PANEL_MOTION = [
   'data-closed:duration-[var(--duration-leaving)] data-closed:ease-[var(--ease-in-out)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
+
+const STANDING = [
+  'fixed inset-x-0 top-0 bottom-0 z-50 text-text',
+  'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
+  'sm:-translate-x-1/2 sm:-translate-y-1/2',
+  'outline-none',
+].join(' ');
+
+const PANEL = [
+  'flex flex-col overflow-hidden rounded-none',
+  'valence-float',
+  'sm:w-[min(42rem,92vw)] sm:rounded-2xl',
+].join(' ');
+
+const ROW = ['flex flex-col gap-3 overflow-y-auto', 'sm:flex-row sm:gap-0 sm:overflow-hidden'].join(
+  ' ',
+);
+
+const BESIDE = [
+  'flex min-h-0 shrink-0 flex-col overflow-hidden rounded-none',
+  'valence-float',
+  'sm:rounded-2xl',
+].join(' ');
+
+const BESIDE_WIDTH = 'min(26rem, 40vw)';
+
+const BESIDE_GAP = '1rem';
 
 const SIZE_CLASSES: Record<DialogSize, string> = {
   default: '',
@@ -52,6 +82,18 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * long the duration says it lasts. On `--ease-in-out` the panel holds its shape for the first third
  * and is half gone at fifty milliseconds, which is the same length of animation and a visible one.
  *
+ * A dialog opened from inside a dialog stands beside it rather than over it, where anything within
+ * asks for that. The panel and its companion are one row held at a fixed width, so the panel narrows
+ * by exactly what the companion takes and neither is positioned by hand.
+ *
+ * What stands beside it is carried here rather than copied: this holds the column, and whatever
+ * asked for it draws into that column from where it already lives. A copy would be taken once, and a
+ * form that changed afterwards — a role granted, a name typed — would go on showing what it held
+ * when it opened.
+ *
+ * Side by side needs a side: below the small breakpoint the two are stacked in the one sheet, since
+ * a phone has no room to put anything next to anything.
+ *
  * Opening puts focus on the panel rather than on the first control inside it. Landing on a control
  * draws a focus ring around whatever happens to be first — the favourite button, an icon — which
  * reads as though the dialog has already chosen something on the viewer's behalf. The panel takes
@@ -73,6 +115,9 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
   const portalContainer = usePortalContainer();
   const panelRef = useRef<HTMLDivElement>(null);
+  const prefersReducedMotion = useReducedMotion();
+  const [claimed, setClaimed] = useState<string[]>([]);
+  const [column, setColumn] = useState<HTMLElement | null>(null);
 
   useEffect(() => {
     if (!isOpen) {
@@ -81,6 +126,33 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
 
     return coverPage();
   }, [isOpen]);
+
+  const claim = useCallback((id: string) => {
+    setClaimed((standing) => (standing.includes(id) ? standing : [...standing, id]));
+  }, []);
+
+  const release = useCallback((id: string) => {
+    setClaimed((standing) =>
+      standing.includes(id) ? standing.filter((one) => one !== id) : standing,
+    );
+  }, []);
+
+  const current = claimed.at(-1) ?? null;
+
+  const holdColumn = useCallback((node: HTMLElement | null) => {
+    setColumn((standing) => (node === null ? standing : node));
+  }, []);
+
+  useEffect(() => {
+    if (current === null) {
+      setColumn(null);
+    }
+  }, [current]);
+
+  const slot = useMemo<CompanionSlot>(
+    () => ({ claim, release, current, column }),
+    [claim, release, current, column],
+  );
 
   return (
     <BaseDialog.Root
@@ -103,18 +175,36 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
           initialFocus={panelRef}
           data-slot="dialog-content"
           className={cn(
-            'fixed inset-x-0 top-0 bottom-0 z-50 flex flex-col overflow-hidden rounded-none text-text',
-            'valence-float',
-            'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
-            'sm:w-[min(42rem,92vw)] sm:-translate-x-1/2 sm:-translate-y-1/2',
-            'sm:rounded-2xl',
-            'outline-none',
+            STANDING,
+            'sm:w-[min(42rem,92vw)]',
+            ROW,
             PANEL_MOTION,
             SIZE_CLASSES[size],
             className,
           )}
         >
-          {children}
+          <companionContext.Provider value={slot}>
+            <div className={cn(PANEL, 'min-h-0 min-w-0 flex-1 sm:w-auto')}>{children}</div>
+
+            <AnimatePresence initial={false} mode="wait">
+              {current === null ? null : (
+                <motion.div
+                  key={current}
+                  ref={holdColumn}
+                  data-slot="dialog-companion"
+                  initial={{ width: 0, marginLeft: 0, opacity: 0 }}
+                  animate={{ width: BESIDE_WIDTH, marginLeft: BESIDE_GAP, opacity: 1 }}
+                  exit={{ width: 0, marginLeft: 0, opacity: 0 }}
+                  transition={
+                    prefersReducedMotion === true
+                      ? { duration: 0 }
+                      : { type: 'spring', stiffness: 420, damping: 40 }
+                  }
+                  className={BESIDE}
+                />
+              )}
+            </AnimatePresence>
+          </companionContext.Provider>
         </BaseDialog.Popup>
       </BaseDialog.Portal>
     </BaseDialog.Root>
