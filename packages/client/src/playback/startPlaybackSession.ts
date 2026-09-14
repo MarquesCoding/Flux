@@ -40,6 +40,7 @@ const ErrorSchema = z.object({ error: z.string() });
  * @param startSeconds - Where to begin.
  * @param audioStreamIndex - A particular audio track, where one was chosen.
  * @param requestedQuality - A ceiling a viewer chose.
+ * @param subtitleStreamIndex - A subtitle stream to draw into the picture, where one was chosen.
  * @returns The session, or why there is not one.
  */
 const startPlaybackSession = async (
@@ -49,6 +50,7 @@ const startPlaybackSession = async (
   startSeconds = 0,
   audioStreamIndex?: number,
   requestedQuality?: QualityPreference,
+  subtitleStreamIndex?: number,
 ): Promise<StartOutcome> => {
   const response = await fetch(`/api/playback/${mediaId}/session`, {
     method: 'POST',
@@ -61,6 +63,7 @@ const startPlaybackSession = async (
       ...(requestedQuality === undefined || requestedQuality === 'original'
         ? {}
         : { requestedQuality }),
+      ...(subtitleStreamIndex === undefined ? {} : { subtitleStreamIndex }),
     }),
   }).catch(() => null);
 

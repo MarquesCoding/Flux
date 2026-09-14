@@ -10,6 +10,8 @@ type MemorySubtitle = {
   contents: string;
   isForced?: boolean;
   isHearingImpaired?: boolean;
+  delivery?: 'text' | 'burnIn';
+  streamIndex?: number | null;
 };
 
 type MemoryState = Record<string, MemorySubtitle[]>;
@@ -35,6 +37,8 @@ const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService =
       format: track.format,
       isForced: track.isForced ?? false,
       isHearingImpaired: track.isHearingImpaired ?? false,
+      delivery: track.delivery ?? 'text',
+      streamIndex: track.streamIndex ?? null,
     }));
   };
 

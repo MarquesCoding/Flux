@@ -261,6 +261,7 @@ const VideoPlayer = ({
     mediaId: string;
     startSeconds: number;
     audioStreamIndex?: number;
+    subtitleStreamIndex?: number;
     requestedQuality: QualityPreference;
   }>({
     mediaId: media.id,
@@ -826,6 +827,7 @@ const VideoPlayer = ({
         request.startSeconds,
         request.audioStreamIndex,
         request.requestedQuality,
+        request.subtitleStreamIndex,
       );
 
       if (outcome.kind === 'failed') {
@@ -1242,6 +1244,8 @@ const VideoPlayer = ({
 
   const selectedTrack = subtitleTracks.find((track) => track.id === selectedSubtitleId) ?? null;
 
+  const fetchableTrack = selectedTrack?.delivery === 'burnIn' ? null : selectedTrack;
+
   const chooseSubtitle = useCallback(
     (trackId: string) => {
       setSelectedSubtitleId(trackId);
@@ -1251,8 +1255,37 @@ const VideoPlayer = ({
       writePlaybackPreferences({
         subtitleLanguage: trackId === SUBTITLES_OFF ? SUBTITLES_OFF : (chosen?.language ?? null),
       });
+
+      const wanted =
+        chosen?.delivery === 'burnIn' && chosen.streamIndex !== null
+          ? chosen.streamIndex
+          : undefined;
+
+      if (wanted === request.subtitleStreamIndex) {
+        return;
+      }
+
+      hold(videoRef.current);
+
+      setRequest({
+        mediaId: request.mediaId,
+        startSeconds: Math.floor(position),
+        requestedQuality: request.requestedQuality,
+        ...(request.audioStreamIndex === undefined
+          ? {}
+          : { audioStreamIndex: request.audioStreamIndex }),
+        ...(wanted === undefined ? {} : { subtitleStreamIndex: wanted }),
+      });
     },
-    [subtitleTracks],
+    [
+      subtitleTracks,
+      request.mediaId,
+      request.requestedQuality,
+      request.audioStreamIndex,
+      request.subtitleStreamIndex,
+      position,
+      hold,
+    ],
   );
 
   const availableQualitySteps = detail === null ? [] : listAvailableQualitySteps(detail);
@@ -1292,9 +1325,12 @@ const VideoPlayer = ({
         startSeconds: Math.floor(position),
         audioStreamIndex: streamIndex,
         requestedQuality: request.requestedQuality,
+        ...(request.subtitleStreamIndex === undefined
+          ? {}
+          : { subtitleStreamIndex: request.subtitleStreamIndex }),
       });
     },
-    [request.mediaId, request.requestedQuality, position],
+    [request.mediaId, request.requestedQuality, request.subtitleStreamIndex, position],
   );
 
   const changeQuality = useCallback(
@@ -1311,9 +1347,12 @@ const VideoPlayer = ({
         ...(request.audioStreamIndex === undefined
           ? {}
           : { audioStreamIndex: request.audioStreamIndex }),
+        ...(request.subtitleStreamIndex === undefined
+          ? {}
+          : { subtitleStreamIndex: request.subtitleStreamIndex }),
       });
     },
-    [request.mediaId, request.audioStreamIndex, position],
+    [request.mediaId, request.audioStreamIndex, request.subtitleStreamIndex, position],
   );
 
   useEffect(() => {
@@ -1611,23 +1650,23 @@ const VideoPlayer = ({
           label={media.title}
           videoRef={videoRef}
           className={isImmersive ? 'h-full w-full object-contain' : ''}
-          {...(selectedTrack === null
+          {...(fetchableTrack === null
             ? {}
             : {
                 textTrack: {
-                  id: selectedTrack.id,
-                  label: selectedTrack.label,
-                  language: selectedTrack.language ?? 'und',
-                  src: subtitleTrackUrl(media.id, selectedTrack.id),
+                  id: fetchableTrack.id,
+                  label: fetchableTrack.label,
+                  language: fetchableTrack.language ?? 'und',
+                  src: subtitleTrackUrl(media.id, fetchableTrack.id),
                 },
               })}
           isDrawnElsewhere
           {...asItPlays}
         />
 
-        {selectedTrack === null ? null : (
+        {fetchableTrack === null ? null : (
           <SubtitleCues
-            src={subtitleTrackUrl(media.id, selectedTrack.id)}
+            src={subtitleTrackUrl(media.id, fetchableTrack.id)}
             atSeconds={position - subtitleOffset}
             style={captionStyle}
             isLifted={isBarUp}

@@ -416,16 +416,30 @@ const decideAudio = (
 };
 
 /**
- * Decides what to do with subtitles: none where the file carries none, passed through where the
- * device can render the format itself, and otherwise converted or burned into the picture. Burning
- * in is the last resort, since it cannot afterwards be turned off.
+ * Decides what to do with subtitles: none where none was asked for, passed through where the device
+ * renders the format itself, and otherwise converted to text or drawn into the picture.
+ *
+ * Drawing into the picture is the last resort and is never chosen on a viewer's behalf. It cannot be
+ * turned off without restarting the stream, and it forces the picture to be encoded for as long as
+ * it is on — so a film whose only subtitles are pictures plays without them until somebody asks,
+ * rather than quietly costing every viewer a transcode they did not ask for.
  *
  * @param media - The file, as the catalogue holds it.
  * @param profile - What the device says it can render.
+ * @param chosenStreamIndex - The stream a viewer picked, where they picked one.
  * @returns The subtitle decision and its reason.
  */
-const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDecision => {
-  const stream = media.subtitleStreams[0];
+const decideSubtitles = (
+  media: MediaItem,
+  profile: DeviceProfile,
+  chosenStreamIndex?: number | null,
+): SubtitleDecision => {
+  const chosen =
+    chosenStreamIndex === undefined || chosenStreamIndex === null
+      ? undefined
+      : media.subtitleStreams.find((candidate) => candidate.index === chosenStreamIndex);
+
+  const stream = chosen ?? media.subtitleStreams[0];
 
   if (stream === undefined) {
     return {
@@ -446,6 +460,16 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
   }
 
   if (IMAGE_SUBTITLE_FORMATS.includes(stream.format)) {
+    if (chosen === undefined && !stream.isForced) {
+      return {
+        kind: 'none',
+        reason: {
+          code: 'SubtitleFormatNotSupported',
+          detail: `${stream.format} is image based and has to be drawn into the picture, so it is off until it is asked for`,
+        },
+      };
+    }
+
     return {
       kind: 'burnIn',
       streamIndex: stream.index,
@@ -477,6 +501,7 @@ const decideSubtitles = (media: MediaItem, profile: DeviceProfile): SubtitleDeci
  * @param profile - What this client says it can play.
  * @param qualityClamp - A ceiling a viewer chose, or nothing to let the client's own limits decide.
  * @param preferredAudioLanguage - The language to pick an audio track in where the file has one.
+ * @param chosenSubtitleStreamIndex - The subtitle stream a viewer picked, where they picked one.
  * @returns The plan for this file and this client, axis by axis.
  */
 const negotiatePlayback = (
@@ -484,12 +509,13 @@ const negotiatePlayback = (
   profile: DeviceProfile,
   qualityClamp?: QualityClamp | null,
   preferredAudioLanguage?: string | null,
+  chosenSubtitleStreamIndex?: number | null,
 ): PlaybackPlan => ({
   mediaId: media.id,
   container: decideContainer(media, profile),
   video: decideVideo(media, profile, qualityClamp),
   audio: decideAudio(media, profile, qualityClamp, preferredAudioLanguage),
-  subtitles: decideSubtitles(media, profile),
+  subtitles: decideSubtitles(media, profile, chosenSubtitleStreamIndex),
 });
 
 export { negotiatePlayback };

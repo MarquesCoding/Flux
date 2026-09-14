@@ -194,7 +194,15 @@ const createPlaybackService = ({
       return { mode: describePlaybackMode(plan), plan };
     },
 
-    start: async (mediaId, profile, startSeconds, audioStreamIndex, requestedQuality, deviceId) => {
+    start: async (
+      mediaId,
+      profile,
+      startSeconds,
+      audioStreamIndex,
+      requestedQuality,
+      deviceId,
+      subtitleStreamIndex,
+    ) => {
       const found = await media.findForPlayback(mediaId);
 
       if (found === null) {
@@ -202,7 +210,13 @@ const createPlaybackService = ({
       }
 
       const qualityClamp = resolveQualityStep(found.item, requestedQuality ?? 'original');
-      const plan = negotiatePlayback(found.item, profile, qualityClamp, found.defaultAudioLanguage);
+      const plan = negotiatePlayback(
+        found.item,
+        profile,
+        qualityClamp,
+        found.defaultAudioLanguage,
+        subtitleStreamIndex,
+      );
 
       if (isDirectPlay(plan, found.item) && audioStreamIndex === undefined) {
         return {
