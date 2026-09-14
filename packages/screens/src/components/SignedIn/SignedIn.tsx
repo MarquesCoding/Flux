@@ -24,7 +24,7 @@ import type { SignedInProps } from './SignedIn.types';
 
 const PARTY_NOTICE_LINGERS_MS = 6000;
 
-const BAR_LEAVES_MS = 260;
+const MARK_FLIES_MS = 300;
 
 const MARKS_PLACE = 'valence-mark';
 
@@ -50,23 +50,33 @@ const SignedIn = ({ title }: SignedInProps) => {
 
   const watchParty = useWatchParty();
 
-  const [isHoldingTheScreen, setIsHoldingTheScreen] = useState(session.isPending);
+  const [isPageReading, setIsPageReading] = useState(false);
+
+  const holdTheScreen = useCallback((isHolding: boolean) => {
+    setIsPageReading(isHolding);
+  }, []);
+
+  const isWaiting = session.isPending || isPageReading;
+
+  const [phase, setPhase] = useState<'holding' | 'fading' | 'gone'>('holding');
+
+  const isHoldingTheScreen = phase === 'holding';
 
   useEffect(() => {
-    if (session.isPending) {
-      setIsHoldingTheScreen(true);
-
+    if (phase === 'gone' || isWaiting) {
       return;
     }
 
-    const timer = setTimeout(() => {
-      setIsHoldingTheScreen(false);
-    }, BAR_LEAVES_MS);
+    setPhase('fading');
+
+    const goes = setTimeout(() => {
+      setPhase('gone');
+    }, MARK_FLIES_MS);
 
     return () => {
-      clearTimeout(timer);
+      clearTimeout(goes);
     };
-  }, [session.isPending]);
+  }, [isWaiting, phase]);
 
   useBrowsingPresence();
   useTellTheServerWhatIsHeld();
@@ -251,6 +261,8 @@ const SignedIn = ({ title }: SignedInProps) => {
             setAskingAbout,
             watchParty,
             refresh,
+            holdTheScreen,
+            isHoldingTheScreen,
           },
     [
       title,
@@ -267,6 +279,8 @@ const SignedIn = ({ title }: SignedInProps) => {
       askingAbout,
       watchParty,
       refresh,
+      holdTheScreen,
+      isHoldingTheScreen,
     ],
   );
 
@@ -283,14 +297,11 @@ const SignedIn = ({ title }: SignedInProps) => {
 
   return (
     <LayoutGroup>
-      {isHoldingTheScreen ? (
-        <SplashScreen
-          name={title}
-          label={`Loading ${title}`}
-          isReady={!session.isPending}
-          marksPlace={MARKS_PLACE}
-        />
-      ) : shell === null ? (
+      {shell !== null ? (
+        <shellContext.Provider value={shell}>
+          <Outlet />
+        </shellContext.Provider>
+      ) : phase !== 'gone' ? null : (
         <ProfileGate
           name={title}
           onSignedIn={() => {
@@ -298,10 +309,17 @@ const SignedIn = ({ title }: SignedInProps) => {
             void refresh();
           }}
         />
-      ) : (
-        <shellContext.Provider value={shell}>
-          <Outlet />
-        </shellContext.Provider>
+      )}
+
+      {phase === 'gone' ? null : (
+        <SplashScreen
+          name={title}
+          label={`Loading ${title}`}
+          isReady={!isWaiting}
+          marksPlace={MARKS_PLACE}
+          hasMark={phase === 'holding'}
+          isLeaving={phase === 'fading'}
+        />
       )}
     </LayoutGroup>
   );

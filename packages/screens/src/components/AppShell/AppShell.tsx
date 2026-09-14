@@ -177,11 +177,15 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  *   place to go — and every place is offered until the answer arrives, rather than places
  *   appearing one by one as it does.
  * @param notifications - The bell and what is behind it.
+ * @param hasMark - Whether the bar draws the mark itself. It does not while a screen held over the
+ *   page is still showing it: the mark is one thing moving from there to here, and two of them on
+ *   screen at once is two marks rather than one arriving.
  */
 const AppShell = ({
   section,
   onSectionChange,
   children,
+  hasMark = true,
   moodLights = [],
   isAdministrator = false,
   isAccountOpen,
@@ -482,15 +486,21 @@ const AppShell = ({
               }}
               className="flex items-center rounded-md"
             >
-              <motion.span
-                layoutId={MARKS_PLACE}
-                transition={{
-                  layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
-                }}
-                className="flex items-center"
-              >
-                <Logo size={28} isSolid />
-              </motion.span>
+              {hasMark ? (
+                <motion.span
+                  layoutId={MARKS_PLACE}
+                  transition={{
+                    layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
+                  }}
+                  className="flex items-center"
+                >
+                  <Logo size={28} isSolid />
+                </motion.span>
+              ) : (
+                <span aria-hidden className="flex items-center opacity-0">
+                  <Logo size={28} isSolid />
+                </span>
+              )}
             </Button>
           }
           solidity={solidity}

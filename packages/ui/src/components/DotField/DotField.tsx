@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { DotFieldProps } from './DotField.types';
@@ -69,6 +69,32 @@ const DotField = ({
   className,
 }: DotFieldProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const [themeAt, setThemeAt] = useState(0);
+
+  useEffect(() => {
+    const bump = () => {
+      setThemeAt((count) => count + 1);
+    };
+
+    const watcher = new MutationObserver(bump);
+
+    watcher.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['data-theme', 'class'],
+    });
+
+    const media =
+      typeof window.matchMedia === 'function'
+        ? window.matchMedia('(prefers-color-scheme: dark)')
+        : null;
+
+    media?.addEventListener('change', bump);
+
+    return () => {
+      watcher.disconnect();
+      media?.removeEventListener('change', bump);
+    };
+  }, []);
   const prefersReducedMotion = useReducedMotion();
 
   useEffect(() => {
@@ -246,7 +272,7 @@ const DotField = ({
       cancelAnimationFrame(request);
       observer.disconnect();
     };
-  }, [spacing, sources, seconds, frame, prefersReducedMotion]);
+  }, [spacing, sources, seconds, frame, prefersReducedMotion, themeAt]);
 
   return (
     <canvas

@@ -14,8 +14,17 @@ const OURS = 'valence';
  * not doing its job. That only holds while the platform is called Valence: an operator who has renamed
  * it gets the name set instead, since the mark is not theirs to stand for.
  *
+ * The ground it holds is opaque until the mark has finished travelling, and only then fades. A
+ * screen that vanishes the moment the mark sets off shows the page arriving underneath a logo still
+ * in flight, which reads as two things happening rather than one handing over to the other.
+ *
  * @param name - What the platform is called, which may have been renamed by an operator.
  * @param label - What is being waited for, read out to anybody who cannot see the screen.
+ * @param isReady - Whether what was being waited for has arrived, which takes the bar away.
+ * @param marksPlace - The name the mark travels under, where it goes on to somewhere else.
+ * @param hasMark - Whether this screen is the one holding the mark. False once the mark has been
+ *   handed on, so that two of them are never on screen under the same name.
+ * @param isLeaving - Whether the ground is fading, which it does once the mark has landed.
  */
 const SplashScreen = ({
   name = 'Valence',
@@ -23,6 +32,7 @@ const SplashScreen = ({
   isReady = false,
   marksPlace,
   hasMark = true,
+  isLeaving = false,
 }: SplashScreenProps) => {
   const prefersReducedMotion = useReducedMotion();
 
@@ -33,7 +43,10 @@ const SplashScreen = ({
       role="status"
       aria-label={label}
       aria-busy="true"
-      className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 bg-surface"
+      style={{ opacity: isLeaving ? 0 : 1 }}
+      className={`fixed inset-0 z-50 flex flex-col items-center justify-center gap-10 bg-surface transition-opacity duration-[260ms] ease-out motion-reduce:transition-none${
+        isLeaving ? ' pointer-events-none' : ''
+      }`}
     >
       {!hasMark ? null : (
         <motion.span
@@ -41,14 +54,14 @@ const SplashScreen = ({
           initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{
-            opacity: { duration: 0.6, ease: 'easeOut' },
-            y: { duration: 0.6, ease: 'easeOut' },
+            opacity: { duration: 0.22, ease: 'easeOut' },
+            y: { duration: 0.22, ease: 'easeOut' },
             layout: prefersReducedMotion === true ? stillTransition : liquidSpring,
           }}
           className="flex items-center justify-center"
         >
           {isOurs ? (
-            <Logo size={112} hasEdge isAnimated label={name} />
+            <Logo size={112} isSolid label={name} />
           ) : (
             <p className="text-4xl font-semibold tracking-[-0.05em] text-text sm:text-5xl">
               {name}

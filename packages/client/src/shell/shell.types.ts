@@ -29,6 +29,8 @@ type Shell = {
   setAskingAbout: (media: MediaSummary | null) => void;
   watchParty: WatchPartyState;
   refresh: () => Promise<void>;
+  holdTheScreen: (isHolding: boolean) => void;
+  isHoldingTheScreen: boolean;
 };
 
 export type { MoodLight, Shell, StartOverride };

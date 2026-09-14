@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
 import { authenticateWithPasskey, signInWithEmail } from '@ValenceClient/session/auth';
 import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
+import { chosenTheme } from '@ValenceClient/shell/theme';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
@@ -485,5 +486,24 @@ describe('shown inside the desktop client', () => {
     await arrive();
 
     expect(screen.queryByRole('button', { name: 'Use a different server' })).toBeNull();
+  });
+});
+
+describe('choosing a theme before signing in', () => {
+  it('offers the choice on the way in, where somebody first sees the colours', async () => {
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
+  });
+
+  it('takes the theme somebody picks without making them sign in first', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    await actor.click(screen.getByRole('button', { name: 'Light' }));
+
+    expect(chosenTheme()).toBe('light');
   });
 });
