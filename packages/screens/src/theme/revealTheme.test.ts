@@ -1,201 +1,96 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { revealTheme } from './revealTheme';
-
-const animateMock =
-  vi.fn<(keyframes: PropertyIndexedKeyframes, options: KeyframeAnimationOptions) => void>();
+import { CROSSFADE_MILLISECONDS, revealTheme } from './revealTheme';
 
 /**
- * A browser that can photograph a page, whose change is over only when the test says so.
+ * Says whether the machine has been asked for less movement.
  */
-const aBrowserThatPhotographs = () => {
-  let finish: () => void = () => undefined;
-
-  const finished = new Promise<void>((resolve) => {
-    finish = resolve;
-  });
-
-  const start = vi.fn((update: () => void) => {
-    update();
-
-    return {
-      ready: Promise.resolve(),
-      finished,
-      updateCallbackDone: Promise.resolve(),
-      skipTransition: vi.fn(),
-    };
-  });
-
-  Object.defineProperty(document, 'startViewTransition', {
-    configurable: true,
-    writable: true,
-    value: start,
-  });
-
-  return {
-    start,
-    finish: () => {
-      finish();
-    },
-  };
+const machineAsksForStillness = (isAsking: boolean): void => {
+  vi.stubGlobal('matchMedia', (query: string) => ({
+    matches: isAsking && query.includes('reduce'),
+    media: query,
+    addEventListener: vi.fn(),
+    removeEventListener: vi.fn(),
+    addListener: vi.fn(),
+    removeListener: vi.fn(),
+    onchange: null,
+    dispatchEvent: vi.fn(),
+  }));
 };
 
-/**
- * Says whether somebody has asked their system for less movement.
- */
-const askingForLessMovement = (isAsking: boolean) => {
-  const real = window.matchMedia('(prefers-reduced-motion: reduce)');
-
-  vi.spyOn(window, 'matchMedia').mockReturnValue({ ...real, matches: isAsking });
-};
+const isEasing = (): boolean => document.documentElement.hasAttribute('data-theme-shift');
 
 beforeEach(() => {
-  askingForLessMovement(false);
-
-  Object.defineProperty(document.documentElement, 'animate', {
-    configurable: true,
-    writable: true,
-    value: animateMock,
-  });
+  vi.useFakeTimers();
+  machineAsksForStillness(false);
 });
 
 afterEach(() => {
-  Reflect.deleteProperty(document, 'startViewTransition');
-  Reflect.deleteProperty(document.documentElement, 'animate');
+  vi.useRealTimers();
+  vi.unstubAllGlobals();
   delete document.documentElement.dataset['themeShift'];
-  animateMock.mockReset();
-  vi.restoreAllMocks();
+  delete document.documentElement.dataset['motion'];
 });
 
 describe('revealTheme', () => {
-  it('simply changes the theme where the browser cannot photograph a page', () => {
+  it('changes the theme', () => {
     const apply = vi.fn();
 
-    revealTheme(apply, { x: 10, y: 10 });
+    revealTheme(apply);
 
-    expect(apply).toHaveBeenCalledTimes(1);
-    expect(document.documentElement.hasAttribute('data-theme-shift')).toBe(false);
-  });
-
-  it('simply changes it for somebody who has asked for less movement', () => {
-    const browser = aBrowserThatPhotographs();
-    const apply = vi.fn();
-
-    askingForLessMovement(true);
-    revealTheme(apply, { x: 10, y: 10 });
-
-    expect(apply).toHaveBeenCalledTimes(1);
-    expect(browser.start).not.toHaveBeenCalled();
-  });
-
-  it('simply changes it while something is playing, rather than holding a still over it', () => {
-    const browser = aBrowserThatPhotographs();
-    const apply = vi.fn();
-
-    const playing = document.createElement('video');
-
-    Object.defineProperty(playing, 'paused', { configurable: true, value: false });
-    document.body.append(playing);
-
-    revealTheme(apply, { x: 10, y: 10 });
-
-    expect(apply).toHaveBeenCalledTimes(1);
-    expect(browser.start).not.toHaveBeenCalled();
-
-    playing.remove();
-  });
-
-  it('still opens out where a video is on the page but paused', async () => {
-    const browser = aBrowserThatPhotographs();
-
-    const paused = document.createElement('video');
-
-    document.body.append(paused);
-
-    revealTheme(vi.fn(), { x: 10, y: 10 });
-
-    expect(browser.start).toHaveBeenCalled();
-
-    await vi.waitFor(() => {
-      expect(animateMock).toHaveBeenCalled();
-    });
-
-    paused.remove();
-  });
-
-  it('photographs the page as it was, and changes the theme underneath it', () => {
-    const browser = aBrowserThatPhotographs();
-    const apply = vi.fn();
-
-    revealTheme(apply, { x: 10, y: 10 });
-
-    expect(browser.start).toHaveBeenCalledWith(apply);
     expect(apply).toHaveBeenCalledTimes(1);
   });
 
-  it('opens the new theme out from where somebody pressed', async () => {
-    aBrowserThatPhotographs();
+  it('marks the page while the colours ease, and takes the mark off after', () => {
+    revealTheme(vi.fn());
 
-    revealTheme(vi.fn(), { x: 100, y: 50 });
+    expect(isEasing()).toBe(true);
 
-    await vi.waitFor(() => {
-      expect(animateMock).toHaveBeenCalled();
-    });
+    vi.advanceTimersByTime(CROSSFADE_MILLISECONDS);
 
-    const [keyframes, options] = animateMock.mock.calls[0] ?? [];
-
-    expect(keyframes).toEqual({
-      clipPath: [expect.stringContaining('circle(0px at 100px 50px)'), expect.any(String)],
-    });
-    expect(options).toEqual(
-      expect.objectContaining({ pseudoElement: '::view-transition-new(root)' }),
-    );
+    expect(isEasing()).toBe(false);
   });
 
-  it('opens it far enough to cover the furthest corner', async () => {
-    aBrowserThatPhotographs();
+  it('never photographs the page, so whatever is playing keeps playing', () => {
+    const photograph = vi.fn();
 
-    revealTheme(vi.fn(), { x: 0, y: 0 });
-
-    await vi.waitFor(() => {
-      expect(animateMock).toHaveBeenCalled();
+    Object.defineProperty(document, 'startViewTransition', {
+      configurable: true,
+      writable: true,
+      value: photograph,
     });
 
-    const reach = Math.hypot(window.innerWidth, window.innerHeight);
-    const [keyframes] = animateMock.mock.calls[0] ?? [];
+    revealTheme(vi.fn());
 
-    expect(keyframes).toEqual({
-      clipPath: [expect.any(String), `circle(${reach.toString()}px at 0px 0px)`],
-    });
+    expect(photograph).not.toHaveBeenCalled();
+
+    Reflect.deleteProperty(document, 'startViewTransition');
   });
 
-  it('opens it from the middle where nobody pressed anywhere', async () => {
-    aBrowserThatPhotographs();
+  it('changes it outright for somebody whose machine asks for less movement', () => {
+    machineAsksForStillness(true);
 
-    revealTheme(vi.fn(), null);
+    const apply = vi.fn();
 
-    await vi.waitFor(() => {
-      expect(animateMock).toHaveBeenCalled();
-    });
+    revealTheme(apply);
 
-    const middle = `${(window.innerWidth / 2).toString()}px ${(window.innerHeight / 2).toString()}px`;
-    const [keyframes] = animateMock.mock.calls[0] ?? [];
-
-    expect(keyframes).toEqual({
-      clipPath: [`circle(0px at ${middle})`, expect.any(String)],
-    });
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(isEasing()).toBe(false);
   });
 
-  it('marks the page while it changes, and takes the mark off once it has', async () => {
-    const browser = aBrowserThatPhotographs();
+  it('changes it outright where less movement was chosen here', () => {
+    document.documentElement.dataset['motion'] = 'reduced';
 
-    revealTheme(vi.fn(), { x: 10, y: 10 });
+    revealTheme(vi.fn());
 
-    expect(document.documentElement.hasAttribute('data-theme-shift')).toBe(true);
+    expect(isEasing()).toBe(false);
+  });
 
-    browser.finish();
+  it('eases it anyway where movement was chosen here, whatever the machine asks for', () => {
+    machineAsksForStillness(true);
+    document.documentElement.dataset['motion'] = 'full';
 
-    await vi.waitFor(() => {
-      expect(document.documentElement.hasAttribute('data-theme-shift')).toBe(false);
-    });
+    revealTheme(vi.fn());
+
+    expect(isEasing()).toBe(true);
   });
 });

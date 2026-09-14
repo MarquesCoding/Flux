@@ -9,6 +9,72 @@
 
 @custom-variant coarse (@media (pointer: coarse));
 
+@property --color-surface {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.985 0.006 170);
+}
+
+@property --color-surface-raised {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.9555 0.0118 170);
+}
+
+@property --color-border {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.87 0.016 200);
+}
+
+@property --color-text {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.3548 0.0401 261);
+}
+
+@property --color-text-muted {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.49 0.03 252);
+}
+
+@property --color-accent {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.5635 0.2408 260.8);
+}
+
+@property --color-accent-hover {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.52 0.2408 260.8);
+}
+
+@property --color-accent-contrast {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.99 0 0);
+}
+
+@property --color-highlight {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.54 0.115 85);
+}
+
+@property --color-highlight-contrast {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.99 0 0);
+}
+
+@property --color-danger {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: oklch(0.55 0.17 25);
+}
+
 @custom-variant still {
   @media (prefers-reduced-motion: reduce) {
     :root:not([data-motion='full']) & {
@@ -180,6 +246,8 @@
   --duration-slow: 320ms;
 
   --duration-leaving: 140ms;
+
+  --duration-theme: 320ms;
 
   --animate-duration: var(--duration-base);
   --animate-easing: var(--ease-out);
@@ -406,10 +474,19 @@ body {
   }
 }
 
-:root[data-theme-shift]::view-transition-old(root),
-:root[data-theme-shift]::view-transition-new(root) {
-  animation: none;
-  mix-blend-mode: normal;
+:root[data-theme-shift] {
+  transition:
+    --color-surface var(--duration-theme) var(--ease-out),
+    --color-surface-raised var(--duration-theme) var(--ease-out),
+    --color-border var(--duration-theme) var(--ease-out),
+    --color-text var(--duration-theme) var(--ease-out),
+    --color-text-muted var(--duration-theme) var(--ease-out),
+    --color-accent var(--duration-theme) var(--ease-out),
+    --color-accent-hover var(--duration-theme) var(--ease-out),
+    --color-accent-contrast var(--duration-theme) var(--ease-out),
+    --color-highlight var(--duration-theme) var(--ease-out),
+    --color-highlight-contrast var(--duration-theme) var(--ease-out),
+    --color-danger var(--duration-theme) var(--ease-out);
 }
 
 .valence-mood-fade {
