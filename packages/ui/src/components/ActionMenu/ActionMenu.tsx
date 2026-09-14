@@ -11,6 +11,11 @@ import type { ActionMenuProps } from './ActionMenu.types';
  * option menu is for. Items can be grouped, marked destructive so they read as dangerous before
  * they are pressed, and disabled with the reason still visible.
  *
+ * An item closes the menu on being chosen, because doing the thing is the end of the errand. An item
+ * that sets a value rather than doing a thing can ask to stay open: choosing a theme and having the
+ * menu vanish means anybody comparing two of them has to reopen it between each, and the menu is
+ * where the answer is shown.
+ *
  * @param label - What the menu is, read out to anybody who cannot see it.
  * @param trigger - The control that opens it.
  * @param groups - The items, in groups separated by a rule.
@@ -86,7 +91,13 @@ const ActionMenu = ({
                     key={item.id}
                     data-highlight={item.id}
                     disabled={item.isDisabled ?? false}
-                    onSelect={item.onChoose}
+                    onSelect={(event) => {
+                      if (item.keepsOpen === true) {
+                        event.preventDefault();
+                      }
+
+                      item.onChoose();
+                    }}
                     className={cn(
                       'flex cursor-default items-center gap-3 rounded-sm px-3 py-2.5 outline-none',
                       'data-[disabled]:cursor-not-allowed data-[disabled]:opacity-40',

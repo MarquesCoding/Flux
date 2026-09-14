@@ -24,7 +24,7 @@ import {
   motion,
   useMotionValue,
   useMotionValueEvent,
-  useReducedMotion,
+  useReducedMotionConfig,
   useScroll,
 } from 'motion/react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
@@ -201,7 +201,7 @@ const AppShell = ({
   stocked,
   notifications,
 }: AppShellProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const [isFilmPlaying, setIsFilmPlaying] = useState(false);
   const { scrollY } = useScroll();
   const solidity = useMotionValue(0);
@@ -416,6 +416,7 @@ const AppShell = ({
                 id: `theme-${choice.id}`,
                 label: choice.label,
                 icon: THEME_ICONS[choice.id],
+                keepsOpen: true,
                 ...(theme === choice.id ? { detail: '✓' } : {}),
                 onChoose: () => {
                   choose(choice.id);
