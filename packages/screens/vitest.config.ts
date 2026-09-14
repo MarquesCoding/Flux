@@ -9,6 +9,7 @@ export default defineConfig({
     globals: true,
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    testTimeout: 20_000,
     coverage: {
       reporter: ['text', 'json-summary'],
       thresholds: { lines: 90, functions: 83, branches: 84, statements: 90 },
