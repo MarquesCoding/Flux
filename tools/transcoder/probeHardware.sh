@@ -11,7 +11,7 @@
 # stop this script, not decorate it.
 set -euo pipefail
 
-FFMPEG="${VALENCE_FFMPEG:-/usr/lib/flux-ffmpeg/ffmpeg}"
+FFMPEG="${VALENCE_FFMPEG:-/usr/lib/valence-ffmpeg/ffmpeg}"
 DEVICE="${VALENCE_VAAPI_DEVICE:-/dev/dri/renderD128}"
 
 # Matches PROBE_SIZE in apps/transcoder/src/capability.rs. Kept in step by hand,

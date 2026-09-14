@@ -67,10 +67,10 @@ jobs:
     container:
       image: debian:bookworm-slim
     env:
-      VALENCE_FFMPEG_VERSION: 8.1.2-2flux2
+      VALENCE_FFMPEG_VERSION: 8.1.2-5.1
       VALENCE_FFMPEG_SUITE: bookworm
-      VALENCE_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
-      VALENCE_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
+      VALENCE_FFMPEG: /usr/lib/valence-ffmpeg/ffmpeg
+      VALENCE_FFPROBE: /usr/lib/valence-ffmpeg/ffprobe
     steps:
       # Nothing is in a slim image, including what checkout needs to clone with. The corpus tools
       # are deliberately absent: cargo test shells out to FFmpeg and nothing else.
@@ -95,9 +95,9 @@ jobs:
 
       - name: Install the FFmpeg Valence ships
         run: |
-          curl -fsSL -o /tmp/flux-ffmpeg.deb \
-            "https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
-          apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
+          curl -fsSL -o /tmp/valence-ffmpeg.deb \
+            "https://github.com/ValenceOSS/valence-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/valence-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
+          apt-get install -y --no-install-recommends /tmp/valence-ffmpeg.deb
           "$VALENCE_FFMPEG" -version | head -1
           # On the path as well as in the variables. The package installs beside the system's own
           # FFmpeg rather than as it, and a slim image has none, so a test reaching for the bare
