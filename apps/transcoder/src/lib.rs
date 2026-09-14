@@ -15,6 +15,7 @@ pub mod chains;
 pub mod concurrency;
 pub mod download;
 pub mod drm_clients;
+pub mod durability;
 pub mod fingerprint;
 pub mod frame;
 pub mod graphics;

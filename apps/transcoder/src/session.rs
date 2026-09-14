@@ -772,7 +772,21 @@ pub struct SessionConfig {
     /// reason Jellyfin asks for it rather than detecting it: the admin knows
     /// which card is theirs to spend.
     pub device: String,
+    /// Where a session's segments are written, which is scratch.
+    ///
+    /// Disposable by design and swept on a timer. ADR-0006 calls this mount
+    /// tmpfs-capable, and it means it.
     pub cache_root: PathBuf,
+    /// Where previews and thumbnail sheets are kept, which is not scratch.
+    ///
+    /// Held apart from the segment scratch because the two want opposite
+    /// things from a disk. Segments are written while somebody is watching and
+    /// thrown away behind them, so they want the fastest disk in the machine.
+    /// Sheets cost minutes of decoding a film each and are read for as long as
+    /// the film is in the library, so they want a disk that is kept — which on
+    /// a lot of machines is a larger, slower, network-attached one. Sharing a
+    /// root forced one answer for both.
+    pub artefact_root: PathBuf,
     pub idle_timeout: Duration,
     pub max_concurrent: usize,
 }
@@ -784,6 +798,7 @@ impl Default for SessionConfig {
             ffprobe: "ffprobe".to_owned(),
             device: crate::transcode_plan::DEFAULT_DEVICE.to_owned(),
             cache_root: std::env::temp_dir().join("valence-transcodes"),
+            artefact_root: std::env::temp_dir().join("valence-artefacts"),
             idle_timeout: Duration::from_secs(90),
             max_concurrent: 2,
         }

@@ -113,6 +113,11 @@ const GraphicsUseSchema = z.object({
   measured: z.enum(['wholeMachine', 'valenceOnly']).default('wholeMachine'),
 });
 
+const ArtefactStoreSchema = z.object({
+  root: z.string(),
+  survivesRestart: z.boolean(),
+});
+
 const MonitorSchema = z.object({
   resources: z.object({
     atMs: z.number(),
@@ -123,6 +128,7 @@ const MonitorSchema = z.object({
     serviceCpuPercent: z.number(),
     serviceMemoryBytes: z.number(),
     children: z.array(ProcessUseSchema),
+    artefacts: ArtefactStoreSchema.nullable().default(null),
     deploymentMemory: DeploymentMemorySchema.nullable().default(null),
     apiMemoryBytes: z.number().nullable().default(null),
     loadAverage: z.number(),

@@ -74,6 +74,7 @@ const MONITOR: Monitor = {
       devicePercent: 41,
       measured: 'wholeMachine',
     },
+    artefacts: null,
   },
   queue: {
     concurrency: 2,

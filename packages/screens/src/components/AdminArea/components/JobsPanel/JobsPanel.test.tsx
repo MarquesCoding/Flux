@@ -38,6 +38,7 @@ const reading = (jobs: Job[], queue: Partial<Monitor['queue']> = {}): Monitor =>
     loadAverage: 0,
     disks: [],
     graphics: null,
+    artefacts: null,
   },
   queue: { concurrency: 2, queued: 0, running: jobs.length, jobs, ...queue },
   sessions: 0,

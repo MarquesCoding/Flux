@@ -16,6 +16,7 @@ const resources = (overrides: Partial<Monitor['resources']> = {}): Monitor['reso
   loadAverage: 0,
   disks: [],
   graphics: null,
+  artefacts: null,
   ...overrides,
 });
 

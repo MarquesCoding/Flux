@@ -161,6 +161,7 @@ async fn asking_twice_at_once_renders_one_clip_rather_than_two() {
             ffmpeg: ffmpeg_path,
             ffprobe: ffprobe(),
             cache_root: root.clone(),
+            artefact_root: root.clone(),
             idle_timeout: Duration::from_secs(60),
             max_concurrent: 2,
         }),

@@ -81,6 +81,8 @@ fn session_config(ffmpeg: String, ffprobe: String) -> SessionConfig {
         ffprobe,
         device: from_env("VALENCE_VAAPI_DEVICE").unwrap_or(defaults.device),
         cache_root: env::var("VALENCE_TRANSCODE_DIR").map_or(defaults.cache_root, PathBuf::from),
+        artefact_root: env::var("VALENCE_ARTEFACT_DIR")
+            .map_or(defaults.artefact_root, PathBuf::from),
         idle_timeout: env::var("VALENCE_SESSION_IDLE_SECONDS")
             .ok()
             .and_then(|value| value.parse().ok())
@@ -154,6 +156,51 @@ fn spawn_sweeper(registry: SessionRegistry) {
     });
 }
 
+/// Says, once, whether previews will still be there after the next update.
+///
+/// The failure this exists for is silent by construction: everything works,
+/// nothing errors, and the artefacts are gone at the next restart. An operator
+/// finds out weeks later by noticing their library is rendering again. So the
+/// service checks where it is about to write and says so at boot, where the
+/// answer sits beside the version it was running when it mattered.
+async fn report_durability(
+    registry: &SessionRegistry,
+    monitor: &valence_transcoder::monitor::Monitor,
+) {
+    let root = registry.config().artefact_root.clone();
+
+    let Some(durability) = valence_transcoder::durability::of(&root).await else {
+        return;
+    };
+
+    monitor
+        .note_artefacts(valence_transcoder::monitor::ArtefactStore {
+            root: root.display().to_string(),
+            survives_restart: durability.survives_restart,
+        })
+        .await;
+
+    if durability.survives_restart {
+        record(
+            LogLevel::Info,
+            "cache",
+            &format!(
+                "previews and thumbnails are kept on {} ({})",
+                durability.mount.display(),
+                durability.filesystem
+            ),
+        );
+
+        return;
+    }
+
+    record(
+        LogLevel::Warn,
+        "cache",
+        &valence_transcoder::durability::warning(&root, &durability),
+    );
+}
+
 async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     let journal = valence_transcoder::monitor::Journal::new();
 
@@ -187,7 +234,9 @@ async fn serve(registry: SessionRegistry, ffmpeg: String, ffprobe: String) {
     state.monitor.watch_graphics();
     state
         .monitor
-        .watch_cache(state.registry.config().cache_root.clone());
+        .watch_cache(state.registry.config().artefact_root.clone());
+
+    report_durability(&registry, &state.monitor).await;
 
     let router = create_router(state);
 

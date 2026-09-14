@@ -148,6 +148,21 @@ pub struct ResourceUse {
     pub disks: Vec<DiskUse>,
     /// What the graphics hardware is doing, where the machine will say.
     pub graphics: Option<GraphicsUse>,
+    /// Where rendered artefacts are kept, and whether they will still be there.
+    pub artefacts: Option<ArtefactStore>,
+}
+
+/// Where previews and sheets are written, and whether that outlives the
+/// container.
+///
+/// Reported rather than logged alone, because the operator who needs it is
+/// looking at the admin page wondering why the library is rendering again, not
+/// reading a log from three updates ago.
+#[derive(Debug, Clone, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ArtefactStore {
+    pub root: String,
+    pub survives_restart: bool,
 }
 
 /// Everything a monitoring page reads.
@@ -250,6 +265,7 @@ pub struct Monitor {
     system: Arc<Mutex<System>>,
     disks: Arc<Mutex<DiskReadings>>,
     graphics: Arc<Mutex<Option<GraphicsUse>>>,
+    artefacts: Arc<Mutex<Option<ArtefactStore>>>,
     cache: Arc<Mutex<Option<CacheUse>>>,
     journal: Journal,
 }
@@ -308,6 +324,7 @@ impl Monitor {
             system: Arc::new(Mutex::new(System::new())),
             disks: Arc::new(Mutex::new(DiskReadings::new())),
             graphics: Arc::new(Mutex::new(None)),
+            artefacts: Arc::new(Mutex::new(None)),
             cache: Arc::new(Mutex::new(None)),
             journal,
         }
@@ -316,6 +333,15 @@ impl Monitor {
     #[must_use]
     pub fn journal(&self) -> &Journal {
         &self.journal
+    }
+
+    /// Records where artefacts are kept, which is settled once at startup.
+    ///
+    /// Not a poller. The answer is a property of how the container was mapped
+    /// and cannot change while it is running, so asking again every few seconds
+    /// would read the same file for the same answer for ever.
+    pub async fn note_artefacts(&self, store: ArtefactStore) {
+        *self.artefacts.lock().await = Some(store);
     }
 
     /// Starts asking the graphics hardware what it is doing.
@@ -388,6 +414,7 @@ impl Monitor {
     pub async fn measure(&self) -> ResourceUse {
         let disks = self.disks.lock().await.read();
         let graphics = self.graphics.lock().await.clone();
+        let artefacts = self.artefacts.lock().await.clone();
         let mut system = self.system.lock().await;
 
         system.refresh_cpu_usage();
@@ -435,6 +462,7 @@ impl Monitor {
             load_average: System::load_average().one,
             disks,
             graphics,
+            artefacts,
         }
     }
 }
