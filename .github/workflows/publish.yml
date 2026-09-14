@@ -20,7 +20,7 @@ concurrency:
 
 jobs:
   image:
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, X64]
 
     permissions:
       contents: read

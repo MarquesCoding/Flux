@@ -28,7 +28,12 @@ jobs:
     #
     # The guarantee is in this line rather than in a job-level `if`, so that removing the `if`
     # cannot quietly hand the runner to a fork.
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'self-hosted' || 'ubuntu-latest' }}
+    #
+    # `linux` rather than `self-hosted` alone, because the labels a runner applies to itself are
+    # the only thing standing between a job and the wrong machine. The container jobs below need
+    # Linux and nothing else will do, so a job that cannot find one waits rather than running
+    # somewhere it was never meant to.
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "linux", "X64"]') || 'ubuntu-latest' }}
     steps:
       - uses: actions/checkout@v7
 
@@ -56,7 +61,7 @@ jobs:
     # Ours, with the same guard as the job above. This job already declines pull requests
     # outright, and the runner choice declines a fork's on its own as well — so neither one
     # going missing hands the runner to a stranger.
-    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && 'self-hosted' || 'ubuntu-latest' }}
+    runs-on: ${{ (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) && fromJSON('["self-hosted", "linux", "X64"]') || 'ubuntu-latest' }}
     # Not on pull requests. A Debian container, a cold Rust build and a decode against the shipped
     # FFmpeg is minutes of waiting, and paying it on every push to every branch buys less than it
     # costs: the pre-push hook has already run cargo clippy and cargo test on the machine the change

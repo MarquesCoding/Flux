@@ -37,7 +37,7 @@ concurrency:
 jobs:
   image:
     name: Build${{ inputs.publish && ' and publish' || '' }}
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, X64]
 
     permissions:
       contents: read

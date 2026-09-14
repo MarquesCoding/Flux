@@ -38,7 +38,7 @@ env:
 jobs:
   transcoder:
     name: The corpus, and the transcoder against it
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, X64]
     # In Debian rather than on the runner's Ubuntu, because the FFmpeg Valence ships is built for
     # Debian and its packages say so: the bookworm build wants libvpx7 and the trixie one wants
     # libwebp 1.5 and libx265-215, none of which Ubuntu noble carries. Bookworm is what the runtime

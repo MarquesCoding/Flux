@@ -36,7 +36,7 @@ concurrency:
 jobs:
   prune:
     name: Old commit images
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, X64]
 
     permissions:
       packages: write

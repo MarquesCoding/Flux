@@ -28,7 +28,7 @@ permissions:
 jobs:
   propose:
     name: The release, as a pull request
-    runs-on: self-hosted
+    runs-on: [self-hosted, linux, X64]
     outputs:
       released: ${{ steps.release.outputs.release_created }}
       tag: ${{ steps.release.outputs.tag_name }}
