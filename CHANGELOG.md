@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.2.0](https://github.com/MarquesCoding/Valence/compare/v0.1.0...v0.2.0) (2026-09-14)
+
+
+### Added
+
+* **ui:** dialogs that stand beside each other, and a form that keeps one shape ([#260](https://github.com/MarquesCoding/Valence/issues/260)) ([e0d3bb2](https://github.com/MarquesCoding/Valence/commit/e0d3bb201ae33870fcb7a1be760492832a19c3de))
+
+
+### Fixed
+
+* **repo:** the image carries the version it was built from ([#248](https://github.com/MarquesCoding/Valence/issues/248)) ([8eb0dfc](https://github.com/MarquesCoding/Valence/commit/8eb0dfc6ef92054df59feaf184e82ab4e33ef6cc))
+
+
+### Documentation
+
+* **repo:** the unmet vite peer, and why it stays ([#251](https://github.com/MarquesCoding/Valence/issues/251)) ([8090dc6](https://github.com/MarquesCoding/Valence/commit/8090dc672e5513d332b2042849b24c89ad0dbc44))
+
 ## 0.1.0 (2026-09-13)
 
 
