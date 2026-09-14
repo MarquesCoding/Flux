@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Spinner } from '@ValenceUI/Spinner';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
@@ -87,7 +87,7 @@ const BrowseArea = ({
   onAddLibrary,
 }: BrowseAreaProps) => {
   const [size, setSize] = useState(readGridSize);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const page = PAGES[kind];
 
   const reportItems = useRef(onItemsLoaded);

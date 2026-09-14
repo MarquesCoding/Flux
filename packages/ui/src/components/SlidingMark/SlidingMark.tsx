@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { SlidingMarkProps } from './SlidingMark.types';
 
@@ -14,7 +14,7 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
  * @param className - The shape to take, where a row is not made of pills.
  */
 const SlidingMark = ({ group, className }: SlidingMarkProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <motion.span

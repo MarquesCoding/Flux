@@ -8,6 +8,7 @@ const motion = vi.hoisted(() => ({ isReduced: false }));
 vi.mock('motion/react', async () => ({
   ...(await vi.importActual<typeof MotionReact>('motion/react')),
   useReducedMotion: () => motion.isReduced,
+  useReducedMotionConfig: () => motion.isReduced,
 }));
 
 afterEach(() => {

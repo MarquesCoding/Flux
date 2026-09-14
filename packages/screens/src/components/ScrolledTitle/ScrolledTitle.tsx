@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { ScrolledTitleProps } from './ScrolledTitle.types';
 
@@ -32,7 +32,7 @@ import type { ScrolledTitleProps } from './ScrolledTitle.types';
  * @param children - The controls that sit at the right, such as closing.
  */
 const ScrolledTitle = ({ title, artwork, detail, isShowing, children }: ScrolledTitleProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <div className="sticky -top-3 z-20 -mx-3 h-0 sm:-top-4 sm:-mx-4">

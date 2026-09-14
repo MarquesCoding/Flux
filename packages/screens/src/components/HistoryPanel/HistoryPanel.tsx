@@ -1,7 +1,7 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Delete02Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useMemo, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { Badge } from '@ValenceUI/Badge';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -31,7 +31,7 @@ const nameOf = (viewing: Viewing): string => viewing.title ?? 'No longer in the 
  */
 const HistoryPanel = ({ now }: HistoryPanelProps) => {
   const [isClearing, setIsClearing] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const cache = useQueryClient();
 
   const asked = useInfiniteQuery(viewingQueries.history());

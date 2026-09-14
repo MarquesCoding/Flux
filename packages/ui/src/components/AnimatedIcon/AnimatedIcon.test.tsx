@@ -8,7 +8,11 @@ const wants = { lessMovement: false };
 vi.mock('motion/react', async () => {
   const actual = await vi.importActual<typeof MotionReact>('motion/react');
 
-  return { ...actual, useReducedMotion: () => wants.lessMovement };
+  return {
+    ...actual,
+    useReducedMotion: () => wants.lessMovement,
+    useReducedMotionConfig: () => wants.lessMovement,
+  };
 });
 
 afterEach(() => {

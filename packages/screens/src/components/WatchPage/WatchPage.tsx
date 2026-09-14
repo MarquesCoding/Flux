@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { SplashScreen } from '@ValenceUI/SplashScreen';
 import { VideoPlayer } from '@ValenceScreens/components/VideoPlayer/VideoPlayer';
 import { PartyMenu } from '@ValenceScreens/components/PartyMenu/PartyMenu';
@@ -34,7 +34,7 @@ const WatchPage = () => {
   } = useShell();
 
   const { place, go } = usePlace();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const [hasWaitedForTheRoom, setHasWaitedForTheRoom] = useState(false);
   const begunRef = useRef<{ mediaId: string; atSeconds: number } | null>(null);

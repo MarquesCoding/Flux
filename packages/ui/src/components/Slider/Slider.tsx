@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import * as RadixSlider from '@radix-ui/react-slider';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { SliderProps, SliderTone } from './Slider.types';
 
@@ -43,7 +43,7 @@ const Slider = ({
   tone = 'default',
   className,
 }: SliderProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const trackRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ value: number; ratio: number; left: number } | null>(null);

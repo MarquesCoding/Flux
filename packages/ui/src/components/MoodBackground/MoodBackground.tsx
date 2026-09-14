@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { useReducedMotionConfig } from 'motion/react';
 import { DotField } from '@ValenceUI/DotField';
 import { blendLights } from '@ValenceUI/blendLights';
 import { cn } from '@ValenceUI/cn';
@@ -77,7 +77,7 @@ const MoodBackground = ({
   isDrifting = false,
   film = null,
 }: MoodBackgroundProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const given = lights.filter((light) => light.color !== '');
   const lit = given.length === 0 ? DEFAULT_LIGHTS : given;
   const bloomsRef = useRef<(HTMLSpanElement | null)[]>([]);

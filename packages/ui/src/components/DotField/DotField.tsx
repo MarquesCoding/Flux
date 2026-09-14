@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { useReducedMotion } from 'motion/react';
+import { useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { DotFieldProps } from './DotField.types';
 
@@ -95,7 +95,7 @@ const DotField = ({
       media?.removeEventListener('change', bump);
     };
   }, []);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   useEffect(() => {
     const canvas = canvasRef.current;

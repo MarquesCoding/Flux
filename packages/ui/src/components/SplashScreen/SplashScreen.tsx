@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { Logo } from '@ValenceUI/Logo';
 import { liquidSpring, stillTransition } from '@ValenceUI/animations/reveal';
 import type { SplashScreenProps } from './SplashScreen.types';
@@ -34,7 +34,7 @@ const SplashScreen = ({
   hasMark = true,
   isLeaving = false,
 }: SplashScreenProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const isOurs = name.toLowerCase() === OURS;
 

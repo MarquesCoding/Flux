@@ -9,6 +9,7 @@ const motion = vi.hoisted(() => ({ isReduced: false }));
 vi.mock('motion/react', async () => ({
   ...(await vi.importActual<typeof MotionReact>('motion/react')),
   useReducedMotion: () => motion.isReduced,
+  useReducedMotionConfig: () => motion.isReduced,
 }));
 
 const slider = (name = 'Seek') => screen.getByRole('slider', { name });

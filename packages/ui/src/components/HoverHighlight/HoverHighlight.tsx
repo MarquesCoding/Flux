@@ -1,4 +1,4 @@
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { VALENCE_TOKENS } from '@ValenceUI/tokens';
 import type { HoverHighlightProps } from './HoverHighlight.types';
@@ -22,7 +22,7 @@ const RADIUS_CLASSES = {
  * @param className - Extra classes for the caller's own layout.
  */
 const HoverHighlight = ({ rect, radius = 'md', className }: HoverHighlightProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const isStill = prefersReducedMotion === true;
 
   return (

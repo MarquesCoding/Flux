@@ -1,7 +1,7 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Add01Icon, Delete02Icon, PencilEdit01Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { removeProfile } from '@ValenceClient/profiles/fetchProfiles';
@@ -28,7 +28,7 @@ const ProfilePicker = ({
   isEditable = false,
 }: ProfilePickerProps) => {
   const [editing, setEditing] = useState<ViewerProfile | 'new' | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <motion.div

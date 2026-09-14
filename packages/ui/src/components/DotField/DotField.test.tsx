@@ -2,6 +2,13 @@ import { render } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DotField } from './DotField';
 import type { DotFieldFrame } from './DotField.types';
+import type * as MotionReact from 'motion/react';
+
+vi.mock('motion/react', async () => {
+  const actual = await vi.importActual<typeof MotionReact>('motion/react');
+
+  return { ...actual, useReducedMotionConfig: () => true };
+});
 
 const context = {
   clearRect: vi.fn(),

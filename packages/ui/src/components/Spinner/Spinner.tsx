@@ -1,6 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Loading03Icon } from '@hugeicons/core-free-icons';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { spinVariants, spinTransition, reducedSpinTransition } from '@ValenceUI/animations/spin';
 import type { SpinnerProps, SpinnerSize } from './Spinner.types';
@@ -21,7 +21,7 @@ const SIZE_PIXELS: Record<SpinnerSize, number> = {
  * @param className - Extra classes for the caller's own layout.
  */
 const Spinner = ({ size = 'md', label, className }: SpinnerProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <motion.span

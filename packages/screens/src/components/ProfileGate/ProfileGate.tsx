@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { Logo } from '@ValenceUI/Logo';
 import { ArrowLeft01Icon, ArrowRight01Icon, Key01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import type { Variants } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { cn } from '@ValenceUI/cn';
@@ -104,7 +104,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
 
   const isOurs = name.toLowerCase() === OURS;
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const { theme, choose } = useTheme();
   const [hasGround, setHasGround] = useState(false);
 
