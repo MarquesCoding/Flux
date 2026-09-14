@@ -7,6 +7,7 @@ type TooltipProps = {
   children: ReactElement<ControlProperties>;
   side?: 'top' | 'bottom' | 'left' | 'right';
   isDisabled?: boolean;
+  isOpen?: boolean;
   delayMilliseconds?: number;
 };
 

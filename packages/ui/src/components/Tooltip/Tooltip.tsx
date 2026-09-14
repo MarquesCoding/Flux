@@ -44,6 +44,12 @@ const POPUP_MOTION = [
  * @param children - The control being named.
  * @param side - Which side of the control to appear on.
  * @param isDisabled - Whether to say nothing at all, for a control whose name is already written.
+ * @param isOpen - Whether it is showing, for a caller that knows better than the pointer does. A
+ *   tooltip dismisses itself the moment its control is pressed, which is right for a name and wrong
+ *   for a figure being set: pressing a slider's handle is the start of choosing a value, not the end
+ *   of reading its name. A caller that says so keeps it up for as long as it is true. Say it for the
+ *   life of the tooltip or not at all — beginning uncontrolled and becoming controlled is a warning
+ *   and a jump.
  * @param delayMilliseconds - How long the pointer rests before the name appears.
  */
 const Tooltip = ({
@@ -51,6 +57,7 @@ const Tooltip = ({
   children,
   side = 'top',
   isDisabled = false,
+  isOpen,
   delayMilliseconds = DELAY_MILLISECONDS,
 }: TooltipProps) => {
   const portalContainer = usePortalContainer();
@@ -61,7 +68,10 @@ const Tooltip = ({
   }
 
   const named = (
-    <RadixTooltip.Root delayDuration={delayMilliseconds}>
+    <RadixTooltip.Root
+      delayDuration={delayMilliseconds}
+      {...(isOpen === undefined ? {} : { open: isOpen })}
+    >
       <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
 
       <RadixTooltip.Portal

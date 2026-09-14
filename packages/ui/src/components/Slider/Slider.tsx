@@ -1,7 +1,8 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import * as RadixSlider from '@radix-ui/react-slider';
 import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
+import { Tooltip } from '@ValenceUI/Tooltip';
 import type { SliderProps, SliderTone } from './Slider.types';
 
 const TRACK_CLASSES: Record<SliderTone, string> = {
@@ -30,6 +31,11 @@ const FILL_CLASSES: Record<SliderTone, string> = {
  * @param step - How far each press of an arrow key moves it.
  * @param onValueChange - Told the new value as the handle moves.
  * @param renderPreview - Draws something above the handle for the value being pointed at.
+ * @param valueLabel - Names the value the handle is at, shown while the handle is under the pointer
+ *   or holding focus. Says where the handle is rather than where the pointer is, which is the
+ *   difference between this and a preview: a preview answers "what is there", and this answers
+ *   "what have I set". Shown without the pause a tooltip usually takes, since a figure that arrives
+ *   half a second after the handle has moved is describing the past.
  * @param tone - Whether it sits on the page or over video.
  * @param className - Extra classes for the caller's own layout.
  */
@@ -40,6 +46,7 @@ const Slider = ({
   step = 1,
   onValueChange,
   renderPreview,
+  valueLabel,
   tone = 'default',
   className,
 }: SliderProps) => {
@@ -47,6 +54,26 @@ const Slider = ({
   const trackRef = useRef<HTMLDivElement>(null);
   const previewRef = useRef<HTMLDivElement>(null);
   const [hover, setHover] = useState<{ value: number; ratio: number; left: number } | null>(null);
+  const [isOnHandle, setIsOnHandle] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
+
+  useEffect(() => {
+    if (!isDragging) {
+      return;
+    }
+
+    const letGo = (): void => {
+      setIsDragging(false);
+    };
+
+    window.addEventListener('pointerup', letGo);
+    window.addEventListener('pointercancel', letGo);
+
+    return () => {
+      window.removeEventListener('pointerup', letGo);
+      window.removeEventListener('pointercancel', letGo);
+    };
+  }, [isDragging]);
 
   const track = useCallback(
     (clientX: number) => {
@@ -70,6 +97,25 @@ const Slider = ({
       setHover({ value: ratio * max, ratio, left });
     },
     [max],
+  );
+
+  const handle = (
+    <RadixSlider.Thumb
+      aria-label={label}
+      aria-disabled={max <= 0}
+      onPointerEnter={() => {
+        setIsOnHandle(true);
+      }}
+      onPointerLeave={() => {
+        setIsOnHandle(false);
+      }}
+      className={cn(
+        'block size-3.5 w-8 rounded-full shadow outline-none select-none',
+        'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',
+        'motion-reduce:transition-none hover-hover:hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring',
+        FILL_CLASSES[tone],
+      )}
+    />
   );
 
   return (
@@ -109,6 +155,9 @@ const Slider = ({
         onValueChange={(next) => {
           onValueChange(next[0] ?? 0);
         }}
+        onPointerDown={() => {
+          setIsDragging(true);
+        }}
         onPointerEnter={(event) => {
           track(event.clientX);
         }}
@@ -131,16 +180,17 @@ const Slider = ({
           />
         </RadixSlider.Track>
 
-        <RadixSlider.Thumb
-          aria-label={label}
-          aria-disabled={max <= 0}
-          className={cn(
-            'block size-3.5 w-8 rounded-full shadow outline-none select-none',
-            'transition-transform duration-[var(--duration-instant)] ease-[var(--ease-out)]',
-            'motion-reduce:transition-none hover-hover:hover:scale-110 focus-visible:ring-[3px] focus-visible:ring-ring',
-            FILL_CLASSES[tone],
-          )}
-        />
+        {valueLabel === undefined ? (
+          handle
+        ) : (
+          <Tooltip
+            label={valueLabel(value)}
+            delayMilliseconds={0}
+            isOpen={isOnHandle || isDragging}
+          >
+            {handle}
+          </Tooltip>
+        )}
       </RadixSlider.Root>
     </div>
   );

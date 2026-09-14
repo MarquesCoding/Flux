@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { Slider } from './Slider';
@@ -13,6 +13,93 @@ vi.mock('motion/react', async () => ({
 }));
 
 const slider = (name = 'Seek') => screen.getByRole('slider', { name });
+
+describe('Slider, naming the value on its handle', () => {
+  it('says nothing where a caller asked for nothing', async () => {
+    const user = userEvent.setup();
+
+    render(<Slider label="Volume" value={40} max={100} onValueChange={vi.fn()} />);
+
+    await user.hover(slider('Volume'));
+
+    expect(screen.queryByText('40%')).not.toBeInTheDocument();
+  });
+
+  it('names where the handle is once the pointer rests on it', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Slider
+        label="Volume"
+        value={40}
+        max={100}
+        onValueChange={vi.fn()}
+        valueLabel={(loudness) => `${loudness.toString()}%`}
+      />,
+    );
+
+    await user.hover(slider('Volume'));
+
+    expect(await screen.findByText('40%')).toBeInTheDocument();
+  });
+
+  it('keeps saying it while the handle is being dragged, which is when it is wanted most', async () => {
+    render(
+      <Slider
+        label="Volume"
+        value={40}
+        max={100}
+        onValueChange={vi.fn()}
+        valueLabel={(loudness) => `${loudness.toString()}%`}
+      />,
+    );
+
+    fireEvent.pointerDown(slider('Volume'));
+
+    expect(await screen.findByText('40%')).toBeInTheDocument();
+  });
+
+  it('stops saying it once the handle is let go and the pointer has left', async () => {
+    render(
+      <Slider
+        label="Volume"
+        value={40}
+        max={100}
+        onValueChange={vi.fn()}
+        valueLabel={(loudness) => `${loudness.toString()}%`}
+      />,
+    );
+
+    fireEvent.pointerDown(slider('Volume'));
+
+    expect(await screen.findByText('40%')).toBeInTheDocument();
+
+    fireEvent.pointerUp(window);
+
+    await waitFor(() => {
+      expect(screen.queryByText('40%')).not.toBeInTheDocument();
+    });
+  });
+
+  it('says where the handle is rather than where the pointer is', async () => {
+    const user = userEvent.setup();
+
+    render(
+      <Slider
+        label="Volume"
+        value={40}
+        max={100}
+        onValueChange={vi.fn()}
+        valueLabel={(loudness) => `${loudness.toString()}%`}
+        renderPreview={(pointedAt) => <span>pointing at {Math.round(pointedAt).toString()}</span>}
+      />,
+    );
+
+    await user.hover(slider('Volume'));
+
+    expect(await screen.findByText('40%')).toBeInTheDocument();
+  });
+});
 
 afterEach(() => {
   motion.isReduced = false;
