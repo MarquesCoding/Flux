@@ -62,6 +62,8 @@ afterEach(() => {
   Reflect.deleteProperty(document, 'startViewTransition');
   Reflect.deleteProperty(document.documentElement, 'animate');
   delete document.documentElement.dataset['themeShift'];
+  document.documentElement.style.removeProperty('--valence-reveal-x');
+  document.documentElement.style.removeProperty('--valence-reveal-y');
   animateMock.mockReset();
   vi.restoreAllMocks();
 });
@@ -106,17 +108,34 @@ describe('revealTheme', () => {
       expect(animateMock).toHaveBeenCalled();
     });
 
-    const [keyframes, options] = animateMock.mock.calls[0] ?? [];
+    const [, options] = animateMock.mock.calls[0] ?? [];
+    const root = document.documentElement;
 
-    expect(keyframes).toEqual({
-      clipPath: [expect.stringContaining('circle(0px at 100px 50px)'), expect.any(String)],
-    });
+    expect(root.style.getPropertyValue('--valence-reveal-x')).toBe('100px');
+    expect(root.style.getPropertyValue('--valence-reveal-y')).toBe('50px');
     expect(options).toEqual(
       expect.objectContaining({ pseudoElement: '::view-transition-new(root)' }),
     );
   });
 
-  it('opens it far enough to cover the furthest corner', async () => {
+  it('grows a length the browser can interpolate, rather than a shape it cannot', async () => {
+    aBrowserThatPhotographs();
+
+    revealTheme(vi.fn(), { x: 100, y: 50 });
+
+    await vi.waitFor(() => {
+      expect(animateMock).toHaveBeenCalled();
+    });
+
+    const [keyframes] = animateMock.mock.calls[0] ?? [];
+
+    expect(keyframes).toEqual(
+      expect.objectContaining({ '--valence-reveal': ['0px', expect.any(String)] }),
+    );
+    expect(keyframes).not.toHaveProperty('clipPath');
+  });
+
+  it('opens further than the furthest corner, so the soft edge clears it', async () => {
     aBrowserThatPhotographs();
 
     revealTheme(vi.fn(), { x: 0, y: 0 });
@@ -127,10 +146,26 @@ describe('revealTheme', () => {
 
     const reach = Math.hypot(window.innerWidth, window.innerHeight);
     const [keyframes] = animateMock.mock.calls[0] ?? [];
+    const grown = keyframes?.['--valence-reveal'];
+    const ended = Number.parseFloat(String(Array.isArray(grown) ? grown[1] : ''));
 
-    expect(keyframes).toEqual({
-      clipPath: [expect.any(String), `circle(${reach.toString()}px at 0px 0px)`],
+    expect(ended).toBeGreaterThan(reach);
+  });
+
+  it('lifts the new page very slightly as it arrives', async () => {
+    aBrowserThatPhotographs();
+
+    revealTheme(vi.fn(), { x: 10, y: 10 });
+
+    await vi.waitFor(() => {
+      expect(animateMock).toHaveBeenCalled();
     });
+
+    const [keyframes] = animateMock.mock.calls[0] ?? [];
+
+    expect(keyframes).toEqual(
+      expect.objectContaining({ transform: [expect.any(String), 'translateY(0px)'] }),
+    );
   });
 
   it('opens it from the middle where nobody pressed anywhere', async () => {
@@ -142,12 +177,14 @@ describe('revealTheme', () => {
       expect(animateMock).toHaveBeenCalled();
     });
 
-    const middle = `${(window.innerWidth / 2).toString()}px ${(window.innerHeight / 2).toString()}px`;
-    const [keyframes] = animateMock.mock.calls[0] ?? [];
+    const root = document.documentElement;
 
-    expect(keyframes).toEqual({
-      clipPath: [`circle(0px at ${middle})`, expect.any(String)],
-    });
+    expect(root.style.getPropertyValue('--valence-reveal-x')).toBe(
+      `${(window.innerWidth / 2).toString()}px`,
+    );
+    expect(root.style.getPropertyValue('--valence-reveal-y')).toBe(
+      `${(window.innerHeight / 2).toString()}px`,
+    );
   });
 
   it('marks the page while it changes, and takes the mark off once it has', async () => {
