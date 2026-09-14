@@ -547,7 +547,6 @@ const AdminArea = ({
           <Button
             variant="ghost"
             size="sm"
-            isPill
             onClick={() => {
               void loadAll();
             }}
@@ -664,6 +663,9 @@ const AdminArea = ({
                 void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
               }}
               onPreviewQualitySaved={() => {
+                void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
+              }}
+              onProfileVisibilitySaved={() => {
                 void cache.invalidateQueries({ queryKey: adminQueries.overview().queryKey });
               }}
             />

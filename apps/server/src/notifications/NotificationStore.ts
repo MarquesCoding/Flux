@@ -28,7 +28,7 @@ type NotificationStore = {
   writePreference: (userId: string, preference: NotificationPreference) => Promise<void>;
   addPushEndpoint: (userId: string, endpoint: PushEndpoint) => Promise<void>;
   listPushEndpoints: (userId: string) => Promise<PushEndpoint[]>;
-  removePushEndpoint: (endpoint: string) => Promise<void>;
+  removePushEndpoint: (userId: string, endpoint: string) => Promise<void>;
 };
 
 export type { NotificationStore, PushEndpoint };

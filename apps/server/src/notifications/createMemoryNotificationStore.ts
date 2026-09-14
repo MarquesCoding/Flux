@@ -146,8 +146,10 @@ const createMemoryNotificationStore = ({
           .map((held) => held.endpoint),
       ),
 
-    removePushEndpoint: (endpoint) => {
-      endpoints.delete(endpoint);
+    removePushEndpoint: (userId, endpoint) => {
+      if (endpoints.get(endpoint)?.userId === userId) {
+        endpoints.delete(endpoint);
+      }
 
       return Promise.resolve();
     },

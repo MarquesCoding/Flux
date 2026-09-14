@@ -328,6 +328,78 @@ describe('managing roles over HTTP', () => {
       expect(response.status).toBe(403);
     });
 
+    it('refuses to clear an override on somebody who outranks the actor', async () => {
+      const context = await signedInWith(['account.roles'], 100);
+      const senior = await context.permissions.createRole({
+        name: 'Senior',
+        position: 500,
+        permissions: [],
+      });
+
+      await context.permissions.assignRole('usr_other', senior.id);
+      await context.permissions.setOverride('usr_other', {
+        permission: 'server.logs',
+        effect: 'deny',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.logs`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.text()).toContain('at or above your own rank');
+    });
+
+    it('refuses to lift a deny for something the actor does not hold, since that hands it over', async () => {
+      const context = await signedInWith(['account.roles'], 200);
+
+      await context.permissions.setOverride('usr_other', {
+        permission: 'server.settings',
+        effect: 'deny',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.settings`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(403);
+      expect(await response.text()).toContain('cannot grant a permission you do not hold');
+    });
+
+    it('lifts a deny for something the actor does hold', async () => {
+      const context = await signedInWith(['account.roles', 'server.settings'], 200);
+
+      await context.permissions.setOverride('usr_other', {
+        permission: 'server.settings',
+        effect: 'deny',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.settings`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(204);
+    });
+
+    it('lifts an allow without asking what the actor holds, since that takes something away', async () => {
+      const context = await signedInWith(['account.roles'], 200);
+
+      await context.permissions.setOverride('usr_other', {
+        permission: 'server.settings',
+        effect: 'allow',
+      });
+
+      const response = await context.request(
+        `/api/admin/accounts/usr_other/overrides/server.settings`,
+        'DELETE',
+      );
+
+      expect(response.status).toBe(204);
+    });
+
     it('will not clear the deny that is holding the last administrator in place', async () => {
       const context = await signedInWith(['administrator']);
 

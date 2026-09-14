@@ -12,6 +12,7 @@ type MediaPreviewProps = {
   hasSound?: boolean;
   controlsAtTop?: boolean;
   isHeld?: boolean;
+  restsOnPause?: boolean;
   repeats?: boolean;
   onEnded?: () => void;
   onPlayingChange?: (isPlaying: boolean) => void;

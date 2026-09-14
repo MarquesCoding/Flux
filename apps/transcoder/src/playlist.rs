@@ -4,7 +4,7 @@
 //! appear. That makes the playlist a report of what has been transcoded rather
 //! than a description of the film: a viewer can only seek within what has
 //! already been written, and seeking past it starts a whole new transcode from
-//! there — the outcome ADR-0011 says must not happen.
+//! there, which must not happen.
 //!
 //! Segments are fragmented MP4 unless a client cannot take them. Transport
 //! streams were the one global answer for a while, because a copied open-GOP

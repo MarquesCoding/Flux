@@ -1,0 +1,52 @@
+name: Release please
+
+# Keeps a release open as a pull request, and cuts it when somebody merges that.
+#
+# The version and the changelog are worked out from the commits rather than written by hand, which
+# is the point: the commit messages are already the record, and a hand-maintained changelog is a
+# second record free to disagree with the first. Merging the pull request tags the release and
+# publishes it.
+#
+# The build itself is not repeated here. release.yml already knows how to produce the image and the
+# things worth downloading, so this calls it rather than owning a second copy that can drift. It is
+# called rather than triggered, because a tag pushed with the default GITHUB_TOKEN deliberately
+# starts no workflow, and a release nobody built is worse than no release at all.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: release-please
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  propose:
+    name: The release, as a pull request
+    runs-on: ubuntu-latest
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  build:
+    name: Everything the release carries
+    needs: propose
+    if: needs.propose.outputs.released == 'true'
+    uses: ./.github/workflows/release.yml
+    with:
+      tag: ${{ needs.propose.outputs.tag }}
+    permissions:
+      contents: write
+      packages: write
+    secrets: inherit

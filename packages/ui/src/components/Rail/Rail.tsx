@@ -46,18 +46,16 @@ const Rail = ({ title, children, action, onOpenTitle, className }: RailProps) =>
         </div>
       </header>
 
-      <div className="relative">
-        <motion.ul
-          ref={trackRef}
-          onScroll={measure}
-          variants={groupVariants}
-          initial="hidden"
-          animate="shown"
-          className="valence-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
-        >
-          {children}
-        </motion.ul>
-      </div>
+      <motion.ul
+        ref={trackRef}
+        onScroll={measure}
+        variants={groupVariants}
+        initial="hidden"
+        animate="shown"
+        className="valence-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-p-1 scroll-smooth px-1 py-6"
+      >
+        {children}
+      </motion.ul>
     </section>
   );
 };

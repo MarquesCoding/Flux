@@ -71,6 +71,48 @@ const signedIn = async () => {
   return { app, request, notifications, accountId: store.user[0]?.id ?? '' };
 };
 
+describe('push subscriptions', () => {
+  it('does not let one account forget a browser belonging to another', async () => {
+    const { app, request, notifications, accountId } = await signedIn();
+
+    await request('/api/notifications/push', 'POST', {
+      endpoint: 'https://push/mine',
+      p256dh: 'k',
+      auth: 'a',
+    });
+
+    const theirs = await signUpForTest(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    const response = await app.request(`${TEST_ORIGIN}/api/notifications/push`, {
+      method: 'DELETE',
+      headers: { cookie: theirs, origin: TEST_ORIGIN, 'content-type': 'application/json' },
+      body: JSON.stringify({ endpoint: 'https://push/mine' }),
+    });
+
+    expect(theirs).not.toBe('');
+    expect(response.status).toBe(204);
+    expect(await notifications.listPushEndpoints(accountId)).toHaveLength(1);
+  });
+
+  it('forgets a browser for the account that registered it', async () => {
+    const { request, notifications, accountId } = await signedIn();
+
+    await request('/api/notifications/push', 'POST', {
+      endpoint: 'https://push/mine',
+      p256dh: 'k',
+      auth: 'a',
+    });
+
+    await request('/api/notifications/push', 'DELETE', { endpoint: 'https://push/mine' });
+
+    expect(await notifications.listPushEndpoints(accountId)).toStrictEqual([]);
+  });
+});
+
 describe('the notification routes', () => {
   it('has nothing to show somebody nothing has happened to', async () => {
     const { request } = await signedIn();

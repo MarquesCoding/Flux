@@ -93,11 +93,9 @@ import type { MediaSegment } from '@ValenceContracts/schemas/MediaSegment';
 import type { PlaybackHealth } from './components/StreamStats/StreamStats.types';
 import type { QualityPreference } from '@ValenceClient/playback/qualityPreference';
 import type { PlayerState, VideoPlayerProps } from './VideoPlayer.types';
-
 type FullscreenTarget = {
   requestFullscreen?: () => Promise<void>;
 };
-
 type FullscreenOwner = {
   exitFullscreen?: () => Promise<void>;
 };
@@ -856,7 +854,7 @@ const VideoPlayer = ({
           const current = videoRef.current;
           const playing = current !== null && !current.paused;
 
-          void heartbeatPlaybackSession(sessionId, playing);
+          void heartbeatPlaybackSession(sessionId, playing, clientId);
         }
       }, HEARTBEAT_INTERVAL_MILLISECONDS);
 
@@ -1642,7 +1640,7 @@ const VideoPlayer = ({
 
             <p className="text-sm text-text-muted">Playing in a floating window</p>
 
-            <Button variant="secondary" size="sm" isPill onClick={popOut}>
+            <Button variant="secondary" size="sm" onClick={popOut}>
               Bring it back
             </Button>
           </div>
@@ -1767,7 +1765,6 @@ const VideoPlayer = ({
             <Button
               size="lg"
               variant="secondary"
-              isPill
               className="px-6 shadow-lg"
               onClick={() => {
                 seek(skippable.endSeconds);

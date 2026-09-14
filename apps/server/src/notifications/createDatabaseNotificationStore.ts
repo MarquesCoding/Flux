@@ -194,8 +194,10 @@ const createDatabaseNotificationStore = (db: ValenceDatabase): NotificationStore
       return rows;
     },
 
-    removePushEndpoint: async (endpoint) => {
-      await db.delete(pushSubscription).where(eq(pushSubscription.endpoint, endpoint));
+    removePushEndpoint: async (userId, endpoint) => {
+      await db
+        .delete(pushSubscription)
+        .where(and(eq(pushSubscription.userId, userId), eq(pushSubscription.endpoint, endpoint)));
     },
   };
 };

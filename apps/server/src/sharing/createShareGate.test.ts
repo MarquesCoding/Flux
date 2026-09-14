@@ -18,7 +18,7 @@ const A_SHARE: ResolvedShare = {
 const gatedApp = (options: {
   share?: ResolvedShare | null;
   hasJoined?: boolean;
-  shareOfSession?: string | null;
+  claimedBy?: string[];
   item?: { id: string; seriesId: string | null } | null;
 }) => {
   const shares = {
@@ -40,7 +40,7 @@ const gatedApp = (options: {
       shares,
       sessions: {
         claim: () => {},
-        shareOf: () => options.shareOfSession ?? null,
+        isClaimedBy: (_sessionId, shareId) => (options.claimedBy ?? []).includes(shareId),
         release: () => {},
       },
       itemOf: () =>
@@ -108,7 +108,7 @@ describe('createShareGate', () => {
   });
 
   it('refuses a session this link did not start', async () => {
-    const response = await gatedApp({ shareOfSession: 'another-share' }).request(
+    const response = await gatedApp({ claimedBy: ['another-share'] }).request(
       '/api/playback/session/direct-film-1/index.m3u8',
       holding('abc'),
     );
@@ -117,7 +117,16 @@ describe('createShareGate', () => {
   });
 
   it('lets through a session this link did start', async () => {
-    const response = await gatedApp({ shareOfSession: 'share-1' }).request(
+    const response = await gatedApp({ claimedBy: ['share-1'] }).request(
+      '/api/playback/session/direct-film-1/index.m3u8',
+      holding('abc'),
+    );
+
+    expect(response.status).toBe(200);
+  });
+
+  it('lets through a session another link started as well as this one', async () => {
+    const response = await gatedApp({ claimedBy: ['another-share', 'share-1'] }).request(
       '/api/playback/session/direct-film-1/index.m3u8',
       holding('abc'),
     );

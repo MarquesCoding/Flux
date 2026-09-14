@@ -5,15 +5,15 @@
 # A build without libzimg cannot tone map HDR to SDR, and one without libass
 # cannot draw text subtitles. Both failures are silent: the picture appears,
 # looking washed out or missing its subtitles. Pinning the build is why
-# ADR-0009 chose to drive FFmpeg as a child process rather than link it.
+# FFmpeg is driven as a child process rather than linked.
 
-FROM rust:1.90-bookworm AS transcoder-build
+FROM rust:1.98-bookworm AS transcoder-build
 WORKDIR /build
 COPY Cargo.toml Cargo.lock rustfmt.toml ./
 COPY apps/transcoder ./apps/transcoder
 RUN cargo build --release --bin valence-transcoder
 
-FROM node:22-bookworm-slim AS web-build
+FROM node:24-bookworm-slim AS web-build
 WORKDIR /build
 RUN corepack enable
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml turbo.json ./
@@ -33,14 +33,14 @@ RUN pnpm --filter @valence/web build
 # ordinary way.
 RUN pnpm --filter @valence/server bundle
 
-FROM node:22-bookworm-slim AS runtime
+FROM node:24-bookworm-slim AS runtime
 
 # Flux's own FFmpeg, at a version Flux chose, rather than whatever the base
 # image happens to ship. Debian has no 8.x at all, and packages none of Intel's
 # media stack — no libvpl, no vpl-gpu-rt, no iHD driver, in any release or
 # component. It also drops QuickSync silently between bookworm and trixie, so a
 # base image bump would have removed hardware encoding on Intel with nothing
-# anywhere saying why. See FLUX-83 and ADR-0009.
+# anywhere saying why.
 #
 # The package brings the drivers with it: iHD and i965 for Intel, radeonsi for
 # AMD, all inside its own prefix. libva is patched at build time to look there
@@ -83,7 +83,7 @@ COPY --from=web-build /build/apps/web/dist ./apps/web/dist
 COPY --from=web-build /build/apps/server/dist ./apps/server/dist
 
 # /media is mounted read-only by compose. Flux never writes to a user's
-# library: no sidecars, no renames, nothing. See ADR-0006.
+# library: no sidecars, no renames, nothing.
 RUN mkdir -p /config /cache /transcodes /media
 
 ENV NODE_ENV=production \

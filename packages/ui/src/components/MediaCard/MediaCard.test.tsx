@@ -83,7 +83,7 @@ describe('MediaCard', () => {
   it('does not announce the poster twice', () => {
     render(<MediaCard title="Arrival" subtitle="2016" imageUrl="/poster.jpg" onSelect={vi.fn()} />);
 
-    expect(screen.getByRole('button', { name: 'Arrival 2016' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Arrival\s*2016$/u })).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {

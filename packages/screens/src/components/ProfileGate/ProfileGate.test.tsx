@@ -3,8 +3,9 @@ import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ProfileGate } from './ProfileGate';
-import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import { authenticateWithPasskey, signInWithEmail } from '@ValenceClient/session/auth';
 import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
+import { chosenTheme } from '@ValenceClient/shell/theme';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 
 const profileOf = (name: string, at: number): ViewerProfile => ({
@@ -25,6 +26,7 @@ const many = (count: number): ViewerProfile[] =>
 
 vi.mock('@ValenceClient/session/auth', () => ({
   authenticateWithPasskey: vi.fn(),
+  signInWithEmail: vi.fn(),
 }));
 
 vi.mock('@ValenceScreens/passkeys/isPasskeySupported', () => ({
@@ -32,6 +34,7 @@ vi.mock('@ValenceScreens/passkeys/isPasskeySupported', () => ({
 }));
 
 const passkeyMock = vi.mocked(authenticateWithPasskey);
+const signInWithEmailMock = vi.mocked(signInWithEmail);
 const passkeySupportedMock = vi.mocked(isPasskeySupported);
 
 const fetchMock = vi.fn();
@@ -40,24 +43,34 @@ const fetchMock = vi.fn();
  * Answers the two things the gate reads on arrival, and the sign-in it makes.
  */
 const serverWith = (
-  everyone: ViewerProfile[],
+  everyone: ViewerProfile[] | 'refused',
   signIn: { ok: boolean; body?: string } = { ok: true },
 ) => {
   fetchMock.mockImplementation((input: string) => {
     if (input.includes('/everyone')) {
-      return Promise.resolve({ ok: true, json: () => Promise.resolve({ profiles: everyone }) });
+      return Promise.resolve(
+        everyone === 'refused'
+          ? new Response(JSON.stringify({ error: 'Nobody is signed in.' }), {
+              status: 401,
+              headers: { 'content-type': 'application/json' },
+            })
+          : new Response(JSON.stringify({ profiles: everyone }), {
+              status: 200,
+              headers: { 'content-type': 'application/json' },
+            }),
+      );
     }
 
     if (input.includes('/health')) {
       return Promise.resolve({ ok: true, json: () => Promise.resolve({ version: '1.4.2' }) });
     }
 
-    return Promise.resolve({
-      ok: signIn.ok,
-      headers: new Headers(),
-      json: () => Promise.resolve({}),
-      text: () => Promise.resolve(signIn.body ?? '{}'),
-    });
+    return Promise.resolve(
+      new Response(signIn.body ?? '{}', {
+        status: signIn.ok ? 200 : 401,
+        headers: { 'content-type': 'application/json' },
+      }),
+    );
   });
 };
 
@@ -78,6 +91,8 @@ beforeEach(() => {
   window.history.replaceState({}, '', '/');
   vi.useFakeTimers({ shouldAdvanceTime: true });
   fetchMock.mockReset();
+  signInWithEmailMock.mockReset();
+  signInWithEmailMock.mockResolvedValue({ kind: 'signedIn' });
   serverWith(HOUSEHOLD);
   vi.stubGlobal('fetch', fetchMock);
 });
@@ -109,6 +124,49 @@ describe('ProfileGate', () => {
 
     expect(screen.getByRole('button', { name: /Marques/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Sam/ })).toBeInTheDocument();
+  });
+
+  describe('a server that does not show who lives here', () => {
+    it('asks for an address instead of a wall of faces', async () => {
+      serverWith('refused');
+
+      renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+
+      await arrive();
+
+      expect(screen.getByLabelText('Email')).toBeInTheDocument();
+      expect(screen.getByLabelText('Password')).toBeInTheDocument();
+      expect(screen.queryByText('Who is watching?')).not.toBeInTheDocument();
+    });
+
+    it('does not sit on the spinner, which is what a refusal used to look like', async () => {
+      serverWith('refused');
+
+      renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+
+      await arrive();
+
+      expect(screen.queryByText('Reading who is here')).not.toBeInTheDocument();
+    });
+
+    it('signs in with the address and password', async () => {
+      const onSignedIn = vi.fn();
+      const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+
+      serverWith('refused');
+
+      renderInAnAddress(<ProfileGate onSignedIn={onSignedIn} />);
+
+      await arrive();
+
+      await actor.type(screen.getByLabelText('Email'), 'operator@valence.test');
+      await actor.type(screen.getByLabelText('Password'), 'a-password');
+      await actor.click(screen.getByRole('button', { name: /Watch/ }));
+
+      await waitFor(() => {
+        expect(onSignedIn).toHaveBeenCalled();
+      });
+    });
   });
 
   it('asks only for a password once a face is picked, never for an address', async () => {
@@ -428,5 +486,24 @@ describe('shown inside the desktop client', () => {
     await arrive();
 
     expect(screen.queryByRole('button', { name: 'Use a different server' })).toBeNull();
+  });
+});
+
+describe('choosing a theme before signing in', () => {
+  it('offers the choice on the way in, where somebody first sees the colours', async () => {
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    expect(screen.getByRole('group', { name: 'Theme' })).toBeInTheDocument();
+  });
+
+  it('takes the theme somebody picks without making them sign in first', async () => {
+    const actor = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderInAnAddress(<ProfileGate onSignedIn={vi.fn()} />);
+    await arrive();
+
+    await actor.click(screen.getByRole('button', { name: 'Light' }));
+
+    expect(chosenTheme()).toBe('light');
   });
 });

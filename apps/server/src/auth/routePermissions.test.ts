@@ -110,6 +110,60 @@ describe('what a route actually requires', () => {
 
       expect((await context.request(SCAN)).status).toBe(403);
     });
+
+    it('does not let jobs.run wipe a library through the runner that takes any job', async () => {
+      const context = await signedInWith(['jobs.run']);
+
+      const response = await context.app.request(
+        `${TEST_ORIGIN}/api/admin/jobs/library.reset/run`,
+        {
+          method: 'POST',
+          headers: {
+            cookie: context.cookie,
+            origin: TEST_ORIGIN,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ libraryId: LIBRARY_ID }),
+        },
+      );
+
+      expect(response.status).toBe(403);
+    });
+
+    it('still runs an ordinary job through it for somebody with jobs.run', async () => {
+      const context = await signedInWith(['jobs.run']);
+
+      const response = await context.app.request(`${TEST_ORIGIN}/api/admin/jobs/library.scan/run`, {
+        method: 'POST',
+        headers: {
+          cookie: context.cookie,
+          origin: TEST_ORIGIN,
+          'content-type': 'application/json',
+        },
+        body: JSON.stringify({ libraryId: LIBRARY_ID }),
+      });
+
+      expect(response.status).toBe(202);
+    });
+
+    it('runs the destructive one there for somebody holding both', async () => {
+      const context = await signedInWith(['jobs.run', 'jobs.runDestructive']);
+
+      const response = await context.app.request(
+        `${TEST_ORIGIN}/api/admin/jobs/library.reset/run`,
+        {
+          method: 'POST',
+          headers: {
+            cookie: context.cookie,
+            origin: TEST_ORIGIN,
+            'content-type': 'application/json',
+          },
+          body: JSON.stringify({ libraryId: LIBRARY_ID }),
+        },
+      );
+
+      expect(response.status).toBe(202);
+    });
   });
 
   describe('the separation this exists for', () => {
@@ -220,6 +274,9 @@ describe('every gated route, asked by somebody with no permissions', () => {
     ['POST', '/api/admin/sessions/tab-1/resume', 'streaming.pause'],
     ['GET', '/api/admin/jobs/definitions', 'jobs.run'],
     ['POST', '/api/admin/jobs/library.scan/run', 'jobs.run'],
+    ['POST', '/api/admin/jobs/library.reset/run', 'jobs.runDestructive'],
+    ['GET', '/api/libraries/scans', 'jobs.run'],
+    ['GET', '/api/libraries/scans/job-1', 'jobs.run'],
     ['POST', '/api/admin/jobs/running/job-1/cancel', 'jobs.run'],
     ['GET', '/api/admin/jobs/schedules', 'jobs.schedule'],
     ['POST', '/api/admin/jobs/library.scan/triggers', 'jobs.schedule'],

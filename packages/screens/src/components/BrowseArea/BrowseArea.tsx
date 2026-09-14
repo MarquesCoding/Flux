@@ -181,7 +181,7 @@ const BrowseArea = ({
                 ? {}
                 : {
                     action: (
-                      <Button variant="glossy" isPill onClick={onAddLibrary}>
+                      <Button variant="glossy" onClick={onAddLibrary}>
                         Add a library
                       </Button>
                     ),
@@ -206,7 +206,7 @@ const BrowseArea = ({
                 ? {}
                 : {
                     action: (
-                      <Button variant="glossy" isPill onClick={onAddLibrary}>
+                      <Button variant="glossy" onClick={onAddLibrary}>
                         Scan it
                       </Button>
                     ),

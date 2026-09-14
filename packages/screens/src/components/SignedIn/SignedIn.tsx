@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { LayoutGroup } from 'motion/react';
 import { Outlet } from '@tanstack/react-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ProfileGate } from '@ValenceScreens/components/ProfileGate/ProfileGate';
@@ -23,6 +24,10 @@ import type { SignedInProps } from './SignedIn.types';
 
 const PARTY_NOTICE_LINGERS_MS = 6000;
 
+const MARK_FLIES_MS = 300;
+
+const MARKS_PLACE = 'valence-mark';
+
 /**
  * Everything behind the way in: who is watching, what they have seen, how far through it they are,
  * and the watch party they may be in. Held here rather than in each page, because the player, the
@@ -44,6 +49,34 @@ const SignedIn = ({ title }: SignedInProps) => {
   const [askingAbout, setAskingAbout] = useState<MediaSummary | null>(null);
 
   const watchParty = useWatchParty();
+
+  const [isPageReading, setIsPageReading] = useState(false);
+
+  const holdTheScreen = useCallback((isHolding: boolean) => {
+    setIsPageReading(isHolding);
+  }, []);
+
+  const isWaiting = session.isPending || isPageReading;
+
+  const [phase, setPhase] = useState<'holding' | 'fading' | 'gone'>('holding');
+
+  const isHoldingTheScreen = phase === 'holding';
+
+  useEffect(() => {
+    if (phase === 'gone' || isWaiting) {
+      return;
+    }
+
+    setPhase('fading');
+
+    const goes = setTimeout(() => {
+      setPhase('gone');
+    }, MARK_FLIES_MS);
+
+    return () => {
+      clearTimeout(goes);
+    };
+  }, [isWaiting, phase]);
 
   useBrowsingPresence();
   useTellTheServerWhatIsHeld();
@@ -228,6 +261,8 @@ const SignedIn = ({ title }: SignedInProps) => {
             setAskingAbout,
             watchParty,
             refresh,
+            holdTheScreen,
+            isHoldingTheScreen,
           },
     [
       title,
@@ -244,12 +279,10 @@ const SignedIn = ({ title }: SignedInProps) => {
       askingAbout,
       watchParty,
       refresh,
+      holdTheScreen,
+      isHoldingTheScreen,
     ],
   );
-
-  if (session.isPending) {
-    return <SplashScreen name={title} label={`Loading ${title}`} />;
-  }
 
   if (session.isError) {
     return (
@@ -262,22 +295,33 @@ const SignedIn = ({ title }: SignedInProps) => {
     );
   }
 
-  if (shell === null) {
-    return (
-      <ProfileGate
-        name={title}
-        onSignedIn={() => {
-          go({ section: 'home', search: '', inspecting: null, playing: null });
-          void refresh();
-        }}
-      />
-    );
-  }
-
   return (
-    <shellContext.Provider value={shell}>
-      <Outlet />
-    </shellContext.Provider>
+    <LayoutGroup>
+      {shell !== null ? (
+        <shellContext.Provider value={shell}>
+          <Outlet />
+        </shellContext.Provider>
+      ) : phase !== 'gone' ? null : (
+        <ProfileGate
+          name={title}
+          onSignedIn={() => {
+            go({ section: 'home', search: '', inspecting: null, playing: null });
+            void refresh();
+          }}
+        />
+      )}
+
+      {phase === 'gone' ? null : (
+        <SplashScreen
+          name={title}
+          label={`Loading ${title}`}
+          isReady={!isWaiting}
+          marksPlace={MARKS_PLACE}
+          hasMark={phase === 'holding'}
+          isLeaving={phase === 'fading'}
+        />
+      )}
+    </LayoutGroup>
   );
 };
 

@@ -9,7 +9,11 @@ import { cn } from '@ValenceUI/cn';
 import { TextField } from '@ValenceUI/TextField';
 import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { PageDots } from '@ValenceUI/PageDots';
+import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { Spinner } from '@ValenceUI/Spinner';
+import { useTheme } from '@ValenceClient/shell/useTheme';
+import { readTheme } from '@ValenceClient/shell/theme';
+import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
 import {
   revealVariants,
   revealTransition,
@@ -27,7 +31,7 @@ import { sessionQueries } from '@ValenceClient/query/sessionQueries';
 import { ProfileFace } from '@ValenceScreens/components/ProfileFace/ProfileFace';
 import { TwoFactorChallenge } from '@ValenceScreens/components/TwoFactorChallenge/TwoFactorChallenge';
 import { isPasskeySupported } from '@ValenceScreens/passkeys/isPasskeySupported';
-import { authenticateWithPasskey } from '@ValenceClient/session/auth';
+import { authenticateWithPasskey, signInWithEmail } from '@ValenceClient/session/auth';
 import type { ViewerProfile } from '@ValenceContracts/schemas/ViewerProfile';
 import type { ProfileGateProps } from './ProfileGate.types';
 
@@ -84,6 +88,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
   const asking = useQuery(sessionQueries.everyone());
   const everyone = asking.data ?? null;
   const [chosen, setChosen] = useState<ViewerProfile | null>(null);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -100,6 +105,18 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
   const isOurs = name.toLowerCase() === OURS;
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
   const prefersReducedMotion = useReducedMotion();
+  const { theme, choose } = useTheme();
+  const [hasGround, setHasGround] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setHasGround(true);
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring;
   const faceArrival = revealTransition(prefersReducedMotion);
@@ -179,16 +196,14 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
     facesRef.current.get(everyone?.[at]?.id ?? '')?.focus();
   }, [at, page, chosen, everyone]);
 
-  const submit = async () => {
-    if (chosen === null) {
-      return;
-    }
-
-    setIsSubmitting(true);
-    setProblem(null);
-
-    const outcome = await signInAsProfile(chosen.id, password);
-
+  /**
+   * Takes what signing in answered, whichever way somebody signed in.
+   *
+   * @param outcome - What the server said.
+   */
+  const settle = (
+    outcome: { kind: 'signedIn' } | { kind: 'needsCode' } | { kind: 'refused'; reason: string },
+  ) => {
     setIsSubmitting(false);
 
     if (outcome.kind === 'signedIn') {
@@ -206,6 +221,24 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
 
     setProblem(outcome.reason);
     setPassword('');
+  };
+
+  const submit = async () => {
+    if (chosen === null) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setProblem(null);
+
+    settle(await signInAsProfile(chosen.id, password));
+  };
+
+  const submitAddress = async () => {
+    setIsSubmitting(true);
+    setProblem(null);
+
+    settle(await signInWithEmail(email, password));
   };
 
   const signInWithPasskey = async () => {
@@ -231,11 +264,38 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16">
-      <MoodBackground
-        lights={chosen === null ? [] : [{ color: chosen.colour }]}
-        hasGrid
-        isDrifting
-      />
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-0 -z-10',
+          'transition-opacity duration-[1200ms] ease-out motion-reduce:transition-none',
+          hasGround ? 'opacity-100' : 'opacity-0',
+        )}
+      >
+        <MoodBackground
+          lights={chosen === null ? [] : [{ color: chosen.colour }]}
+          hasGrid
+          isDrifting
+        />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isTitleOver ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+        className={cn('absolute right-6 top-6', isTitleOver ? '' : 'pointer-events-none')}
+      >
+        <SegmentedRow
+          size="sm"
+          tone="accent"
+          label="Theme"
+          value={theme}
+          items={THEME_CHOICES}
+          onSelect={(picked) => {
+            choose(readTheme(picked));
+          }}
+        />
+      </motion.div>
 
       <motion.p
         layoutId="valence-mark"
@@ -249,13 +309,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
         className={cn('flex items-center gap-1', isTitleOver ? '' : 'absolute')}
       >
         {isOurs ? (
-          <Logo
-            size={isTitleOver ? 44 : 128}
-            isDotted={!isTitleOver}
-            hasEdge
-            isAnimated
-            label={name}
-          />
+          <Logo size={isTitleOver ? 44 : 128} isSolid label={name} />
         ) : (
           <span
             className={cn(
@@ -269,7 +323,87 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
         )}
       </motion.p>
 
-      {!isTitleOver ? null : everyone === null ? (
+      {!isTitleOver ? null : asking.isError ? (
+        <div className="flex w-full max-w-sm flex-col items-center gap-6">
+          <motion.h1
+            initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1, duration: 0.3 }}
+            className="text-[clamp(1.75rem,5vw,3rem)] font-semibold tracking-[-0.04em] text-text"
+          >
+            Sign in
+          </motion.h1>
+
+          {needsCode ? (
+            <motion.div
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, ease: [0.2, 0, 0, 1] }}
+              className="flex w-full flex-col gap-4"
+            >
+              <TwoFactorChallenge onVerified={onSignedIn} />
+            </motion.div>
+          ) : (
+            <motion.form
+              noValidate
+              initial={{ opacity: 0, y: prefersReducedMotion === true ? 0 : 12 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.14, duration: 0.35, ease: [0.2, 0, 0, 1] }}
+              className="flex w-full flex-col gap-4"
+              onSubmit={(event) => {
+                event.preventDefault();
+                void submitAddress();
+              }}
+            >
+              <TextField
+                label="Email"
+                type="email"
+                size="lg"
+
+                value={email}
+                onValueChange={setEmail}
+                autoComplete="username"
+              />
+
+              <TextField
+                label="Password"
+                type="password"
+                size="lg"
+
+                value={password}
+                onValueChange={setPassword}
+                autoComplete="current-password"
+                {...(problem === null ? {} : { error: problem })}
+              />
+
+              <Button
+                type="submit"
+                variant="glossy"
+                size="lg"
+                isLoading={isSubmitting}
+                disabled={email === '' || password === ''}
+              >
+                Watch
+                <Icon of={ArrowRight01Icon} size={18} />
+              </Button>
+
+              {!isPasskeySupported() ? null : (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  isLoading={isUsingPasskey}
+                  onClick={() => {
+                    void signInWithPasskey();
+                  }}
+                >
+                  <Icon of={Key01Icon} size={16} />
+                  Use a passkey instead
+                </Button>
+              )}
+            </motion.form>
+          )}
+        </div>
+      ) : everyone === null ? (
         <Spinner label="Reading who is here" size="lg" />
       ) : (
         <div className="flex w-full flex-col items-center">
@@ -436,7 +570,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     label="Password"
                     type="password"
                     size="lg"
-                    isPill
+
                     value={password}
                     onValueChange={setPassword}
                     autoComplete="current-password"
@@ -447,7 +581,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     type="submit"
                     variant="glossy"
                     size="lg"
-                    isPill
                     isLoading={isSubmitting}
                     disabled={password === ''}
                   >
@@ -459,7 +592,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      isPill
                       isLoading={isUsingPasskey}
                       onClick={() => {
                         void signInWithPasskey();

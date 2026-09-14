@@ -1,6 +1,6 @@
 //! What the whole deployment is using, where Linux will say.
 //!
-//! ADR-0006 puts both halves of Valence in one container, and the container's
+//! Both halves of Valence run in one container, and the container's
 //! entrypoint starts them as siblings. That makes the API server invisible to
 //! anything walking the process tree from here: it is nobody's child, and the
 //! half of Valence doing the most allocating is the half a process walk cannot

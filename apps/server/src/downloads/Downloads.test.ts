@@ -18,6 +18,7 @@ const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
 const LIBRARY_ID = '2b6f0cc9-04f0-4f26-9f1a-1d5b2ea92d9f';
 const SERIES_ID = 'a-programme';
 const OTHER_MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bd0';
+const A_SHARED_DEVICE = 'a-device-two-people-name';
 
 const FILM: MediaDetail = {
   id: MEDIA_ID,
@@ -87,13 +88,17 @@ const build = () => {
  * Somebody signed in, and the cookie that says so.
  *
  * @param app - The application.
+ * @param credentials - Who to sign up, where a test needs more than one account.
  * @returns The cookie.
  */
-const signedIn = async (app: ReturnType<typeof build>['app']): Promise<string> => {
+const signedIn = async (
+  app: ReturnType<typeof build>['app'],
+  credentials = CREDENTIALS,
+): Promise<string> => {
   const response = await app.request(`${BASE}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', origin: BASE },
-    body: JSON.stringify(CREDENTIALS),
+    body: JSON.stringify(credentials),
   });
 
   return response.headers.getSetCookie()[0]?.split(';')[0] ?? '';
@@ -288,5 +293,36 @@ describe('downloads over HTTP', () => {
     });
 
     expect(Object.values(downloads.state.holdings).flat()).toEqual([]);
+  });
+
+  it('lets go of a holding only for whoever is asking, whatever device they name', async () => {
+    const { app, downloads } = build();
+    const mine = await signedIn(app);
+    const theirs = await signedIn(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    await app.request(`${BASE}/api/media/${MEDIA_ID}/holdings`, {
+      method: 'PUT',
+      headers: {
+        'content-type': 'application/json',
+        'x-valence-client': A_SHARED_DEVICE,
+        cookie: mine,
+        origin: BASE,
+      },
+      body: JSON.stringify({ quality: '1080p' }),
+    });
+
+    const letGo = await app.request(`${BASE}/api/media/${MEDIA_ID}/holdings/1080p`, {
+      method: 'DELETE',
+      headers: { 'x-valence-client': A_SHARED_DEVICE, cookie: theirs, origin: BASE },
+    });
+
+    expect(theirs).not.toBe('');
+    expect(theirs).not.toBe(mine);
+    expect(letGo.status).toBe(204);
+    expect(Object.values(downloads.state.holdings).flat()).toHaveLength(1);
   });
 });

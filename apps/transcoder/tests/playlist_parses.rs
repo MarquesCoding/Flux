@@ -4,7 +4,7 @@
 //! ffprobe reads the playlist as a film, with a duration and streams, rather
 //! than merely as text of the right form.
 //!
-//! The fixture is generated here rather than downloaded, following ADR-0012.
+//! The fixture is generated here rather than downloaded.
 
 #![allow(clippy::expect_used, clippy::unwrap_used)]
 

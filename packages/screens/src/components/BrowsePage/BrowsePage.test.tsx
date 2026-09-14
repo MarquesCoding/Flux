@@ -7,6 +7,12 @@ import type { BrowseAreaProps } from '@ValenceScreens/components/BrowseArea/Brow
 
 const drawn = vi.hoisted((): { props: BrowseAreaProps | null } => ({ props: null }));
 
+const mayAdminister = vi.hoisted(() => vi.fn<() => boolean>());
+
+vi.mock('@ValenceClient/session/useWhatIMayDo', () => ({
+  useWhatIMayDo: () => ({ may: () => false, mayAdminister: mayAdminister() }),
+}));
+
 const TED = {
   id: '9c858901-8a57-4791-81fe-4c455b099bc9',
   libraryId: '3f2504e0-4f89-41d3-9a0c-0305e82c3301',
@@ -55,6 +61,7 @@ vi.mock('@ValenceScreens/components/BrowseArea/BrowseArea', () => ({
 
 beforeEach(() => {
   drawn.props = null;
+  mayAdminister.mockReset().mockReturnValue(false);
   window.history.replaceState(null, '', '/films');
 });
 
@@ -115,5 +122,19 @@ describe('BrowsePage', () => {
     await actor.click(screen.getByRole('button', { name: 'Open the programme' }));
 
     expect(window.location.search).toContain('show=ted-lasso');
+  });
+
+  it('offers somewhere to add a library to anybody who may administer the server', () => {
+    mayAdminister.mockReturnValue(true);
+
+    renderInAShell(<BrowsePage />);
+
+    expect(drawn.props?.onAddLibrary).toBeDefined();
+  });
+
+  it('offers that to nobody who could not act on it, nor before the server has said', () => {
+    renderInAShell(<BrowsePage />);
+
+    expect(drawn.props?.onAddLibrary).toBeUndefined();
   });
 });

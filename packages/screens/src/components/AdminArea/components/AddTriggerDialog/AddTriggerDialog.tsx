@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -18,14 +18,12 @@ const TRIGGER_TYPES = [
   { id: 'interval', label: 'On an interval' },
   { id: 'startup', label: 'On application startup' },
 ] as const;
-
 type TriggerType = (typeof TRIGGER_TYPES)[number]['id'];
 
 const INTERVAL_UNITS = [
   { id: 'minutes', label: 'Minutes' },
   { id: 'hours', label: 'Hours' },
 ] as const;
-
 type IntervalUnit = (typeof INTERVAL_UNITS)[number]['id'];
 
 /**
@@ -129,8 +127,8 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
   );
 
   return (
-    <Dialog label="Add trigger" isOpen={isOpen} onClose={onClose}>
-      <DialogTitle title="Add trigger" />
+    <DialogCompanion label="Add trigger" isOpen={isOpen} onClose={onClose}>
+      <DialogTitle size="compact" title="Add trigger" />
 
       <DialogContent className="flex flex-col gap-5">
         {select(
@@ -189,13 +187,12 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
       </DialogContent>
 
       <DialogFooter>
-        <Button variant="secondary" isPill onClick={onClose} disabled={isSaving}>
+        <Button variant="secondary" onClick={onClose} disabled={isSaving}>
           Cancel
         </Button>
 
         <Button
           variant="primary"
-          isPill
           isLoading={isSaving}
           disabled={built === null || isSaving}
           onClick={() => {
@@ -207,7 +204,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
           Add
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

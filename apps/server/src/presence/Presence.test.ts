@@ -30,7 +30,7 @@ const plan: PlaybackPlan = {
 };
 
 const build = () => {
-  const { auth, settings } = createMemoryAuth();
+  const { auth, settings, store } = createMemoryAuth();
   const presence = createPresenceService();
 
   const app = createApp({
@@ -48,14 +48,17 @@ const build = () => {
     ratings: createMemoryRatingService(),
   });
 
-  return { app, presence };
+  return { app, presence, store };
 };
 
-const signedIn = async (app: ReturnType<typeof build>['app']): Promise<string> => {
+const signedIn = async (
+  app: ReturnType<typeof build>['app'],
+  credentials = CREDENTIALS,
+): Promise<string> => {
   const response = await app.request(`${BASE}/api/auth/sign-up/email`, {
     method: 'POST',
     headers: { 'content-type': 'application/json', origin: BASE },
-    body: JSON.stringify(CREDENTIALS),
+    body: JSON.stringify(credentials),
   });
 
   return response.headers.getSetCookie()[0]?.split(';')[0] ?? '';
@@ -86,12 +89,12 @@ describe('presence over HTTP', () => {
   });
 
   it('says a tab has stopped watching', async () => {
-    const { app, presence } = build();
+    const { app, presence, store } = build();
     const cookie = await signedIn(app);
 
     presence.connect({
       clientId: 'tab-1',
-      accountId: null,
+      accountId: store.user[0]?.id ?? null,
       profileId: null,
       profileName: null,
       deviceLabel: 'Chrome on macOS',
@@ -118,12 +121,12 @@ describe('presence over HTTP', () => {
   });
 
   it('does not clear presence when a session is stopped for an ordinary reason, like a quality change', async () => {
-    const { app, presence } = build();
+    const { app, presence, store } = build();
     const cookie = await signedIn(app);
 
     presence.connect({
       clientId: 'tab-1',
-      accountId: null,
+      accountId: store.user[0]?.id ?? null,
       profileId: null,
       profileName: null,
       deviceLabel: 'Chrome on macOS',
@@ -151,12 +154,12 @@ describe('presence over HTTP', () => {
   });
 
   it('records a heartbeat from a tab that is signed in', async () => {
-    const { app, presence } = build();
+    const { app, presence, store } = build();
     const cookie = await signedIn(app);
 
     presence.connect({
       clientId: 'tab-1',
-      accountId: null,
+      accountId: store.user[0]?.id ?? null,
       profileId: null,
       profileName: null,
       deviceLabel: 'Chrome on macOS',
@@ -193,5 +196,111 @@ describe('presence over HTTP', () => {
       isPlaying: false,
       health: { positionSeconds: 42 },
     });
+  });
+
+  it('refuses a heartbeat for a tab belonging to another account', async () => {
+    const { app, presence, store } = build();
+    const mine = await signedIn(app);
+    const theirs = await signedIn(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: store.user[0]?.id ?? null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
+    presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      reuse: null,
+      transcoderSessionId: null,
+      plan,
+    });
+
+    const response = await app.request(`${BASE}/api/presence/tab-1/heartbeat`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', cookie: theirs, origin: BASE },
+      body: JSON.stringify({ isPlaying: false }),
+    });
+
+    expect(mine).not.toBe('');
+    expect(theirs).not.toBe('');
+    expect(theirs).not.toBe(mine);
+    expect(response.status).toBe(403);
+    expect(presence.list()[0]?.playback).toMatchObject({ isPlaying: true });
+  });
+
+  it('refuses to stop a playback session named against another account’s tab', async () => {
+    const { app, presence, store } = build();
+    const mine = await signedIn(app);
+    const theirs = await signedIn(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: store.user[0]?.id ?? null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
+
+    const response = await app.request(
+      `${BASE}/api/playback/session/direct-media-1?clientId=tab-1`,
+      { method: 'DELETE', headers: { cookie: theirs, origin: BASE } },
+    );
+
+    expect(theirs).not.toBe(mine);
+    expect(response.status).toBe(403);
+  });
+
+  it('refuses to stop a tab belonging to another account', async () => {
+    const { app, presence, store } = build();
+    const mine = await signedIn(app);
+    const theirs = await signedIn(app, {
+      name: 'Somebody else',
+      email: 'else@valence.local',
+      password: 'a-long-enough-password',
+    });
+
+    presence.connect({
+      clientId: 'tab-1',
+      accountId: store.user[0]?.id ?? null,
+      profileId: null,
+      profileName: null,
+      deviceLabel: 'Chrome on macOS',
+      send: vi.fn(),
+    });
+    presence.startPlayback('tab-1', {
+      mediaId: 'media-1',
+      mediaTitle: 'Arrival',
+      hasPoster: false,
+      hasBackdrop: false,
+      mode: 'direct',
+      reuse: null,
+      transcoderSessionId: null,
+      plan,
+    });
+
+    const response = await app.request(`${BASE}/api/presence/tab-1/watching`, {
+      method: 'DELETE',
+      headers: { cookie: theirs, origin: BASE },
+    });
+
+    expect(theirs).not.toBe(mine);
+    expect(response.status).toBe(403);
+    expect(presence.list()[0]?.playback).toMatchObject({ mediaTitle: 'Arrival' });
   });
 });

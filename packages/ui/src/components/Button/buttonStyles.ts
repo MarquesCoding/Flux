@@ -14,9 +14,9 @@ const buttonStyles = cva(
   {
     variants: {
       variant: {
-        primary: `${FLAT} border-transparent bg-accent text-primary-foreground hover:brightness-110`,
-        glossy: `${FLAT} border-[var(--surface-line)] bg-white text-black hover:brightness-95`,
-        secondary: `${FLAT} border-[var(--surface-line)] bg-[var(--surface-hover)] text-secondary-foreground hover:bg-[var(--surface-active)]`,
+        primary: `${FLAT} border-white/15 bg-accent text-primary-foreground hover:bg-accent-hover`,
+        glossy: `${FLAT} border-transparent bg-white text-on-white hover:bg-white-hover`,
+        secondary: `${FLAT} border-[var(--surface-line)] bg-background text-secondary-foreground hover:bg-muted`,
         soft: `${FLAT} border-transparent bg-accent/15 text-accent hover:bg-accent/25`,
         ghost: 'bg-transparent text-foreground hover:bg-[var(--surface-hover)]',
         danger: `${FLAT} border-transparent bg-danger text-destructive-foreground hover:brightness-110`,
@@ -25,15 +25,15 @@ const buttonStyles = cva(
         bare: '',
       },
       size: {
-        xs: 'h-7 gap-1.5 px-3 text-xs',
-        sm: 'h-8 gap-1.5 px-3.5 text-[0.8125rem]',
-        md: 'h-9 gap-2 px-3.5 text-sm',
-        lg: 'h-10 gap-2 px-5 text-sm',
-        xl: 'h-12 gap-2.5 px-6 text-base font-semibold',
+        xs: 'h-7 gap-1.5 px-2 text-xs',
+        sm: 'h-8 gap-2 px-2.5 text-[0.875rem]',
+        md: 'h-9 gap-2 px-3 text-[0.875rem]',
+        lg: 'h-10 gap-2 px-3.5 text-sm',
+        xl: 'h-11 gap-2.5 px-5 text-base font-semibold',
         none: '',
       },
       shape: {
-        square: 'rounded-lg',
+        square: 'rounded-md',
         pill: 'rounded-full',
         bare: '',
       },
@@ -51,8 +51,8 @@ const buttonStyles = cva(
       { isIconOnly: true, size: 'sm', class: 'size-8' },
       { isIconOnly: true, size: 'md', class: 'size-9' },
       { isIconOnly: true, size: 'lg', class: 'size-10' },
-      { isIconOnly: true, size: 'xl', class: 'size-12' },
-      { variant: 'bare', class: 'shadow-none active:scale-100' },
+      { isIconOnly: true, size: 'xl', class: 'size-11' },
+      { variant: 'bare', class: 'shadow-none active:translate-y-0' },
       { variant: ['ghost', 'link', 'overlay'], class: 'shadow-none' },
     ],
     defaultVariants: {

@@ -56,7 +56,6 @@ const DeliveryHistory = ({
           {delivery.ok ? null : (
             <Button
               variant="secondary"
-              isPill
               size="sm"
               disabled={!canRedeliver}
               onClick={() => {

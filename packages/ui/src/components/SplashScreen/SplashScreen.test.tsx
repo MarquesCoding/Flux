@@ -33,6 +33,26 @@ describe('SplashScreen', () => {
     expect(screen.getByRole('status', { name: 'Preparing your library' })).toBeInTheDocument();
   });
 
+  it('leaves the mark out where a bar already shows one, so it is not drawn twice', () => {
+    render(<SplashScreen label="Reading your library" hasMark={false} />);
+
+    expect(screen.getByRole('status', { name: 'Reading your library' })).toBeInTheDocument();
+    expect(screen.queryByLabelText('Valence')).not.toBeInTheDocument();
+  });
+
+  it('keeps its ground once the mark has been handed on, and only then lets it go', () => {
+    const { rerender } = render(<SplashScreen label="Loading" />);
+
+    expect(screen.getByRole('status', { name: 'Loading' })).not.toHaveClass('pointer-events-none');
+
+    rerender(<SplashScreen label="Loading" hasMark={false} isLeaving />);
+
+    const ground = screen.getByRole('status', { name: 'Loading' });
+
+    expect(ground).toBeInTheDocument();
+    expect(ground).toHaveClass('pointer-events-none');
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(SplashScreen.displayName).toBe('SplashScreen');
   });

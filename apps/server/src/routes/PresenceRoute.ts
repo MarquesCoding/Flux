@@ -32,6 +32,10 @@ const presenceHeartbeatRoute = createRoute({
       description: 'Nobody is signed in',
       content: { 'application/json': { schema: PresenceError } },
     },
+    403: {
+      description: 'The tab belongs to another account',
+      content: { 'application/json': { schema: PresenceError } },
+    },
   },
 });
 
@@ -47,6 +51,10 @@ const presenceStopWatchingRoute = createRoute({
     204: { description: 'Recorded' },
     401: {
       description: 'Nobody is signed in',
+      content: { 'application/json': { schema: PresenceError } },
+    },
+    403: {
+      description: 'The tab belongs to another account',
       content: { 'application/json': { schema: PresenceError } },
     },
   },

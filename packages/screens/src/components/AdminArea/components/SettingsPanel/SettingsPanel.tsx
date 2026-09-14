@@ -8,10 +8,12 @@ import { SettingRow } from '@ValenceUI/SettingRow';
 import { OptionMenu } from '@ValenceUI/OptionMenu';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { TextField } from '@ValenceUI/TextField';
+import { Switch } from '@ValenceUI/Switch';
 import {
   saveCatalogueKey,
   saveHardwareAccel,
   savePreviewQuality,
+  saveShowsProfilesBeforeSignIn,
 } from '@ValenceClient/admin/fetchAdmin';
 import { PreviewQualitySchema } from '@ValenceContracts/schemas/PreviewQuality';
 import { accelerationOptions } from '@ValenceScreens/components/AdminArea/accelerationOptions';
@@ -34,17 +36,22 @@ import { PanelCard } from '@ValenceScreens/components/PanelCard/PanelCard';
  * @param onCatalogueKeySaved - Called once a catalogue key has been written.
  * @param onHardwareAccelSaved - Called once the encoder choice has been written.
  * @param onPreviewQualitySaved - Called once the preview preset has been written.
+ * @param onProfileVisibilitySaved - Called once the choice about showing the faces has been written.
  */
 const SettingsPanel = ({
   overview,
   onCatalogueKeySaved,
   onHardwareAccelSaved,
   onPreviewQualitySaved,
+  onProfileVisibilitySaved,
 }: SettingsPanelProps) => {
   const [catalogueKey, setCatalogueKey] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
   const [quality, setQuality] = useState(overview?.settings.previewQuality ?? 'high');
+  const [showsFaces, setShowsFaces] = useState(
+    overview?.settings.showsProfilesBeforeSignIn ?? true,
+  );
 
   return (
     <PanelCard title="Settings" isFlush>
@@ -115,6 +122,32 @@ const SettingsPanel = ({
         </SettingRow>
 
         <SettingRow
+          title="Show who lives here"
+          description="Draws the household's faces on the way in, so somebody signs in by picking one. Off, the way in asks for an address and a password instead, and nobody who has not signed in can read the names, pictures or identifiers of the people here."
+        >
+          <Switch
+            label="Show who lives here"
+            isLabelHidden
+            isOn={showsFaces}
+            onToggle={() => {
+              const next = !showsFaces;
+
+              setShowsFaces(next);
+
+              void saveShowsProfilesBeforeSignIn(next).then((saved) => {
+                if (saved) {
+                  onProfileVisibilitySaved();
+
+                  return;
+                }
+
+                setShowsFaces(!next);
+              });
+            }}
+          />
+        </SettingRow>
+
+        <SettingRow
           title="Metadata catalogue"
           description={
             overview?.settings.hasCatalogueKey === true
@@ -129,7 +162,6 @@ const SettingsPanel = ({
             value={catalogueKey}
             onValueChange={setCatalogueKey}
             placeholder="Paste a key"
-            isPill
             size="sm"
             className="w-48"
           />
@@ -137,7 +169,6 @@ const SettingsPanel = ({
           <Button
             variant="soft"
             size="sm"
-            isPill
             isLoading={isSaving}
             disabled={catalogueKey === ''}
             onClick={() => {

@@ -10,7 +10,11 @@ import type { FromServer } from '@ValenceContracts/schemas/Realtime';
 import type { Permission } from '@ValenceContracts/schemas/Permission';
 import { createPartyRegistry } from '@ValenceServer/parties/createPartyRegistry';
 
-const createWorld = (granted: Permission[] = []) => {
+const createWorld = (
+  granted: Permission[] = [],
+  ownsProfile: (accountId: string, profileId: string) => Promise<boolean> = () =>
+    Promise.resolve(true),
+) => {
   const due: (() => void)[] = [];
 
   const schedule: Schedule = (run) => {
@@ -49,6 +53,8 @@ const createWorld = (granted: Permission[] = []) => {
       presenceCalls.connected.push(clientId);
       presenceCalls.labels.push(deviceLabel);
       announce = send;
+
+      return true;
     },
     disconnect: (clientId) => {
       presenceCalls.disconnected.push(clientId);
@@ -60,6 +66,7 @@ const createWorld = (granted: Permission[] = []) => {
   const handler = createRealtimeHandler({
     registry,
     now: () => 1000,
+    ownsProfile,
     presence,
     newId: () => {
       count += 1;
@@ -179,6 +186,31 @@ describe('createRealtimeHandler', () => {
     await world.registry.drain();
 
     expect(world.read().filter((message) => message.kind === 'event')).toHaveLength(1);
+  });
+
+  it('does not act as a face belonging to somebody else', async () => {
+    const world = createWorld([], () => Promise.resolve(false));
+    const session = world.handler.open({ accountId: 'me', profileId: null }, world.socket);
+
+    await session.receive(JSON.stringify({ kind: 'subscribe', topics: ['profile'] }));
+    await session.receive(
+      JSON.stringify({
+        kind: 'identify',
+        profileId: '22222222-2222-4222-8222-222222222222',
+        clientId: 'tab-one',
+      }),
+    );
+
+    world.registry.publish(
+      'profile',
+      { name: 'Sam' },
+      { kind: 'profiles', profileIds: ['22222222-2222-4222-8222-222222222222'] },
+    );
+    world.tick();
+    await world.registry.drain();
+
+    expect(world.read().filter((message) => message.kind === 'event')).toHaveLength(0);
+    expect(world.presenceCalls.connected).toStrictEqual(['tab-one']);
   });
 
   it('deregisters the connection when the socket closes', () => {
@@ -356,8 +388,9 @@ describe('a connection that is part of a watch party', () => {
     const handler = createRealtimeHandler({
       registry,
       now: () => 1000,
+      ownsProfile: () => Promise.resolve(true),
       presence: {
-        connect: () => {},
+        connect: () => true,
         disconnect: () => {},
         nameOf: () => Promise.resolve('Sam'),
       },
@@ -452,8 +485,9 @@ describe('naming somebody in a party', () => {
     const handler = createRealtimeHandler({
       registry,
       now: () => 1000,
+      ownsProfile: () => Promise.resolve(true),
       presence: {
-        connect: () => {},
+        connect: () => true,
         disconnect: () => {},
         nameOf: (accountId) => {
           asked.push(accountId);

@@ -74,7 +74,7 @@ const hasReason = (text: string): boolean => {
 };
 
 const createRule = ESLintUtils.RuleCreator(
-  () => 'https://github.com/MarquesCoding/StreamerApp/blob/main/docs/code-standards.md',
+  () => 'https://github.com/MarquesCoding/Valence/blob/main/CODING_STANDARD.md',
 );
 
 const noComments = createRule({

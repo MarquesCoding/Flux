@@ -1,0 +1,12 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+
+# No categories, deliberately. GitHub groups these by label and nothing here is labelled, so every
+# category but the first was unreachable and everything landed under one heading anyway. A flat list
+# is what that produced in practice, and it is what is wanted: one line per pull request, saying what
+# changed, who did it and where to read it.
+#
+# Conventional Commits already carry the kind in the title, so a reader sees fix, feat or chore at
+# the start of the line without a heading repeating it.

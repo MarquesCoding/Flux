@@ -60,7 +60,7 @@ const build = (
     profiles,
   });
 
-  return { app, profiles, store, permissions };
+  return { app, profiles, settings, store, permissions };
 };
 
 /**
@@ -250,9 +250,10 @@ describe('profiles over HTTP', () => {
   });
 
   it('says who could sign in, before anybody has', async () => {
-    const { app } = build();
+    const { app, settings } = build();
     const cookie = await signedIn(app);
 
+    await settings.write({ showsProfilesBeforeSignIn: true });
     await read(app, cookie);
 
     const response = await app.request(`${BASE}/api/profiles/everyone`);
@@ -274,9 +275,11 @@ describe('profiles over HTTP', () => {
   });
 
   it('serves a drawn face as a picture', async () => {
-    const { app } = build();
+    const { app, settings } = build();
     const cookie = await signedIn(app);
     const [profile] = await read(app, cookie);
+
+    await settings.write({ showsProfilesBeforeSignIn: true });
 
     await app.request(`${BASE}/api/profiles/${profile?.id ?? ''}`, {
       method: 'PATCH',
@@ -295,9 +298,11 @@ describe('profiles over HTTP', () => {
   });
 
   it('remembers a versioned picture for a long time, since its address changes with it', async () => {
-    const { app } = build();
+    const { app, settings } = build();
     const cookie = await signedIn(app);
     const [profile] = await read(app, cookie);
+
+    await settings.write({ showsProfilesBeforeSignIn: true });
 
     await app.request(`${BASE}/api/profiles/${profile?.id ?? ''}`, {
       method: 'PATCH',
@@ -314,6 +319,80 @@ describe('profiles over HTTP', () => {
     );
 
     expect(response.headers.get('cache-control')).toContain('immutable');
+  });
+
+  it('rate limits signing in as a face, as better-auth limits signing in as an address', async () => {
+    const { auth, settings } = createMemoryAuth({
+      AUTH_RATE_LIMIT_ENABLED: 'true',
+      AUTH_RATE_LIMIT_MAX: '2',
+      AUTH_RATE_LIMIT_WINDOW_SECONDS: '60',
+    });
+
+    const profiles = createMemoryProfileService();
+
+    const app = createApp({
+      auth,
+      settings,
+      permissions: createMemoryPermissionService(),
+      countUsers: () => Promise.resolve(1),
+      promoteToAdmin: () => Promise.resolve(),
+      library: createMemoryLibraryService(),
+      playback: createMemoryPlaybackService(),
+      segments: createMemorySegmentService(),
+      subtitles: createMemorySubtitleService({}),
+      progress: createMemoryWatchProgressService(),
+      favourites: createMemoryFavouriteService(),
+      ratings: createMemoryRatingService(),
+      profiles,
+    });
+
+    const signUp = await app.request(`${BASE}/api/auth/sign-up/email`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json', origin: BASE },
+      body: JSON.stringify(CREDENTIALS),
+    });
+
+    const cookie = signUp.headers.getSetCookie()[0]?.split(';')[0] ?? '';
+    const [profile] = await read(app, cookie);
+
+    named(profiles, profile?.id ?? '');
+
+    const guess = async () =>
+      app.request(`${BASE}/api/profiles/${profile?.id ?? ''}/sign-in`, {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', origin: BASE },
+        body: JSON.stringify({ password: 'not-the-password' }),
+      });
+
+    const statuses = [await guess(), await guess(), await guess(), await guess()].map(
+      (response) => response.status,
+    );
+
+    expect(statuses).toContain(429);
+  });
+
+  it('keeps who lives here from somebody who has not signed in, where the faces are shut away', async () => {
+    const { app, settings } = build();
+
+    await settings.write({ showsProfilesBeforeSignIn: false });
+
+    const response = await app.request(`${BASE}/api/profiles/everyone`, {
+      headers: { origin: BASE },
+    });
+
+    expect(response.status).toBe(401);
+  });
+
+  it('shows who lives here where the server is set to show them', async () => {
+    const { app, settings } = build();
+
+    await settings.write({ showsProfilesBeforeSignIn: true });
+
+    const response = await app.request(`${BASE}/api/profiles/everyone`, {
+      headers: { origin: BASE },
+    });
+
+    expect(response.status).toBe(200);
   });
 
   it('signs somebody in by the face they picked', async () => {
@@ -543,6 +622,8 @@ describe('the pictures and the sign-in list', () => {
   it('has no picture for a profile that has never been given one', async () => {
     const context = build();
 
+    await context.settings.write({ showsProfilesBeforeSignIn: true });
+
     const response = await context.app.request(`${BASE}/api/profiles/${PROFILE_ID}/avatar`);
 
     expect(response.status).toBe(404);
@@ -550,6 +631,8 @@ describe('the pictures and the sign-in list', () => {
 
   it('says who could sign in, which is nobody on a fresh server', async () => {
     const context = build();
+
+    await context.settings.write({ showsProfilesBeforeSignIn: true });
 
     const response = await context.app.request(`${BASE}/api/profiles/everyone`);
 

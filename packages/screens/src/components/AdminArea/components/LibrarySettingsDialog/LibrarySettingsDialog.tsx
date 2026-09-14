@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -15,7 +15,6 @@ import type { LibrarySettingsDialogProps } from './LibrarySettingsDialog.types';
 const NONE_ID = 'none';
 
 const SERVER_ID = 'server';
-
 type LanguageOption = { id: string; label: string; detail?: string };
 
 const AT_ONCE_OPTIONS = [
@@ -139,8 +138,8 @@ const LibrarySettingsDialog = ({
   const atOnceLabel = AT_ONCE_OPTIONS.find((option) => option.id === atOnce)?.label ?? atOnce;
 
   return (
-    <Dialog label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
-      <DialogTitle title={library.name} />
+    <DialogCompanion label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
+      <DialogTitle size="compact" title={library.name} />
 
       {confirming === null ? (
         <>
@@ -214,13 +213,12 @@ const LibrarySettingsDialog = ({
           </DialogContent>
 
           <DialogFooter>
-            <Button variant="secondary" isPill onClick={close} disabled={isSaving}>
+            <Button variant="secondary" onClick={close} disabled={isSaving}>
               Cancel
             </Button>
 
             <Button
               variant="primary"
-              isPill
               isLoading={isSaving}
               onClick={() => {
                 void save();
@@ -243,7 +241,6 @@ const LibrarySettingsDialog = ({
           <DialogFooter>
             <Button
               variant="secondary"
-              isPill
               onClick={() => {
                 finish(confirming.saved);
               }}
@@ -251,13 +248,13 @@ const LibrarySettingsDialog = ({
               Not now
             </Button>
 
-            <Button variant="primary" isPill onClick={regenerate}>
+            <Button variant="primary" onClick={regenerate}>
               Regenerate previews
             </Button>
           </DialogFooter>
         </>
       )}
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

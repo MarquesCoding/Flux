@@ -59,10 +59,23 @@ const RoleSchema = z.object({
   permissions: z.array(PermissionSchema),
 });
 
+const MyPermissionsSchema = z.object({
+  permissions: z.array(PermissionSchema),
+  isAdministrator: z.boolean(),
+});
+
 type Permission = (typeof PERMISSIONS)[number];
 type PermissionGrant = z.infer<typeof PermissionGrantSchema>;
 type Role = z.infer<typeof RoleSchema>;
+type MyPermissions = z.infer<typeof MyPermissionsSchema>;
 
-export { PERMISSIONS, PermissionSchema, PermissionGrantSchema, RoleSchema, ADMINISTRATOR };
+export {
+  PERMISSIONS,
+  PermissionSchema,
+  PermissionGrantSchema,
+  RoleSchema,
+  MyPermissionsSchema,
+  ADMINISTRATOR,
+};
 
-export type { Permission, PermissionGrant, Role };
+export type { Permission, PermissionGrant, Role, MyPermissions };

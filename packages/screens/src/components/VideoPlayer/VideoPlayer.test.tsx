@@ -435,7 +435,7 @@ describe('VideoPlayer', () => {
       vi.advanceTimersByTime(30_000);
     });
 
-    expect(heartbeatMock).toHaveBeenCalledWith('abc', false);
+    expect(heartbeatMock).toHaveBeenCalledWith('abc', false, 'client-1');
 
     vi.useRealTimers();
   });

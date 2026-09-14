@@ -311,6 +311,10 @@ const runningScansRoute = createRoute({
         },
       },
     },
+    403: {
+      description: 'That is for administrators',
+      content: { 'application/json': { schema: Forbidden } },
+    },
   },
 });
 
@@ -324,6 +328,10 @@ const scanStateRoute = createRoute({
     200: {
       description: 'The state of the scan',
       content: { 'application/json': { schema: ScanState } },
+    },
+    403: {
+      description: 'That is for administrators',
+      content: { 'application/json': { schema: Forbidden } },
     },
   },
 });

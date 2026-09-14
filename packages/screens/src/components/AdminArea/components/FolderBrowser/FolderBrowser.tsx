@@ -50,7 +50,6 @@ const FolderBrowser = ({ start, onChoose, onCancel }: FolderBrowserProps) => {
           isIconOnly
           variant="secondary"
           size="xs"
-          isPill
           label="Up a folder"
           disabled={at === null}
           onClick={() => {
@@ -67,7 +66,6 @@ const FolderBrowser = ({ start, onChoose, onCancel }: FolderBrowserProps) => {
           <Button
             variant="ghost"
             size="xs"
-            isPill
             onClick={() => {
               setAt(null);
             }}
@@ -84,7 +82,6 @@ const FolderBrowser = ({ start, onChoose, onCancel }: FolderBrowserProps) => {
                   <Button
                     variant="ghost"
                     size="xs"
-                    isPill
                     onClick={() => {
                       setAt(segment.path);
                     }}
@@ -148,14 +145,13 @@ const FolderBrowser = ({ start, onChoose, onCancel }: FolderBrowserProps) => {
         </span>
 
         <div className="flex shrink-0 gap-2">
-          <Button variant="secondary" size="sm" isPill onClick={onCancel}>
+          <Button variant="secondary" size="sm" onClick={onCancel}>
             Cancel
           </Button>
 
           <Button
             variant="primary"
             size="sm"
-            isPill
             disabled={chosen === null}
             onClick={() => {
               if (chosen !== null) {

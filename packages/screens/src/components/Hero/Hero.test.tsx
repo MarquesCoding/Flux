@@ -286,6 +286,7 @@ describe('Hero', () => {
     renderInAnAddress(<Hero items={items} onPlay={vi.fn()} rotateAfterMilliseconds={100} />);
 
     act(() => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Tab', bubbles: true }));
       screen.getByRole('button', { name: /Play/ }).focus();
     });
 

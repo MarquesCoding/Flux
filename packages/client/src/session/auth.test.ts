@@ -11,6 +11,7 @@ import {
   listPasskeys,
   registerPasskey,
   renamePasskey,
+  signInWithEmail,
   signOut,
   verifyBackupCode,
   verifyTotp,
@@ -65,6 +66,42 @@ beforeEach(() => {
 afterEach(() => {
   forgetPlatform();
   vi.unstubAllGlobals();
+});
+
+describe('signInWithEmail', () => {
+  it('signs in through better-auth, for a server that does not show who lives here', async () => {
+    fetchMock.mockResolvedValue(said({ user: AN_ACCOUNT }));
+
+    await expect(signInWithEmail('operator@valence.test', 'a-password')).resolves.toStrictEqual({
+      kind: 'signedIn',
+    });
+
+    expect(asked()).toBe('/api/auth/sign-in/email');
+  });
+
+  it('asks for a code where the account has a second factor', async () => {
+    fetchMock.mockResolvedValue(said({ twoFactorRedirect: true }));
+
+    await expect(signInWithEmail('operator@valence.test', 'a-password')).resolves.toStrictEqual({
+      kind: 'needsCode',
+    });
+  });
+
+  it('says so where the address and password were not accepted', async () => {
+    fetchMock.mockResolvedValue(said({ message: 'Invalid credentials' }, 401));
+
+    const outcome = await signInWithEmail('operator@valence.test', 'wrong');
+
+    expect(outcome.kind).toBe('refused');
+  });
+
+  it('does not throw where Valence could not be reached', async () => {
+    fetchMock.mockRejectedValue(new Error('offline'));
+
+    const outcome = await signInWithEmail('operator@valence.test', 'a-password');
+
+    expect(outcome).toStrictEqual({ kind: 'refused', reason: 'Valence could not be reached.' });
+  });
 });
 
 describe('fetchSession', () => {

@@ -1,0 +1,245 @@
+name: Release
+
+# Cuts a release from a tag: the image, the things worth downloading, and notes written from the
+# commits themselves.
+#
+# Notes come from Conventional Commits rather than being written by hand, because the commit
+# messages are already the record and a hand-written list is a second one that disagrees. The
+# grouping in .github/release.yml decides what lands under which heading.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: The tag to release, which must already exist
+        required: true
+  # Called by release-please.yml once it has cut the tag. A tag pushed with the default
+  # GITHUB_TOKEN starts no workflow of its own, so the release that made it calls this directly.
+  workflow_call:
+    inputs:
+      tag:
+        description: The tag to release, which must already exist
+        required: true
+        type: string
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  verify:
+    name: Everything must pass first
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm db:check
+
+      - run: pnpm test
+
+  # A job of its own, because it needs a different operating system. The transcoder's tests decode
+  # against the FFmpeg Valence ships, which is packaged for Debian and wants libraries the runner's
+  # Ubuntu does not carry — and a decode is exactly what they are for, so running them against some
+  # other FFmpeg proves nothing about what is being released.
+  #
+  # This is also where the pull request gate's speed is paid back. Those tests do not run on every
+  # branch, so a release is the moment they must.
+  verify-rust:
+    name: The transcoder must pass too
+    runs-on: ubuntu-latest
+    container:
+      image: debian:bookworm-slim
+    env:
+      VALENCE_FFMPEG_VERSION: 8.1.2-2flux2
+      VALENCE_FFMPEG_SUITE: bookworm
+      VALENCE_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
+      VALENCE_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
+    steps:
+      - name: Everything the image does not carry
+        run: |
+          apt-get update
+          apt-get install -y --no-install-recommends \
+            ca-certificates curl git xz-utils build-essential pkg-config
+
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: clippy, rustfmt
+
+      - uses: Swatinem/rust-cache@v2
+
+      - run: cargo fmt --all --check
+
+      - run: cargo clippy --all-targets -- -D warnings
+
+      - name: Install the FFmpeg Valence ships
+        run: |
+          curl -fsSL -o /tmp/flux-ffmpeg.deb \
+            "https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
+          apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
+          "$VALENCE_FFMPEG" -version | head -1
+          # On the path as well as in the variables: a slim image carries no system FFmpeg, so a
+          # test reaching for the bare name finds nothing.
+          ln -sf "$VALENCE_FFMPEG" /usr/local/bin/ffmpeg
+          ln -sf "$VALENCE_FFPROBE" /usr/local/bin/ffprobe
+
+      - run: cargo test
+
+  image:
+    name: Image
+    needs: [verify, verify-rust]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      # A registry accepts a lower case name and this owner is not spelt that way, so it is folded
+      # here rather than written out and left to drift.
+      - name: Work out what to call the image
+        id: named
+        run: echo "image=ghcr.io/${OWNER,,}/valence" >> "$GITHUB_OUTPUT"
+        env:
+          OWNER: ${{ github.repository_owner }}
+
+      - name: Work out how to tag it
+        id: meta
+        uses: docker/metadata-action@v6
+        with:
+          images: ${{ steps.named.outputs.image }}
+          # The version is handed over rather than read off the ref. release-please calls this
+          # workflow rather than pushing a tag that starts it, so the ref here is main and there is
+          # no semver in it to find. Left to infer, every type=semver produced nothing and the image
+          # went out as latest alone, which is no use to anybody pinning a version.
+          tags: |
+            type=semver,pattern={{version}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{major}}.{{minor}},value=${{ inputs.tag || github.ref_name }}
+            type=semver,pattern={{major}},value=${{ inputs.tag || github.ref_name }}
+            type=raw,value=latest
+          labels: |
+            org.opencontainers.image.title=Valence
+            org.opencontainers.image.description=A self-hosted streaming platform
+            org.opencontainers.image.licenses=MIT
+
+      - uses: docker/setup-buildx-action@v4
+
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # amd64 alone. The other half of a multi-architecture build runs under emulation, and a
+      # release-mode Rust build under QEMU takes long enough to be worth deciding on rather than
+      # inheriting.
+      - name: Build and push
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+          provenance: false
+
+  artefacts:
+    name: What is worth downloading
+    needs: [verify, verify-rust]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+
+      - uses: pnpm/action-setup@v6
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+
+      # What a deployment actually needs to stand this version up: the compose file that names the
+      # image, and the environment it reads. The OpenAPI document is deliberately not here — it is
+      # served by the running server at /api/openapi.json, and a copy cut at release time is a second
+      # one that can disagree with the server somebody is pointing their client at.
+      - name: Pack what a deployment needs
+        run: |
+          mkdir -p release
+          cp compose.yaml release/compose.yaml
+          cp .env.example release/env.example
+          tar -czf release/valence-web.tar.gz -C apps/web dist
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: release-artefacts
+          path: release/
+          if-no-files-found: warn
+
+  publish:
+    name: Release
+    needs: [image, artefacts]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.tag || github.ref_name }}
+          fetch-depth: 0
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: release-artefacts
+          path: release
+
+      # The release already exists: release-please created it and tagged it. What it cannot write
+      # is who did the work. Its notes come from commit messages, which carry no author and no pull
+      # request number, so the body is replaced with the one GitHub generates from the merged pull
+      # requests: every line reading "title by @somebody in #number".
+      #
+      # CHANGELOG.md keeps release-please's version, since a file in the repository should read as
+      # a history rather than as a list of pull requests.
+      - name: Notes that say who did the work
+        run: |
+          gh api -X POST "repos/$GITHUB_REPOSITORY/releases/generate-notes" \
+            -f tag_name="$TAG" \
+            -f target_commitish=main \
+            -q .body > notes.md
+          gh release edit "$TAG" --notes-file notes.md
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}
+
+      - name: Hang the artefacts on it
+        run: gh release upload "$TAG" release/* --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ inputs.tag || github.ref_name }}

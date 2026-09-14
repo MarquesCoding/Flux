@@ -135,9 +135,16 @@ const stopWatching = async (clientId: string, keepalive = false): Promise<void> 
  *
  * @param sessionId - The session.
  * @param isPlaying - Whether the picture is moving.
+ * @param clientId - Which device is saying so, so the server can tell it is this viewer's own.
  */
-const heartbeatPlaybackSession = async (sessionId: string, isPlaying: boolean): Promise<void> => {
-  await fetch(`/api/playback/session/${sessionId}/heartbeat`, {
+const heartbeatPlaybackSession = async (
+  sessionId: string,
+  isPlaying: boolean,
+  clientId?: string,
+): Promise<void> => {
+  const asked = clientId === undefined ? '' : `?clientId=${encodeURIComponent(clientId)}`;
+
+  await fetch(`/api/playback/session/${sessionId}/heartbeat${asked}`, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ isPlaying }),

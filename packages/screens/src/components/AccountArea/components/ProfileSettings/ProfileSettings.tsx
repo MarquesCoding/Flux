@@ -61,7 +61,6 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
           }}
           placeholder={profile?.name ?? 'Your name'}
           disabled={!isReady}
-          isPill
           size="sm"
           className="w-56"
         />
@@ -135,7 +134,6 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
           variant="ghost"
           size="sm"
           isIconOnly
-          isPill
           label="Use your initial instead"
           disabled={!isReady}
           onClick={() => {

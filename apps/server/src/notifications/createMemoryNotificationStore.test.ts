@@ -84,9 +84,17 @@ describe('createMemoryNotificationStore', () => {
   it('forgets a browser the push service says is gone', async () => {
     await store.addPushEndpoint('alice', { endpoint: 'https://push/1', p256dh: 'k', auth: 'a' });
 
-    await store.removePushEndpoint('https://push/1');
+    await store.removePushEndpoint('alice', 'https://push/1');
 
     expect(await store.listPushEndpoints('alice')).toStrictEqual([]);
+  });
+
+  it('keeps a browser somebody else asked to forget', async () => {
+    await store.addPushEndpoint('alice', { endpoint: 'https://push/1', p256dh: 'k', auth: 'a' });
+
+    await store.removePushEndpoint('bob', 'https://push/1');
+
+    expect(await store.listPushEndpoints('alice')).toHaveLength(1);
   });
 
   it('counts one browser once however often it is offered', async () => {

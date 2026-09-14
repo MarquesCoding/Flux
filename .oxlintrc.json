@@ -18,12 +18,13 @@
     "react/rules-of-hooks": "error",
     "import/no-duplicates": "error",
     "unicorn/prefer-node-protocol": "error",
-    "import/no-default-export": "error"
+    "import/no-default-export": "error",
+    "react/set-state-in-effect": "off"
   },
   "ignorePatterns": ["dist", "coverage", "node_modules", "target"],
   "overrides": [
     {
-      "files": ["**/*.config.ts", "**/*.config.mts", "**/vitest.setup.ts", "docs/site/**"],
+      "files": ["**/*.config.ts", "**/*.config.mts", "**/vitest.setup.ts"],
       "rules": {
         "import/no-default-export": "off"
       }

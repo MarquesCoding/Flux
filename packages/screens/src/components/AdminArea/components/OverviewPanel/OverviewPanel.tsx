@@ -62,7 +62,6 @@ const Region = ({
             <Button
               variant="ghost"
               size="xs"
-              isPill
               className="shrink-0 text-xs text-text-muted hover:text-text"
               onClick={onAction}
               disabled={isActionBusy}

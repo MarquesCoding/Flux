@@ -45,14 +45,7 @@ const OfflinePlayer = ({ file, startAtSeconds = 0, onLeave, onProgress }: Offlin
   return (
     <main className="flex h-full min-h-screen flex-col bg-shade">
       <header className="flex items-center gap-3 px-4 py-3">
-        <Button
-          variant="ghost"
-          size="sm"
-          isIconOnly
-          isPill
-          label="Back to downloads"
-          onClick={onLeave}
-        >
+        <Button variant="ghost" size="sm" isIconOnly label="Back to downloads" onClick={onLeave}>
           <Icon of={ArrowLeft02Icon} size={18} />
         </Button>
 
@@ -92,7 +85,6 @@ const OfflinePlayer = ({ file, startAtSeconds = 0, onLeave, onProgress }: Offlin
           variant="soft"
           size="sm"
           isIconOnly
-          isPill
           label={isPlaying ? `Pause ${file.title}` : `Play ${file.title}`}
           onClick={() => {
             const element = videoRef.current;

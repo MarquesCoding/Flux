@@ -76,7 +76,7 @@ describe('Button', () => {
 
     const play = screen.getByRole('button', { name: 'Play' });
 
-    expect(play).toHaveClass('bg-white', 'text-black');
+    expect(play).toHaveClass('bg-white', 'text-on-white');
     expect(play).not.toHaveClass('valence-raise');
   });
 
@@ -85,7 +85,7 @@ describe('Button', () => {
 
     const share = screen.getByRole('button', { name: 'Share' });
 
-    expect(share).toHaveClass('border', 'bg-[var(--surface-hover)]');
+    expect(share).toHaveClass('border', 'bg-background');
     expect(share).not.toHaveClass('valence-raise');
   });
 
@@ -116,7 +116,7 @@ describe('Button', () => {
   it('is a rounded box otherwise', () => {
     render(<Button>Save</Button>);
 
-    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-lg');
+    expect(screen.getByRole('button', { name: 'Save' })).toHaveClass('rounded-md');
   });
 
   it('offers a size small enough to sit in a strip of heading', () => {
@@ -140,7 +140,7 @@ describe('Button', () => {
       </Button>,
     );
 
-    expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-12');
+    expect(screen.getByRole('button', { name: 'Watch now' })).toHaveClass('h-11');
   });
 
   describe('wearing only an icon', () => {
@@ -164,7 +164,7 @@ describe('Button', () => {
       const button = screen.getByRole('button', { name: 'Mute' });
 
       expect(button).toHaveClass('size-9');
-      expect(button).not.toHaveClass('px-3.5');
+      expect(button).not.toHaveClass('px-3');
     });
 
     it('wears the same corner as everything else, since an icon is not a reason to be round', () => {
@@ -176,7 +176,7 @@ describe('Button', () => {
 
       const button = screen.getByRole('button', { name: 'Mute' });
 
-      expect(button).toHaveClass('rounded-lg');
+      expect(button).toHaveClass('rounded-md');
       expect(button).not.toHaveClass('rounded-full');
     });
 

@@ -18,6 +18,7 @@ const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
 const build = () => {
   const { auth, settings, store } = createMemoryAuth();
   const permissions = createMemoryPermissionService();
+  const held = { auth, settings, store, permissions };
 
   const app = createApp({
     auth,
@@ -49,7 +50,7 @@ const build = () => {
     profiles: createMemoryProfileService(),
   });
 
-  return { app, store, permissions };
+  return { ...held, app };
 };
 
 const GUARDED: readonly { method: string; path: string }[] = [
@@ -81,7 +82,6 @@ const GUARDED: readonly { method: string; path: string }[] = [
 const PUBLIC = [
   { method: 'GET', path: '/api/health' },
   { method: 'GET', path: '/api/setup/status' },
-  { method: 'GET', path: '/api/profiles/everyone' },
   { method: 'GET', path: '/api/openapi.json' },
 ];
 
@@ -106,6 +106,56 @@ describe('the session gate', () => {
     });
 
     expect(response.status).not.toBe(401);
+  });
+
+  describe('who lives here', () => {
+    it('is kept from somebody who has not signed in, where the server has shut the faces away', async () => {
+      const { app, settings } = build();
+
+      await settings.write({ showsProfilesBeforeSignIn: false });
+
+      const response = await app.request(`${TEST_ORIGIN}/api/profiles/everyone`, {
+        headers: { origin: TEST_ORIGIN },
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('is shown where the server is set to show it', async () => {
+      const { app, settings } = build();
+
+      await settings.write({ showsProfilesBeforeSignIn: true });
+
+      const response = await app.request(`${TEST_ORIGIN}/api/profiles/everyone`, {
+        headers: { origin: TEST_ORIGIN },
+      });
+
+      expect(response.status).not.toBe(401);
+    });
+
+    it('is shut again the moment the setting is turned off, without a restart', async () => {
+      const { app, settings } = build();
+
+      await settings.write({ showsProfilesBeforeSignIn: true });
+      await settings.write({ showsProfilesBeforeSignIn: false });
+
+      const response = await app.request(`${TEST_ORIGIN}/api/profiles/everyone`, {
+        headers: { origin: TEST_ORIGIN },
+      });
+
+      expect(response.status).toBe(401);
+    });
+
+    it('is read by somebody signed in either way', async () => {
+      const { app } = build();
+      const cookie = await signUpForTest(app);
+
+      const response = await app.request(`${TEST_ORIGIN}/api/profiles/everyone`, {
+        headers: { cookie, origin: TEST_ORIGIN },
+      });
+
+      expect(response.status).toBe(200);
+    });
   });
 
   it('streams nothing to somebody who never signed in', async () => {

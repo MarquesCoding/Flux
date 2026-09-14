@@ -237,6 +237,16 @@ describe('heartbeatPlaybackSession', () => {
     });
   });
 
+  it('names the device saying so, so the server can tell it is this viewer’s own', async () => {
+    await heartbeatPlaybackSession('abc', true, 'tab-1');
+
+    expect(fetchMock).toHaveBeenCalledWith('/api/playback/session/abc/heartbeat?clientId=tab-1', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ isPlaying: true }),
+    });
+  });
+
   it('does not throw when the server is unreachable', async () => {
     fetchMock.mockRejectedValue(new Error('offline'));
 

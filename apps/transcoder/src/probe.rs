@@ -175,7 +175,7 @@ struct DetectedRange {
 /// transfer function, so side data is checked before the transfer curve.
 /// Reporting HDR10 for a Dolby Vision stream would silently discard the
 /// dynamic metadata during transcoding, which is the failure this ordering
-/// exists to prevent. See ADR-0010.
+/// exists to prevent.
 ///
 /// The two are not carried in the same place. Dolby Vision announces itself in
 /// a configuration record on the stream, where a reader of `-show_streams`

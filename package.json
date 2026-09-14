@@ -2,10 +2,11 @@
   "name": "valence",
   "version": "0.0.0",
   "private": true,
+  "license": "MIT",
   "type": "module",
-  "packageManager": "pnpm@10.33.2",
+  "packageManager": "pnpm@10.34.5",
   "engines": {
-    "node": ">=22"
+    "node": ">=24"
   },
   "scripts": {
     "build": "turbo run build",
@@ -16,6 +17,7 @@
     "typecheck": "turbo run typecheck",
     "lint": "oxlint && eslint . && tsx tools/comments/checkComments.ts",
     "lint:fix": "oxlint --fix && eslint . --fix && tsx tools/comments/checkComments.ts --fix",
+    "branch:check": "tsx tools/branches/checkBranchName.ts",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "rust:check": "cargo clippy --all-targets -- -D warnings && cargo fmt --check",
@@ -26,20 +28,20 @@
     "db:check": "tsx tools/drizzle/checkDrizzleSnapshot.ts"
   },
   "devDependencies": {
-    "@commitlint/cli": "^19.6.1",
-    "@commitlint/config-conventional": "^19.6.0",
-    "@types/node": "^22.10.5",
-    "@typescript-eslint/utils": "^8.67.0",
-    "eslint": "^9.18.0",
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
+    "@types/node": "^24.0.0",
+    "@typescript-eslint/utils": "^8.70.0",
+    "eslint": "^10.0.0",
     "husky": "^9.1.7",
-    "jiti": "^2.4.2",
-    "lint-staged": "^15.3.0",
-    "oxlint": "^0.15.7",
-    "prettier": "^3.4.2",
-    "tsx": "^4.19.2",
-    "turbo": "^2.3.3",
-    "typescript": "^5.7.3",
-    "typescript-eslint": "^8.20.0"
+    "jiti": "^2.7.0",
+    "lint-staged": "^17.0.0",
+    "oxlint": "^1.0.0",
+    "prettier": "^3.9.6",
+    "tsx": "^4.23.13",
+    "turbo": "^2.10.12",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.70.0"
   },
   "lint-staged": {
     "*.{ts,tsx}": [

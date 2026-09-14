@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -75,8 +75,9 @@ const EditWebhookDialog = ({
   };
 
   return (
-    <Dialog label={`Edit ${webhook.name}`} isOpen onClose={onClose}>
+    <DialogCompanion label={`Edit ${webhook.name}`} isOpen onClose={onClose}>
       <DialogTitle
+        size="compact"
         title={`Edit ${webhook.name}`}
         detail="Its signing secret stays as it is, so anything already checking deliveries keeps working."
       />
@@ -92,15 +93,15 @@ const EditWebhookDialog = ({
           </span>
         )}
 
-        <Button variant="secondary" isPill onClick={onClose}>
+        <Button variant="secondary" onClick={onClose}>
           Cancel
         </Button>
 
-        <Button variant="primary" isPill disabled={!isReady || isSaving} onClick={save}>
+        <Button variant="primary" disabled={!isReady || isSaving} onClick={save}>
           {isSaving ? 'Saving…' : 'Save changes'}
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

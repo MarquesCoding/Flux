@@ -41,6 +41,15 @@
       "@ValenceUI/DataTable": ["./packages/ui/src/components/DataTable/DataTable.tsx"],
       "@ValenceUI/DataTable.types": ["./packages/ui/src/components/DataTable/DataTable.types.ts"],
       "@ValenceUI/Dialog": ["./packages/ui/src/components/Dialog/Dialog.tsx"],
+      "@ValenceUI/Dialog.companionContext": [
+        "./packages/ui/src/components/Dialog/companionContext.ts"
+      ],
+      "@ValenceUI/DialogCompanion": [
+        "./packages/ui/src/components/DialogCompanion/DialogCompanion.tsx"
+      ],
+      "@ValenceUI/DialogCompanion.types": [
+        "./packages/ui/src/components/DialogCompanion/DialogCompanion.types.ts"
+      ],
       "@ValenceUI/DialogContent": ["./packages/ui/src/components/DialogContent/DialogContent.tsx"],
       "@ValenceUI/DialogContent.types": [
         "./packages/ui/src/components/DialogContent/DialogContent.types.ts"
@@ -53,6 +62,8 @@
       "@ValenceUI/DialogTitle.types": [
         "./packages/ui/src/components/DialogTitle/DialogTitle.types.ts"
       ],
+      "@ValenceUI/FormField": ["./packages/ui/src/components/FormField/FormField.tsx"],
+      "@ValenceUI/FormField.types": ["./packages/ui/src/components/FormField/FormField.types.ts"],
       "@ValenceUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@ValenceUI/DotField.types": ["./packages/ui/src/components/DotField/DotField.types.ts"],
       "@ValenceUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],

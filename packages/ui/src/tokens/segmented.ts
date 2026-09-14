@@ -1,12 +1,12 @@
 const SEGMENTED = {
   track:
-    'valence-rail relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-pill',
+    'valence-rail relative flex w-fit max-w-full items-center gap-1 overflow-x-auto rounded-md',
   trackSizes: {
     sm: 'p-[3px]',
     md: 'p-1.5',
   },
   item: [
-    'relative flex shrink-0 cursor-pointer items-center rounded-pill outline-none',
+    'relative flex shrink-0 cursor-pointer items-center rounded-md outline-none',
     'transition-colors duration-[var(--duration-instant)] ease-[var(--ease-out)]',
     'motion-reduce:transition-none',
     'text-text-muted hover:text-text focus-visible:text-text',
@@ -19,13 +19,13 @@ const SEGMENTED = {
   tones: {
     inverted: {
       track: 'border border-[var(--surface-line)] bg-[var(--surface-hover)]',
-      mark: 'rounded-pill bg-text',
+      mark: 'rounded-md bg-text',
       chosen: 'font-semibold text-surface hover:text-surface focus-visible:text-surface',
     },
     accent: {
       track: 'border border-[var(--surface-line)] bg-[var(--surface-hover)]',
-      mark: 'rounded-pill border border-accent/40 bg-accent/15',
-      chosen: 'font-semibold text-accent hover:text-accent focus-visible:text-accent',
+      mark: 'rounded-md border border-[var(--surface-line)] bg-[var(--surface-active)]',
+      chosen: 'font-semibold text-text hover:text-text focus-visible:text-text',
     },
   },
 } as const;

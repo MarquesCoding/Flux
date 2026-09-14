@@ -70,6 +70,7 @@ import { createDatabaseFavouriteService } from '@ValenceServer/favourites/create
 import { createDatabaseRatingService } from '@ValenceServer/ratings/createDatabaseRatingService';
 import { createDatabaseShareService } from '@ValenceServer/sharing/createDatabaseShareService';
 import { createShareSessions } from '@ValenceServer/sharing/createShareSessions';
+import { createPlaybackSessions } from '@ValenceServer/playback/createPlaybackSessions';
 import { createDatabaseSegmentService } from '@ValenceServer/segments/createDatabaseSegmentService';
 import { createFingerprintSegmentProvider } from '@ValenceServer/segments/createFingerprintSegmentProvider';
 import { createSidecarSubtitleService } from '@ValenceServer/subtitles/createSidecarSubtitleService';
@@ -208,6 +209,7 @@ const settings = createDatabaseSettingsStore({
     catalogueApiKey: env.CATALOGUE_API_KEY,
     hardwareAccel: '',
     previewQuality: 'high',
+    showsProfilesBeforeSignIn: true,
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',
@@ -433,9 +435,11 @@ presence.watch(() => {
 const permissions = watchPermissionChanges(storedPermissions, {
   accountChanged: (userId) => {
     void realtime.recheck(userId);
+    realtime.publish('profile', { changed: true }, { kind: 'accounts', accountIds: [userId] });
   },
   everyoneChanged: () => {
     void realtime.recheckAll();
+    realtime.publish('profile', { changed: true }, { kind: 'everyone' });
   },
 });
 
@@ -1456,6 +1460,7 @@ const app = createApp({
   ratings: createDatabaseRatingService(db),
   shares: createDatabaseShareService(db),
   shareSessions: createShareSessions(),
+  playbackSessions: createPlaybackSessions(),
   sayALinkWasWithdrawn: async ({ accountId, title, byName }) => {
     await notifyHousehold({
       store: notifications,
@@ -1700,6 +1705,7 @@ const realtimeHandler = createRealtimeHandler({
   registry: realtime,
   newId: () => randomUUID(),
   now: () => Date.now(),
+  ownsProfile: (accountId, profileId) => profileService.belongsTo(accountId, profileId),
   party: {
     registry: parties,
     tell: (connectionIds, payload) => {
@@ -1713,9 +1719,7 @@ const realtimeHandler = createRealtimeHandler({
     },
   },
   presence: {
-    connect: (arrival) => {
-      presence.connect(arrival);
-    },
+    connect: (arrival) => presence.connect(arrival),
     disconnect: (clientId) => {
       presence.disconnect(clientId);
     },

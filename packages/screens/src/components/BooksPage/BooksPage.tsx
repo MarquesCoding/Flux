@@ -2,7 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { motion, useReducedMotion } from 'motion/react';
 import { revealTransition, revealVariants, staggerVariants } from '@ValenceUI/animations/reveal';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
-import { useShell } from '@ValenceClient/shell/useShell';
+import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
 import { BookShelf } from '@ValenceScreens/components/BookShelf/BookShelf';
 
 /**
@@ -18,7 +18,7 @@ import { BookShelf } from '@ValenceScreens/components/BookShelf/BookShelf';
  */
 const BooksPage = () => {
   const go = useNavigate();
-  const { user } = useShell();
+  const { mayAdminister } = useWhatIMayDo();
   const { go: goWithin } = usePlace();
   const prefersReducedMotion = useReducedMotion();
 
@@ -42,7 +42,7 @@ const BooksPage = () => {
           onOpen={(book) => {
             void go({ to: '/read/$bookId', params: { bookId: book.id } });
           }}
-          {...(user.role === 'admin'
+          {...(mayAdminister
             ? {
                 onAddLibrary: () => {
                   goWithin({ admin: 'libraries' });

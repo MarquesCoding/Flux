@@ -46,7 +46,7 @@ const EmptyLibrary = ({
         ? {}
         : {
             action: (
-              <Button variant="glossy" isPill onClick={onManage}>
+              <Button variant="glossy" onClick={onManage}>
                 Scan it
               </Button>
             ),

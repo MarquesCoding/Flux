@@ -62,6 +62,8 @@ const WATCHABLE: ReadonlySet<LibraryKind> = new Set(['movies', 'shows']);
  * @param name - What this instance is called, for the wordmark held up while it reads.
  * @param isKept - Whether each item is kept.
  * @param onToggleKept - Told to keep something, or stop.
+ * @param onReading - Told whether it is still reading, so that whoever is holding a screen over it
+ *   can keep holding it until there is something behind it worth showing.
  */
 const LibraryBrowser = ({
   search = '',
@@ -77,6 +79,7 @@ const LibraryBrowser = ({
   onPlay,
   onShow,
   onWatch,
+  onReading,
 }: LibraryBrowserProps) => {
   const [appliedSearch, setAppliedSearch] = useState('');
 
@@ -164,6 +167,18 @@ const LibraryBrowser = ({
     home.isReading ||
     (hasHero && watchable.length > 0 && sample.isPending);
 
+  const tellTheScreen = useRef(onReading);
+
+  tellTheScreen.current = onReading;
+
+  useEffect(() => {
+    tellTheScreen.current?.(isReading);
+
+    return () => {
+      tellTheScreen.current?.(false);
+    };
+  }, [isReading]);
+
   if (askedFor.isError || page.isError) {
     return (
       <CouldNotRead
@@ -178,7 +193,13 @@ const LibraryBrowser = ({
   }
 
   if (isReading) {
-    return <SplashScreen {...(name === undefined ? {} : { name })} label="Reading your library" />;
+    return onReading !== undefined ? null : (
+      <SplashScreen
+        {...(name === undefined ? {} : { name })}
+        label="Reading your library"
+        hasMark={false}
+      />
+    );
   }
 
   if (libraries.length === 0) {
@@ -196,7 +217,7 @@ const LibraryBrowser = ({
           ? {}
           : {
               action: (
-                <Button variant="glossy" isPill onClick={onAddLibrary}>
+                <Button variant="glossy" onClick={onAddLibrary}>
                   Add a library
                 </Button>
               ),

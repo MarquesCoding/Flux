@@ -107,12 +107,10 @@ const createMemoryDownloadService = (
       return Promise.resolve();
     },
 
-    release: (_clientId: string, mediaId: string, quality: DownloadQuality) => {
-      for (const [profileId, held] of Object.entries(state.holdings)) {
-        state.holdings[profileId] = held.filter(
-          (one) => !(one.mediaId === mediaId && one.quality === quality),
-        );
-      }
+    release: (profileId: string, _clientId: string, mediaId: string, quality: DownloadQuality) => {
+      state.holdings[profileId] = (state.holdings[profileId] ?? []).filter(
+        (one) => !(one.mediaId === mediaId && one.quality === quality),
+      );
 
       return Promise.resolve();
     },

@@ -112,7 +112,6 @@ const DeviceList = () => {
           <Button
             variant="soft"
             size="xs"
-            isPill
             onClick={() => {
               setIsEndingRest(true);
             }}

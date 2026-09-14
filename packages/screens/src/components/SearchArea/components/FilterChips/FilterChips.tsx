@@ -28,7 +28,6 @@ const FilterChips = ({ legend, options, value, onValueChange }: FilterChipsProps
           <li key={option.value}>
             <Button
               size="sm"
-              isPill
               variant={option.value === value ? 'glossy' : 'ghost'}
               isActive={option.value === value}
               onClick={() => {

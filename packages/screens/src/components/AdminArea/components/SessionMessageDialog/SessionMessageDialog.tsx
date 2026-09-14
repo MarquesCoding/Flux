@@ -71,14 +71,13 @@ const SessionMessageDialog = ({ watcher, isOpen, onSend, onClose }: SessionMessa
       </DialogContent>
 
       <DialogFooter>
-        <Button variant="ghost" size="sm" isPill onClick={onClose}>
+        <Button variant="ghost" size="sm" onClick={onClose}>
           Cancel
         </Button>
 
         <Button
           variant="primary"
           size="sm"
-          isPill
           disabled={!canSend}
           isLoading={isSending}
           onClick={() => {

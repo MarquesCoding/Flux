@@ -209,7 +209,7 @@ describe('AppShell', () => {
 
     const bloom = view.container.querySelector<HTMLElement>('.valence-bloom');
 
-    expect(bloom?.style.background).toContain('#5a3c8c');
+    expect(bloom?.style.background).toContain('rgb(90, 60, 140)');
     expect(bloom?.style.background).toContain('20% 30%');
   });
 
@@ -447,8 +447,20 @@ describe('the places the bar offers', () => {
     expect(offered()).toEqual(['Home', 'New & Popular', 'Favourites']);
   });
 
-  it('says how far the page has come up towards the bar, so the sheet can fade in by it', () => {
+  it('fills the sheet in well before the page reaches the bar, so no hero shows through it', () => {
     Object.defineProperty(window, 'scrollY', { value: 32, configurable: true });
+
+    const { view } = draw();
+
+    expect(
+      view.container
+        .querySelector<HTMLElement>('.valence-shell')
+        ?.style.getPropertyValue('--content-reach'),
+    ).toBe('1');
+  });
+
+  it('fills it in proportion on the way there, rather than all at once', () => {
+    Object.defineProperty(window, 'scrollY', { value: 16, configurable: true });
 
     const { view } = draw();
 

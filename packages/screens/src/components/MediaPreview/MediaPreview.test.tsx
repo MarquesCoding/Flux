@@ -212,6 +212,89 @@ describe('MediaPreview', () => {
     expect(isShowing(stillOf(container))).toBe(false);
   });
 
+  it('rests back on the still where a pause is left standing, for a hero that asked it to', async () => {
+    const { container } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        restsOnPause
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await act(async () => {
+      videoOf().dispatchEvent(new Event('pause'));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2500);
+      await Promise.resolve();
+    });
+
+    expect(isShowing(stillOf(container))).toBe(true);
+  });
+
+  it('stays on the clip through a pause too brief to have been meant', async () => {
+    const { container } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        restsOnPause
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await act(async () => {
+      videoOf().dispatchEvent(new Event('pause'));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(500);
+      await Promise.resolve();
+    });
+
+    expect(isShowing(stillOf(container))).toBe(false);
+  });
+
+  it('comes back to the clip when it is played again, rather than holding the still', async () => {
+    const { container } = render(
+      <MediaPreview
+        mediaId={MEDIA_ID}
+        backdropUrl="/artwork.jpg"
+        durationSeconds={7200}
+        settleMilliseconds={0}
+        restsOnPause
+      />,
+    );
+
+    await settle();
+    await startPlaying();
+
+    await act(async () => {
+      videoOf().dispatchEvent(new Event('pause'));
+      await Promise.resolve();
+    });
+
+    await act(async () => {
+      vi.advanceTimersByTime(2500);
+      await Promise.resolve();
+    });
+
+    await startPlaying();
+
+    expect(isShowing(stillOf(container))).toBe(false);
+  });
+
   it('runs again rather than falling back, where nothing is waiting for it', async () => {
     const { container } = render(
       <MediaPreview

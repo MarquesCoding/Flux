@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavBar } from './NavBar';
@@ -115,10 +115,10 @@ describe('NavBar', () => {
     );
   });
 
-  it('draws the mark as a pill, the same shape as the places it moves between', () => {
+  it('draws the mark in the same corner as the places it moves between', () => {
     const { container } = render(<NavBar {...props} />);
 
-    expect(container.querySelector('[data-mark="nav-bar-mark"]')).toHaveClass('rounded-full');
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')).toHaveClass('rounded-md');
   });
 
   it('goes where it is asked', async () => {
@@ -161,7 +161,7 @@ describe('NavBar', () => {
       />,
     );
 
-    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass('size-9', 'rounded-full');
+    expect(screen.getByRole('button', { name: 'Search' })).toHaveClass('size-9', 'rounded-md');
   });
 
   it('names every place for anybody who cannot see the icons', () => {
@@ -343,7 +343,9 @@ describe('what the bar can carry besides places', () => {
 
     await user.hover(screen.getByRole('button', { name: 'Favourites' }));
 
-    expect(covering).toHaveStyle({ clipPath: 'inset(0% 0% 0% 0%)' });
+    await waitFor(() => {
+      expect(covering).toHaveStyle({ clipPath: 'inset(0% 0% 0% 0%)' });
+    });
   });
 
   it('shows a count on a tool that has something to say', () => {
@@ -486,8 +488,17 @@ describe('the place being stood on', () => {
   it('carries its icon beside its word, where every other place keeps to its word', () => {
     render(<NavBar items={WITH_ICONS} selectedId="home" onSelect={vi.fn()} />);
 
-    expect(screen.getByTestId('home-icon-on').closest('span.z-10')).not.toHaveClass('md:hidden');
-    expect(screen.getByTestId('films-icon').closest('span.z-10')).toHaveClass('md:hidden');
+    expect(screen.getByTestId('home-icon-on').closest('span.z-10')).not.toHaveClass('md:w-0');
+    expect(screen.getByTestId('films-icon').closest('span.z-10')).toHaveClass('md:w-0');
+  });
+
+  it('closes an icon away rather than dropping it, so a place changing does not jump', () => {
+    render(<NavBar items={WITH_ICONS} selectedId="home" onSelect={vi.fn()} />);
+
+    const folded = screen.getByTestId('films-icon').closest('span.z-10');
+
+    expect(folded).toHaveClass('md:opacity-0', 'overflow-hidden');
+    expect(folded).not.toHaveClass('md:hidden');
   });
 
   it('holds its icon still, with nothing wiped over it when a pointer rests there', async () => {
@@ -512,8 +523,6 @@ describe('the place being stood on', () => {
     const films = screen.getByRole('button', { name: 'Films' });
 
     await actor.click(films);
-    await actor.unhover(screen.getByRole('navigation', { name: 'Sections' }));
-    fireEvent.focusOut(films);
 
     expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
 
@@ -521,5 +530,17 @@ describe('the place being stood on', () => {
 
     expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
     expect(films).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('holds the mark where it was put when focus moves from one place to the next', async () => {
+    const actor = userEvent.setup();
+    const { container } = render(<NavBar {...props} />);
+
+    const films = screen.getByRole('button', { name: 'Films' });
+
+    await actor.click(screen.getByRole('button', { name: 'Home' }));
+    await actor.click(films);
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
   });
 });

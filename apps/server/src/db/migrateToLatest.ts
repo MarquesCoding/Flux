@@ -17,7 +17,7 @@ type MigrateToLatestOptions = {
  * rather than beside it, and a failure to migrate stops the server rather than letting it come up
  * to serve errors from the tables that moved.
  *
- * Safe to run unattended because of ADR-0006: one box, one container, one server, so there is no
+ * Safe to run unattended: one box, one container, one server, so there is no
  * second instance to race. Drizzle takes a lock regardless.
  *
  * @param pending - Reads which migrations this database has not run.
