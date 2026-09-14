@@ -47,6 +47,11 @@ FROM node:24-bookworm-slim AS runtime
 # first, so mesa-va-drivers is no longer installed — it only ever supplied
 # radeonsi, and Debian's ffmpeg that needed it is gone.
 #
+# `pci.ids` is the table that turns 8086:4680 into "UHD Graphics 770". Only
+# amdgpu writes its own name into sysfs, so without this an Intel card can be
+# measured and not named, and the admin page would report a figure against a
+# pair of hex numbers. About a megabyte, and it is the same table lspci reads.
+#
 # Downloaded with ADD rather than curl so the image needs no download tool of
 # its own. Worth pinning `--checksum` here once the version settles.
 # The build itself is published from a repository of its own and is still named for what it was
@@ -58,7 +63,7 @@ ARG TARGETARCH
 ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates /tmp/flux-ffmpeg.deb \
+  && apt-get install -y --no-install-recommends ca-certificates pci.ids /tmp/flux-ffmpeg.deb \
   && rm /tmp/flux-ffmpeg.deb \
   && rm -rf /var/lib/apt/lists/*
 

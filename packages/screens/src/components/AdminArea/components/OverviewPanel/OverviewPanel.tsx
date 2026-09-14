@@ -14,6 +14,7 @@ import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@ValenceScreens/components/AdminArea/describeAcceleration';
 import { describeChains } from '@ValenceScreens/components/AdminArea/describeChains';
+import { describeCard } from '@ValenceScreens/components/AdminArea/describeCard';
 import { memoryEnvelope } from '@ValenceScreens/components/AdminArea/memoryEnvelope';
 import { measureStorage } from '@ValenceClient/admin/fetchAdmin';
 import type { StorageCount } from '@ValenceClient/admin/fetchAdmin';
@@ -192,11 +193,7 @@ const OverviewPanel = ({
             <div className="flex items-baseline justify-between gap-3">
               <dt className="shrink-0 text-text-muted">Graphics</dt>
               <dd className="min-w-0 truncate text-text">
-                {resources?.graphics === null || resources?.graphics === undefined
-                  ? 'None Valence can read'
-                  : resources.graphics.encoderPercent === null
-                    ? `${resources.graphics.name} · encoder not readable`
-                    : resources.graphics.name}
+                {describeCard(resources?.graphics ?? null)}
               </dd>
             </div>
 

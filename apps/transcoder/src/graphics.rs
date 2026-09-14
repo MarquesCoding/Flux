@@ -12,16 +12,26 @@
 //! engine that is not the GPU, and four saturated encodes leave overall
 //! utilisation where it was.
 //!
-//! Intel is deliberately unread. `intel_gpu_top` is the only route to its
-//! engine counters, it is not installed by default, and it needs privileges
-//! Valence should not be asking for. An honest silence beats a number that is
-//! wrong on most machines.
+//! Intel has no whole-card counter Valence may read. `intel_gpu_top` is the
+//! only route to one, it is not installed by default, and it reaches the
+//! counters through `perf`, which a container refuses without `CAP_PERFMON`
+//! and a host sysctl. Those are privileges Valence should not be asking for,
+//! and that has not changed.
+//!
+//! What has changed is that the kernel now keeps a second set of books:
+//! per-client engine times, published beside every open file on a render node
+//! and readable by whoever opened it. Those cover only Valence's own work, so
+//! they answer a narrower question than a vendor counter does — and they
+//! answer it without asking anybody for anything. Where that is the only
+//! reading available, it is reported as what it is. See [`crate::drm_clients`].
 
 use std::collections::VecDeque;
 use std::time::Duration;
 
 use serde::Serialize;
 use tokio::process::Command;
+
+use crate::drm_clients::VideoEngine;
 
 /// How many readings are averaged into the figure that is reported.
 ///
@@ -38,6 +48,20 @@ const SMOOTHING: usize = 5;
 /// it, and short enough that a wedged tool cannot pile up behind itself.
 const PROBE_TIMEOUT: Duration = Duration::from_secs(3);
 
+/// Whose work a figure accounts for.
+///
+/// A vendor counter covers the silicon, whoever is using it. The kernel's
+/// per-client books cover only the clients Valence opened, because that is all
+/// it will attribute without privileges Valence does not take. The two are
+/// read the same way and mean different things, so which one produced a figure
+/// travels with the figure.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub enum Measured {
+    WholeMachine,
+    ValenceOnly,
+}
+
 /// What the graphics hardware is doing, and which part of it was measured.
 ///
 /// Both figures are optional and mean different things by their absence: no
@@ -51,6 +75,7 @@ pub struct GraphicsUse {
     pub encoder_percent: Option<f32>,
     /// What the card as a whole is doing, which is a different question.
     pub device_percent: Option<f32>,
+    pub measured: Measured,
 }
 
 /// Runs a vendor tool, treating anything short of a clean answer as absence.
@@ -103,6 +128,7 @@ fn parse_nvidia(output: &str) -> Option<GraphicsUse> {
         name: name.to_owned(),
         encoder_percent: encoder.parse().ok(),
         device_percent: device.parse().ok(),
+        measured: Measured::WholeMachine,
     })
 }
 
@@ -131,6 +157,7 @@ fn parse_apple(output: &str) -> Option<GraphicsUse> {
             name: quoted_after(node, "\"model\" =").unwrap_or_else(|| "Apple graphics".to_owned()),
             encoder_percent: None,
             device_percent: Some(device),
+            measured: Measured::WholeMachine,
         })
     })
 }
@@ -180,6 +207,7 @@ async fn read_amd() -> Option<GraphicsUse> {
                 .unwrap_or_else(|| "AMD graphics".to_owned()),
             encoder_percent: None,
             device_percent: Some(percent),
+            measured: Measured::WholeMachine,
         });
     }
 
@@ -237,36 +265,79 @@ impl Smoothed {
             name: reading.name,
             encoder_percent: mean(&self.encoder),
             device_percent: mean(&self.device),
+            measured: reading.measured,
         })
     }
 }
 
-/// What the graphics hardware is doing, from whichever vendor answers.
+/// What the kernel's own per-client books say, for a card no vendor tool here
+/// will speak about.
 ///
-/// Tried in the order of how much they can tell us, so a machine with an
-/// NVIDIA card beside an integrated one reports the one that can speak about
-/// its encoder.
-pub async fn read() -> Option<GraphicsUse> {
-    if let Some(reading) = read_nvidia().await {
-        return Some(reading);
+/// The card is found in sysfs and the figure comes from the books, and they
+/// are deliberately separate questions. A machine with an Intel card and
+/// nothing transcoding has a card worth naming and no work to report, and
+/// saying "no card Valence can read" of it would be false.
+async fn read_drm(engine: &mut VideoEngine) -> Option<GraphicsUse> {
+    let card = crate::drm_clients::card().await?;
+
+    Some(GraphicsUse {
+        name: crate::pci_names::name(card).await,
+        encoder_percent: engine.read().await,
+        device_percent: None,
+        measured: Measured::ValenceOnly,
+    })
+}
+
+/// Everything needed to keep asking one machine the same question.
+///
+/// The per-client books are totals rather than rates, so a figure only exists
+/// against the last reading — which means this poller has to remember one.
+/// Smoothing is held here for the same reason and was always stateful; it has
+/// simply stopped being the only thing that is.
+#[derive(Default)]
+pub struct Reader {
+    smoothed: Smoothed,
+    engine: VideoEngine,
+}
+
+impl Reader {
+    #[must_use]
+    pub fn new() -> Self {
+        Self::default()
     }
 
-    if let Some(reading) = read_amd().await {
-        return Some(reading);
-    }
+    /// What the graphics hardware is doing, from whichever source answers.
+    ///
+    /// Tried in the order of how much they can tell us, so a machine with an
+    /// NVIDIA card beside an integrated one reports the one that can speak
+    /// about its encoder, and a card whose driver publishes a whole-machine
+    /// figure is read that way rather than through Valence's own share of it.
+    pub async fn read(&mut self) -> Option<GraphicsUse> {
+        let reading = match read_nvidia().await {
+            Some(reading) => Some(reading),
+            None => match read_amd().await {
+                Some(reading) => Some(reading),
+                None => match read_drm(&mut self.engine).await {
+                    Some(reading) => Some(reading),
+                    None => read_apple().await,
+                },
+            },
+        };
 
-    read_apple().await
+        self.smoothed.push(reading)
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::{parse_apple, parse_nvidia, GraphicsUse, Smoothed};
+    use super::{parse_apple, parse_nvidia, GraphicsUse, Measured, Smoothed};
 
     fn card(encoder: Option<f32>, device: Option<f32>) -> GraphicsUse {
         GraphicsUse {
             name: "Card".to_owned(),
             encoder_percent: encoder,
             device_percent: device,
+            measured: Measured::WholeMachine,
         }
     }
 
@@ -439,6 +510,33 @@ mod tests {
 
         assert_eq!(reading.name, "NVIDIA A");
         assert_eq!(reading.encoder_percent, Some(20.0));
+    }
+
+    #[test]
+    fn keeps_a_reading_labelled_as_the_machine_rather_than_as_our_share_of_it() {
+        let reading = parse_nvidia("NVIDIA T400, 12, 30\n").expect("three fields");
+
+        assert_eq!(reading.measured, Measured::WholeMachine);
+    }
+
+    #[test]
+    fn carries_what_a_figure_measures_through_the_smoothing() {
+        let mut smoothed = Smoothed::new();
+
+        let reading = smoothed
+            .push(Some(GraphicsUse {
+                name: "Intel UHD Graphics 770".to_owned(),
+                encoder_percent: Some(30.0),
+                device_percent: None,
+                measured: Measured::ValenceOnly,
+            }))
+            .expect("a card answered");
+
+        assert_eq!(
+            reading.measured,
+            Measured::ValenceOnly,
+            "averaging a figure must not turn our own share into the whole machine"
+        );
     }
 
     #[test]
