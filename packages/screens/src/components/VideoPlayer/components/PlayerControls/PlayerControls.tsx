@@ -3,12 +3,12 @@ import {
   Add01Icon,
   ArrowExpandIcon,
   ArrowShrinkIcon,
-  CastIcon,
+  MirroringScreenIcon,
   Clock01Icon,
   DashboardSpeed01Icon,
-  FilterIcon,
   GoBackward10SecIcon,
   GoForward10SecIcon,
+  HdIcon,
   HeadphonesIcon,
   MinusSignIcon,
   PauseIcon,
@@ -253,12 +253,8 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100);
           }}
-          renderPreview={(pointedAt) => (
-            <span className="valence-glass rounded-md px-1.5 py-0.5 text-xs tabular-nums text-on-scrim">
-              {Math.round(pointedAt).toString()}%
-            </span>
-          )}
-          className="pointer-events-none w-0 px-0 opacity-0 transition-[width,padding,opacity] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:pointer-events-auto group-hover/volume:w-24 group-hover/volume:px-2 group-hover/volume:opacity-100 group-focus-within/volume:pointer-events-auto group-focus-within/volume:w-24 group-focus-within/volume:px-2 group-focus-within/volume:opacity-100"
+          valueLabel={(loudness) => `${Math.round(loudness).toString()}%`}
+          className="w-0 overflow-hidden px-0 transition-[width,padding] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
 
@@ -428,7 +424,7 @@ const PlayerControls = ({
                   kind: 'choice' as const,
                   id: 'quality',
                   label: 'Quality',
-                  icon: <Icon of={FilterIcon} size={18} />,
+                  icon: <Icon of={HdIcon} size={18} />,
                   selectedId: selectedQuality,
                   onSelect: (id: string) => {
                     onQualityChange(
@@ -485,7 +481,7 @@ const PlayerControls = ({
           onClick={onCast}
           size="md"
         >
-          <Icon of={CastIcon} size={20} />
+          <Icon of={MirroringScreenIcon} size={20} />
         </Button>
       )}
 
