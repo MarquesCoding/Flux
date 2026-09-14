@@ -43,6 +43,31 @@ describe('seedDefaultJobTriggers', () => {
     ]);
   });
 
+  it('leaves the renders to the scan that already asks for them', async () => {
+    const { schedules, settings } = build();
+
+    await seedDefaultJobTriggers({ schedules, settings });
+
+    for (const kind of [
+      'library.regeneratePreviews',
+      'library.regenerateTrickplay',
+      'library.detectSegments',
+    ]) {
+      expect(await triggersFor(schedules, kind)).toEqual([]);
+    }
+  });
+
+  it('still lets an operator schedule a render on a cadence of their own', async () => {
+    const { schedules, settings } = build();
+
+    await schedules.add('library.regenerateTrickplay', { kind: 'everyHours', hours: 6 });
+    await seedDefaultJobTriggers({ schedules, settings });
+
+    expect(
+      (await triggersFor(schedules, 'library.regenerateTrickplay')).map((entry) => entry.trigger),
+    ).toEqual([{ kind: 'everyHours', hours: 6 }]);
+  });
+
   it('leaves a destructive job with no schedule of its own', async () => {
     const { schedules, settings } = build();
 
