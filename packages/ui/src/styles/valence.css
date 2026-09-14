@@ -7,6 +7,26 @@
 
 @custom-variant hover-hover (@media (hover: hover) and (pointer: fine));
 
+@custom-variant coarse (@media (pointer: coarse));
+
+@property --valence-reveal {
+  syntax: '<length>';
+  inherits: false;
+  initial-value: 0px;
+}
+
+@custom-variant still {
+  @media (prefers-reduced-motion: reduce) {
+    :root:not([data-motion='full']) & {
+      @slot;
+    }
+  }
+
+  :root[data-motion='reduced'] & {
+    @slot;
+  }
+}
+
 @font-face {
   font-family: 'Gilroy';
   src: url('../fonts/Gilroy-Light.woff') format('woff');
@@ -398,6 +418,15 @@ body {
   mix-blend-mode: normal;
 }
 
+:root[data-theme-shift]::view-transition-new(root) {
+  mask-image: radial-gradient(
+    circle at var(--valence-reveal-x, 50%) var(--valence-reveal-y, 50%),
+    #000 calc(var(--valence-reveal) - var(--valence-reveal-softness, 5rem)),
+    transparent var(--valence-reveal)
+  );
+  mask-repeat: no-repeat;
+}
+
 .valence-mood-fade {
   position: absolute;
   inset: 0;
@@ -405,19 +434,33 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .valence-logo-wave {
+  :root:not([data-motion='full']) .valence-logo-wave {
     animation: none;
     opacity: 0.35;
     transform: scale(1);
   }
 
-  .valence-bloom {
+  :root:not([data-motion='full']) .valence-bloom {
     transition: none;
   }
 
-  .valence-bloom--drift {
+  :root:not([data-motion='full']) .valence-bloom--drift {
     animation: none;
   }
+}
+
+:root[data-motion='reduced'] .valence-logo-wave {
+  animation: none;
+  opacity: 0.35;
+  transform: scale(1);
+}
+
+:root[data-motion='reduced'] .valence-bloom {
+  transition: none;
+}
+
+:root[data-motion='reduced'] .valence-bloom--drift {
+  animation: none;
 }
 
 .valence-shell {
@@ -557,21 +600,37 @@ body {
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .valence-hoverable,
-  .valence-lift:hover {
+  :root:not([data-motion='full']) .valence-hoverable,
+  :root:not([data-motion='full']) .valence-lift:hover {
     transform: none;
     transition-duration: 1ms;
   }
 
-  [data-slot='dialog-content'],
-  [data-slot='dialog-overlay'],
-  [data-slot='tooltip-content'],
-  [data-slot='popover-content'],
-  [data-slot='hover-card-content'],
-  [data-slot='menu-content'],
-  [data-slot='settings-menu'] {
+  :root:not([data-motion='full']) [data-slot='dialog-content'],
+  :root:not([data-motion='full']) [data-slot='dialog-overlay'],
+  :root:not([data-motion='full']) [data-slot='tooltip-content'],
+  :root:not([data-motion='full']) [data-slot='popover-content'],
+  :root:not([data-motion='full']) [data-slot='hover-card-content'],
+  :root:not([data-motion='full']) [data-slot='menu-content'],
+  :root:not([data-motion='full']) [data-slot='settings-menu'] {
     animation-name: valence-fade;
   }
+}
+
+:root[data-motion='reduced'] .valence-hoverable,
+:root[data-motion='reduced'] .valence-lift:hover {
+  transform: none;
+  transition-duration: 1ms;
+}
+
+:root[data-motion='reduced'] [data-slot='dialog-content'],
+:root[data-motion='reduced'] [data-slot='dialog-overlay'],
+:root[data-motion='reduced'] [data-slot='tooltip-content'],
+:root[data-motion='reduced'] [data-slot='popover-content'],
+:root[data-motion='reduced'] [data-slot='hover-card-content'],
+:root[data-motion='reduced'] [data-slot='menu-content'],
+:root[data-motion='reduced'] [data-slot='settings-menu'] {
+  animation-name: valence-fade;
 }
 
 @keyframes valence-fade {
