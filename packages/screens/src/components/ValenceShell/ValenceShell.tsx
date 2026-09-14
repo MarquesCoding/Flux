@@ -65,6 +65,7 @@ const ValenceShell = () => {
     askingAbout,
     setAskingAbout,
     watchParty,
+    isHoldingTheScreen,
   } = useShell();
 
   const favourites = useFavourites(user.id);
@@ -179,6 +180,7 @@ const ValenceShell = () => {
       }}
       moodLights={place.section === 'home' ? moodLights : []}
       isAdministrator={mayAdminister}
+      hasMark={!isHoldingTheScreen}
       {...(libraries.data === undefined ? {} : { libraryKinds })}
       {...(isStockKnown ? { stocked } : {})}
       notifications={

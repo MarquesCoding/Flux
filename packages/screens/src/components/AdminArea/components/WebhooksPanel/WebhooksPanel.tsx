@@ -140,7 +140,7 @@ const WebhooksPanel = ({
             </code>
 
             <div className="flex justify-end">
-              <Button variant="secondary" isPill size="sm" onClick={onDismissCreated}>
+              <Button variant="secondary" size="sm" onClick={onDismissCreated}>
                 I have copied it
               </Button>
             </div>
@@ -153,9 +153,9 @@ const WebhooksPanel = ({
         isFlush
         actions={
           <Button
-            variant="primary"
-            isPill
+            variant="ghost"
             size="xs"
+            className="shrink-0 text-xs text-text-muted hover:text-text"
             onClick={() => {
               setIsAdding(true);
             }}
@@ -208,7 +208,6 @@ const WebhooksPanel = ({
 
                     <Button
                       variant="secondary"
-                      isPill
                       size="sm"
                       disabled={!webhook.enabled}
                       onClick={() => {
@@ -220,7 +219,6 @@ const WebhooksPanel = ({
 
                     <Button
                       variant="secondary"
-                      isPill
                       size="sm"
                       onClick={() => {
                         setEditing(webhook);
@@ -231,7 +229,6 @@ const WebhooksPanel = ({
 
                     <Button
                       variant="secondary"
-                      isPill
                       size="sm"
                       aria-expanded={openHistoryId === webhook.id}
                       onClick={() => {
@@ -243,7 +240,6 @@ const WebhooksPanel = ({
 
                     <Button
                       variant="danger"
-                      isPill
                       size="sm"
                       onClick={() => {
                         setDeleting(webhook);

@@ -130,7 +130,6 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
           <Button
             variant="soft"
             size="sm"
-            isPill
             onClick={() => {
               setStage('disable');
             }}
@@ -141,7 +140,6 @@ const TwoFactorSetup = ({ isEnabled, onChanged }: TwoFactorSetupProps) => {
           <Button
             variant="soft"
             size="sm"
-            isPill
             onClick={() => {
               setStage('confirmPassword');
             }}

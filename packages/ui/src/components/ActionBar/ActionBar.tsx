@@ -38,7 +38,7 @@ const ActionBar = ({ label, primary, actions, className }: ActionBarProps) => (
       <>
         <span className="hidden sm:contents">
           {actions.map((action) => (
-            <Button key={action.id} variant="secondary" size="lg" isPill onClick={action.onChoose}>
+            <Button key={action.id} variant="secondary" size="lg" onClick={action.onChoose}>
               {action.icon}
               {action.label}
             </Button>

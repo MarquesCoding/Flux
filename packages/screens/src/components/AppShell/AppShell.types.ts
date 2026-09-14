@@ -25,6 +25,7 @@ type AppShellProps = {
   libraryKinds?: LibraryKind[];
   stocked?: ShellSection[];
   notifications?: ReactNode;
+  hasMark?: boolean;
 };
 
 export type { AppShellProps, ShellSection };

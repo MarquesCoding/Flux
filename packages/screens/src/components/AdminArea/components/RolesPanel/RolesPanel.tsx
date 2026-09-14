@@ -10,7 +10,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { Badge } from '@ValenceUI/Badge';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
+import { FormField } from '@ValenceUI/FormField';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -187,14 +188,14 @@ const RolesPanel = () => {
         isFlush
         actions={
           <Button
-            variant="soft"
+            variant="ghost"
             size="xs"
-            isPill
+            className="shrink-0 text-xs text-text-muted hover:text-text"
             onClick={() => {
               setIsCreating(true);
             }}
           >
-            <Icon of={Add01Icon} size={15} />
+            <Icon of={Add01Icon} size={14} />
             Create role
           </Button>
         }
@@ -213,7 +214,7 @@ const RolesPanel = () => {
         )}
       </PanelCard>
 
-      <Dialog
+      <DialogCompanion
         label="Create a role"
         isOpen={isCreating}
         onClose={() => {
@@ -221,6 +222,7 @@ const RolesPanel = () => {
         }}
       >
         <DialogTitle
+          size="compact"
           title="Create a role"
           detail="A role is a name and a set of permissions. Rank decides who may manage whom."
         />
@@ -246,9 +248,7 @@ const RolesPanel = () => {
           </div>
 
           {groupPermissions(catalogue).map((group) => (
-            <div key={group.id} className="flex flex-col gap-1">
-              <h4 className="text-xs uppercase tracking-[0.12em] text-text-muted">{group.label}</h4>
-
+            <FormField key={group.id} label={group.label}>
               <ul className="flex flex-col">
                 {group.permissions.map((permission) => (
                   <li key={permission} className="flex items-center gap-3 rounded-md py-1.5">
@@ -271,14 +271,13 @@ const RolesPanel = () => {
                   </li>
                 ))}
               </ul>
-            </div>
+            </FormField>
           ))}
         </DialogContent>
 
         <DialogFooter>
           <Button
             variant="secondary"
-            isPill
             onClick={() => {
               setIsCreating(false);
             }}
@@ -288,7 +287,6 @@ const RolesPanel = () => {
 
           <Button
             variant="primary"
-            isPill
             disabled={newRoleName === ''}
             onClick={() => {
               const position = Number.parseInt(newRolePosition, 10);
@@ -310,7 +308,7 @@ const RolesPanel = () => {
             Create role
           </Button>
         </DialogFooter>
-      </Dialog>
+      </DialogCompanion>
 
       <ConfirmDialog
         title="Delete this role?"
@@ -336,7 +334,7 @@ const RolesPanel = () => {
         }}
       />
 
-      <Dialog
+      <DialogCompanion
         label={selected === null ? 'Edit role' : `Edit ${selected.name}`}
         isOpen={selected !== null}
         onClose={() => {
@@ -346,6 +344,7 @@ const RolesPanel = () => {
         {selected === null ? null : (
           <>
             <DialogTitle
+              size="compact"
               title={`Edit ${selected.name}`}
               detail="A higher rank manages a lower one. Nobody may touch a role at or above their own."
             />
@@ -380,11 +379,7 @@ const RolesPanel = () => {
               </div>
 
               {groupPermissions(catalogue).map((group) => (
-                <div key={group.id} className="flex flex-col gap-1">
-                  <h4 className="text-xs uppercase tracking-[0.12em] text-text-muted">
-                    {group.label}
-                  </h4>
-
+                <FormField key={group.id} label={group.label}>
                   <ul className="flex flex-col">
                     {group.permissions.map((permission) => (
                       <li key={permission} className="flex items-center gap-3 rounded-md py-1.5">
@@ -403,14 +398,13 @@ const RolesPanel = () => {
                       </li>
                     ))}
                   </ul>
-                </div>
+                </FormField>
               ))}
             </DialogContent>
 
             <DialogFooter>
               <Button
                 variant="secondary"
-                isPill
                 onClick={() => {
                   setSelectedRoleId(null);
                 }}
@@ -420,7 +414,6 @@ const RolesPanel = () => {
 
               <Button
                 variant="primary"
-                isPill
                 disabled={
                   draftName === '' ||
                   (draftName === selected.name && draftPosition === selected.position.toString())
@@ -441,7 +434,7 @@ const RolesPanel = () => {
             </DialogFooter>
           </>
         )}
-      </Dialog>
+      </DialogCompanion>
     </div>
   );
 };

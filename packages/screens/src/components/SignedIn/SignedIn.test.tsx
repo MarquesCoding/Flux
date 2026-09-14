@@ -104,6 +104,7 @@ describe('SignedIn', () => {
 
   it('draws the pages beneath it once somebody is signed in', async () => {
     serverWith({ user: OPERATOR });
+
     renderTheApp();
 
     expect(await screen.findByRole('navigation', { name: 'Sections' })).toBeInTheDocument();

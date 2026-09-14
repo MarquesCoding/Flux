@@ -76,11 +76,11 @@ const StillWatchingDialog = ({
       </DialogContent>
 
       <DialogFooter>
-        <Button variant="ghost" size="sm" isPill onClick={onGiveUp}>
+        <Button variant="ghost" size="sm" onClick={onGiveUp}>
           Stop
         </Button>
 
-        <Button variant="primary" size="sm" isPill onClick={onCarryOn}>
+        <Button variant="primary" size="sm" onClick={onCarryOn}>
           Still watching
         </Button>
       </DialogFooter>

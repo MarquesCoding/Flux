@@ -56,6 +56,8 @@ const aShell = (instead: Partial<Shell> = {}): Shell => ({
     loosen: () => undefined,
   },
   refresh: () => Promise.resolve(),
+  holdTheScreen: () => undefined,
+  isHoldingTheScreen: false,
   ...instead,
 });
 

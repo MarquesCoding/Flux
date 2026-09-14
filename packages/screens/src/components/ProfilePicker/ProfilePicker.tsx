@@ -80,7 +80,6 @@ const ProfilePicker = ({
               <span className="absolute -right-2 -top-2 flex gap-1">
                 <Button
                   isIconOnly
-                  isPill
                   variant="ghost"
                   label={`Edit ${profile.name}`}
                   onClick={() => {
@@ -94,7 +93,6 @@ const ProfilePicker = ({
                 {profiles.length < 2 ? null : (
                   <Button
                     isIconOnly
-                    isPill
                     variant="ghost"
                     label={`Remove ${profile.name}`}
                     onClick={() => {

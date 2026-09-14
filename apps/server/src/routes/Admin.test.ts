@@ -1268,28 +1268,28 @@ describe('changing one setting without disturbing the others', () => {
     expect((await settings.read()).previewQuality).toBe('high');
   });
 
-  it('opens the faces on the way in, and shuts them again', async () => {
+  it('shuts the faces away from the way in, and opens them again', async () => {
     const { app, store, permissions, settings } = build();
     const cookie = await signedInAsAdmin(app, store, permissions);
 
-    expect((await settings.read()).showsProfilesBeforeSignIn).toBe(false);
-
-    const opened = await app.request(`${BASE}/api/admin/settings`, {
-      method: 'PATCH',
-      headers: { 'content-type': 'application/json', cookie, origin: BASE },
-      body: JSON.stringify({ showsProfilesBeforeSignIn: true }),
-    });
-
-    expect(opened.status).toBe(200);
     expect((await settings.read()).showsProfilesBeforeSignIn).toBe(true);
 
-    await app.request(`${BASE}/api/admin/settings`, {
+    const shut = await app.request(`${BASE}/api/admin/settings`, {
       method: 'PATCH',
       headers: { 'content-type': 'application/json', cookie, origin: BASE },
       body: JSON.stringify({ showsProfilesBeforeSignIn: false }),
     });
 
+    expect(shut.status).toBe(200);
     expect((await settings.read()).showsProfilesBeforeSignIn).toBe(false);
+
+    await app.request(`${BASE}/api/admin/settings`, {
+      method: 'PATCH',
+      headers: { 'content-type': 'application/json', cookie, origin: BASE },
+      body: JSON.stringify({ showsProfilesBeforeSignIn: true }),
+    });
+
+    expect((await settings.read()).showsProfilesBeforeSignIn).toBe(true);
   });
 
   it('changes the catalogue key alone', async () => {

@@ -9,7 +9,11 @@ import { cn } from '@ValenceUI/cn';
 import { TextField } from '@ValenceUI/TextField';
 import { MoodBackground } from '@ValenceUI/MoodBackground';
 import { PageDots } from '@ValenceUI/PageDots';
+import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { Spinner } from '@ValenceUI/Spinner';
+import { useTheme } from '@ValenceClient/shell/useTheme';
+import { readTheme } from '@ValenceClient/shell/theme';
+import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
 import {
   revealVariants,
   revealTransition,
@@ -101,6 +105,18 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
   const isOurs = name.toLowerCase() === OURS;
   const facesRef = useRef(new Map<string, HTMLButtonElement>());
   const prefersReducedMotion = useReducedMotion();
+  const { theme, choose } = useTheme();
+  const [hasGround, setHasGround] = useState(false);
+
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => {
+      setHasGround(true);
+    });
+
+    return () => {
+      cancelAnimationFrame(frame);
+    };
+  }, []);
 
   const move = prefersReducedMotion === true ? stillTransition : liquidSpring;
   const faceArrival = revealTransition(prefersReducedMotion);
@@ -248,11 +264,38 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
 
   return (
     <main className="relative flex min-h-svh flex-col items-center justify-center gap-8 overflow-hidden px-6 py-16">
-      <MoodBackground
-        lights={chosen === null ? [] : [{ color: chosen.colour }]}
-        hasGrid
-        isDrifting
-      />
+      <div
+        aria-hidden
+        className={cn(
+          'pointer-events-none absolute inset-0 -z-10',
+          'transition-opacity duration-[1200ms] ease-out motion-reduce:transition-none',
+          hasGround ? 'opacity-100' : 'opacity-0',
+        )}
+      >
+        <MoodBackground
+          lights={chosen === null ? [] : [{ color: chosen.colour }]}
+          hasGrid
+          isDrifting
+        />
+      </div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isTitleOver ? 1 : 0 }}
+        transition={{ duration: 0.4 }}
+        className={cn('absolute right-6 top-6', isTitleOver ? '' : 'pointer-events-none')}
+      >
+        <SegmentedRow
+          size="sm"
+          tone="accent"
+          label="Theme"
+          value={theme}
+          items={THEME_CHOICES}
+          onSelect={(picked) => {
+            choose(readTheme(picked));
+          }}
+        />
+      </motion.div>
 
       <motion.p
         layoutId="valence-mark"
@@ -266,13 +309,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
         className={cn('flex items-center gap-1', isTitleOver ? '' : 'absolute')}
       >
         {isOurs ? (
-          <Logo
-            size={isTitleOver ? 44 : 128}
-            isDotted={!isTitleOver}
-            hasEdge
-            isAnimated
-            label={name}
-          />
+          <Logo size={isTitleOver ? 44 : 128} isSolid label={name} />
         ) : (
           <span
             className={cn(
@@ -322,7 +359,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 label="Email"
                 type="email"
                 size="lg"
-                isPill
+
                 value={email}
                 onValueChange={setEmail}
                 autoComplete="username"
@@ -332,7 +369,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 label="Password"
                 type="password"
                 size="lg"
-                isPill
+
                 value={password}
                 onValueChange={setPassword}
                 autoComplete="current-password"
@@ -343,7 +380,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 type="submit"
                 variant="glossy"
                 size="lg"
-                isPill
                 isLoading={isSubmitting}
                 disabled={email === '' || password === ''}
               >
@@ -355,7 +391,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                 <Button
                   variant="ghost"
                   size="sm"
-                  isPill
                   isLoading={isUsingPasskey}
                   onClick={() => {
                     void signInWithPasskey();
@@ -535,7 +570,7 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     label="Password"
                     type="password"
                     size="lg"
-                    isPill
+
                     value={password}
                     onValueChange={setPassword}
                     autoComplete="current-password"
@@ -546,7 +581,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     type="submit"
                     variant="glossy"
                     size="lg"
-                    isPill
                     isLoading={isSubmitting}
                     disabled={password === ''}
                   >
@@ -558,7 +592,6 @@ const ProfileGate = ({ onSignedIn, name = 'Valence' }: ProfileGateProps) => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      isPill
                       isLoading={isUsingPasskey}
                       onClick={() => {
                         void signInWithPasskey();

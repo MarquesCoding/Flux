@@ -1,6 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { Button } from '@ValenceUI/Button';
@@ -49,8 +49,8 @@ const LogDetailDialog = ({ record, isOpen, onClose }: LogDetailDialogProps) => {
         );
 
   return (
-    <Dialog label="Log record" isOpen={isOpen && record !== null} onClose={onClose}>
-      <DialogTitle title="Log record">
+    <DialogCompanion label="Log record" isOpen={isOpen && record !== null} onClose={onClose}>
+      <DialogTitle size="compact" title="Log record">
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
           <Icon of={Cancel01Icon} size={16} />
         </Button>
@@ -85,7 +85,7 @@ const LogDetailDialog = ({ record, isOpen, onClose }: LogDetailDialogProps) => {
           </div>
         )}
       </DialogContent>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

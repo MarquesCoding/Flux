@@ -9,7 +9,7 @@ import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
  * The front of the server: a hero drawn from every library, and the rows of everything to watch.
  */
 const HomePage = () => {
-  const { title, user, rememberItems, setStartOverride, setMoodLights } = useShell();
+  const { title, user, rememberItems, setStartOverride, setMoodLights, holdTheScreen } = useShell();
   const { place, go } = usePlace();
   const favourites = useFavourites(user.id);
   const { mayAdminister } = useWhatIMayDo();
@@ -36,6 +36,7 @@ const HomePage = () => {
         go({ playing: media.id });
       }}
       onItemsLoaded={rememberItems}
+      onReading={holdTheScreen}
       hasHero
       onPalette={setMoodLights}
       onOpenShow={(media) => {

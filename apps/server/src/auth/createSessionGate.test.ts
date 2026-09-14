@@ -109,8 +109,10 @@ describe('the session gate', () => {
   });
 
   describe('who lives here', () => {
-    it('is kept from somebody who has not signed in', async () => {
-      const { app } = build();
+    it('is kept from somebody who has not signed in, where the server has shut the faces away', async () => {
+      const { app, settings } = build();
+
+      await settings.write({ showsProfilesBeforeSignIn: false });
 
       const response = await app.request(`${TEST_ORIGIN}/api/profiles/everyone`, {
         headers: { origin: TEST_ORIGIN },

@@ -158,7 +158,7 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
         >
           {mayAdminister ? <Badge size="sm">admin</Badge> : null}
 
-          <Button variant="ghost" size="sm" isIconOnly isPill label="Close" onClick={onClose}>
+          <Button variant="ghost" size="sm" isIconOnly label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={16} />
           </Button>
         </DialogTitle>
@@ -181,7 +181,6 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
         <DialogFooter>
           <Button
             variant="danger"
-            isPill
             onClick={() => {
               void leave();
             }}
@@ -192,7 +191,6 @@ const AccountDialog = ({ panel, onPanel, onClose }: AccountDialogProps) => {
 
           <Button
             variant="primary"
-            isPill
             isLoading={isSaving}
             disabled={!isChanged}
             onClick={() => {

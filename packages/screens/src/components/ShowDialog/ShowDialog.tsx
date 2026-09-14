@@ -172,7 +172,7 @@ const ShowDialog = ({
           artwork={artworkUrl(shown.coverMediaId)}
           isShowing={hasScrolledPast}
         >
-          <Button isIconOnly variant="ghost" size="sm" isPill label="Close" onClick={onClose}>
+          <Button isIconOnly variant="ghost" size="sm" label="Close" onClick={onClose}>
             <Icon of={Cancel01Icon} size={16} />
           </Button>
         </ScrolledTitle>
@@ -341,14 +341,13 @@ const ShowDialog = ({
           label="More to do with this programme"
           primary={
             carryingOn === null ? (
-              <Button variant="glossy" size="lg" isPill isLoading disabled>
+              <Button variant="glossy" size="lg" isLoading disabled>
                 Reading the episodes
               </Button>
             ) : (
               <Button
                 variant="glossy"
                 size="lg"
-                isPill
                 onClick={() => {
                   onPlay(carryingOn.episode, carryingOn.startSeconds);
                 }}

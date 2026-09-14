@@ -137,7 +137,6 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
 
             <Button
               size="sm"
-              isPill
               variant="secondary"
               onClick={() => {
                 void navigator.clipboard.writeText(made.key).then(() => {
@@ -191,7 +190,7 @@ const ApiKeyPanel = ({ showKeyForMilliseconds }: ApiKeyPanelProps) => {
           className="min-w-56 flex-1"
         />
 
-        <Button type="submit" variant="primary" size="md" isPill isLoading={isMaking}>
+        <Button type="submit" variant="primary" size="md" isLoading={isMaking}>
           Create key
         </Button>
       </form>

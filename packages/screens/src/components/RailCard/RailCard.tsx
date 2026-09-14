@@ -25,7 +25,6 @@ const MARGIN = 12;
 const POSTER_POPOUT_REM = 22;
 
 const GENRE_LIMIT = 3;
-
 type Anchor = { left: number; top: number; width: number };
 
 /**
@@ -344,7 +343,6 @@ const RailCard = ({
                   <Button
                     variant="glossy"
                     size="md"
-                    isPill
                     className="flex-1"
                     onClick={(event) => {
                       event.stopPropagation();

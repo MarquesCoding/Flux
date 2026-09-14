@@ -559,6 +559,24 @@ describe('LibraryBrowser', () => {
     });
   });
 
+  it('says while it is still reading, so a screen held over it can wait for something to show', async () => {
+    const onReading = vi.fn();
+
+    draw(<LibraryBrowser onPlay={vi.fn()} onReading={onReading} />);
+
+    expect(onReading).toHaveBeenCalledWith(true);
+
+    await waitFor(() => {
+      expect(onReading).toHaveBeenLastCalledWith(false);
+    });
+  });
+
+  it('holds up nothing of its own while somebody else is holding the screen for it', () => {
+    draw(<LibraryBrowser onPlay={vi.fn()} onReading={vi.fn()} />);
+
+    expect(screen.queryByRole('status', { name: 'Reading your library' })).not.toBeInTheDocument();
+  });
+
   it('sets a display name so devtools can identify it', () => {
     expect(LibraryBrowser.displayName).toBe('LibraryBrowser');
   });

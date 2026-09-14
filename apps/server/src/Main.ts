@@ -209,7 +209,7 @@ const settings = createDatabaseSettingsStore({
     catalogueApiKey: env.CATALOGUE_API_KEY,
     hardwareAccel: '',
     previewQuality: 'high',
-    showsProfilesBeforeSignIn: false,
+    showsProfilesBeforeSignIn: true,
     seededJobTriggerKinds: [],
     seededRoleNames: [],
     pushPublicKey: '',

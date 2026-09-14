@@ -547,7 +547,6 @@ const AdminArea = ({
           <Button
             variant="ghost"
             size="sm"
-            isPill
             onClick={() => {
               void loadAll();
             }}

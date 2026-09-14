@@ -50,7 +50,7 @@ const SettingsPanel = ({
   const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
   const [quality, setQuality] = useState(overview?.settings.previewQuality ?? 'high');
   const [showsFaces, setShowsFaces] = useState(
-    overview?.settings.showsProfilesBeforeSignIn ?? false,
+    overview?.settings.showsProfilesBeforeSignIn ?? true,
   );
 
   return (
@@ -162,7 +162,6 @@ const SettingsPanel = ({
             value={catalogueKey}
             onValueChange={setCatalogueKey}
             placeholder="Paste a key"
-            isPill
             size="sm"
             className="w-48"
           />
@@ -170,7 +169,6 @@ const SettingsPanel = ({
           <Button
             variant="soft"
             size="sm"
-            isPill
             isLoading={isSaving}
             disabled={catalogueKey === ''}
             onClick={() => {

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
 import { Checkbox } from '@ValenceUI/Checkbox';
+import { FormField } from '@ValenceUI/FormField';
 import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { Tabs } from '@ValenceUI/Tabs';
 import { TabRow } from '@ValenceUI/TabRow';
@@ -102,16 +103,16 @@ const WebhookFields = ({ draft, onChange, accounts, profiles }: WebhookFieldsPro
             required
           />
 
-          <div className="flex flex-col gap-2">
-            <span className="text-sm font-medium text-text">Shape</span>
-
+          <FormField
+            label="Shape"
+            description="What Valence sends, so the other end understands it."
+          >
             <div className="flex flex-col gap-1.5">
               {WEBHOOK_PRESETS.map((candidate) => (
                 <Button
                   key={candidate}
                   variant={draft.preset === candidate ? 'secondary' : 'bare'}
                   size="none"
-                  isPill
                   aria-pressed={draft.preset === candidate}
                   className="flex flex-col items-start gap-0.5 px-3 py-2 text-left"
                   onClick={() => {
@@ -123,7 +124,7 @@ const WebhookFields = ({ draft, onChange, accounts, profiles }: WebhookFieldsPro
                 </Button>
               ))}
             </div>
-          </div>
+          </FormField>
         </div>
       </TabPanel>
 
@@ -141,7 +142,6 @@ const WebhookFields = ({ draft, onChange, accounts, profiles }: WebhookFieldsPro
                   <Button
                     variant="bare"
                     size="sm"
-                    isPill
                     onClick={() => {
                       setEvents(
                         isEveryOne

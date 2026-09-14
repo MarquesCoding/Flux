@@ -126,7 +126,6 @@ const MediaPanel = ({
             <Button
               variant="ghost"
               size="sm"
-              isPill
               isLoading={rebuilding === row.original.id}
               onClick={() => {
                 void rebuild(row.original);
@@ -143,7 +142,6 @@ const MediaPanel = ({
             <Button
               variant="ghost"
               size="sm"
-              isPill
               onClick={() => {
                 onCorrect(row.original);
               }}
@@ -167,7 +165,6 @@ const MediaPanel = ({
           label="Find a programme or film"
           isLabelHidden
           size="sm"
-          isPill
           type="search"
           placeholder="Find a title"
           value={search}

@@ -185,7 +185,6 @@ const SearchArea = ({
             <Button
               key={option.id}
               size="sm"
-              isPill
               variant={option.id === kind ? 'glossy' : 'secondary'}
               onClick={() => {
                 setKind(option.id);
@@ -197,7 +196,6 @@ const SearchArea = ({
 
           <Button
             size="sm"
-            isPill
             variant={isShowingFilters ? 'glossy' : 'secondary'}
             isActive={isShowingFilters}
             onClick={() => {
@@ -212,7 +210,6 @@ const SearchArea = ({
             <Button
               variant="ghost"
               size="sm"
-              isPill
               onClick={() => {
                 setKind('everything');
                 onGenreChange(null);

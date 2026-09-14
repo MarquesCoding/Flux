@@ -341,7 +341,7 @@ const PageReader = ({
           isChromeShown ? 'opacity-100' : 'pointer-events-none opacity-0',
         ].join(' ')}
       >
-        <Button variant="ghost" size="sm" isPill onClick={onClose} aria-label="Close the reader">
+        <Button variant="ghost" size="sm" onClick={onClose} aria-label="Close the reader">
           <Icon of={Cancel01Icon} size={18} />
         </Button>
 
@@ -352,7 +352,7 @@ const PageReader = ({
         <OptionMenu
           label="How to read"
           trigger={
-            <Button variant="ghost" size="sm" isPill>
+            <Button variant="ghost" size="sm">
               <Icon of={Menu01Icon} size={18} />
             </Button>
           }

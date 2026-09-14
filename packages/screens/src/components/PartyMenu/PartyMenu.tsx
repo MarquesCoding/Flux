@@ -90,7 +90,6 @@ const PartyMenu = ({
           <Button
             variant="secondary"
             size="sm"
-            isPill
             onClick={() => {
               show(false);
               onOpen?.();

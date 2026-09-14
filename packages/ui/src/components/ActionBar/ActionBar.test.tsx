@@ -42,7 +42,7 @@ describe('ActionBar', () => {
   it('draws the rest as flat secondary buttons, the same as every other', () => {
     render(<ActionBar label="More" primary={<span>Play</span>} actions={ACTIONS} />);
 
-    expect(screen.getByRole('button', { name: 'Share' })).toHaveClass('bg-[var(--surface-hover)]');
+    expect(screen.getByRole('button', { name: 'Share' })).toHaveClass('bg-background');
   });
 
   it('folds them into a menu for a phone, named for anybody who cannot see the dots', () => {

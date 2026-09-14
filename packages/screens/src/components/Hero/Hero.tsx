@@ -151,6 +151,8 @@ const Hero = ({
 
   const isRotating = items.length > 1 && rotateAfterMilliseconds > 0;
 
+  const [isPreviewPaused, setIsPreviewPaused] = useState(false);
+
   const showNext = useCallback(() => {
     if (items.length > 1 && !isHeld) {
       setIndex((current) => (current + 1) % items.length);
@@ -170,7 +172,7 @@ const Hero = ({
   }, [index, turn]);
 
   useAnimationFrame((_, delta) => {
-    if (!isRotating || isHeld) {
+    if (!isRotating || isHeld || isPreviewPaused) {
       return;
     }
 
@@ -252,6 +254,10 @@ const Hero = ({
               backdropUrl={featured.hasBackdrop ? artworkUrl(featured.id) : null}
               durationSeconds={featured.durationSeconds}
               settleMilliseconds={PREVIEW_SETTLE_MILLISECONDS}
+              restsOnPause
+              onPlayingChange={(playing) => {
+                setIsPreviewPaused(!playing);
+              }}
               onEnded={showNext}
               {...(onPalette === undefined ? {} : { onPalette })}
               hasSound
@@ -332,7 +338,6 @@ const Hero = ({
             <Button
               variant="glossy"
               size="xl"
-              isPill
               onClick={() => {
                 onPlay(featured, resume ?? 0);
               }}
@@ -343,9 +348,9 @@ const Hero = ({
 
             {onInspect === undefined ? null : (
               <Button
-                variant="overlay"
+                variant="bare"
                 size="xl"
-                isPill
+                className="inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-md border border-on-scrim/25 text-on-scrim hover:bg-on-scrim/10"
                 onClick={() => {
                   onInspect(featured);
                 }}

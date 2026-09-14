@@ -123,7 +123,6 @@ const ConnectToServer = ({
                 type="button"
                 variant="secondary"
                 size="lg"
-                isPill
                 className="w-full"
                 onClick={() => {
                   onConnected(address);
@@ -155,7 +154,7 @@ const ConnectToServer = ({
             {...(problem === null ? {} : { error: problem })}
           />
 
-          <Button type="submit" variant="glossy" size="lg" isPill isLoading={asking}>
+          <Button type="submit" variant="glossy" size="lg" isLoading={asking}>
             {asking ? 'Looking for it' : 'Connect'}
           </Button>
         </motion.form>
