@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { NavBar } from './NavBar';
@@ -523,8 +523,6 @@ describe('the place being stood on', () => {
     const films = screen.getByRole('button', { name: 'Films' });
 
     await actor.click(films);
-    await actor.unhover(screen.getByRole('navigation', { name: 'Sections' }));
-    fireEvent.focusOut(films);
 
     expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
 
@@ -532,5 +530,17 @@ describe('the place being stood on', () => {
 
     expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
     expect(films).toHaveAttribute('aria-current', 'page');
+  });
+
+  it('holds the mark where it was put when focus moves from one place to the next', async () => {
+    const actor = userEvent.setup();
+    const { container } = render(<NavBar {...props} />);
+
+    const films = screen.getByRole('button', { name: 'Films' });
+
+    await actor.click(screen.getByRole('button', { name: 'Home' }));
+    await actor.click(films);
+
+    expect(container.querySelector('[data-mark="nav-bar-mark"]')?.closest('button')).toBe(films);
   });
 });

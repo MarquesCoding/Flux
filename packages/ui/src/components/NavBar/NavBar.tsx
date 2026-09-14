@@ -10,7 +10,7 @@ import type { NavBarProps } from './NavBar.types';
 const MOVES = 'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]';
 
 const OPENS = [
-  'transition-opacity duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
+  'transition-[width,margin,opacity] duration-[var(--duration-base)] ease-[var(--ease-soft)]',
   'motion-reduce:transition-none',
 ].join(' ');
 
@@ -40,9 +40,13 @@ const OPENS = [
  * An action whose control has a panel open is held still while it is open, because a popover is
  * anchored to the icon that opened it and a gesture played underneath it would shove the panel.
  *
- * A place that was just pressed stays lit until the page says it is the place being stood on. The
- * pointer and focus can both leave in the moment between — the page moves, focus goes with it — and
- * lighting whatever was current before made the mark flick back to the old place and then forward.
+ * A place that was just pressed is lit from the press itself rather than from the address, because
+ * the address arrives a commit later: reading the mark from it alone sent the mark back to the place
+ * you had left and then forward again, which is the one movement a travelling mark must never make.
+ *
+ * Focus moving from one place to the next is not focus leaving the bar. A blur is raised by the
+ * control being left and rises through the bar, so treating any of them as the pointer leaving
+ * dropped the highlight in the middle of a press — the same flick back, by a second route.
  *
  * Something the pointer is on is lit, and so is something keyboard focus has reached — but not
  * something focus was merely handed back to. Closing a dialog returns focus to the control that
@@ -71,11 +75,7 @@ const NavBar = ({
   const [pointedAt, setPointedAt] = useState<string | null>(null);
   const { actionsRef, openAction } = useOpenAction();
 
-  const [chosen, setChosen] = useState<{ id: string; from: string } | null>(null);
-
-  const isWaitedOn = chosen !== null && chosen.from === selectedId;
-
-  const lit = pointedAt ?? (isWaitedOn ? chosen.id : selectedId);
+  const lit = pointedAt ?? selectedId;
 
   const mark = <SlidingMark group="nav-bar-mark" />;
 
@@ -93,7 +93,11 @@ const NavBar = ({
         onPointerLeave={() => {
           setPointedAt(null);
         }}
-        onBlur={() => {
+        onBlur={(event) => {
+          if (event.currentTarget.contains(event.relatedTarget)) {
+            return;
+          }
+
           setPointedAt(null);
         }}
         className="flex h-16 items-center gap-4 px-4 sm:gap-6 sm:px-6"
@@ -121,7 +125,7 @@ const NavBar = ({
                     }
                   }}
                   onClick={() => {
-                    setChosen({ id: item.id, from: selectedId });
+                    setPointedAt(item.id);
                     onSelect(item.id);
                   }}
                   className={cn(
@@ -141,7 +145,9 @@ const NavBar = ({
                       className={cn(
                         'relative z-10 flex overflow-hidden',
                         OPENS,
-                        isCurrent ? '' : 'md:-ml-2 md:w-0 md:opacity-0',
+                        isCurrent
+                          ? 'md:ml-0 md:w-[18px] md:opacity-100'
+                          : 'md:-ml-2 md:w-0 md:opacity-0',
                       )}
                     >
                       <AnimatedIcon
