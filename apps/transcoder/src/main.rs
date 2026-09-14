@@ -87,6 +87,10 @@ fn session_config(ffmpeg: String, ffprobe: String) -> SessionConfig {
             .ok()
             .and_then(|value| value.parse().ok())
             .map_or(defaults.idle_timeout, Duration::from_secs),
+        manifest_timeout: env::var("VALENCE_MANIFEST_TIMEOUT_SECONDS")
+            .ok()
+            .and_then(|value| value.parse().ok())
+            .map_or(defaults.manifest_timeout, Duration::from_secs),
         max_concurrent: env::var("VALENCE_MAX_CONCURRENT_TRANSCODES")
             .ok()
             .and_then(|value| value.parse().ok())

@@ -32,8 +32,6 @@ use crate::trickplay::{
     TrickplayRequest,
 };
 
-const MANIFEST_TIMEOUT: Duration = Duration::from_secs(20);
-
 /// How long a request for a segment waits for the transcode to reach it.
 ///
 /// Long enough to cover a run being restarted somewhere else in the film and
@@ -559,13 +557,15 @@ async fn start_session(
         );
     };
 
-    if !await_run(&directory, MANIFEST_TIMEOUT).await {
+    let manifest_timeout = state.registry.config().manifest_timeout;
+
+    if !await_run(&directory, manifest_timeout).await {
         record(
             LogLevel::Error,
             "session",
             &format!(
                 "{id} produced no manifest within {}s; see the ffmpeg output above",
-                MANIFEST_TIMEOUT.as_secs()
+                manifest_timeout.as_secs()
             ),
         );
 

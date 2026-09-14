@@ -144,6 +144,7 @@ fn registry(name: &str) -> SessionRegistry {
         cache_root: cache_root(name),
         artefact_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),
+        manifest_timeout: std::time::Duration::from_secs(120),
         max_concurrent: 2,
     })
 }

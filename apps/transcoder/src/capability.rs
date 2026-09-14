@@ -186,31 +186,92 @@ pub struct RejectedEncoder {
     pub reason: String,
 }
 
-/// The last line of ffmpeg's complaint, which is usually the useful one.
+/// Lines a library writes to say it is working, which are never the failure.
+///
+/// libva announces every driver it opens, on stderr, outside ffmpeg's logging —
+/// so `-loglevel error` does not silence it and it is the last thing printed
+/// when ffmpeg itself said nothing. A QSV chain that would not run reported
+/// `va_openDriver() returns 0` as its reason for a fortnight, which is libva
+/// saying the driver opened perfectly.
+const NOISE: [&str; 1] = ["libva info:"];
+
+/// Words a line carries when it is the thing that went wrong.
+///
+/// A heuristic, and deliberately a loose one: the cost of matching a line that
+/// is not the failure is a slightly wrong summary, and the cost of matching
+/// nothing is what this function is being fixed for.
+const COMPLAINTS: [&str; 9] = [
+    "error",
+    "invalid",
+    "unsupported",
+    "not supported",
+    "failed",
+    "cannot",
+    "unable",
+    "no such",
+    "unknown",
+];
+
+/// Whether a line is a library announcing itself rather than ffmpeg complaining.
+fn is_noise(line: &str) -> bool {
+    NOISE.iter().any(|prefix| line.starts_with(prefix))
+}
+
+/// Whether a line reads like the thing that failed.
+fn is_complaint(line: &str) -> bool {
+    let line = line.to_lowercase();
+
+    COMPLAINTS.iter().any(|word| line.contains(word))
+}
+
+/// The part of ffmpeg's complaint worth reading.
 ///
 /// A failed encoder open prints a paragraph of context and then the actual
-/// problem. Keeping all of it makes the admin page unreadable; keeping the
-/// first line usually keeps "Error while opening encoder" and throws away the
-/// reason.
+/// problem, so the last line is usually the one that says something — keeping
+/// all of it makes the admin page unreadable, and keeping the first line
+/// usually keeps "Error while opening encoder" and throws away the reason.
+///
+/// But the last line is only the right one where everything printed came from
+/// ffmpeg. A driver that writes its own progress to the same stream puts its
+/// last cheerful message after ffmpeg's last unhappy one, and reporting that is
+/// worse than reporting nothing: it reads like a diagnosis and is not one. So
+/// the chatter goes first, and what is left is searched from the end for a line
+/// that sounds like a complaint before falling back to simply the last.
 ///
 /// `fallback` stands in when ffmpeg failed without saying anything, and belongs
 /// to the caller: the same silence means different things when an encoder would
 /// not open and when a finished file would not decode.
 #[must_use]
 pub fn summarise_failure(stderr: &str, fallback: &str) -> String {
+    complaint(stderr).unwrap_or_else(|| fallback.to_owned())
+}
+
+/// What ffmpeg complained about, or nothing where it complained about nothing.
+///
+/// Separate from [`summarise_failure`] because the difference matters to a
+/// caller that can do something about it: a probe that failed silently can be
+/// asked again at a louder log level, and one that failed with a reason should
+/// not be run twice.
+#[must_use]
+pub fn complaint(stderr: &str) -> Option<String> {
     const LIMIT: usize = 200;
 
-    let last = stderr
+    let said: Vec<&str> = stderr
         .lines()
         .map(str::trim)
-        .rfind(|line| !line.is_empty())
-        .unwrap_or(fallback);
+        .filter(|line| !line.is_empty() && !is_noise(line))
+        .collect();
 
-    if last.chars().count() <= LIMIT {
-        return last.to_owned();
+    let summary = said
+        .iter()
+        .rfind(|line| is_complaint(line))
+        .or(said.last())?;
+
+    if summary.chars().count() <= LIMIT {
+        return Some((*summary).to_owned());
     }
 
-    last.chars().take(LIMIT).collect()
+    Some(summary.chars().take(LIMIT).collect())
 }
 
 /// What this machine can actually do.
@@ -888,9 +949,9 @@ async fn detect_capabilities_uncached(ffmpeg: &str, device: &str) -> Capabilitie
 #[cfg(test)]
 mod tests {
     use super::{
-        describe_build, parse_listed_encoders, parse_listed_filters, probe_arguments,
-        select_tone_mapping, tone_map_probe_arguments, Capabilities, EncoderCandidate,
-        VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
+        complaint, describe_build, parse_listed_encoders, parse_listed_filters, probe_arguments,
+        select_tone_mapping, summarise_failure, tone_map_probe_arguments, Capabilities,
+        EncoderCandidate, VerifiedEncoder, ENCODER_CANDIDATES, SMALLEST_USABLE_PROBE,
     };
     use crate::transcode_plan::HardwareAccel;
     use crate::transcode_plan::DEFAULT_DEVICE;
@@ -1477,5 +1538,86 @@ reported anything else would either reprobe forever or never"
             verified: true,
         }])
         .has_hardware());
+    }
+
+    /// What the shipped iHD driver prints on its way up, taken from the QSV
+    /// sheet chain that reported it as its reason for failing.
+    const LIBVA: &str = "libva info: VA-API version 1.24.0
+libva info: Trying to open /usr/lib/flux-ffmpeg/lib/dri/iHD_drv_video.so
+libva info: Found init function __vaDriverInit_1_24
+libva info: va_openDriver() returns 0";
+
+    #[test]
+    fn never_reports_a_driver_starting_up_as_the_reason_it_failed() {
+        assert_eq!(
+            complaint(LIBVA),
+            None,
+            "a driver saying it opened is not a diagnosis"
+        );
+    }
+
+    #[test]
+    fn says_what_the_caller_would_rather_say_than_repeat_the_chatter() {
+        assert_eq!(
+            summarise_failure(LIBVA, "it said nothing"),
+            "it said nothing"
+        );
+    }
+
+    #[test]
+    fn finds_the_complaint_the_chatter_was_printed_after() {
+        let stderr = format!("Error while opening encoder - maybe incorrect parameters\n{LIBVA}");
+
+        assert_eq!(
+            complaint(&stderr).as_deref(),
+            Some("Error while opening encoder - maybe incorrect parameters")
+        );
+    }
+
+    #[test]
+    fn takes_the_last_complaint_rather_than_the_first() {
+        let stderr = "Error while opening encoder\nInvalid argument: vpp_qsv";
+
+        assert_eq!(
+            complaint(stderr).as_deref(),
+            Some("Invalid argument: vpp_qsv")
+        );
+    }
+
+    #[test]
+    fn prefers_a_complaint_to_whatever_happened_to_be_printed_last() {
+        let stderr =
+            "Impossible to convert between the formats\nConversion failed!\nframe=    0 fps=0.0";
+
+        assert_eq!(complaint(stderr).as_deref(), Some("Conversion failed!"));
+    }
+
+    #[test]
+    fn keeps_the_last_line_where_nothing_reads_like_a_complaint() {
+        assert_eq!(
+            complaint("something happened\nand then something else").as_deref(),
+            Some("and then something else")
+        );
+    }
+
+    #[test]
+    fn keeps_a_driver_that_is_actually_complaining() {
+        let stderr = format!("{LIBVA}\nlibva error: /usr/lib/dri/iHD_drv_video.so init failed");
+
+        assert_eq!(
+            complaint(&stderr).as_deref(),
+            Some("libva error: /usr/lib/dri/iHD_drv_video.so init failed"),
+            "only the info lines are chatter"
+        );
+    }
+
+    #[test]
+    fn trims_a_complaint_too_long_for_a_panel_to_show() {
+        let stderr = format!("Error: {}", "x".repeat(400));
+
+        assert_eq!(
+            complaint(&stderr).map(|said| said.chars().count()),
+            Some(200)
+        );
     }
 }
