@@ -370,9 +370,9 @@ body {
   inset: -50%;
   background: radial-gradient(
     circle at center,
-    rgb(255 255 255 / 1) 0%,
-    rgb(255 255 255 / 0.6) 24%,
-    rgb(255 255 255 / 0) 48%
+    var(--color-text) 0%,
+    color-mix(in oklab, var(--color-text) 60%, transparent) 24%,
+    color-mix(in oklab, var(--color-text) 0%, transparent) 48%
   );
   animation: valence-logo-wave 3.4s cubic-bezier(0.23, 1, 0.32, 1) infinite;
   will-change: transform, opacity;
