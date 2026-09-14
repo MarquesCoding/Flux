@@ -7,6 +7,8 @@ type SubtitleTrack = {
   format: string;
   isForced: boolean;
   isHearingImpaired: boolean;
+  delivery: 'text' | 'burnIn';
+  streamIndex: number | null;
 };
 
 type SubtitleService = {

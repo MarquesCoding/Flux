@@ -10,6 +10,8 @@ const SubtitleTrackSchema = z
     format: z.string(),
     isForced: z.boolean(),
     isHearingImpaired: z.boolean(),
+    delivery: z.enum(['text', 'burnIn']).default('text'),
+    streamIndex: z.number().int().nullable().default(null),
   })
   .openapi('SubtitleTrack');
 

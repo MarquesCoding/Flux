@@ -58,6 +58,7 @@ type PlaybackService = {
     audioStreamIndex?: number,
     requestedQuality?: QualityStepId,
     deviceId?: string,
+    subtitleStreamIndex?: number,
   ) => Promise<StartOutcome>;
   readSessionFile: (sessionId: string, name: string) => Promise<SessionFile | null>;
   readDirectFile: (mediaId: string, range: string | null) => Promise<RangedFile | null>;

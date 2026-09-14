@@ -8,6 +8,8 @@ const SubtitleTrackSchema = z.object({
   format: z.string(),
   isForced: z.boolean(),
   isHearingImpaired: z.boolean(),
+  delivery: z.enum(['text', 'burnIn']).default('text'),
+  streamIndex: z.number().int().nullable().default(null),
 });
 
 const SubtitleListSchema = z.object({ tracks: z.array(SubtitleTrackSchema) });

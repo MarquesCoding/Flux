@@ -948,8 +948,14 @@ const createApp = ({
 
   app.openapi(startRoute, async (context) => {
     const { mediaId } = context.req.valid('param');
-    const { deviceProfile, clientId, startSeconds, audioStreamIndex, requestedQuality } =
-      context.req.valid('json');
+    const {
+      deviceProfile,
+      clientId,
+      startSeconds,
+      audioStreamIndex,
+      requestedQuality,
+      subtitleStreamIndex,
+    } = context.req.valid('json');
 
     const outcome = await playback.start(
       mediaId,
@@ -958,6 +964,7 @@ const createApp = ({
       audioStreamIndex,
       requestedQuality,
       clientId,
+      subtitleStreamIndex,
     );
 
     if (outcome.kind === 'notFound') {

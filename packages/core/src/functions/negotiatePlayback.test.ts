@@ -501,15 +501,48 @@ describe('negotiatePlayback', () => {
     expect(plan.subtitles).toMatchObject({ kind: 'sidecar', format: 'webvtt' });
   });
 
-  it('burns in image based subtitles that cannot be converted', () => {
-    const withSubs: MediaItem = {
-      ...media,
-      subtitleStreams: [{ index: 2, format: 'pgs', language: 'eng', isForced: false }],
-    };
+  const withPgs = (isForced = false): MediaItem => ({
+    ...media,
+    subtitleStreams: [{ index: 2, format: 'pgs', language: 'eng', isForced }],
+  });
 
-    const plan = negotiatePlayback(withSubs, profile);
+  it('burns in image based subtitles a viewer asked for', () => {
+    const plan = negotiatePlayback(withPgs(), profile, undefined, undefined, 2);
 
     expect(plan.subtitles).toMatchObject({ kind: 'burnIn', streamIndex: 2 });
+  });
+
+  it('leaves image based subtitles off until somebody asks for them', () => {
+    const plan = negotiatePlayback(withPgs(), profile);
+
+    expect(plan.subtitles.kind).toBe('none');
+  });
+
+  it('says why they are off, rather than reading as a file with no subtitles', () => {
+    const plan = negotiatePlayback(withPgs(), profile);
+
+    expect(plan.subtitles.reason.detail).toContain('asked for');
+  });
+
+  it('still burns in a forced track, which is meant to be read either way', () => {
+    const plan = negotiatePlayback(withPgs(true), profile);
+
+    expect(plan.subtitles).toMatchObject({ kind: 'burnIn', streamIndex: 2 });
+  });
+
+  it('never burns in a track nobody chose just because another one was asked for', () => {
+    const twoTracks: MediaItem = {
+      ...media,
+      subtitleStreams: [
+        { index: 2, format: 'pgs', language: 'eng', isForced: false },
+        { index: 3, format: 'pgs', language: 'fra', isForced: false },
+      ],
+    };
+
+    expect(negotiatePlayback(twoTracks, profile, undefined, undefined, 3).subtitles).toMatchObject({
+      kind: 'burnIn',
+      streamIndex: 3,
+    });
   });
 
   it('always populates a reason on every axis', () => {

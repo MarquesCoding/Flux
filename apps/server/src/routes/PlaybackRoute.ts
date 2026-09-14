@@ -16,6 +16,7 @@ const StartRequest = z
     clientId: z.string().min(1).optional(),
     startSeconds: z.number().int().nonnegative().optional(),
     audioStreamIndex: z.number().int().nonnegative().optional(),
+    subtitleStreamIndex: z.number().int().nonnegative().optional(),
     requestedQuality: QualityStepIdSchema.optional(),
   })
   .openapi('PlaybackStartRequest');

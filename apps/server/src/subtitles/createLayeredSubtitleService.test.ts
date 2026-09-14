@@ -11,6 +11,8 @@ const trackOf = (id: string): SubtitleTrack => ({
   format: 'vtt',
   isForced: false,
   isHearingImpaired: false,
+  delivery: 'text',
+  streamIndex: null,
 });
 
 /**

@@ -18,7 +18,11 @@ const streamOf = (changes: Partial<EmbeddedStream> = {}): EmbeddedStream => ({
   ...changes,
 });
 
-const build = (streams: EmbeddedStream[], readSubtitle = vi.fn().mockResolvedValue('WEBVTT')) => {
+const build = (
+  streams: EmbeddedStream[],
+  readSubtitle = vi.fn().mockResolvedValue('WEBVTT'),
+  canBurnImageSubtitles = true,
+) => {
   const onProblem = vi.fn();
 
   const service = createEmbeddedSubtitleService({
@@ -26,6 +30,7 @@ const build = (streams: EmbeddedStream[], readSubtitle = vi.fn().mockResolvedVal
       find: (mediaId) => Promise.resolve(mediaId === MEDIA_ID ? { path: PATH, streams } : null),
     },
     transcoder: { readSubtitle },
+    canBurnImageSubtitles: () => Promise.resolve(canBurnImageSubtitles),
     onProblem,
   });
 
@@ -95,10 +100,54 @@ describe('createEmbeddedSubtitleService', () => {
     await expect(service.list('00000000-0000-4000-8000-000000000000')).resolves.toBeNull();
   });
 
-  it('leaves out tracks that are pictures of words rather than words', async () => {
-    const { service } = build([streamOf({ format: 'pgs' }), streamOf({ index: 3 })]);
+  it('offers a track of pictures as one that has to be drawn into the picture', async () => {
+    const { service } = build([streamOf({ format: 'pgs' })]);
 
-    await expect(service.list(MEDIA_ID)).resolves.toHaveLength(1);
+    const tracks = await service.list(MEDIA_ID);
+
+    expect(tracks?.[0]).toMatchObject({ format: 'pgs', delivery: 'burnIn', streamIndex: 2 });
+  });
+
+  it('leaves a track of pictures out where this machine cannot draw one', async () => {
+    const { service } = build(
+      [streamOf({ format: 'pgs' }), streamOf({ index: 3 })],
+      undefined,
+      false,
+    );
+
+    const tracks = await service.list(MEDIA_ID);
+
+    expect(tracks).toHaveLength(1);
+    expect(tracks?.[0]?.delivery).toBe('text');
+  });
+
+  it('says a track of words is delivered as words, and which stream it is', async () => {
+    const { service } = build([streamOf({ index: 3 })]);
+
+    expect(await service.list(MEDIA_ID)).toMatchObject([{ delivery: 'text', streamIndex: 3 }]);
+  });
+
+  it('never spends a decode reading pictures as text', async () => {
+    const readSubtitle = vi.fn().mockResolvedValue('WEBVTT');
+    const { service } = build([streamOf({ format: 'pgs' })], readSubtitle);
+
+    const tracks = await service.list(MEDIA_ID);
+    const id = tracks?.[0]?.id ?? '';
+
+    await expect(service.read(MEDIA_ID, id)).resolves.toBeNull();
+    expect(readSubtitle).not.toHaveBeenCalled();
+  });
+
+  it('asks whether this machine can draw pictures only where there are pictures', async () => {
+    const asked = vi.fn().mockResolvedValue(true);
+
+    await createEmbeddedSubtitleService({
+      media: { find: () => Promise.resolve({ path: PATH, streams: [streamOf()] }) },
+      transcoder: { readSubtitle: vi.fn() },
+      canBurnImageSubtitles: asked,
+    }).list(MEDIA_ID);
+
+    expect(asked).not.toHaveBeenCalled();
   });
 
   it('leaves out a track whose codec nothing recognised', async () => {

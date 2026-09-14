@@ -16,6 +16,8 @@ const track = (overrides: Partial<SubtitleTrack> = {}): SubtitleTrack => ({
   format: 'srt',
   isForced: false,
   isHearingImpaired: false,
+  delivery: 'text',
+  streamIndex: null,
   ...overrides,
 });
 
