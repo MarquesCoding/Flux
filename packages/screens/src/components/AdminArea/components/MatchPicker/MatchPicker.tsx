@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { ArrowTurnBackwardIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -94,12 +94,13 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
   };
 
   return (
-    <Dialog
+    <DialogCompanion
       label={media?.seriesTitle ?? media?.title ?? 'This item'}
       isOpen={media !== null}
       onClose={onClose}
     >
       <DialogTitle
+        size="compact"
         title={media?.seriesTitle ?? media?.title ?? 'This item'}
         detail={
           isEpisode
@@ -190,7 +191,7 @@ const MatchPicker = ({ media, onClose, onCorrected }: MatchPickerProps) => {
           Close
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

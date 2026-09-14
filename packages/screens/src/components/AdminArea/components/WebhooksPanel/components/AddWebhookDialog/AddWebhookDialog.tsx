@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -72,8 +72,9 @@ const AddWebhookDialog = ({
   };
 
   return (
-    <Dialog label="Add a webhook" isOpen={isOpen} onClose={close}>
+    <DialogCompanion label="Add a webhook" isOpen={isOpen} onClose={close}>
       <DialogTitle
+        size="compact"
         title="Add a webhook"
         detail="Valence will post to this address when something you have chosen happens."
       />
@@ -97,7 +98,7 @@ const AddWebhookDialog = ({
           {isSaving ? 'Adding…' : 'Add webhook'}
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
+import { FormField } from '@ValenceUI/FormField';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -79,8 +80,8 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
   };
 
   return (
-    <Dialog label="Add a library" isOpen={isOpen} onClose={close}>
-      <DialogTitle title="Add a library" />
+    <DialogCompanion label="Add a library" isOpen={isOpen} onClose={close}>
+      <DialogTitle size="compact" title="Add a library" />
 
       <DialogContent className="flex flex-col gap-5">
         <TextField
@@ -90,9 +91,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
           {...(errors.name === undefined ? {} : { error: errors.name })}
         />
 
-        <fieldset className="flex flex-col gap-2">
-          <legend className="text-sm font-medium text-text">Kind</legend>
-
+        <FormField label="Kind" description="What this library holds, which decides how it reads.">
           <div className="flex flex-wrap gap-2">
             {SELECTABLE_LIBRARY_KINDS.map((entry) => (
               <Button
@@ -108,7 +107,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
               </Button>
             ))}
           </div>
-        </fieldset>
+        </FormField>
 
         <div className="flex flex-col gap-3">
           <div className="flex items-end gap-2">
@@ -173,7 +172,7 @@ const AddLibraryDialog = ({ isOpen, onClose, onCreated }: AddLibraryDialogProps)
           Add library
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { BackgroundJobs } from '@ValenceScreens/components/AdminArea/components/BackgroundJobs/BackgroundJobs';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -54,14 +54,14 @@ const JobsPanel = ({
 
   return (
     <div className="flex flex-col gap-4">
-      <Dialog
+      <DialogCompanion
         label={viewing?.label ?? 'Schedule'}
         isOpen={viewing !== null}
         onClose={onCloseSchedule}
       >
         {viewing === null ? null : (
           <>
-            <DialogTitle title={viewing.label} detail={viewing.description} />
+            <DialogTitle size="compact" title={viewing.label} detail={viewing.description} />
 
             <DialogContent>
               <JobSchedulePage
@@ -83,7 +83,7 @@ const JobsPanel = ({
             </DialogFooter>
           </>
         )}
-      </Dialog>
+      </DialogCompanion>
 
       <PanelCard
         title="Background jobs"

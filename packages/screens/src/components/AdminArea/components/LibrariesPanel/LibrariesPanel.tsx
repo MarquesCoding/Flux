@@ -264,35 +264,38 @@ const LibrariesPanel = ({
           <Button
             variant="ghost"
             size="xs"
+            className="shrink-0 text-xs text-text-muted hover:text-text"
             isLoading={isScanningAll}
             disabled={isBusy}
             onClick={onScanAll}
           >
-            <Icon of={ReloadIcon} size={16} />
+            <Icon of={ReloadIcon} size={14} />
             Scan all libraries
           </Button>
 
           <Button
-            variant="danger"
+            variant="ghost"
             size="xs"
+            className="shrink-0 text-xs text-danger hover:text-danger hover:brightness-125"
             isLoading={isResettingAll}
             disabled={isBusy}
             onClick={() => {
               setIsConfirmingReset(true);
             }}
           >
-            <Icon of={Delete02Icon} size={16} />
+            <Icon of={Delete02Icon} size={14} />
             Reset and rebuild
           </Button>
 
           <Button
-            variant="glossy"
+            variant="ghost"
             size="xs"
+            className="shrink-0 text-xs text-text-muted hover:text-text"
             onClick={() => {
               setIsAdding(true);
             }}
           >
-            <Icon of={Add01Icon} size={16} />
+            <Icon of={Add01Icon} size={14} />
             Add library
           </Button>
         </>

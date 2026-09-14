@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -127,8 +127,8 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
   );
 
   return (
-    <Dialog label="Add trigger" isOpen={isOpen} onClose={onClose}>
-      <DialogTitle title="Add trigger" />
+    <DialogCompanion label="Add trigger" isOpen={isOpen} onClose={onClose}>
+      <DialogTitle size="compact" title="Add trigger" />
 
       <DialogContent className="flex flex-col gap-5">
         {select(
@@ -204,7 +204,7 @@ const AddTriggerDialog = ({ isOpen, onAdd, onClose, isSaving = false }: AddTrigg
           Add
         </Button>
       </DialogFooter>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

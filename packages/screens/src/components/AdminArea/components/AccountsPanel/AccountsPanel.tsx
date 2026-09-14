@@ -14,7 +14,8 @@ import { Badge } from '@ValenceUI/Badge';
 import { DataTable } from '@ValenceUI/DataTable';
 import { Button } from '@ValenceUI/Button';
 import { ConfirmDialog } from '@ValenceUI/ConfirmDialog';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
+import { FormField } from '@ValenceUI/FormField';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -252,15 +253,15 @@ const AccountsPanel = () => {
         onConfirm={confirm}
       />
 
-      <Dialog
+      <DialogCompanion
         label="Add user"
         isOpen={isInviting}
         onClose={() => {
           setIsInviting(false);
         }}
-        className="sm:w-[min(30rem,92vw)]"
       >
         <DialogTitle
+          size="compact"
           title="Add user"
           detail="They arrive able to watch and nothing more, until you give them a role."
         />
@@ -318,7 +319,7 @@ const AccountsPanel = () => {
             Add
           </Button>
         </DialogFooter>
-      </Dialog>
+      </DialogCompanion>
 
       {refusal === null || picked !== null ? null : (
         <p
@@ -347,13 +348,14 @@ const AccountsPanel = () => {
             />
 
             <Button
-              variant="soft"
+              variant="ghost"
               size="xs"
+              className="shrink-0 text-xs text-text-muted hover:text-text"
               onClick={() => {
                 setIsInviting(true);
               }}
             >
-              <Icon of={Add01Icon} size={15} />
+              <Icon of={Add01Icon} size={14} />
               Add user
             </Button>
           </>
@@ -382,7 +384,7 @@ const AccountsPanel = () => {
         )}
       </PanelCard>
 
-      <Dialog
+      <DialogCompanion
         label={picked === null ? 'Roles' : `What ${picked.name} may do`}
         isOpen={picked !== null && accountId !== null}
         onClose={() => {
@@ -393,6 +395,7 @@ const AccountsPanel = () => {
         {picked === null || accountId === null ? null : (
           <>
             <DialogTitle
+              size="compact"
               title={`What ${picked.name} may do`}
               {...(held === null
                 ? {}
@@ -415,9 +418,7 @@ const AccountsPanel = () => {
                 </p>
               )}
 
-              <div className="flex flex-col gap-2">
-                <h4 className="text-xs font-medium text-text">Roles</h4>
-
+              <FormField label="Roles" description="What they are, before any exceptions.">
                 <div className="flex flex-wrap gap-2">
                   {roles.map((role) => {
                     const has = (held?.roles ?? []).some((candidate) => candidate.id === role.id);
@@ -439,11 +440,12 @@ const AccountsPanel = () => {
                     );
                   })}
                 </div>
-              </div>
+              </FormField>
 
-              <div className="flex flex-col gap-2">
-                <h4 className="text-xs font-medium text-text">Exceptions</h4>
-
+              <FormField
+                label="Exceptions"
+                description="Anything allowed or denied on top of their roles."
+              >
                 {(held?.overrides ?? []).length === 0 ? (
                   <p className="text-sm text-text-muted">None. Their roles decide everything.</p>
                 ) : (
@@ -476,12 +478,12 @@ const AccountsPanel = () => {
                   </ul>
                 )}
 
-                <div className="flex flex-wrap items-center gap-2 pt-1">
+                <div className="flex flex-col gap-2 pt-1">
                   <OptionMenu
                     label="Add an exception"
                     align="start"
                     matchTriggerWidth
-                    className="min-w-56 flex-1"
+                    className="w-full"
                     trigger={
                       <span className="flex w-full items-center justify-between gap-2 rounded-lg border border-[var(--surface-line)] bg-[var(--surface-hover)] px-3 py-2 text-sm text-text">
                         <span className="min-w-0 truncate">
@@ -512,41 +514,48 @@ const AccountsPanel = () => {
                     ]}
                   />
 
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    disabled={addingPermission === null}
-                    onClick={() => {
-                      if (addingPermission !== null) {
-                        void act(() =>
-                          setOverride(accountId, { permission: addingPermission, effect: 'allow' }),
-                        );
-                      }
-                    }}
-                  >
-                    Allow it
-                  </Button>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      disabled={addingPermission === null}
+                      onClick={() => {
+                        if (addingPermission !== null) {
+                          void act(() =>
+                            setOverride(accountId, {
+                              permission: addingPermission,
+                              effect: 'allow',
+                            }),
+                          );
+                        }
+                      }}
+                    >
+                      Allow it
+                    </Button>
 
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    disabled={addingPermission === null}
-                    onClick={() => {
-                      if (addingPermission !== null) {
-                        void act(() =>
-                          setOverride(accountId, { permission: addingPermission, effect: 'deny' }),
-                        );
-                      }
-                    }}
-                  >
-                    Deny it
-                  </Button>
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      className="text-danger hover:text-danger hover:brightness-125"
+                      disabled={addingPermission === null}
+                      onClick={() => {
+                        if (addingPermission !== null) {
+                          void act(() =>
+                            setOverride(accountId, {
+                              permission: addingPermission,
+                              effect: 'deny',
+                            }),
+                          );
+                        }
+                      }}
+                    >
+                      Deny it
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              </FormField>
 
-              <div className="flex flex-col gap-2">
-                <h4 className="text-xs font-medium text-text">Comes to</h4>
-
+              <FormField label="Comes to" description="Everything the two together add up to.">
                 {(held?.effective ?? []).includes('administrator') ? (
                   <p className="text-sm text-text-muted">
                     Everything, including anything added to Valence later.
@@ -562,7 +571,7 @@ const AccountsPanel = () => {
                     ))}
                   </ul>
                 )}
-              </div>
+              </FormField>
             </DialogContent>
 
             <DialogFooter>
@@ -578,7 +587,7 @@ const AccountsPanel = () => {
             </DialogFooter>
           </>
         )}
-      </Dialog>
+      </DialogCompanion>
     </div>
   );
 };

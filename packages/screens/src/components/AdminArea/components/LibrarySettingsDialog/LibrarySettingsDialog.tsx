@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { UnfoldMoreIcon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import { Button } from '@ValenceUI/Button';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogFooter } from '@ValenceUI/DialogFooter';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
@@ -138,8 +138,8 @@ const LibrarySettingsDialog = ({
   const atOnceLabel = AT_ONCE_OPTIONS.find((option) => option.id === atOnce)?.label ?? atOnce;
 
   return (
-    <Dialog label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
-      <DialogTitle title={library.name} />
+    <DialogCompanion label={`${library.name} settings`} isOpen={isOpen} onClose={close}>
+      <DialogTitle size="compact" title={library.name} />
 
       {confirming === null ? (
         <>
@@ -254,7 +254,7 @@ const LibrarySettingsDialog = ({
           </DialogFooter>
         </>
       )}
-    </Dialog>
+    </DialogCompanion>
   );
 };
 

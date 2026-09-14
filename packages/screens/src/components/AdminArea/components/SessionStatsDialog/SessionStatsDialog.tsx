@@ -1,6 +1,6 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Cancel01Icon } from '@hugeicons/core-free-icons';
-import { Dialog } from '@ValenceUI/Dialog';
+import { DialogCompanion } from '@ValenceUI/DialogCompanion';
 import { DialogContent } from '@ValenceUI/DialogContent';
 import { DialogTitle } from '@ValenceUI/DialogTitle';
 import { Button } from '@ValenceUI/Button';
@@ -46,8 +46,8 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
   const { playback } = session;
 
   return (
-    <Dialog label="Stream stats" isOpen={isOpen} onClose={onClose}>
-      <DialogTitle title="Stream stats">
+    <DialogCompanion label="Stream stats" isOpen={isOpen} onClose={onClose}>
+      <DialogTitle size="compact" title="Stream stats">
         <Button isIconOnly variant="ghost" label="Close" size="sm" onClick={onClose}>
           <Icon of={Cancel01Icon} size={16} />
         </Button>
@@ -103,7 +103,7 @@ const SessionStatsDialog = ({ session, isOpen, onClose }: SessionStatsDialogProp
           )}
         </dl>
       </DialogContent>
-    </Dialog>
+    </DialogCompanion>
   );
 };
 
