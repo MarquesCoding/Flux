@@ -330,10 +330,10 @@ impl Monitor {
         let cell = Arc::clone(&self.graphics);
 
         tokio::spawn(async move {
-            let mut smoothed = crate::graphics::Smoothed::new();
+            let mut reader = crate::graphics::Reader::new();
 
             loop {
-                let reading = smoothed.push(crate::graphics::read().await);
+                let reading = reader.read().await;
 
                 *cell.lock().await = reading;
 
