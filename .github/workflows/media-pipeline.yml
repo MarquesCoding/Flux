@@ -26,10 +26,10 @@ env:
   # The build Valence ships, rather than whatever the runner happens to carry. The version is pinned
   # so a transcode behaves the same everywhere, and a fixture generated against a different FFmpeg is
   # a different fixture.
-  VALENCE_FFMPEG_VERSION: 8.1.2-2flux2
+  VALENCE_FFMPEG_VERSION: 8.1.2-5.1
   VALENCE_FFMPEG_SUITE: bookworm
-  VALENCE_FFMPEG: /usr/lib/flux-ffmpeg/ffmpeg
-  VALENCE_FFPROBE: /usr/lib/flux-ffmpeg/ffprobe
+  VALENCE_FFMPEG: /usr/lib/valence-ffmpeg/ffmpeg
+  VALENCE_FFPROBE: /usr/lib/valence-ffmpeg/ffprobe
   # Named rather than left to `~`, which the cache action expands on the runner and Node expands
   # inside the container. In a container job those are not the same directory, and a cache that
   # saves one while the corpus is written to the other silently caches nothing.
@@ -72,9 +72,9 @@ jobs:
 
       - name: Install the FFmpeg Valence ships
         run: |
-          curl -fsSL -o /tmp/flux-ffmpeg.deb \
-            "https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
-          apt-get install -y --no-install-recommends /tmp/flux-ffmpeg.deb
+          curl -fsSL -o /tmp/valence-ffmpeg.deb \
+            "https://github.com/ValenceOSS/valence-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/valence-ffmpeg_${VALENCE_FFMPEG_VERSION}-${VALENCE_FFMPEG_SUITE}_amd64.deb"
+          apt-get install -y --no-install-recommends /tmp/valence-ffmpeg.deb
           "$VALENCE_FFMPEG" -version | head -1
           "$VALENCE_FFMPEG" -hide_banner -filters | grep -E "zscale|libplacebo" || (echo "the shipped build lost its tone mapping filters" && exit 1)
           # On the path as well as in the variables. The package installs beside the system's own

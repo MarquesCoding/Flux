@@ -9,16 +9,16 @@ const CI_VERSION = /^\s*VALENCE_FFMPEG_VERSION:\s*(?<version>\S+)\s*$/mu;
 
 describe('pinnedFfmpegVersion', () => {
   it('reads the version the image is pinned to', () => {
-    expect(pinnedFfmpegVersion('ARG VALENCE_FFMPEG_VERSION=8.1.2-2flux1\n')).toBe('8.1.2-2flux1');
+    expect(pinnedFfmpegVersion('ARG VALENCE_FFMPEG_VERSION=8.1.2-5.1\n')).toBe('8.1.2-5.1');
   });
 
   it('ignores a mention that is not the declaration', () => {
     const dockerfile = [
       '# VALENCE_FFMPEG_VERSION=9.9.9 would be a comment, not a pin',
-      'ARG VALENCE_FFMPEG_VERSION=8.1.2-2flux1',
+      'ARG VALENCE_FFMPEG_VERSION=8.1.2-5.1',
     ].join('\n');
 
-    expect(pinnedFfmpegVersion(dockerfile)).toBe('8.1.2-2flux1');
+    expect(pinnedFfmpegVersion(dockerfile)).toBe('8.1.2-5.1');
   });
 
   it('refuses to guess when the declaration is gone', () => {

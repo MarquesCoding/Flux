@@ -57,14 +57,14 @@ FROM node:24-bookworm-slim AS runtime
 # The build itself is published from a repository of its own and is still named for what it was
 # called when it was set up. The name in these URLs and paths is that artefact's, not ours, and
 # renaming it here would ask this image to fetch something that does not exist.
-ARG VALENCE_FFMPEG_VERSION=8.1.2-2flux2
+ARG VALENCE_FFMPEG_VERSION=8.1.2-5.1
 ARG TARGETARCH
 
-ADD https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/flux-ffmpeg_${VALENCE_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/flux-ffmpeg.deb
+ADD https://github.com/ValenceOSS/valence-ffmpeg/releases/download/v${VALENCE_FFMPEG_VERSION}/valence-ffmpeg_${VALENCE_FFMPEG_VERSION}-bookworm_${TARGETARCH}.deb /tmp/valence-ffmpeg.deb
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ca-certificates pci.ids /tmp/flux-ffmpeg.deb \
-  && rm /tmp/flux-ffmpeg.deb \
+  && apt-get install -y --no-install-recommends ca-certificates pci.ids /tmp/valence-ffmpeg.deb \
+  && rm /tmp/valence-ffmpeg.deb \
   && rm -rf /var/lib/apt/lists/*
 
 # Both, and not just the first: the transcoder reads them independently, so
@@ -72,8 +72,8 @@ RUN apt-get update \
 # with whatever ffprobe the base image had — which here is none at all.
 #
 # No LD_LIBRARY_PATH: the binaries carry an rpath into their own lib directory.
-ENV VALENCE_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg
-ENV VALENCE_FFPROBE=/usr/lib/flux-ffmpeg/ffprobe
+ENV VALENCE_FFMPEG=/usr/lib/valence-ffmpeg/ffmpeg
+ENV VALENCE_FFPROBE=/usr/lib/valence-ffmpeg/ffprobe
 
 WORKDIR /app
 RUN corepack enable

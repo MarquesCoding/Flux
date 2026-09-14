@@ -30,7 +30,7 @@ describe('envFileWithFfmpeg', () => {
   });
 
   it('does not mistake a commented example for a setting', () => {
-    const existing = '# VALENCE_FFMPEG=/usr/lib/flux-ffmpeg/ffmpeg\n';
+    const existing = '# VALENCE_FFMPEG=/usr/lib/valence-ffmpeg/ffmpeg\n';
 
     expect(envFileWithFfmpeg({ existing, ...PATHS })).toContain(
       'VALENCE_FFMPEG=/repo/.ffmpeg/ffmpeg',
