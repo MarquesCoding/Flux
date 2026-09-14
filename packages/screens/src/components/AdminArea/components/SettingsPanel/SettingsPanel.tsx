@@ -50,7 +50,7 @@ const SettingsPanel = ({
   const [accel, setAccel] = useState(overview?.settings.hardwareAccel ?? '');
   const [quality, setQuality] = useState(overview?.settings.previewQuality ?? 'high');
   const [showsFaces, setShowsFaces] = useState(
-    overview?.settings.showsProfilesBeforeSignIn ?? false,
+    overview?.settings.showsProfilesBeforeSignIn ?? true,
   );
 
   return (

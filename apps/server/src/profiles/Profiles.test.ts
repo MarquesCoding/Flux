@@ -371,8 +371,10 @@ describe('profiles over HTTP', () => {
     expect(statuses).toContain(429);
   });
 
-  it('keeps who lives here from somebody who has not signed in', async () => {
-    const { app } = build();
+  it('keeps who lives here from somebody who has not signed in, where the faces are shut away', async () => {
+    const { app, settings } = build();
+
+    await settings.write({ showsProfilesBeforeSignIn: false });
 
     const response = await app.request(`${BASE}/api/profiles/everyone`, {
       headers: { origin: BASE },

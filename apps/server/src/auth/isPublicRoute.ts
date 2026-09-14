@@ -26,11 +26,11 @@ const FACE_ROUTES: readonly PublicRoute[] = [
  * of things a browser asks for before anybody has signed in. Matched on both method and path, so
  * that reading something openly does not also mean writing it.
  *
- * Who lives here is not among them unless the server says so. A wall of faces tells anybody who asks
- * every profile's name, picture and identifier, which is a list of who to try passwords against and
- * who to address a party invitation to. It is a pleasant way in and a household may want it, so it is
- * a setting rather than a rule — but it is off until somebody turns it on, because a default that
- * publishes something is a default nobody chose.
+ * Who lives here is among them while the server says so. A wall of faces is how a household sharing
+ * one television expects to be met — pick yourself and watch — so it is the way in a server opens
+ * with. It is a setting rather than a rule, because the same wall tells anybody who asks every
+ * profile's name, picture and identifier, which is a list of who to try passwords against and who to
+ * address a party invitation to; a server facing the open internet can shut it.
  *
  * The generated avatars stay open: they are drawn from a style and a seed in the address and say
  * nothing about anybody. So does signing in as a face, which needs the identifier already and is a
