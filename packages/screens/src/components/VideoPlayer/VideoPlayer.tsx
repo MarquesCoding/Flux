@@ -1588,7 +1588,9 @@ const VideoPlayer = ({
             isImmersive ? '' : 'text-text'
           }`}
         >
-          {media.title}
+          {media.year === null || media.year === undefined
+            ? media.title
+            : `${media.title} (${media.year.toString()})`}
         </h2>
 
         <div className="flex w-24 shrink-0 justify-end">

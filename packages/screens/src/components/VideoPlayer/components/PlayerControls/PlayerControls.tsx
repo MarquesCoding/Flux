@@ -253,6 +253,11 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100);
           }}
+          renderPreview={(pointedAt) => (
+            <span className="valence-glass rounded-md px-1.5 py-0.5 text-xs tabular-nums text-on-scrim">
+              {Math.round(pointedAt).toString()}%
+            </span>
+          )}
           className="w-0 overflow-hidden px-0 transition-[width,padding] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
