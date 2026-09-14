@@ -43,6 +43,8 @@ const overview = (overrides: Partial<AdminOverview> = {}): AdminOverview => ({
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
     concurrentRenders: 0,
+    toneMapping: 'unavailable' as const,
+    hardwareToneMaps: [],
     chains: [],
   },
   library: { itemCount: 10, libraryCount: 1, bytes: 0 },
@@ -249,6 +251,57 @@ describe('OverviewPanel', () => {
       expect(within(region).getByText('8')).toBeInTheDocument();
     });
 
+    it('says which filter converts HDR, and that the card is doing it', () => {
+      render(
+        <OverviewPanel
+          {...props}
+          overview={overview({
+            transcoder: {
+              isReachable: true,
+              address: 'unix:/tmp/valence-transcoder.sock',
+              ffmpegVersion: '8.1.2-Flux',
+              ffmpegSupported: true,
+              hardwareAccels: ['vaapi'],
+              rejectedEncoders: [],
+              concurrentRenders: 2,
+              toneMapping: 'libplacebo' as const,
+              hardwareToneMaps: ['tonemap_vaapi'],
+              chains: [],
+            },
+          })}
+        />,
+      );
+
+      const region = card('Server');
+
+      expect(within(region).getByText('HDR conversion')).toBeInTheDocument();
+      expect(within(region).getByText('tonemap_vaapi on the device')).toBeInTheDocument();
+    });
+
+    it('tells a build with libplacebo apart from one without it', () => {
+      render(
+        <OverviewPanel
+          {...props}
+          overview={overview({
+            transcoder: {
+              isReachable: true,
+              address: 'unix:/tmp/valence-transcoder.sock',
+              ffmpegVersion: '8.1.2-Flux',
+              ffmpegSupported: true,
+              hardwareAccels: [],
+              rejectedEncoders: [],
+              concurrentRenders: 0,
+              toneMapping: 'zscale' as const,
+              hardwareToneMaps: [],
+              chains: [],
+            },
+          })}
+        />,
+      );
+
+      expect(within(card('Server')).getByText('zscale, in software')).toBeInTheDocument();
+    });
+
     it('says software only rather than nothing when there is no hardware encoding', () => {
       render(
         <OverviewPanel
@@ -262,6 +315,8 @@ describe('OverviewPanel', () => {
               hardwareAccels: [],
               rejectedEncoders: [],
               concurrentRenders: 0,
+              toneMapping: 'unavailable' as const,
+              hardwareToneMaps: [],
               chains: [],
             },
           })}
@@ -315,6 +370,8 @@ describe('OverviewPanel', () => {
               { encoder: 'h264_vaapi', reason: 'No VA display found for /dev/dri/renderD128.' },
             ],
             concurrentRenders: 0,
+            toneMapping: 'unavailable' as const,
+            hardwareToneMaps: [],
             chains: [],
           },
         })}
@@ -384,6 +441,8 @@ describe('OverviewPanel', () => {
             hardwareAccels: ['qsv'],
             rejectedEncoders: [],
             concurrentRenders: 2,
+            toneMapping: 'unavailable' as const,
+            hardwareToneMaps: [],
             chains: [
               { accel: 'qsv', shape: 'preview', bitDepth: 8, works: true, reason: null },
               {

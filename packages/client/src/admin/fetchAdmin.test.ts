@@ -61,6 +61,8 @@ const OVERVIEW = {
     hardwareAccels: ['videotoolbox'],
     rejectedEncoders: [],
     concurrentRenders: 2,
+    toneMapping: 'unavailable' as const,
+    hardwareToneMaps: [],
     chains: [
       { accel: 'videotoolbox', shape: 'preview', bitDepth: 8, works: true, reason: null },
       {

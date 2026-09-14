@@ -412,6 +412,8 @@ type CreateAppOptions = {
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
     concurrentRenders?: number;
+    toneMapping?: 'zscale' | 'libplacebo' | 'unavailable';
+    hardwareToneMaps?: string[];
     chains?: {
       accel: string;
       shape: 'preview' | 'sheet' | 'transcode';
@@ -1802,6 +1804,8 @@ const createApp = ({
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
           chains: transcoderCapabilities?.chains ?? [],
           concurrentRenders: transcoderCapabilities?.concurrentRenders ?? 0,
+          toneMapping: transcoderCapabilities?.toneMapping ?? 'unavailable',
+          hardwareToneMaps: transcoderCapabilities?.hardwareToneMaps ?? [],
         },
         library: {
           libraryCount: libraries.length,
