@@ -176,9 +176,6 @@ const JOB_DEFINITIONS: JobDefinition[] = [
 
 const DEFAULT_JOB_TRIGGERS: Record<string, ScheduleTrigger[]> = {
   [SCAN_LIBRARY_JOB]: [{ kind: 'daily', hour: 3, minute: 0 }],
-  [REGENERATE_PREVIEWS_JOB]: [{ kind: 'daily', hour: 3, minute: 30 }],
-  [REGENERATE_TRICKPLAY_JOB]: [{ kind: 'daily', hour: 4, minute: 0 }],
-  [DETECT_SEGMENTS_JOB]: [{ kind: 'daily', hour: 4, minute: 30 }],
   [CHECK_CATALOGUE_CONNECTIVITY_JOB]: [{ kind: 'daily', hour: 5, minute: 0 }],
   [CHECK_TRANSCODER_JOB]: [{ kind: 'everyMinutes', minutes: 5 }],
   [CHECK_DISK_SPACE_JOB]: [{ kind: 'everyMinutes', minutes: 15 }],
