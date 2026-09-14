@@ -85,6 +85,7 @@ import { describeCommand } from '@ValenceClient/party/describeCommand';
 import type { Trickplay } from '@ValenceScreens/playback/fetchTrickplay';
 import type { PoppedOut } from '@ValenceScreens/playback/popOutWithCaptions';
 import type { CastState } from '@ValenceScreens/playback/castPlayback.types';
+import { describePlaying } from './describePlaying';
 import type { CastContext } from '@ValenceScreens/playback/castSender.types';
 import type { StartedSession } from '@ValenceClient/playback/startPlaybackSession';
 import type { MediaDetail } from '@ValenceContracts/schemas/Library';
@@ -1588,9 +1589,7 @@ const VideoPlayer = ({
             isImmersive ? '' : 'text-text'
           }`}
         >
-          {media.year === null || media.year === undefined
-            ? media.title
-            : `${media.title} (${media.year.toString()})`}
+          {describePlaying(media)}
         </h2>
 
         <div className="flex w-24 shrink-0 justify-end">
