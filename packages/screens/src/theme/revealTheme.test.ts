@@ -87,6 +87,41 @@ describe('revealTheme', () => {
     expect(browser.start).not.toHaveBeenCalled();
   });
 
+  it('simply changes it while something is playing, rather than holding a still over it', () => {
+    const browser = aBrowserThatPhotographs();
+    const apply = vi.fn();
+
+    const playing = document.createElement('video');
+
+    Object.defineProperty(playing, 'paused', { configurable: true, value: false });
+    document.body.append(playing);
+
+    revealTheme(apply, { x: 10, y: 10 });
+
+    expect(apply).toHaveBeenCalledTimes(1);
+    expect(browser.start).not.toHaveBeenCalled();
+
+    playing.remove();
+  });
+
+  it('still opens out where a video is on the page but paused', async () => {
+    const browser = aBrowserThatPhotographs();
+
+    const paused = document.createElement('video');
+
+    document.body.append(paused);
+
+    revealTheme(vi.fn(), { x: 10, y: 10 });
+
+    expect(browser.start).toHaveBeenCalled();
+
+    await vi.waitFor(() => {
+      expect(animateMock).toHaveBeenCalled();
+    });
+
+    paused.remove();
+  });
+
   it('photographs the page as it was, and changes the theme underneath it', () => {
     const browser = aBrowserThatPhotographs();
     const apply = vi.fn();

@@ -3,6 +3,18 @@ const REVEAL_MILLISECONDS = 560;
 const REVEAL_EASING = 'cubic-bezier(0.77, 0, 0.175, 1)';
 
 /**
+ * Whether anything on the page is playing.
+ *
+ * A view transition photographs the page and shows the photograph for as long as the change runs, so
+ * anything moving inside it stops dead and then jumps to where it really got to. The trailer behind
+ * the hero is the case that gives it away: half a second of stillness, then a skip.
+ *
+ * @returns Whether a video is playing.
+ */
+const isAnythingPlaying = (): boolean =>
+  [...document.querySelectorAll('video')].some((video) => !video.paused && !video.ended);
+
+/**
  * Changes the theme with a circle of the new one opening out from where somebody pointed, rather
  * than the whole page swapping colour in a single frame.
  *
@@ -12,13 +24,18 @@ const REVEAL_EASING = 'cubic-bezier(0.77, 0, 0.175, 1)';
  * browser cannot photograph a page, or somebody has asked for less movement, the theme simply
  * changes.
  *
+ * It simply changes while something is playing, too. A photograph of a page is a still, and holding
+ * one over a trailer for half a second costs more than the reveal is worth — the picture stops, then
+ * skips to catch up, which reads as the page having broken rather than as the theme having changed.
+ * Naming the video as its own layer does not help, since that layer is a still as well.
+ *
  * @param apply - What changes the theme, run once the page as it was has been captured.
  * @param from - Where the circle opens from, or nothing for the middle of the window.
  */
 const revealTheme = (apply: () => void, from: { x: number; y: number } | null): void => {
   const isStill = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-  if (isStill || !('startViewTransition' in document)) {
+  if (isStill || isAnythingPlaying() || !('startViewTransition' in document)) {
     apply();
 
     return;
