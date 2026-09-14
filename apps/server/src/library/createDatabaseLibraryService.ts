@@ -1,3 +1,5 @@
+import { askForLibraryWork } from '@ValenceServer/library/askForLibraryWork';
+import { jobBehindTheKey } from '@ValenceServer/library/jobBehindTheKey';
 import { randomUUID } from 'node:crypto';
 import { stat } from 'node:fs/promises';
 import { z } from 'zod';
@@ -441,37 +443,6 @@ const createDatabaseLibraryService = ({
    * @param libraryId - The library being worked on.
    * @returns How many files to render at the same time.
    */
-  /**
-   * Answers with the job that will do this work, whether this call is what started it.
-   *
-   * A queue holds one job of a kind for a library at a time, so asking twice gets nothing back the
-   * second time. The answer used to be an invented id — `pending-<library>` — which was worse than
-   * no answer: nothing has that id, so reading its state says "unknown", the client treats unknown
-   * as finished and stops watching, and the work carries on untracked. Cancelling it answered 404
-   * while it ran.
-   *
-   * So the job already holding the key is found and returned instead. The caller asked who is doing
-   * this, and there is always a real answer.
-   *
-   * @param started - The id this call created, or null where something already held the key.
-   * @param kind - The kind of job asked for.
-   * @param libraryId - The library it is for.
-   * @returns The job that will do the work, or null where it could not be found at all.
-   */
-  const alreadyAsked = async (
-    started: string | null,
-    kind: string,
-    libraryId: string,
-  ): Promise<{ jobId: string; state: string } | null> => {
-    if (started !== null) {
-      return { jobId: started, state: 'queued' };
-    }
-
-    const running = await jobs.liveJob(kind, libraryId);
-
-    return running === null ? null : { jobId: running, state: 'running' };
-  };
-
   const filesAtOnceFor = async (libraryId: string): Promise<number> =>
     filesAtOnce((await findLibrary(libraryId))?.filesAtOnce ?? atOnce, await rendersAtOnce());
 
@@ -1050,17 +1021,22 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const jobId = await jobs.enqueue(
-        SCAN_LIBRARY_JOB,
-        {
-          libraryId,
-          force,
-          ...(run === undefined ? {} : { runId: run.id, runOf: run.of }),
-        },
+      const asking = {
         libraryId,
-      );
+        force,
+        ...(run === undefined ? {} : { runId: run.id, runOf: run.of }),
+      };
 
-      return alreadyAsked(jobId, SCAN_LIBRARY_JOB, libraryId);
+      if (force) {
+        return jobBehindTheKey(
+          await jobs.enqueue(SCAN_LIBRARY_JOB, asking, libraryId),
+          SCAN_LIBRARY_JOB,
+          libraryId,
+          jobs,
+        );
+      }
+
+      return askForLibraryWork(jobs, SCAN_LIBRARY_JOB, libraryId, asking);
     },
 
     reset: async (libraryId) => {
@@ -1078,7 +1054,7 @@ const createDatabaseLibraryService = ({
 
       const jobId = await jobs.enqueue(SCAN_LIBRARY_JOB, { libraryId, force: true }, libraryId);
 
-      return alreadyAsked(jobId, SCAN_LIBRARY_JOB, libraryId);
+      return jobBehindTheKey(jobId, SCAN_LIBRARY_JOB, libraryId, jobs);
     },
 
     remove: async (libraryId) => {
@@ -1100,13 +1076,10 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const jobId = await jobs.enqueue(
-        REGENERATE_PREVIEWS_JOB,
-        { libraryId, defaultAudioLanguage: found.defaultAudioLanguage },
+      return askForLibraryWork(jobs, REGENERATE_PREVIEWS_JOB, libraryId, {
         libraryId,
-      );
-
-      return alreadyAsked(jobId, REGENERATE_PREVIEWS_JOB, libraryId);
+        defaultAudioLanguage: found.defaultAudioLanguage,
+      });
     },
 
     fetchLogos: async (libraryId) => {
@@ -1114,9 +1087,7 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const jobId = await jobs.enqueue(FETCH_LOGOS_JOB, { libraryId }, libraryId);
-
-      return alreadyAsked(jobId, FETCH_LOGOS_JOB, libraryId);
+      return askForLibraryWork(jobs, FETCH_LOGOS_JOB, libraryId, { libraryId });
     },
 
     remakePreviews: async (libraryId) => {
@@ -1130,9 +1101,7 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const jobId = await jobs.enqueue(REGENERATE_TRICKPLAY_JOB, { libraryId }, libraryId);
-
-      return alreadyAsked(jobId, REGENERATE_TRICKPLAY_JOB, libraryId);
+      return askForLibraryWork(jobs, REGENERATE_TRICKPLAY_JOB, libraryId, { libraryId });
     },
 
     detectSegments: async (libraryId) => {
@@ -1140,9 +1109,7 @@ const createDatabaseLibraryService = ({
         return null;
       }
 
-      const jobId = await jobs.enqueue(DETECT_SEGMENTS_JOB, { libraryId }, libraryId);
-
-      return alreadyAsked(jobId, DETECT_SEGMENTS_JOB, libraryId);
+      return askForLibraryWork(jobs, DETECT_SEGMENTS_JOB, libraryId, { libraryId });
     },
 
     readScanState: async (jobId) => {
