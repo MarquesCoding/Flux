@@ -9,12 +9,6 @@
 
 @custom-variant coarse (@media (pointer: coarse));
 
-@property --valence-reveal {
-  syntax: '<length>';
-  inherits: false;
-  initial-value: 0px;
-}
-
 @custom-variant still {
   @media (prefers-reduced-motion: reduce) {
     :root:not([data-motion='full']) & {
@@ -416,15 +410,6 @@ body {
 :root[data-theme-shift]::view-transition-new(root) {
   animation: none;
   mix-blend-mode: normal;
-}
-
-:root[data-theme-shift]::view-transition-new(root) {
-  mask-image: radial-gradient(
-    circle at var(--valence-reveal-x, 50%) var(--valence-reveal-y, 50%),
-    #000 calc(var(--valence-reveal) - var(--valence-reveal-softness, 5rem)),
-    transparent var(--valence-reveal)
-  );
-  mask-repeat: no-repeat;
 }
 
 .valence-mood-fade {
