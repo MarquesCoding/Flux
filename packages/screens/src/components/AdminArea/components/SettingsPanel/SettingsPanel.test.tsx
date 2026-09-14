@@ -39,6 +39,8 @@ const overview = (overrides: Partial<AdminOverview['settings']> = {}): AdminOver
     hardwareAccels: [],
     rejectedEncoders: [],
     concurrentRenders: 0,
+    toneMapping: 'unavailable' as const,
+    hardwareToneMaps: [],
     chains: [],
   },
   library: { itemCount: 0, libraryCount: 0, bytes: 0 },
