@@ -48,6 +48,7 @@ const healthyMonitor = (
     loadAverage: 0,
     disks: [],
     graphics: null,
+    artefacts: null,
   },
   queue: { concurrency: 1, queued: 0, running: 0, jobs },
   sessions: 0,
@@ -679,5 +680,55 @@ describe('collectConcerns', () => {
       'attention',
       'setup',
     ]);
+  });
+
+  it('says so where rendered artefacts are being written somewhere they will not survive', () => {
+    const monitor = healthyMonitor();
+
+    const concerns = collectConcerns({
+      overview: healthyOverview(),
+      monitor: {
+        ...monitor,
+        resources: {
+          ...monitor.resources,
+          artefacts: { root: '/transcodes', survivesRestart: false },
+        },
+      },
+      libraries: [library()],
+    });
+
+    const artefacts = concerns.find((concern) => concern.id === 'artefacts');
+
+    expect(artefacts?.title).toBe('Previews and thumbnails are not being kept');
+    expect(artefacts?.detail).toContain('/transcodes');
+    expect(artefacts?.detail).toContain('VALENCE_ARTEFACT_DIR');
+  });
+
+  it('says nothing where rendered artefacts are on a volume that keeps them', () => {
+    const monitor = healthyMonitor();
+
+    const concerns = collectConcerns({
+      overview: healthyOverview(),
+      monitor: {
+        ...monitor,
+        resources: {
+          ...monitor.resources,
+          artefacts: { root: '/cache/artefacts', survivesRestart: true },
+        },
+      },
+      libraries: [library()],
+    });
+
+    expect(concerns.find((concern) => concern.id === 'artefacts')).toBeUndefined();
+  });
+
+  it('says nothing about durability on a machine that does not publish its mounts', () => {
+    const concerns = collectConcerns({
+      overview: healthyOverview(),
+      monitor: healthyMonitor(),
+      libraries: [library()],
+    });
+
+    expect(concerns.find((concern) => concern.id === 'artefacts')).toBeUndefined();
   });
 });

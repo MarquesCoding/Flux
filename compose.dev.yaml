@@ -31,6 +31,22 @@ services:
       TRUSTED_ORIGINS: ${TRUSTED_ORIGINS:-http://localhost:8420}
       COOKIE_SECURE: ${COOKIE_SECURE:-false}
       AUTH_RATE_LIMIT_ENABLED: ${AUTH_RATE_LIMIT_ENABLED:-true}
+      # Where rendered previews and thumbnail sheets are kept. Not the same
+      # question as where segments are written, and deliberately separate: a
+      # segment is written while somebody is watching and thrown away behind
+      # them, so it wants the fastest disk in the machine, while a sheet costs
+      # minutes of decoding a film and is read for as long as that film is in
+      # the library, so it wants a disk that is kept. Point this at
+      # network-attached storage if that is where the space is, and leave the
+      # transcode directory on something local.
+      #
+      # Whatever you set it to, map a volume there. Anything written to a path
+      # with no volume behind it lives on the container's own filesystem and is
+      # gone the next time the container is recreated — which is what an update
+      # does. Valence says so at startup and on the admin page rather than
+      # letting a library quietly re-render itself every week.
+      VALENCE_ARTEFACT_DIR: ${VALENCE_ARTEFACT_DIR:-/cache/artefacts}
+
       # The clock scheduled jobs keep. A container has no other way to know where it is, and
       # defaults to UTC — so without this, "daily at 03:00" is 03:00 UTC rather than 3am here.
       TZ: ${TZ:-UTC}

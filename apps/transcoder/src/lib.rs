@@ -14,6 +14,7 @@ pub mod cgroup;
 pub mod chains;
 pub mod concurrency;
 pub mod download;
+pub mod durability;
 pub mod fingerprint;
 pub mod frame;
 pub mod graphics;

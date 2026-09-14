@@ -69,6 +69,7 @@ const MONITOR: Monitor = {
       { mountPoint: '/media', totalBytes: 8 * 1024 ** 4, availableBytes: 2 * 1024 ** 4 },
     ],
     graphics: { name: 'Apple M5 Pro', encoderPercent: null, devicePercent: 41 },
+    artefacts: null,
   },
   queue: {
     concurrency: 2,

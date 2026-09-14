@@ -118,6 +118,7 @@ fn registry(name: &str) -> SessionRegistry {
         ffmpeg: ffmpeg(),
         ffprobe: ffprobe(),
         cache_root: cache_root(name),
+        artefact_root: cache_root(name),
         idle_timeout: Duration::from_secs(60),
         max_concurrent: 2,
     })

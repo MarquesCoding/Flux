@@ -700,7 +700,7 @@ async fn start_preview(
     let config = state.registry.config().clone();
     let id = request.id();
 
-    if preview_ready(&config.cache_root, &id).await {
+    if preview_ready(&config.artefact_root, &id).await {
         return already_drawn(id);
     }
 
@@ -762,7 +762,7 @@ async fn start_preview(
                     ffmpeg: &config.ffmpeg,
                     device: &config.device,
                 },
-                &config.cache_root,
+                &config.artefact_root,
                 &request,
                 crate::preview::Source {
                     range,
@@ -797,7 +797,7 @@ async fn sweep_previews(
     Json(request): Json<SweepRequest<PreviewRequest>>,
 ) -> Response {
     let keep: HashSet<String> = request.keep.iter().map(PreviewRequest::id).collect();
-    let root = state.registry.config().cache_root.join("previews");
+    let root = state.registry.config().artefact_root.join("previews");
 
     let report = cache_sweep::sweep(&root, &keep, cache_sweep::GRACE).await;
 
@@ -811,7 +811,7 @@ async fn sweep_previews(
 /// the exception an operator can ask for: somebody who has just run a sweep
 /// wants to see the number move rather than wait five minutes to believe it.
 async fn measure_cache(State(state): State<AppState>) -> Response {
-    let root = state.registry.config().cache_root.clone();
+    let root = state.registry.config().artefact_root.clone();
     let reading = state.monitor.count_cache(&root).await;
 
     (StatusCode::OK, Json(reading)).into_response()
@@ -823,7 +823,7 @@ async fn sweep_trickplay(
     Json(request): Json<SweepRequest<TrickplayRequest>>,
 ) -> Response {
     let keep: HashSet<String> = request.keep.iter().map(TrickplayRequest::id).collect();
-    let root = state.registry.config().cache_root.join("trickplay");
+    let root = state.registry.config().artefact_root.join("trickplay");
 
     let report = cache_sweep::sweep(&root, &keep, cache_sweep::GRACE).await;
 
@@ -847,7 +847,7 @@ async fn forget_preview(
     State(state): State<AppState>,
     Json(request): Json<PreviewRequest>,
 ) -> Response {
-    let root = state.registry.config().cache_root.join("previews");
+    let root = state.registry.config().artefact_root.join("previews");
     let forgotten = cache_sweep::forget(&root, &request.id()).await;
 
     (StatusCode::OK, Json(ForgetReport { forgotten })).into_response()
@@ -963,7 +963,7 @@ async fn forget_trickplay(
     State(state): State<AppState>,
     Json(request): Json<TrickplayRequest>,
 ) -> Response {
-    let root = state.registry.config().cache_root.join("trickplay");
+    let root = state.registry.config().artefact_root.join("trickplay");
     let forgotten = cache_sweep::forget(&root, &request.id()).await;
 
     (StatusCode::OK, Json(ForgetReport { forgotten })).into_response()
@@ -975,7 +975,7 @@ async fn preview_file(
     AxumPath((id, name)): AxumPath<(String, String)>,
     headers: HeaderMap,
 ) -> Response {
-    let directory = preview_directory(&state.registry.config().cache_root, &id);
+    let directory = preview_directory(&state.registry.config().artefact_root, &id);
 
     serve_file(&directory, &name, requested_range(&headers)).await
 }
@@ -1123,7 +1123,7 @@ fn cut_in_the_background(
     let queue = state.queue.clone();
     let ffmpeg = config.ffmpeg.clone();
     let device = config.device.clone();
-    let cache_root = config.cache_root.clone();
+    let artefact_root = config.artefact_root.clone();
     let queued = request.clone();
     let owner = request.owner.clone();
     let subject = name_of(path);
@@ -1142,7 +1142,7 @@ fn cut_in_the_background(
                         ffmpeg: &ffmpeg,
                         device: &device,
                     },
-                    &cache_root,
+                    &artefact_root,
                     &queued,
                     source,
                     &found,
@@ -1172,7 +1172,7 @@ fn draw_in_the_background(
     let queue = state.queue.clone();
     let ffmpeg = config.ffmpeg.clone();
     let device = config.device.clone();
-    let cache_root = config.cache_root.clone();
+    let artefact_root = config.artefact_root.clone();
     let queued = request.clone();
     let owner = request.owner.clone();
     let subject = name_of(path);
@@ -1192,7 +1192,7 @@ fn draw_in_the_background(
                         device: &device,
                         capabilities: &found,
                     },
-                    &cache_root,
+                    &artefact_root,
                     &queued,
                     source,
                     accel,
@@ -1260,7 +1260,7 @@ async fn start_trickplay(
             return error(StatusCode::INTERNAL_SERVER_ERROR, &failure);
         }
 
-        if !is_complete(&config.cache_root, &id).await {
+        if !is_complete(&config.artefact_root, &id).await {
             let tile_height = tile_height_for(request.tile_width, video.width, video.height);
             let pending = pending_index(&request, tile_height);
 
@@ -1288,7 +1288,7 @@ async fn start_trickplay(
                     device: &config.device,
                     capabilities: &capabilities,
                 },
-                &config.cache_root,
+                &config.artefact_root,
                 &request,
                 source,
                 accel,
@@ -1312,7 +1312,7 @@ async fn start_trickplay(
                     device: &config.device,
                     capabilities: &capabilities,
                 },
-                &config.cache_root,
+                &config.artefact_root,
                 &request,
                 source,
                 accel,
@@ -1331,7 +1331,7 @@ async fn trickplay_file(
     headers: HeaderMap,
 ) -> Response {
     serve_file(
-        &directory_for(&state.registry.config().cache_root, &id),
+        &directory_for(&state.registry.config().artefact_root, &id),
         &name,
         requested_range(&headers),
     )

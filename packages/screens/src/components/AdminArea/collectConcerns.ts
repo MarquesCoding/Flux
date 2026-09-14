@@ -182,6 +182,18 @@ const collectConcerns = ({
     });
   }
 
+  const artefacts = monitor?.resources.artefacts ?? null;
+
+  if (artefacts !== null && !artefacts.survivesRestart) {
+    concerns.push({
+      id: 'artefacts',
+      tone: 'attention',
+      title: 'Previews and thumbnails are not being kept',
+      detail: `They are being written to ${artefacts.root}, which is not on a volume, so every one of them is thrown away the next time this container is recreated — which is what an update does. Map a volume there, or point VALENCE_ARTEFACT_DIR at one that is mapped.`,
+      panel: 'activity',
+    });
+  }
+
   const encoderRecent = encoderHistory.slice(-CPU_READINGS);
 
   if (
