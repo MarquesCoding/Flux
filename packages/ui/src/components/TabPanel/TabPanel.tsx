@@ -1,6 +1,6 @@
 import { cloneElement } from 'react';
 import * as RadixTabs from '@radix-ui/react-tabs';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { TabPanelProps } from './TabPanel.types';
 
@@ -24,7 +24,7 @@ const SLIDES_IN_BY_PIXELS = 24;
  * @param className - Extra classes for the caller's own layout.
  */
 const TabPanel = ({ value, children, render, travel, className }: TabPanelProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const held =
     travel === undefined || prefersReducedMotion === true ? (

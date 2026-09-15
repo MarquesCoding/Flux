@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { ArrowTurnForwardIcon, FavouriteIcon, PlayIcon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { MediaCard } from '@ValenceUI/MediaCard';
 import { Badge } from '@ValenceUI/Badge';
@@ -106,7 +106,7 @@ const RailCard = ({
 
   const holderRef = useRef<HTMLDivElement>(null);
   const [anchor, setAnchor] = useState<Anchor | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const close = useCallback(() => {
     setAnchor(null);

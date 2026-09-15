@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { revealItemVariants } from '@ValenceUI/animations/reveal';
 import type { RevealItemProps } from './RevealItem.types';
 
@@ -12,7 +12,7 @@ import type { RevealItemProps } from './RevealItem.types';
  * @param className - Extra classes for the caller's own layout.
  */
 const RevealItem = ({ children, index, className }: RevealItemProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <motion.li

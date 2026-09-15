@@ -8,6 +8,8 @@ import {
   FavouriteIcon,
   Film01Icon,
   FireIcon,
+  FlashIcon,
+  FlashOffIcon,
   Home01Icon,
   Logout01Icon,
   Moon02Icon,
@@ -24,7 +26,7 @@ import {
   motion,
   useMotionValue,
   useMotionValueEvent,
-  useReducedMotion,
+  useReducedMotionConfig,
   useScroll,
 } from 'motion/react';
 import { ActionMenu } from '@ValenceUI/ActionMenu';
@@ -44,6 +46,9 @@ import {
 import { canKeepFiles } from '@ValenceClient/downloads/canKeepFiles';
 import { useTheme } from '@ValenceClient/shell/useTheme';
 import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
+import { useMotion } from '@ValenceClient/shell/useMotion';
+import { MOTION_CHOICES } from '@ValenceScreens/motion/motionChoices';
+import type { Motion } from '@ValenceClient/shell/motion';
 import { BROWSE_SECTIONS } from './AppShell.types';
 import type { ReactNode } from 'react';
 import type { IconGesture } from '@ValenceUI/AnimatedIcon.types';
@@ -90,6 +95,12 @@ const THEME_ICONS: Record<Theme, ReactNode> = {
   system: <Icon of={ComputerIcon} size={16} />,
   light: <Icon of={Sun01Icon} size={16} />,
   dark: <Icon of={Moon02Icon} size={16} />,
+};
+
+const MOTION_ICONS: Record<Motion, ReactNode> = {
+  system: <Icon of={ComputerIcon} size={16} />,
+  full: <Icon of={FlashIcon} size={16} />,
+  reduced: <Icon of={FlashOffIcon} size={16} />,
 };
 
 const STOCKED_ONLY: ReadonlySet<ShellSection> = new Set(['shows', 'films', 'read']);
@@ -201,11 +212,12 @@ const AppShell = ({
   stocked,
   notifications,
 }: AppShellProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const [isFilmPlaying, setIsFilmPlaying] = useState(false);
   const { scrollY } = useScroll();
   const solidity = useMotionValue(0);
   const { theme, choose } = useTheme();
+  const { motion: movement, choose: chooseMovement } = useMotion();
 
   const shellRef = useRef<HTMLDivElement>(null);
 
@@ -416,9 +428,23 @@ const AppShell = ({
                 id: `theme-${choice.id}`,
                 label: choice.label,
                 icon: THEME_ICONS[choice.id],
+                keepsOpen: true,
                 ...(theme === choice.id ? { detail: '✓' } : {}),
                 onChoose: () => {
                   choose(choice.id);
+                },
+              })),
+            },
+            {
+              name: 'Movement',
+              items: MOTION_CHOICES.map((choice) => ({
+                id: `motion-${choice.id}`,
+                label: choice.label,
+                icon: MOTION_ICONS[choice.id],
+                keepsOpen: true,
+                ...(movement === choice.id ? { detail: '✓' } : {}),
+                onChoose: () => {
+                  chooseMovement(choice.id);
                 },
               })),
             },

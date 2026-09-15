@@ -1,15 +1,15 @@
 import { Icon } from '@ValenceUI/Icon';
 import {
   Add01Icon,
-  ArrowTurnBackwardIcon,
-  ArrowTurnForwardIcon,
-  CastIcon,
+  ArrowExpandIcon,
+  ArrowShrinkIcon,
+  MirroringScreenIcon,
   Clock01Icon,
   DashboardSpeed01Icon,
-  FilterIcon,
+  GoBackward10SecIcon,
+  GoForward10SecIcon,
+  HdIcon,
   HeadphonesIcon,
-  Maximize01Icon,
-  Minimize01Icon,
   MinusSignIcon,
   PauseIcon,
   PictureInPictureOnIcon,
@@ -30,7 +30,7 @@ import { SUBTITLES_OFF } from '@ValenceClient/playback/fetchSubtitles';
 import { QUALITY_STEPS } from '@ValenceContracts/schemas/QualityStep';
 import { CaptionSettings } from '@ValenceScreens/components/VideoPlayer/components/CaptionSettings/CaptionSettings';
 import { EpisodeMenu } from '@ValenceScreens/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu';
-import { SKIP_SECONDS, PLAYBACK_RATES } from './PlayerControls.types';
+import { SKIP_SECONDS, PLAYBACK_RATES, BOOST_STEPS } from './PlayerControls.types';
 import type { PlayerControlsProps } from './PlayerControls.types';
 
 /**
@@ -122,6 +122,7 @@ const PlayerControls = ({
   position,
   duration,
   volume,
+  boost,
   isMuted,
   isFullscreen,
   isShowingStats,
@@ -152,6 +153,7 @@ const PlayerControls = ({
   onCaptionStyleChange,
   onCaptionStyleReset,
   onVolumeChange,
+  onBoostChange,
   onToggleMute,
   onToggleFullscreen,
   onPopOut,
@@ -201,7 +203,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <Icon of={ArrowTurnBackwardIcon} size={22} />
+        <Icon of={GoBackward10SecIcon} size={22} />
       </Button>
 
       <Button
@@ -225,7 +227,7 @@ const PlayerControls = ({
         disabled={isDisabled}
         size="md"
       >
-        <Icon of={ArrowTurnForwardIcon} size={22} />
+        <Icon of={GoForward10SecIcon} size={22} />
       </Button>
 
       <span className="flex-1" />
@@ -253,6 +255,7 @@ const PlayerControls = ({
           onValueChange={(next) => {
             onVolumeChange(next / 100);
           }}
+          valueLabel={(loudness) => `${Math.round(loudness).toString()}%`}
           className="w-0 overflow-hidden px-0 transition-[width,padding] duration-[var(--duration-fast)] ease-[var(--ease-out)] motion-reduce:transition-none group-hover/volume:w-24 group-hover/volume:px-2 group-focus-within/volume:w-24 group-focus-within/volume:px-2"
         />
       </div>
@@ -320,22 +323,26 @@ const PlayerControls = ({
                   })),
                 },
               ]),
-          {
-            kind: 'choice' as const,
-            id: 'subtitles',
-            label: 'Subtitles/CC',
-            icon: <Icon of={SubtitleIcon} size={18} />,
-            selectedId: selectedSubtitleId,
-            onSelect: onSubtitleChange,
-            choices: [
-              { id: SUBTITLES_OFF, label: 'Off' },
-              ...subtitleTracks.map((track) => ({
-                id: track.id,
-                label: track.label,
-                ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
-              })),
-            ],
-          },
+          ...(subtitleTracks.length === 0
+            ? []
+            : [
+                {
+                  kind: 'choice' as const,
+                  id: 'subtitles',
+                  label: 'Subtitles/CC',
+                  icon: <Icon of={SubtitleIcon} size={18} />,
+                  selectedId: selectedSubtitleId,
+                  onSelect: onSubtitleChange,
+                  choices: [
+                    { id: SUBTITLES_OFF, label: 'Off' },
+                    ...subtitleTracks.map((track) => ({
+                      id: track.id,
+                      label: track.label,
+                      ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
+                    })),
+                  ],
+                },
+              ]),
           ...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
             ? []
             : [
@@ -389,19 +396,23 @@ const PlayerControls = ({
                   ),
                 },
               ]),
-          {
-            kind: 'panel' as const,
-            id: 'appearance',
-            label: 'Caption settings',
-            icon: <Icon of={TextFontIcon} size={18} />,
-            content: (
-              <CaptionSettings
-                style={captionStyle}
-                onChange={onCaptionStyleChange}
-                onReset={onCaptionStyleReset}
-              />
-            ),
-          },
+          ...(subtitleTracks.length === 0
+            ? []
+            : [
+                {
+                  kind: 'panel' as const,
+                  id: 'appearance',
+                  label: 'Caption settings',
+                  icon: <Icon of={TextFontIcon} size={18} />,
+                  content: (
+                    <CaptionSettings
+                      style={captionStyle}
+                      onChange={onCaptionStyleChange}
+                      onReset={onCaptionStyleReset}
+                    />
+                  ),
+                },
+              ]),
           {
             kind: 'choice' as const,
             id: 'speed',
@@ -416,6 +427,20 @@ const PlayerControls = ({
               label: rate === 1 ? 'Normal' : rateLabel(rate),
             })),
           },
+          {
+            kind: 'choice' as const,
+            id: 'boost',
+            label: 'Volume boost',
+            icon: <Icon of={VolumeHighIcon} size={18} />,
+            selectedId: boost.toString(),
+            onSelect: (id: string) => {
+              onBoostChange(Number(id));
+            },
+            choices: BOOST_STEPS.map((step) => ({
+              id: step.toString(),
+              label: step === 1 ? 'Off' : rateLabel(step),
+            })),
+          },
           ...(availableQualitySteps.length === 0
             ? []
             : [
@@ -423,7 +448,7 @@ const PlayerControls = ({
                   kind: 'choice' as const,
                   id: 'quality',
                   label: 'Quality',
-                  icon: <Icon of={FilterIcon} size={18} />,
+                  icon: <Icon of={HdIcon} size={18} />,
                   selectedId: selectedQuality,
                   onSelect: (id: string) => {
                     onQualityChange(
@@ -480,7 +505,7 @@ const PlayerControls = ({
           onClick={onCast}
           size="md"
         >
-          <Icon of={CastIcon} size={20} />
+          <Icon of={MirroringScreenIcon} size={20} />
         </Button>
       )}
 
@@ -509,9 +534,9 @@ const PlayerControls = ({
         size="md"
       >
         {isFullscreen ? (
-          <Icon of={Minimize01Icon} size={20} />
+          <Icon of={ArrowShrinkIcon} size={20} />
         ) : (
-          <Icon of={Maximize01Icon} size={20} />
+          <Icon of={ArrowExpandIcon} size={20} />
         )}
       </Button>
     </div>

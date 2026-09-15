@@ -27,7 +27,7 @@ import {
 import { notificationQueries } from '@ValenceClient/query/notificationQueries';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { useFavourites } from '@ValenceClient/library/useFavourites';
-import { useRatings } from '@ValenceClient/library/useRatings';
+import { useRate } from '@ValenceClient/library/useRate';
 import { pickAnything } from '@ValenceClient/library/pickAnything';
 import { findSiblings } from '@ValenceClient/library/pickFeatured';
 import { showSlug } from '@ValenceCore/functions/showSlug';
@@ -69,7 +69,7 @@ const ValenceShell = () => {
   } = useShell();
 
   const favourites = useFavourites(user.id);
-  const ratings = useRatings(user.id);
+  const rate = useRate(user.id);
   const { mayAdminister } = useWhatIMayDo();
   const leave = useSignOut();
 
@@ -280,14 +280,9 @@ const ValenceShell = () => {
         }}
         resumeFor={(mediaId) => resumeFor(progress, mediaId)}
         isFinished={(mediaId) => progress.get(mediaId)?.isFinished === true}
-        stars={
-          (openShow?.seriesId ?? null) === null
-            ? null
-            : ratings.ratingFor({ seriesId: openShow?.seriesId ?? '' })
-        }
         onRate={(show, stars) => {
           if ((show.seriesId ?? null) !== null) {
-            ratings.rate({ seriesId: show.seriesId ?? '' }, stars);
+            rate({ seriesId: show.seriesId ?? '' }, stars);
           }
         }}
       />
@@ -318,9 +313,8 @@ const ValenceShell = () => {
         onToggleKept={(media) => {
           favourites.toggle(media.id);
         }}
-        stars={inspecting === null ? null : ratings.ratingFor({ mediaId: inspecting.id })}
         onRate={(media, stars) => {
-          ratings.rate({ mediaId: media.id }, stars);
+          rate({ mediaId: media.id }, stars);
         }}
         onOpenPerson={(member) => {
           setOpenRole(member.role);

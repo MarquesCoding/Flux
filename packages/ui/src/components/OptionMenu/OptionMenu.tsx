@@ -68,7 +68,7 @@ const OptionMenu = ({
             POPUP_MOTION,
           )}
         >
-          <div className="flex overflow-hidden">
+          <div className="valence-rail flex overflow-x-auto">
             {groups.map((group) => (
               <RadixMenu.Group
                 key={group.name}

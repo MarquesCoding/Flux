@@ -2,6 +2,7 @@ import { act, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { chosenTheme } from '@ValenceClient/shell/theme';
+import { chosenMotion } from '@ValenceClient/shell/motion';
 import { AppShell } from './AppShell';
 
 vi.mock('@ValenceUI/badAppleFilm', () => ({
@@ -172,13 +173,34 @@ describe('AppShell', () => {
 
     await user.click(screen.getByRole('button', { name: 'Account' }));
 
-    const system = await screen.findByRole('menuitem', { name: /System/ });
+    const [themeSystem] = await screen.findAllByRole('menuitem', { name: /System/ });
 
-    expect(within(system).getByText('✓')).toBeInTheDocument();
+    expect(themeSystem?.textContent).toContain('✓');
 
     await user.click(screen.getByRole('menuitem', { name: /Dark/ }));
 
     expect(chosenTheme()).toBe('dark');
+  });
+
+  it('changes how much moves from the same menu', async () => {
+    const user = userEvent.setup();
+
+    draw();
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+    await user.click(await screen.findByRole('menuitem', { name: 'Reduced' }));
+
+    expect(chosenMotion()).toBe('reduced');
+  });
+
+  it('offers a way back to the machine for the theme and for movement alike', async () => {
+    const user = userEvent.setup();
+
+    draw();
+
+    await user.click(screen.getByRole('button', { name: 'Account' }));
+
+    expect(await screen.findAllByRole('menuitem', { name: /System/ })).toHaveLength(2);
   });
 
   it('signs out from the menu on the face', async () => {

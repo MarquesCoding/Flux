@@ -2,6 +2,7 @@ import { useContext, useEffect, useId } from 'react';
 import { createPortal } from 'react-dom';
 import { Dialog } from '@ValenceUI/Dialog';
 import { companionContext } from '@ValenceUI/Dialog.companionContext';
+import { useRoomBeside } from '@ValenceUI/useRoomBeside';
 import type { DialogCompanionProps } from './DialogCompanion.types';
 
 /**
@@ -18,6 +19,11 @@ import type { DialogCompanionProps } from './DialogCompanion.types';
  * companion to something — there is nothing for it to stand beside on a bare page — and a control
  * that works inside the admin dialog must still work on a screen that is not one.
  *
+ * On a screen too narrow to stand two panels side by side it is an ordinary dialog as well, laid
+ * over the one it came from. Standing beside is the whole idea of a companion, and where there is no
+ * beside to stand in, a column sharing a row with a panel that wants all of it has nowhere to go.
+ * Better to cover the thing for a moment than to be squeezed out of sight next to it.
+ *
  * @param label - What the panel is, read out when it stands alone.
  * @param isOpen - Whether it is showing.
  * @param onClose - Told when it was dismissed.
@@ -25,10 +31,12 @@ import type { DialogCompanionProps } from './DialogCompanion.types';
  */
 const DialogCompanion = ({ label, isOpen, onClose, children }: DialogCompanionProps) => {
   const slot = useContext(companionContext);
+  const hasRoomBeside = useRoomBeside();
   const id = useId();
+  const standsAlone = slot === null || !hasRoomBeside;
 
   useEffect(() => {
-    if (slot === null) {
+    if (slot === null || !hasRoomBeside) {
       return;
     }
 
@@ -43,9 +51,9 @@ const DialogCompanion = ({ label, isOpen, onClose, children }: DialogCompanionPr
     return () => {
       slot.release(id);
     };
-  }, [slot, isOpen, id]);
+  }, [slot, hasRoomBeside, isOpen, id]);
 
-  if (slot === null) {
+  if (standsAlone) {
     return (
       <Dialog label={label} isOpen={isOpen} onClose={onClose}>
         {children}

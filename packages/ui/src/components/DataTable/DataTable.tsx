@@ -110,7 +110,7 @@ const DataTable = <Row extends RowData>({
                     <th
                       key={header.id}
                       scope="col"
-                      className="px-5 py-2 text-left text-xs font-medium uppercase tracking-[0.14em] text-text-muted"
+                      className="px-3 py-2 text-left text-xs font-medium uppercase tracking-[0.14em] text-text-muted sm:px-5"
                     >
                       {header.isPlaceholder ? null : canSort ? (
                         <Button
@@ -164,7 +164,7 @@ const DataTable = <Row extends RowData>({
                   className={cn(onChooseRow === undefined ? '' : 'cursor-pointer')}
                 >
                   {row.getAllCells().map((cell) => (
-                    <td key={cell.id} className="px-5 py-3 align-middle">
+                    <td key={cell.id} className="px-3 py-3 align-middle sm:px-5">
                       <table.FlexRender cell={cell} />
                     </td>
                   ))}

@@ -8,7 +8,7 @@ import {
   motion,
   useAnimationFrame,
   useMotionValue,
-  useReducedMotion,
+  useReducedMotionConfig,
   useScroll,
   useTransform,
 } from 'motion/react';
@@ -100,7 +100,7 @@ const Hero = ({
 
   const isCovered = useIsPageCovered();
   const isHeld = isPointedAt || isFocused || isCovered;
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const featured = items[index % Math.max(items.length, 1)];
   const isLettered = featured?.hasLogo === true && !unlettered.has(featured.id);

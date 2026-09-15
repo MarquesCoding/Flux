@@ -13,7 +13,7 @@ import {
   UserGroupIcon,
 } from '@hugeicons/core-free-icons';
 import { useEffect, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { Dialog } from '@ValenceUI/Dialog';
 import { DialogContent } from '@ValenceUI/DialogContent';
@@ -30,6 +30,7 @@ import { BackdropScrim } from '@ValenceUI/BackdropScrim';
 import { Badge } from '@ValenceUI/Badge';
 import { Skeleton } from '@ValenceUI/Skeleton';
 import { MediaCard } from '@ValenceUI/MediaCard';
+import { Rail } from '@ValenceUI/Rail';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
@@ -76,7 +77,6 @@ const artworkUrl = (mediaId: string, kind: 'poster' | 'backdrop'): string =>
  * @param backLabel - What going back is called.
  * @param isKept - Whether it is kept.
  * @param onToggleKept - Told to keep it, or stop.
- * @param stars - What this viewer gave it, or null where they have not rated it.
  * @param onRate - Told what they gave it, or null to take the rating back.
  * @param onOpenPerson - Told which performer to open from the cast, where opening one is offered.
  * @param onShare - Told to hand out a link to it, where this account may share at all.
@@ -94,7 +94,6 @@ const MediaDetailDialog = ({
   backLabel,
   isKept = false,
   onToggleKept,
-  stars = null,
   onRate,
   onOpenPerson,
   onShare,
@@ -118,7 +117,7 @@ const MediaDetailDialog = ({
 
   const prepared = useQuery({ ...downloadQueries.all(), enabled: canKeepFiles() });
 
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   useEffect(() => {
     if (media === null) {
@@ -303,7 +302,6 @@ const MediaDetailDialog = ({
               <RatingPanel
                 subject={{ mediaId: shown.id }}
                 title={shown.title}
-                stars={stars}
                 onRate={(given) => {
                   onRate(shown, given);
                 }}
@@ -388,78 +386,70 @@ const MediaDetailDialog = ({
             </section>
 
             {extras.length === 0 ? null : (
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-                  Extras
-                </h3>
-
-                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
-                  {extras.map((extra) => (
-                    <li key={extra.id} className="w-56 shrink-0 sm:w-64">
-                      <MediaCard
-                        {...(extra.extraKind === null || extra.extraKind === undefined
-                          ? {}
-                          : { eyebrow: EXTRA_KIND_LABELS[extra.extraKind] })}
-                        title={extra.title}
-                        subtitle={
-                          <MediaFacts
-                            media={extra}
-                            hasRuntime
-                            className="flex flex-wrap items-center gap-2"
-                          />
-                        }
-                        shape="wide"
-                        {...(extra.hasBackdrop
-                          ? { imageUrl: artworkUrl(extra.id, 'backdrop') }
-                          : {})}
-                        onSelect={() => {
-                          onPlay(extra, 0);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <Rail title="Extras" sizesCards className="px-0">
+                {extras.map((extra) => (
+                  <li key={extra.id}>
+                    <MediaCard
+                      {...(extra.extraKind === null || extra.extraKind === undefined
+                        ? {}
+                        : { eyebrow: EXTRA_KIND_LABELS[extra.extraKind] })}
+                      title={extra.title}
+                      subtitle={
+                        <MediaFacts
+                          media={extra}
+                          hasRuntime
+                          className="flex flex-wrap items-center gap-2"
+                        />
+                      }
+                      shape="wide"
+                      {...(extra.hasBackdrop ? { imageUrl: artworkUrl(extra.id, 'backdrop') } : {})}
+                      onSelect={() => {
+                        onPlay(extra, 0);
+                      }}
+                    />
+                  </li>
+                ))}
+              </Rail>
             )}
 
             {shownSiblings.length === 0 ? null : (
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-                  {season === null
+              <Rail
+                title={
+                  season === null
                     ? 'More from this series'
-                    : `More from season ${season.toString()}`}
-                </h3>
-
-                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
-                  {shownSiblings.map((sibling) => (
-                    <li key={sibling.id} className="w-56 shrink-0 sm:w-64">
-                      <MediaCard
-                        {...(sibling.seriesTitle === null || sibling.seriesTitle === undefined
-                          ? {}
-                          : { eyebrow: sibling.title })}
-                        title={sibling.seriesTitle ?? sibling.title}
-                        subtitle={
-                          <MediaFacts
-                            media={sibling}
-                            hasRuntime
-                            className="flex flex-wrap items-center gap-2"
-                          />
-                        }
-                        shape="wide"
-                        {...(watchedFractionFor?.(sibling.id) === undefined
-                          ? {}
-                          : { watchedFraction: watchedFractionFor(sibling.id) ?? 0 })}
-                        {...(sibling.hasBackdrop
-                          ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
-                          : {})}
-                        onSelect={() => {
-                          onSelectSibling?.(sibling);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                    : `More from season ${season.toString()}`
+                }
+                sizesCards
+                className="px-0"
+              >
+                {shownSiblings.map((sibling) => (
+                  <li key={sibling.id}>
+                    <MediaCard
+                      {...(sibling.seriesTitle === null || sibling.seriesTitle === undefined
+                        ? {}
+                        : { eyebrow: sibling.title })}
+                      title={sibling.seriesTitle ?? sibling.title}
+                      subtitle={
+                        <MediaFacts
+                          media={sibling}
+                          hasRuntime
+                          className="flex flex-wrap items-center gap-2"
+                        />
+                      }
+                      shape="wide"
+                      {...(watchedFractionFor?.(sibling.id) === undefined
+                        ? {}
+                        : { watchedFraction: watchedFractionFor(sibling.id) ?? 0 })}
+                      {...(sibling.hasBackdrop
+                        ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
+                        : {})}
+                      onSelect={() => {
+                        onSelectSibling?.(sibling);
+                      }}
+                    />
+                  </li>
+                ))}
+              </Rail>
             )}
           </div>
         </motion.div>

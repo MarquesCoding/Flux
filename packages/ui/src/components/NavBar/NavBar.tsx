@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { motion } from 'motion/react';
+import { Menu01Icon } from '@hugeicons/core-free-icons';
+import { ActionMenu } from '@ValenceUI/ActionMenu';
 import { AnimatedIcon } from '@ValenceUI/AnimatedIcon';
 import { Button } from '@ValenceUI/Button';
+import { Icon } from '@ValenceUI/Icon';
 import { SlidingMark } from '@ValenceUI/SlidingMark';
 import { cn } from '@ValenceUI/cn';
 import { useOpenAction } from './useOpenAction';
@@ -36,6 +39,12 @@ const OPENS = [
  * are is said twice rather than only by the mark behind it. That icon holds still under the pointer:
  * it sits beside a word rather than standing in for one, and a lift or a wipe there reads as the
  * word jumping; the tools are always icons, named on hover.
+ *
+ * On a narrow screen the places fold into a menu behind one mark, because the row of them there is
+ * icons with their words suppressed — a line of glyphs to be guessed at rather than read. A menu
+ * gives each one its word back and says which is being stood on. The tools stay out on the bar
+ * beside it: searching and the rest are done from wherever you are, and burying them a tap deeper
+ * to tidy the bar would cost more than the tidying is worth.
  *
  * An action whose control has a panel open is held still while it is open, because a popover is
  * anchored to the icon that opened it and a gesture played underneath it would shove the panel.
@@ -104,7 +113,26 @@ const NavBar = ({
       >
         {brand === undefined ? null : <span className="flex shrink-0 items-center">{brand}</span>}
 
-        <ul className="valence-rail flex min-w-0 items-center gap-0.5 overflow-x-auto">
+        <ActionMenu
+          label="Places"
+          className="shrink-0 md:hidden"
+          trigger={<Icon of={Menu01Icon} size={20} />}
+          groups={[
+            {
+              items: items.map((item) => ({
+                id: item.id,
+                label: item.label,
+                ...(item.icon === undefined ? {} : { icon: item.icon }),
+                ...(item.id === selectedId ? { detail: 'Here' } : {}),
+                onChoose: () => {
+                  onSelect(item.id);
+                },
+              })),
+            },
+          ]}
+        />
+
+        <ul className="valence-rail hidden min-w-0 items-center gap-0.5 overflow-x-auto md:flex">
           {items.map((item) => {
             const isCurrent = item.id === selectedId;
 

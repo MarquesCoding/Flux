@@ -14,14 +14,32 @@ describe('DialogFooter', () => {
     expect(screen.getByRole('contentinfo')).toHaveTextContent('CancelSave');
   });
 
-  it('gives every answer the same width, so none is suggested by being larger', () => {
+  it('gives every answer the same width once there is room, so none is suggested by being larger', () => {
     render(
       <DialogFooter>
         <span>Save</span>
       </DialogFooter>,
     );
 
-    expect(screen.getByRole('contentinfo')).toHaveClass('[grid-auto-columns:1fr]', '[&>*]:w-full');
+    expect(screen.getByRole('contentinfo')).toHaveClass(
+      'sm:grid-flow-col',
+      'sm:[grid-auto-columns:1fr]',
+      '[&>*]:w-full',
+    );
+  });
+
+  it('stacks them on a phone, where three answers across cannot fit and a button will not shrink', () => {
+    render(
+      <DialogFooter>
+        <span>Save</span>
+      </DialogFooter>,
+    );
+
+    const foot = screen.getByRole('contentinfo');
+
+    expect(foot).toHaveClass('grid');
+    expect(foot.className).not.toMatch(/(^|\s)grid-flow-col/);
+    expect(foot.className).not.toMatch(/(^|\s)\[grid-auto-columns:1fr\]/);
   });
 
   it('is the colour of the dialog, set off from its content by a hairline alone', () => {

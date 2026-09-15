@@ -8,7 +8,11 @@ const { reducedMotion } = vi.hoisted(() => ({ reducedMotion: { current: false } 
 vi.mock('motion/react', async () => {
   const actual = await vi.importActual<typeof MotionModule>('motion/react');
 
-  return { ...actual, useReducedMotion: () => reducedMotion.current };
+  return {
+    ...actual,
+    useReducedMotion: () => reducedMotion.current,
+    useReducedMotionConfig: () => reducedMotion.current,
+  };
 });
 
 describe('RevealItem', () => {

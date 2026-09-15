@@ -7,6 +7,7 @@ type ActionMenuItem = {
   detail?: string;
   isDestructive?: boolean;
   isDisabled?: boolean;
+  keepsOpen?: boolean;
   onChoose: () => void;
 };
 

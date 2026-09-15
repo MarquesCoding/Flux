@@ -1,5 +1,5 @@
 import { useNavigate } from '@tanstack/react-router';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { revealTransition, revealVariants, staggerVariants } from '@ValenceUI/animations/reveal';
 import { usePlace } from '@ValenceScreens/navigation/usePlace';
 import { useWhatIMayDo } from '@ValenceClient/session/useWhatIMayDo';
@@ -20,7 +20,7 @@ const BooksPage = () => {
   const go = useNavigate();
   const { mayAdminister } = useWhatIMayDo();
   const { go: goWithin } = usePlace();
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   return (
     <motion.main

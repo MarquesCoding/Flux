@@ -1,7 +1,7 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Alert02Icon } from '@hugeicons/core-free-icons';
 import { useCallback, useEffect, useMemo, useState, useSyncExternalStore } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { TabPanel } from '@ValenceUI/TabPanel';
 import { SettingsPanel } from './components/SettingsPanel/SettingsPanel';
@@ -111,7 +111,7 @@ const AdminArea = ({
   const [openHistoryId, setOpenHistoryId] = useState<string | null>(null);
 
   const [busyClientId, setBusyClientId] = useState<string | null>(null);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const travel = useTravelDirection(PANEL_ORDER, panel);
 
   const askedOverview = useQuery(adminQueries.overview());

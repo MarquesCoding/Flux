@@ -1,6 +1,8 @@
 import { useEffect, useRef } from 'react';
+import { MotionConfig } from 'motion/react';
 import { useOfflineMode } from '@ValenceClient/offline/useOfflineMode';
 import { useAppliedTheme } from '@ValenceScreens/theme/useAppliedTheme';
+import { useAppliedMotion } from '@ValenceScreens/motion/useAppliedMotion';
 import { sendWatchedOffline } from '@ValenceClient/offline/watchedOffline';
 import { App } from '@ValenceScreens/components/App/App';
 import { OfflineApp } from '@ValenceScreens/components/OfflineApp/OfflineApp';
@@ -31,6 +33,8 @@ const ValenceRoot = ({ initialTitle }: ValenceRootProps) => {
 
   useAppliedTheme();
 
+  const howMuchMovement = useAppliedMotion();
+
   useEffect(() => {
     if (wasOffline.current && !isOffline) {
       void sendWatchedOffline();
@@ -39,7 +43,11 @@ const ValenceRoot = ({ initialTitle }: ValenceRootProps) => {
     wasOffline.current = isOffline;
   }, [isOffline]);
 
-  return isOffline ? <OfflineApp title={initialTitle} /> : <App initialTitle={initialTitle} />;
+  return (
+    <MotionConfig reducedMotion={howMuchMovement}>
+      {isOffline ? <OfflineApp title={initialTitle} /> : <App initialTitle={initialTitle} />}
+    </MotionConfig>
+  );
 };
 
 ValenceRoot.displayName = 'ValenceRoot';

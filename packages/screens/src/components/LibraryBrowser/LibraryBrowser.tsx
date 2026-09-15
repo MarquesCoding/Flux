@@ -5,6 +5,7 @@ import { Button } from '@ValenceUI/Button';
 import { NothingHere } from '@ValenceUI/NothingHere';
 import { staggerVariants } from '@ValenceUI/animations/reveal';
 import { RailCard } from '@ValenceScreens/components/RailCard/RailCard';
+import { BackToTop } from '@ValenceUI/BackToTop';
 import { Rail } from '@ValenceUI/Rail';
 import { RevealItem } from '@ValenceUI/RevealItem';
 import { SplashScreen } from '@ValenceUI/SplashScreen';
@@ -113,9 +114,14 @@ const LibraryBrowser = ({
   const { hasMore, isReadingMore, showMore } = home;
 
   const [end, setEnd] = useState<HTMLDivElement | null>(null);
+  const [reached, setReached] = useState(0);
 
   useEffect(() => {
     if (end === null || !isHome || !hasMore || isReadingMore) {
+      return;
+    }
+
+    if (typeof IntersectionObserver === 'undefined') {
       return;
     }
 
@@ -123,6 +129,7 @@ const LibraryBrowser = ({
       ([entry]) => {
         if (entry?.isIntersecting === true) {
           showMore();
+          setReached((count) => count + 1);
         }
       },
       { rootMargin: '0px 0px 800px 0px' },
@@ -133,7 +140,7 @@ const LibraryBrowser = ({
     return () => {
       watching.disconnect();
     };
-  }, [end, isHome, hasMore, isReadingMore, showMore]);
+  }, [end, isHome, hasMore, isReadingMore, showMore, reached]);
 
   const rails = isHome ? home.rails : groupIntoRails(items, Date.now(), progress);
   const shown = rails.flatMap((rail) => rail.items);
@@ -236,6 +243,8 @@ const LibraryBrowser = ({
       exit="gone"
       className="flex flex-col gap-8"
     >
+      <BackToTop />
+
       {hasSheet ? (
         <Hero
           items={heroPicks}
@@ -293,7 +302,8 @@ const LibraryBrowser = ({
                   <Rail
                     key={rail.id}
                     title={rail.title}
-                    className="px-0"
+                    sizesCards
+                    className="-mx-4 sm:-mx-6"
                     {...(showOf === undefined || onOpenShow === undefined
                       ? {}
                       : {
@@ -303,11 +313,7 @@ const LibraryBrowser = ({
                         })}
                   >
                     {rail.items.map((media, at) => (
-                      <RevealItem
-                        key={media.id}
-                        index={at}
-                        className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
-                      >
+                      <RevealItem key={media.id} index={at} className="shrink-0 snap-start">
                         <RailCard
                           media={media}
                           {...(progress.has(media.id)

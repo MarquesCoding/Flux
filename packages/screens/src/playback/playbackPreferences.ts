@@ -6,6 +6,7 @@ const SUBTITLES_OFF = 'off';
 
 const PreferencesSchema = z.object({
   volume: z.number().min(0).max(1).default(1),
+  boost: z.number().min(1).max(3).default(1),
   isMuted: z.boolean().default(false),
   subtitleLanguage: z.string().nullable().default(null),
   showsRemaining: z.boolean().default(false),
@@ -15,6 +16,7 @@ type PlaybackPreferences = z.infer<typeof PreferencesSchema>;
 
 const DEFAULTS: PlaybackPreferences = {
   volume: 1,
+  boost: 1,
   isMuted: false,
   subtitleLanguage: null,
   showsRemaining: false,

@@ -38,6 +38,8 @@ const input = (changes: Partial<HomeRowsInput> = {}): HomeRowsInput => ({
   recent: [],
   acclaimed: [],
   genres: [],
+  decades: [],
+  more: [],
   ...changes,
 });
 
@@ -142,6 +144,42 @@ describe('homeRows', () => {
       'recent-1',
       'recent-2',
     ]);
+  });
+
+  it('names a decade the way somebody says it rather than as the year it starts on', () => {
+    const rows = homeRows(input({ decades: [{ decade: 2010, items: many('old', 4) }] }));
+
+    expect(rows.map((row) => row.title)).toEqual(['From the 2010s']);
+    expect(rows.map((row) => row.id)).toEqual(['decade:2010']);
+  });
+
+  it('puts the decades after the genres, since the genres are the closer answer', () => {
+    const rows = homeRows(
+      input({
+        genres: [{ genre: 'Drama', items: many('drama', 4) }],
+        decades: [{ decade: 2020, items: many('new', 4) }],
+      }),
+    );
+
+    expect(rows.map((row) => row.id)).toEqual(['genre:Drama', 'decade:2020']);
+  });
+
+  it('draws the endless tail last, and calls each row what it was handed', () => {
+    const rows = homeRows(
+      input({
+        genres: [{ genre: 'Drama', items: many('drama', 4) }],
+        more: [{ id: 'more:0', title: 'New in Drama', items: many('again', 4) }],
+      }),
+    );
+
+    expect(rows.map((row) => row.id)).toEqual(['genre:Drama', 'more:0']);
+    expect(rows.at(-1)?.title).toBe('New in Drama');
+  });
+
+  it('leaves out a decade too thin to be worth a row, as it does everything else', () => {
+    const rows = homeRows(input({ decades: [{ decade: 1990, items: many('old', 3) }] }));
+
+    expect(rows).toEqual([]);
   });
 
   it('has no rows for a server with nothing to show', () => {

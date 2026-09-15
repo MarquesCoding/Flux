@@ -1,7 +1,7 @@
 import { Icon } from '@ValenceUI/Icon';
 import { Cancel01Icon, FilterIcon, Search01Icon } from '@hugeicons/core-free-icons';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { TextField } from '@ValenceUI/TextField';
 import { Spinner } from '@ValenceUI/Spinner';
@@ -79,7 +79,7 @@ const SearchArea = ({
   const [minYourStars, setMinYourStars] = useState<string | null>(null);
   const [isShowingFilters, setIsShowingFilters] = useState(false);
   const [size, setSize] = useState(readGridSize);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const asking = useQuery(libraryQueries.facets());
   const facets = asking.data ?? NO_FACETS;

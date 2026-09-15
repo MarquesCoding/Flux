@@ -10,7 +10,6 @@ type ShowDialogProps = {
   watchedFractionFor?: (mediaId: string) => number | undefined;
   resumeFor?: (mediaId: string) => number | null;
   isFinished?: (mediaId: string) => boolean;
-  stars?: number | null;
   onRate?: (show: ShowSummary, stars: number | null) => void;
 };
 

@@ -76,22 +76,7 @@ describe('useAppliedTheme', () => {
     expect(revealMock).not.toHaveBeenCalled();
   });
 
-  it('opens a later change out from wherever somebody last pressed', () => {
-    aClient('light');
-
-    renderHook(() => {
-      useAppliedTheme();
-    });
-
-    act(() => {
-      window.dispatchEvent(new PointerEvent('pointerdown', { clientX: 40, clientY: 60 }));
-      chooseTheme('dark');
-    });
-
-    expect(revealMock).toHaveBeenCalledWith(expect.any(Function), { x: 40, y: 60 });
-  });
-
-  it('opens it from nowhere in particular where nobody has pressed anything', () => {
+  it('eases a later change rather than swapping the page in a frame', () => {
     aClient('light');
 
     renderHook(() => {
@@ -102,6 +87,6 @@ describe('useAppliedTheme', () => {
       chooseTheme('dark');
     });
 
-    expect(revealMock).toHaveBeenCalledWith(expect.any(Function), null);
+    expect(revealMock).toHaveBeenCalledWith(expect.any(Function));
   });
 });

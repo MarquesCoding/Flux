@@ -8,6 +8,9 @@ import { SegmentedRow } from '@ValenceUI/SegmentedRow';
 import { useTheme } from '@ValenceClient/shell/useTheme';
 import { readTheme } from '@ValenceClient/shell/theme';
 import { THEME_CHOICES } from '@ValenceScreens/theme/themeChoices';
+import { useMotion } from '@ValenceClient/shell/useMotion';
+import { readMotion } from '@ValenceClient/shell/motion';
+import { MOTION_CHOICES } from '@ValenceScreens/motion/motionChoices';
 import { Switch } from '@ValenceUI/Switch';
 import { PROFILE_COLOURS, AVATAR_STYLES } from '@ValenceContracts/schemas/ViewerProfile';
 import { STILL_WATCHING_OFF } from '@ValenceContracts/schemas/StillWatching';
@@ -42,6 +45,7 @@ const ASK_AFTER = [
  */
 const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
   const { theme, choose } = useTheme();
+  const { motion, choose: chooseMovement } = useMotion();
 
   const isReady = profile !== null && draft !== null;
   const seed = profile?.id ?? 'valence';
@@ -156,6 +160,22 @@ const ProfileSettings = ({ profile, draft, onDraft }: ProfileSettingsProps) => {
           items={THEME_CHOICES}
           onSelect={(chosen) => {
             choose(readTheme(chosen));
+          }}
+        />
+      </SettingRow>
+
+      <SettingRow
+        title="Movement"
+        description="Following the machine uses whatever your system asks for. Reduced stills the interface here without changing anything else you run."
+      >
+        <SegmentedRow
+          size="sm"
+          tone="accent"
+          label="Movement"
+          value={motion}
+          items={MOTION_CHOICES}
+          onSelect={(chosen) => {
+            chooseMovement(readMotion(chosen));
           }}
         />
       </SettingRow>

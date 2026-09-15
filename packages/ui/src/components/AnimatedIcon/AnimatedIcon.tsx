@@ -1,4 +1,4 @@
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import type { Variants } from 'motion/react';
 import type { AnimatedIconProps, IconGesture } from './AnimatedIcon.types';
@@ -73,7 +73,7 @@ const AnimatedIcon = ({
   icon,
   activeIcon,
 }: AnimatedIconProps) => {
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const wipe = WIPES[gesture];
 
   if (prefersReducedMotion === true) {

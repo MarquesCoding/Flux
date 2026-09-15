@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { ArrowLeft01Icon, ArrowRight01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
 import * as RadixPopover from '@radix-ui/react-popover';
-import { AnimatePresence, motion, useReducedMotion } from 'motion/react';
+import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { HoverHighlight } from '@ValenceUI/HoverHighlight';
 import { Switch } from '@ValenceUI/Switch';
@@ -76,7 +76,7 @@ const SettingsMenu = ({
 
   const [openId, setOpenId] = useState<string | null>(null);
   const [isOpen, setIsOpen] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const { containerRef, rect, follow, clear } = useSlidingHighlight();
 
   const opened =

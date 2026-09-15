@@ -67,8 +67,30 @@ describe('the Valence stylesheet', () => {
     expect(stylesheet.match(/descent-override: 18%/g)).toHaveLength(6);
   });
 
-  it('lets a change of theme be uncovered rather than cross-faded, only while it happens', () => {
-    expect(stylesheet).toContain(':root[data-theme-shift]::view-transition-new(root)');
+  it('eases a change of theme rather than photographing the page to uncover it', () => {
+    expect(stylesheet).toContain(':root[data-theme-shift]');
+    expect(stylesheet).not.toContain('view-transition');
+  });
+
+  it('eases the tokens themselves rather than every element that reads one', () => {
+    const easing = /:root\[data-theme-shift\] \{([^}]*)\}/.exec(stylesheet)?.[1] ?? '';
+
+    expect(easing).toContain('--color-surface');
+    expect(easing).toContain('--color-text');
+    expect(easing).toContain('--duration-theme');
+    expect(easing).not.toContain('background-color');
+  });
+
+  it('asks nothing of the elements themselves, which is what kept the change smooth', () => {
+    expect(stylesheet).not.toContain(':root[data-theme-shift] *');
+  });
+
+  it('registers the colours it eases, since an unregistered property cannot interpolate', () => {
+    for (const token of ['--color-surface', '--color-text', '--color-accent', '--color-border']) {
+      const registered = new RegExp(`@property ${token} \\{[^}]*syntax: '<color>'`, 's');
+
+      expect(stylesheet).toMatch(registered);
+    }
   });
 
   it('carries none of the raised, glossy or second-tone styles the interface has moved past', () => {

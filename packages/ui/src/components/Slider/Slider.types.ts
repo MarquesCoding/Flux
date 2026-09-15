@@ -9,6 +9,7 @@ type SliderProps = {
   step?: number;
   onValueChange: (value: number) => void;
   renderPreview?: (value: number) => ReactNode;
+  valueLabel?: (value: number) => string;
   tone?: SliderTone;
   className?: string;
 };

@@ -267,6 +267,74 @@ describe('useHomeRows', () => {
     });
   });
 
+  it('offers the decades once the genres have run out', async () => {
+    facetsMock.mockResolvedValue({ genres: ['Drama'], decades: [2020], maxRating: 10 });
+    aLibrary({
+      recent: films('new', 5, 'Comedy'),
+      byGenre: { Drama: films('drama', 5, 'Drama') },
+    });
+
+    const { result } = renderHook(() => useHomeRows([LIBRARY], new Map(), true, true), {
+      wrapper: inTheShell,
+    });
+
+    await waitFor(() => {
+      expect(result.current.rails.some((rail) => rail.id === 'genre:Drama')).toBe(true);
+    });
+
+    act(() => {
+      result.current.showMore();
+    });
+
+    await waitFor(() => {
+      expect(itemsMock).toHaveBeenCalledWith(
+        LIBRARY,
+        expect.objectContaining({ yearFrom: 2020, yearTo: 2029 }),
+      );
+    });
+  });
+
+  it('goes on offering rows after the decades, so the page never simply stops', async () => {
+    facetsMock.mockResolvedValue({ genres: ['Drama'], decades: [], maxRating: 10 });
+    aLibrary({ byGenre: { Drama: films('drama', 5, 'Drama') } });
+
+    const { result } = renderHook(() => useHomeRows([LIBRARY], new Map(), true, true), {
+      wrapper: inTheShell,
+    });
+
+    await waitFor(() => {
+      expect(result.current.rails.some((rail) => rail.id === 'genre:Drama')).toBe(true);
+    });
+
+    expect(result.current.hasMore).toBe(true);
+
+    act(() => {
+      result.current.showMore();
+    });
+
+    await waitFor(() => {
+      expect(itemsMock).toHaveBeenCalledWith(
+        LIBRARY,
+        expect.objectContaining({ genre: 'Drama', order: 'newest' }),
+      );
+    });
+  });
+
+  it('asks for nothing more where no row was worth showing in the first place', async () => {
+    facetsMock.mockResolvedValue({ genres: ['Drama'], decades: [], maxRating: 10 });
+    aLibrary({ byGenre: { Drama: films('drama', 2, 'Drama') } });
+
+    const { result } = renderHook(() => useHomeRows([LIBRARY], new Map(), true, true), {
+      wrapper: inTheShell,
+    });
+
+    await waitFor(() => {
+      expect(result.current.isReading).toBe(false);
+    });
+
+    expect(result.current.hasMore).toBe(false);
+  });
+
   it('says it is still reading until the first rows have arrived', async () => {
     const { result } = renderHook(() => useHomeRows([LIBRARY], new Map(), true, true), {
       wrapper: inTheShell,

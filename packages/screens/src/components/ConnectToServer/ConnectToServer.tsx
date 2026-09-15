@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import { Button } from '@ValenceUI/Button';
 import { TextField } from '@ValenceUI/TextField';
 import { Logo } from '@ValenceUI/Logo';
@@ -52,7 +52,7 @@ const ConnectToServer = ({
       : `Valence at ${couldNotReach} could not be reached. Check that it is running.`,
   );
   const [asking, setAsking] = useState(false);
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
 
   const arrives = revealTransition(prefersReducedMotion);
 

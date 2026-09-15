@@ -19,6 +19,7 @@
         "./packages/ui/src/components/AnimatedIcon/AnimatedIcon.types.ts"
       ],
       "@ValenceUI/BackdropScrim": ["./packages/ui/src/components/BackdropScrim/BackdropScrim.tsx"],
+      "@ValenceUI/BackToTop": ["./packages/ui/src/components/BackToTop/BackToTop.tsx"],
       "@ValenceUI/Badge": ["./packages/ui/src/components/Badge/Badge.tsx"],
       "@ValenceUI/Badge.types": ["./packages/ui/src/components/Badge/Badge.types.ts"],
       "@ValenceUI/Button": ["./packages/ui/src/components/Button/Button.tsx"],
@@ -172,6 +173,7 @@
       "@ValenceUI/useHasScrolledPast": ["./packages/ui/src/functions/useHasScrolledPast.ts"],
       "@ValenceUI/useTravelDirection": ["./packages/ui/src/functions/useTravelDirection.ts"],
       "@ValenceUI/hasFinePointer": ["./packages/ui/src/functions/hasFinePointer.ts"],
+      "@ValenceUI/useRoomBeside": ["./packages/ui/src/functions/useRoomBeside.ts"],
       "@ValenceUI/notify": ["./packages/ui/src/functions/notify.ts"],
       "@ValenceUI/readMaskFrames": ["./packages/ui/src/functions/readMaskFrames.ts"],
       "@ValenceUI/tokens": ["./packages/ui/src/tokens/tokens.ts"],

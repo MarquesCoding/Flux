@@ -2,7 +2,7 @@ import { Icon } from '@ValenceUI/Icon';
 import { SEGMENTED } from '@ValenceUI/tokens/segmented';
 import { ArrowDown01Icon, Tick02Icon } from '@hugeicons/core-free-icons';
 import { useState } from 'react';
-import { motion, useReducedMotion } from 'motion/react';
+import { motion, useReducedMotionConfig } from 'motion/react';
 import * as RadixMenu from '@radix-ui/react-dropdown-menu';
 import { Button } from '@ValenceUI/Button';
 import { cn } from '@ValenceUI/cn';
@@ -36,7 +36,7 @@ const MARK_MOTION = { type: 'spring', stiffness: 480, damping: 38 } as const;
 const SectionBar = ({ label, groups, value, onValueChange, className }: SectionBarProps) => {
   const portalContainer = usePortalContainer();
 
-  const prefersReducedMotion = useReducedMotion();
+  const prefersReducedMotion = useReducedMotionConfig();
   const [pointedAt, setPointedAt] = useState<string | null>(null);
 
   const [opened, setOpened] = useState<string | null>(null);
