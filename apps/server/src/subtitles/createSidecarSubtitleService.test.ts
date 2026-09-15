@@ -9,7 +9,7 @@ const MEDIA_ID = '3f2504e0-4f89-41d3-9a0c-0305e82c3301';
 const SUB_RIP = '1\n00:00:01,000 --> 00:00:03,000\nHello\n';
 
 const library = async (
-  files: Record<string, string>,
+  files: Record<string, string | Uint8Array>,
   onProblem?: (path: string, reason: string) => void,
 ) => {
   const root = await mkdtemp(join(tmpdir(), 'valence-subs-'));
@@ -173,6 +173,49 @@ describe('a subtitle Valence cannot draw', () => {
     await (
       await library({ 'Dune (2021).en.sup': 'not really a subtitle' }, onProblem)
     ).service.list(MEDIA_ID);
+
+    expect(onProblem).not.toHaveBeenCalled();
+  });
+
+  it('reads a sidecar that is not UTF-8 by what its name says it is', async () => {
+    const cyrillic = Uint8Array.from([
+      0x31, 0x0a, 0x30, 0x30, 0x3a, 0x30, 0x30, 0x3a, 0x30, 0x31, 0x2c, 0x30, 0x30, 0x30, 0x20,
+      0x2d, 0x2d, 0x3e, 0x20, 0x30, 0x30, 0x3a, 0x30, 0x30, 0x3a, 0x30, 0x33, 0x2c, 0x30, 0x30,
+      0x30, 0x0a, 0xcf, 0xf0, 0xe8, 0xe2, 0xe5, 0xf2, 0x0a,
+    ]);
+
+    const { service } = await library({ 'Arrival (2016).ru.srt': cyrillic });
+    const tracks = await service.list(MEDIA_ID);
+    const read = await service.read(MEDIA_ID, tracks?.[0]?.id ?? '');
+
+    expect(read).toContain('Привет');
+    expect(read).not.toContain('\ufffd');
+  });
+
+  it('says which encoding it settled on, so a wrong answer can be seen', async () => {
+    const onProblem = vi.fn();
+    const { service, root } = await library(
+      { 'Arrival (2016).ru.srt': Uint8Array.from([0xcf, 0xf0, 0xe8, 0xe2, 0xe5, 0xf2]) },
+      onProblem,
+    );
+
+    const tracks = await service.list(MEDIA_ID);
+
+    await service.read(MEDIA_ID, tracks?.[0]?.id ?? '');
+
+    expect(onProblem).toHaveBeenCalledWith(
+      join(root, 'Arrival (2016).ru.srt'),
+      'read as windows-1251 (from the track language; not valid UTF-8)',
+    );
+  });
+
+  it('says nothing about a sidecar that really is UTF-8', async () => {
+    const onProblem = vi.fn();
+    const { service } = await library({ 'Arrival (2016).ru.srt': SUB_RIP }, onProblem);
+
+    const tracks = await service.list(MEDIA_ID);
+
+    await service.read(MEDIA_ID, tracks?.[0]?.id ?? '');
 
     expect(onProblem).not.toHaveBeenCalled();
   });
