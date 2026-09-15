@@ -12,8 +12,9 @@ const boss = vi.hoisted(() => {
   const scheduled: Schedule[] = [];
   const queued: { kind: string; id: string; libraryId: string }[] = [];
   const dropped: string[] = [];
+  const sent: { kind: string; options: { startAfter?: number; singletonKey?: string } }[] = [];
 
-  return { workers, scheduled, queued, dropped };
+  return { workers, scheduled, queued, dropped, sent };
 });
 
 vi.mock('pg-boss', () => ({
@@ -40,7 +41,9 @@ vi.mock('pg-boss', () => ({
       return Promise.resolve();
     }
 
-    send() {
+    send(kind: string, _data: JsonValue, options: { startAfter?: number; singletonKey?: string }) {
+      boss.sent.push({ kind, options });
+
       return Promise.resolve('job');
     }
 
@@ -83,6 +86,7 @@ beforeEach(() => {
   boss.scheduled.length = 0;
   boss.queued.length = 0;
   boss.dropped.length = 0;
+  boss.sent.length = 0;
 });
 
 describe('createJobQueue', () => {
@@ -296,5 +300,29 @@ describe('createJobQueue', () => {
 
     finish();
     await scanning;
+  });
+
+  it('sends a job to be picked up now, where nothing says to hold it back', async () => {
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: { 'library.scan': () => Promise.resolve() },
+    });
+
+    await queue.enqueue('library.scan', { libraryId: 'films' }, 'films');
+
+    expect(boss.sent[0]?.options.startAfter).toBeUndefined();
+    expect(boss.sent[0]?.options.singletonKey).toBe('films');
+  });
+
+  it('holds a job back for a while, for work that has to be asked for again later', async () => {
+    const queue = await createJobQueue({
+      connectionString: 'postgres://flux',
+      handlers: { 'library.scan': () => Promise.resolve() },
+    });
+
+    await queue.enqueueAfter('library.scan', { libraryId: 'films' }, 30, 'films');
+
+    expect(boss.sent[0]?.options.startAfter).toBe(30);
+    expect(boss.sent[0]?.options.singletonKey).toBe('films');
   });
 });

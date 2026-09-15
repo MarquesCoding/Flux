@@ -133,16 +133,37 @@ const createJobQueue = async ({
     }
   };
 
+  /**
+   * Puts a job on its queue, optionally under a key that keeps a second of its kind from waiting
+   * behind it and optionally held back for a while.
+   *
+   * @param kind - The queue to put it on.
+   * @param payload - What the job needs to know.
+   * @param singletonKey - What it collapses against, where it should collapse at all.
+   * @param startAfter - How many seconds to leave it before it may be picked up.
+   * @returns The id of the job, or null where something already held the key.
+   */
+  const send = (
+    kind: string,
+    payload: { [key: string]: JsonValue },
+    singletonKey: string | undefined,
+    startAfter: number | undefined,
+  ): Promise<string | null> =>
+    boss.send(kind, payload, {
+      ...(singletonKey === undefined ? {} : { singletonKey }),
+      ...(startAfter === undefined ? {} : { startAfter }),
+      retryLimit: 2,
+      retryBackoff: true,
+      expireInSeconds: SCAN_EXPIRES_AFTER_SECONDS,
+    });
+
   return {
     startWorking,
 
-    enqueue: (kind, payload, singletonKey) =>
-      boss.send(kind, payload, {
-        ...(singletonKey === undefined ? {} : { singletonKey }),
-        retryLimit: 2,
-        retryBackoff: true,
-        expireInSeconds: SCAN_EXPIRES_AFTER_SECONDS,
-      }),
+    enqueue: (kind, payload, singletonKey) => send(kind, payload, singletonKey, undefined),
+
+    enqueueAfter: (kind, payload, seconds, singletonKey) =>
+      send(kind, payload, singletonKey, seconds),
 
     readState: async (jobId) => {
       for (const kind of kinds) {
