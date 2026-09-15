@@ -565,6 +565,32 @@ describe('the extras a film carries', () => {
     expect(screen.getByText('Scoring the film')).toBeInTheDocument();
   });
 
+  it('offers no arrow to turn the extras by, since the dialog around them already scrolls', async () => {
+    Object.defineProperty(HTMLElement.prototype, 'clientWidth', {
+      configurable: true,
+      value: 1100,
+    });
+    Object.defineProperty(HTMLElement.prototype, 'scrollWidth', {
+      configurable: true,
+      value: 2400,
+    });
+
+    detailMock.mockResolvedValue({
+      ...detail(),
+      extras: Array.from({ length: 8 }, (_, at) =>
+        anExtra({ id: `extra-${at.toString()}`, title: `Extra ${at.toString()}` }),
+      ),
+    });
+
+    renderInAnAddress(<MediaDetailDialog media={summary} onClose={vi.fn()} onPlay={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Extras')).toBeInTheDocument();
+    });
+
+    expect(screen.queryByRole('button', { name: /a page of/ })).not.toBeInTheDocument();
+  });
+
   it('says what sort of extra each one is, so a trailer is not mistaken for the film', async () => {
     detailMock.mockResolvedValue({ ...detail(), extras: [anExtra({ extraKind: 'trailer' })] });
 

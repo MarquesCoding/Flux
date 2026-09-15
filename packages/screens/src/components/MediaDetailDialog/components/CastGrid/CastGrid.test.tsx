@@ -53,6 +53,13 @@ describe('CastGrid', () => {
     expect(track).toHaveClass('scroll-smooth');
   });
 
+  it('offers no arrow to turn by, since it already sits inside something that scrolls', () => {
+    rowOf(1100, 2400);
+    render(<CastGrid members={members} />);
+
+    expect(screen.queryByRole('button', { name: /a page of/ })).not.toBeInTheDocument();
+  });
+
   it('takes a marker as a request to scroll there', async () => {
     const scrollTo = vi.fn();
 

@@ -126,7 +126,10 @@ const Rail = ({
           )}
 
           {count === undefined ? null : (
-            <span className="text-sm font-normal tabular-nums text-text-muted/70">{count}</span>
+            <>
+              {' '}
+              <span className="text-sm font-normal tabular-nums text-text-muted/70">{count}</span>
+            </>
           )}
         </h2>
 
