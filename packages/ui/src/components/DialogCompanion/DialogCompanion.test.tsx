@@ -6,7 +6,24 @@ import { DialogCompanion } from './DialogCompanion';
 
 afterEach(() => {
   forgetPageCovers();
+  vi.unstubAllGlobals();
 });
+
+/**
+ * A window too narrow to stand two panels side by side, which jsdom has no opinion about on its own.
+ */
+const noRoomBeside = () => {
+  vi.stubGlobal('matchMedia', (media: string) => ({
+    media,
+    matches: false,
+    onchange: null,
+    addEventListener: () => undefined,
+    removeEventListener: () => undefined,
+    addListener: () => undefined,
+    removeListener: () => undefined,
+    dispatchEvent: () => false,
+  }));
+};
 
 describe('DialogCompanion', () => {
   it('is an ordinary dialog where there is nothing to stand beside', () => {
@@ -87,6 +104,24 @@ describe('DialogCompanion', () => {
     );
 
     expect(screen.queryByText('Their roles decide everything')).not.toBeInTheDocument();
+  });
+
+  it('lies over the dialog it came from where there is no room to stand beside it', () => {
+    noRoomBeside();
+
+    render(
+      <Dialog label="The server" isOpen onClose={vi.fn()}>
+        <p>Accounts</p>
+
+        <DialogCompanion label="What Sam may do" isOpen onClose={vi.fn()}>
+          <p>Their roles decide everything</p>
+        </DialogCompanion>
+      </Dialog>,
+    );
+
+    expect(document.querySelector('[data-slot="dialog-companion"]')).toBeNull();
+    expect(screen.getByText('Their roles decide everything')).toBeInTheDocument();
+    expect(document.querySelector('[aria-label="What Sam may do"]')).toBeInTheDocument();
   });
 
   it('sets a display name so devtools can identify it', () => {
