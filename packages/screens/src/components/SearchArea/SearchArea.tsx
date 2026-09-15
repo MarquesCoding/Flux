@@ -79,7 +79,30 @@ const SearchArea = ({
   const [minYourStars, setMinYourStars] = useState<string | null>(null);
   const [isShowingFilters, setIsShowingFilters] = useState(false);
   const [size, setSize] = useState(readGridSize);
+  const [liveSearch, setLiveSearch] = useState(search);
   const prefersReducedMotion = useReducedMotionConfig();
+
+  useEffect(() => {
+    setLiveSearch(search);
+  }, [search]);
+
+  const reportSearchChange = useRef(onSearchChange);
+
+  reportSearchChange.current = onSearchChange;
+
+  useEffect(() => {
+    if (liveSearch === search) {
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      reportSearchChange.current(liveSearch);
+    }, SETTLE_MILLISECONDS);
+
+    return () => {
+      clearTimeout(timer);
+    };
+  }, [liveSearch, search]);
 
   const asking = useQuery(libraryQueries.facets());
   const facets = asking.data ?? NO_FACETS;
@@ -101,7 +124,7 @@ const SearchArea = ({
     const startsAt = asNumber(decade);
 
     return {
-      ...(search.trim() === '' ? {} : { search }),
+      ...(liveSearch.trim() === '' ? {} : { search: liveSearch }),
       ...(kind === 'everything' ? {} : { kind }),
       ...(genre === null ? {} : { genre }),
       ...(startsAt === undefined ? {} : { yearFrom: startsAt, yearTo: startsAt + DECADE - 1 }),
@@ -109,7 +132,7 @@ const SearchArea = ({
       ...(minYourStars === null ? {} : { minYourStars: Number(minYourStars) }),
       limit: PAGE_SIZE,
     };
-  }, [search, kind, genre, decade, minRating, minYourStars]);
+  }, [liveSearch, kind, genre, decade, minRating, minYourStars]);
 
   const [settled, setSettled] = useState(asked);
 
@@ -139,7 +162,7 @@ const SearchArea = ({
   const narrowed = [decade, minRating, minYourStars].filter((chosen) => chosen !== null).length;
 
   const isNarrowed =
-    kind !== 'everything' || genre !== null || search.trim() !== '' || narrowed > 0;
+    kind !== 'everything' || genre !== null || liveSearch.trim() !== '' || narrowed > 0;
 
   const clearFilters = () => {
     setDecade(null);
@@ -152,124 +175,124 @@ const SearchArea = ({
       initial="hidden"
       animate="shown"
       exit="gone"
-      className="flex flex-col gap-8 px-5 pb-16 pt-14 sm:px-10"
+      className="flex flex-col gap-6"
     >
-      <motion.div
-        variants={revealVariants(prefersReducedMotion)}
-        transition={revealTransition(prefersReducedMotion, 'heavy')}
-        className="flex flex-col gap-4"
-      >
-        <h1 className="text-5xl font-semibold tracking-tight sm:text-7xl">Search</h1>
+      <div className="sticky top-0 z-10 flex flex-col gap-6 bg-surface-raised px-6 pb-4 pt-5">
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion, 'heavy')}
+        >
+          <TextField
+            label="Search the library"
+            isLabelHidden
+            isBare
+            size="xl"
+            type="search"
+            hasFocusOnMount
+            value={liveSearch}
+            placeholder="Everything you own"
+            icon={<Icon of={Search01Icon} size={28} />}
+            onValueChange={setLiveSearch}
+          />
+        </motion.div>
 
-        <TextField
-          label="Search the library"
-          isLabelHidden
-          isBare
-          size="xl"
-          type="search"
-          hasFocusOnMount
-          value={search}
-          placeholder="Everything you own"
-          icon={<Icon of={Search01Icon} size={28} />}
-          onValueChange={onSearchChange}
-        />
-      </motion.div>
+        <motion.div
+          variants={revealVariants(prefersReducedMotion)}
+          transition={revealTransition(prefersReducedMotion)}
+          className="flex flex-col gap-3"
+        >
+          <div className="flex flex-wrap items-center gap-2">
+            {KINDS.map((option) => (
+              <Button
+                key={option.id}
+                size="sm"
+                variant={option.id === kind ? 'glossy' : 'secondary'}
+                onClick={() => {
+                  setKind(option.id);
+                }}
+              >
+                {option.label}
+              </Button>
+            ))}
 
-      <motion.div
-        variants={revealVariants(prefersReducedMotion)}
-        transition={revealTransition(prefersReducedMotion)}
-        className="flex flex-col gap-3"
-      >
-        <div className="flex flex-wrap items-center gap-2">
-          {KINDS.map((option) => (
             <Button
-              key={option.id}
               size="sm"
-              variant={option.id === kind ? 'glossy' : 'secondary'}
+              variant={isShowingFilters ? 'glossy' : 'secondary'}
+              isActive={isShowingFilters}
               onClick={() => {
-                setKind(option.id);
+                setIsShowingFilters(!isShowingFilters);
               }}
             >
-              {option.label}
+              <Icon of={FilterIcon} size={16} />
+              {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
             </Button>
-          ))}
 
-          <Button
-            size="sm"
-            variant={isShowingFilters ? 'glossy' : 'secondary'}
-            isActive={isShowingFilters}
-            onClick={() => {
-              setIsShowingFilters(!isShowingFilters);
-            }}
-          >
-            <Icon of={FilterIcon} size={16} />
-            {narrowed === 0 ? 'Filters' : `Filters (${narrowed.toString()})`}
-          </Button>
+            {!isNarrowed ? null : (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setKind('everything');
+                  onGenreChange(null);
+                  setLiveSearch('');
+                  onSearchChange('');
+                  clearFilters();
+                }}
+              >
+                <Icon of={Cancel01Icon} size={16} />
+                Clear
+              </Button>
+            )}
+          </div>
 
-          {!isNarrowed ? null : (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setKind('everything');
-                onGenreChange(null);
-                onSearchChange('');
-                clearFilters();
-              }}
-            >
-              <Icon of={Cancel01Icon} size={16} />
-              Clear
-            </Button>
-          )}
-        </div>
+          <FilterChips
+            legend="Genre"
+            options={options.genres}
+            value={genre}
+            onValueChange={onGenreChange}
+          />
 
-        <FilterChips
-          legend="Genre"
-          options={options.genres}
-          value={genre}
-          onValueChange={onGenreChange}
-        />
-
-        <AnimatePresence initial={false}>
-          {!isShowingFilters ? null : (
-            <motion.div
-              key="filters"
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: 'auto' }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={revealTransition(prefersReducedMotion)}
-              className="overflow-hidden"
-            >
-              <div className="flex flex-col gap-5 pt-2">
-                <FilterChips
-                  legend="Decade"
-                  options={options.decades}
-                  value={decade}
-                  onValueChange={setDecade}
-                />
-                <FilterChips
-                  legend="Rating"
-                  options={options.ratings}
-                  value={minRating}
-                  onValueChange={setMinRating}
-                />
-                <FilterChips
-                  legend="Your rating"
-                  options={options.yourStars}
-                  value={minYourStars}
-                  onValueChange={setMinYourStars}
-                />
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.div>
+          <AnimatePresence initial={false}>
+            {!isShowingFilters ? null : (
+              <motion.div
+                key="filters"
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: 'auto' }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={revealTransition(prefersReducedMotion)}
+                className="overflow-hidden"
+              >
+                <div className="flex flex-col gap-5 pt-2">
+                  <FilterChips
+                    legend="Decade"
+                    options={options.decades}
+                    value={decade}
+                    onValueChange={setDecade}
+                  />
+                  <FilterChips
+                    legend="Rating"
+                    options={options.ratings}
+                    value={minRating}
+                    onValueChange={setMinRating}
+                  />
+                  <FilterChips
+                    legend="Your rating"
+                    options={options.yourStars}
+                    value={minYourStars}
+                    onValueChange={setMinYourStars}
+                  />
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </motion.div>
+      </div>
 
       <motion.section
         variants={revealVariants(prefersReducedMotion)}
         transition={revealTransition(prefersReducedMotion)}
         aria-label="Results"
-        className="flex flex-col gap-5"
+        className="flex flex-col gap-5 px-6 pb-6"
       >
         <header className="flex flex-wrap items-center justify-between gap-3 text-sm text-text-muted">
           {isReading ? (

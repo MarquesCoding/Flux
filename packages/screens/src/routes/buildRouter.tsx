@@ -27,11 +27,6 @@ const BrowsePage = lazyRouteComponent(
   'BrowsePage',
 );
 
-const SearchPage = lazyRouteComponent(
-  async () => import('@ValenceScreens/components/SearchPage/SearchPage'),
-  'SearchPage',
-);
-
 const BooksPage = lazyRouteComponent(
   async () => import('@ValenceScreens/components/BooksPage/BooksPage'),
   'BooksPage',
@@ -101,12 +96,6 @@ const buildRouter = (title = 'Valence') => {
 
   const sections = [
     createRoute({ getParentRoute: () => shell, path: '/', component: HomePage, ...carries }),
-    createRoute({
-      getParentRoute: () => shell,
-      path: '/search',
-      component: SearchPage,
-      ...carries,
-    }),
     createRoute({ getParentRoute: () => shell, path: '/read', component: BooksPage, ...carries }),
     ...BROWSABLE.map((path) =>
       createRoute({ getParentRoute: () => shell, path, component: BrowsePage, ...carries }),

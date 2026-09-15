@@ -28,6 +28,8 @@ const draw = (overrides: Partial<AppShellProps> = {}) => {
     onOpenAdmin: vi.fn(),
     isDownloadsOpen: false,
     onOpenDownloads: vi.fn(),
+    isSearchOpen: false,
+    onOpenSearch: vi.fn(),
     children: <p>The library</p>,
     ...overrides,
   };
@@ -112,7 +114,7 @@ describe('AppShell', () => {
   });
 
   it('says which section the viewer is in', () => {
-    draw({ section: 'search' });
+    draw({ isSearchOpen: true });
 
     expect(screen.getByRole('button', { name: 'Search' })).toHaveAttribute('aria-current', 'page');
   });
@@ -369,6 +371,8 @@ describe('AppShell', () => {
         onOpenAdmin={vi.fn()}
         isDownloadsOpen={false}
         onOpenDownloads={vi.fn()}
+        isSearchOpen={false}
+        onOpenSearch={vi.fn()}
       >
         <p>The library</p>
       </AppShell>,

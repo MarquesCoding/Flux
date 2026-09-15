@@ -6,6 +6,7 @@ describe('readSearch', () => {
     expect(
       readSearch({
         q: 'blade',
+        search: 'open',
         show: 'ted',
         person: '7',
         item: 'arrival',
@@ -17,6 +18,7 @@ describe('readSearch', () => {
       }),
     ).toEqual({
       q: 'blade',
+      search: 'open',
       show: 'ted',
       person: 7,
       item: 'arrival',

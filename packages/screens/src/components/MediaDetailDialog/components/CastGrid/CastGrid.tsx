@@ -31,10 +31,11 @@ import type { CastGridProps } from './CastGrid.types';
 const CastGrid = ({ members, onOpenPerson }: CastGridProps) => (
   <Rail
     title="Cast"
+    count={members.length}
     sizesCards
     cards="portrait"
+    hasArrows={false}
     className="px-0"
-    action={<span className="tabular-nums text-text-muted/70">{members.length}</span>}
   >
     {members.map((member) => (
       <li key={`${member.name}-${member.role}`} className="flex flex-col gap-3">

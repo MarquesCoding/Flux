@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Dialog as BaseDialog } from '@base-ui/react/dialog';
+import * as RadixDialog from '@radix-ui/react-dialog';
 import { AnimatePresence, motion, useReducedMotionConfig } from 'motion/react';
 import { cn } from '@ValenceUI/cn';
 import { usePortalContainer } from '@ValenceUI/usePortalContainer';
@@ -10,29 +10,50 @@ import type { CompanionSlot } from './companionContext';
 import type { DialogProps, DialogSize } from './Dialog.types';
 
 const OVERLAY_MOTION = [
-  'data-open:animate-in data-open:fade-in-0',
-  'data-closed:animate-out data-closed:fade-out-0',
+  'data-[state=open]:animate-in data-[state=open]:fade-in-0',
+  'data-[state=closed]:animate-out data-[state=closed]:fade-out-0',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'data-closed:duration-[var(--duration-leaving)] data-closed:ease-[var(--ease-in-out)]',
+  'data-[state=closed]:duration-[var(--duration-leaving)] data-[state=closed]:ease-[var(--ease-in-out)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
-const PANEL_MOTION = [
-  'data-open:animate-in data-closed:animate-out',
-  'data-open:fade-in-0 data-closed:fade-out-0',
-  'max-sm:data-open:slide-in-from-bottom-8 max-sm:data-closed:slide-out-to-bottom-8',
-  'sm:data-open:zoom-in-95 sm:data-closed:zoom-out-95',
+const CENTERED_MOTION = [
+  'data-[state=open]:animate-in data-[state=closed]:animate-out',
+  'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+  'max-sm:data-[state=open]:slide-in-from-bottom-8 max-sm:data-[state=closed]:slide-out-to-bottom-8',
+  'sm:data-[state=open]:zoom-in-95 sm:data-[state=closed]:zoom-out-95',
   'duration-[var(--duration-base)] ease-[var(--ease-out)]',
-  'data-closed:duration-[var(--duration-leaving)] data-closed:ease-[var(--ease-in-out)]',
+  'data-[state=closed]:duration-[var(--duration-leaving)] data-[state=closed]:ease-[var(--ease-in-out)]',
   'motion-reduce:duration-[var(--duration-instant)]',
 ].join(' ');
 
-const STANDING = [
+const PANEL_MOTION: Record<DialogSize, string> = {
+  default: CENTERED_MOTION,
+  stage: CENTERED_MOTION,
+  drawer: [
+    'data-[state=open]:animate-in data-[state=closed]:animate-out',
+    'data-[state=open]:fade-in-0 data-[state=closed]:fade-out-0',
+    'data-[state=open]:slide-in-from-bottom data-[state=closed]:slide-out-to-bottom',
+    'duration-[var(--duration-base)] ease-[var(--ease-drawer)]',
+    'data-[state=closed]:duration-[var(--duration-leaving)] data-[state=closed]:ease-[var(--ease-drawer)]',
+    'motion-reduce:duration-[var(--duration-instant)]',
+  ].join(' '),
+};
+
+const CENTERED_STANDING = [
   'fixed inset-x-0 top-0 bottom-0 z-50 text-text',
   'sm:inset-x-auto sm:inset-y-auto sm:top-1/2 sm:left-1/2 sm:max-h-[85vh]',
   'sm:-translate-x-1/2 sm:-translate-y-1/2',
   'outline-none',
 ].join(' ');
+
+const STANDING: Record<DialogSize, string> = {
+  default: CENTERED_STANDING,
+  stage: CENTERED_STANDING,
+  drawer: ['fixed inset-x-0 bottom-0 top-0 z-50 text-text', 'sm:top-auto', 'outline-none'].join(
+    ' ',
+  ),
+};
 
 const PANEL = [
   'flex flex-col overflow-hidden rounded-none',
@@ -59,6 +80,10 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
   stage: cn(
     'h-full w-full max-w-none rounded-none p-0',
     'sm:h-[88vh] sm:max-h-[88vh] sm:w-[min(60rem,94vw)] sm:rounded-2xl',
+  ),
+  drawer: cn(
+    'h-full w-full max-w-none rounded-none p-0',
+    'sm:h-auto sm:w-full sm:min-h-[28rem] sm:max-h-[85vh]',
   ),
 };
 
@@ -113,7 +138,9 @@ const SIZE_CLASSES: Record<DialogSize, string> = {
  * @param children - What the dialog holds, usually a title, some content and a footer.
  * @param size - How large it stands. A stage fills the screen on a phone and takes the same broad
  *   panel on anything larger. Its height is fixed rather than bounded, because a floor and a ceiling
- *   only agree when the content reaches one of them.
+ *   only agree when the content reaches one of them. A drawer fills the screen on a phone too, but
+ *   stands at the foot of it rather than the centre on anything larger, and slides up rather than
+ *   fading in — see `Drawer`, the component that composes this size.
  * @param className - Extra classes for the caller's own layout.
  */
 const Dialog = ({ label, isOpen, onClose, children, size = 'default', className }: DialogProps) => {
@@ -160,7 +187,7 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
   );
 
   return (
-    <BaseDialog.Root
+    <RadixDialog.Root
       open={isOpen}
       onOpenChange={(open) => {
         if (!open) {
@@ -168,28 +195,42 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
         }
       }}
     >
-      <BaseDialog.Portal {...(portalContainer === undefined ? {} : { container: portalContainer })}>
-        <BaseDialog.Backdrop
+      <RadixDialog.Portal
+        {...(portalContainer === undefined ? {} : { container: portalContainer })}
+      >
+        <RadixDialog.Overlay
           data-slot="dialog-overlay"
           className={cn('fixed inset-0 z-50 bg-shade/55 backdrop-blur-md', OVERLAY_MOTION)}
         />
 
-        <BaseDialog.Popup
+        <RadixDialog.Content
           ref={panelRef}
+          tabIndex={-1}
           aria-label={label}
-          initialFocus={panelRef}
+          onOpenAutoFocus={(event) => {
+            event.preventDefault();
+            panelRef.current?.focus();
+          }}
           data-slot="dialog-content"
           className={cn(
-            STANDING,
+            STANDING[size],
             'sm:w-[min(42rem,92vw)]',
             ROW,
-            PANEL_MOTION,
+            PANEL_MOTION[size],
             SIZE_CLASSES[size],
             className,
           )}
         >
           <companionContext.Provider value={slot}>
-            <div className={cn(PANEL, 'min-h-0 min-w-0 flex-1 sm:w-auto')}>{children}</div>
+            <div
+              className={cn(
+                PANEL,
+                'min-h-0 min-w-0 flex-1 sm:w-auto',
+                size === 'drawer' ? 'sm:rounded-b-none sm:rounded-t-2xl' : '',
+              )}
+            >
+              {children}
+            </div>
 
             <AnimatePresence initial={false} mode="wait">
               {current === null ? null : (
@@ -214,9 +255,9 @@ const Dialog = ({ label, isOpen, onClose, children, size = 'default', className 
               )}
             </AnimatePresence>
           </companionContext.Provider>
-        </BaseDialog.Popup>
-      </BaseDialog.Portal>
-    </BaseDialog.Root>
+        </RadixDialog.Content>
+      </RadixDialog.Portal>
+    </RadixDialog.Root>
   );
 };
 

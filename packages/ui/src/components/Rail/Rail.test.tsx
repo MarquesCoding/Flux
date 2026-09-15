@@ -161,14 +161,14 @@ describe('Rail', () => {
     });
   });
 
-  it('asks for a denser row where the cards stand taller than they are wide', () => {
+  it('sizes a row of cards standing tall the same as one lying wide', () => {
     const { container } = render(
       <Rail title="Cast" sizesCards cards="portrait">
         {items}
       </Rail>,
     );
 
-    expect(container.querySelector('section')).toHaveClass('[--rail-per:3]');
+    expect(container.querySelector('section')).toHaveClass('[--rail-per:2]');
   });
 
   it('sizes cards for a film row unless told they stand tall', () => {
@@ -254,5 +254,51 @@ describe('Rail', () => {
 
   it('sets a display name so devtools can identify it', () => {
     expect(Rail.displayName).toBe('Rail');
+  });
+
+  it('says how many there are, beside the title, when told to', () => {
+    render(
+      <Rail title="Cast" count={14}>
+        {items}
+      </Rail>,
+    );
+
+    expect(screen.getByRole('heading', { name: 'Cast 14' })).toBeInTheDocument();
+  });
+
+  it('names itself by the title alone when nobody counted', () => {
+    render(<Rail title="Recently added">{items}</Rail>);
+
+    expect(screen.getByRole('heading', { name: 'Recently added' })).toBeInTheDocument();
+  });
+
+  it('offers no arrow at all where the row is told not to turn by one', () => {
+    const { container } = render(
+      <Rail title="Cast" hasArrows={false}>
+        {items}
+      </Rail>,
+    );
+    const track = container.querySelector('ul');
+
+    if (track !== null) {
+      overflowing(track, {});
+      fireEvent.scroll(track);
+    }
+
+    expect(screen.queryByRole('button', { name: /a page of/ })).not.toBeInTheDocument();
+  });
+
+  it('holds no lane open for an arrow it was told not to show', () => {
+    const { container } = render(
+      <Rail title="Cast" sizesCards hasArrows={false} className="px-0">
+        {items}
+      </Rail>,
+    );
+
+    const header = container.querySelector('header');
+    const track = container.querySelector('ul');
+
+    expect(header?.className).not.toContain('rail-lane');
+    expect(track?.className).not.toContain('rail-lane');
   });
 });

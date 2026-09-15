@@ -173,6 +173,8 @@ const SECTION_LABELS: Record<ShellSection, string> = {
  * @param isAdministrator - Whether to offer the admin section at all.
  * @param isDownloadsOpen - Whether the downloads dialog is raised.
  * @param onOpenDownloads - Told to raise the downloads dialog.
+ * @param isSearchOpen - Whether the search drawer is raised.
+ * @param onOpenSearch - Told to raise the search drawer.
  * @param isAdminOpen - Whether the server dialog is raised, which lights the bar's face, since the
  *   account menu is where it is opened from.
  * @param onOpenAdmin - Told to raise the server dialog, from the account menu.
@@ -205,6 +207,8 @@ const AppShell = ({
   onOpenAdmin,
   isDownloadsOpen,
   onOpenDownloads,
+  isSearchOpen,
+  onOpenSearch,
   avatar,
   onSignOut,
   onSurprise,
@@ -328,10 +332,8 @@ const AppShell = ({
       icon: <Icon of={Search01Icon} size={20} />,
       activeIcon: <Icon of={Search01Icon} size={20} />,
       gesture: 'settle' as const,
-      isCurrent: section === 'search',
-      onSelect: () => {
-        onSectionChange('search');
-      },
+      isCurrent: isSearchOpen,
+      onSelect: onOpenSearch,
     },
     ...(onSurprise === undefined
       ? []

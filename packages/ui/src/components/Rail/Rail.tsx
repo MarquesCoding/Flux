@@ -33,14 +33,15 @@ const TOKENS = [
 const PER = {
   wide: '[--rail-per:2] sm:[--rail-per:3] md:[--rail-per:4] lg:[--rail-per:5] xl:[--rail-per:6]',
   portrait:
-    '[--rail-per:3] sm:[--rail-per:5] md:[--rail-per:6] lg:[--rail-per:8] xl:[--rail-per:9]',
+    '[--rail-per:2] sm:[--rail-per:3] md:[--rail-per:4] lg:[--rail-per:5] xl:[--rail-per:6]',
 } as const;
 
 const FITTED = [
-  'pl-[var(--rail-lane)] pr-0 scroll-pl-[var(--rail-lane)]',
   '[&>*]:w-[calc((100%-var(--rail-peek)-var(--rail-per)*var(--rail-gap))/var(--rail-per))]',
   '[&>*]:shrink-0 [&>*]:snap-start',
 ].join(' ');
+
+const LANE = 'pl-[var(--rail-lane)] pr-0 scroll-pl-[var(--rail-lane)]';
 
 /**
  * One titled row of a library, scrolling sideways rather than wrapping, which is how a shelf is
@@ -71,17 +72,24 @@ const FITTED = [
  *
  * @param title - What the row holds.
  * @param children - The cards in it.
+ * @param count - How many there are, drawn beside the title, where a row wants that said outright
+ *   rather than left to be counted.
  * @param action - A control for the right of the title bar, such as a way to see everything.
  * @param onOpenTitle - Told when the title was pressed, where the row leads somewhere fuller.
+ * @param hasArrows - Whether the row turns by an arrow at all. A row inside a dialog already sits in
+ *   something that scrolls, and a lane held open for an arrow it never shows there reads as a stray
+ *   margin rather than as a control waiting to be noticed.
  * @param className - Extra classes for the caller's own layout.
  */
 const Rail = ({
   title,
   children,
+  count,
   action,
   onOpenTitle,
   sizesCards = false,
   cards = 'wide',
+  hasArrows = true,
   className,
 }: RailProps) => {
   const { trackRef, pages, peek, behind, measure, scrollTo } = usePagedScroller<HTMLUListElement>([
@@ -105,16 +113,23 @@ const Rail = ({
       <header
         className={cn(
           'flex items-end justify-between gap-4',
-          sizesCards ? 'pl-[var(--rail-lane)] pr-2' : 'px-1',
+          sizesCards ? cn(hasArrows ? 'pl-[var(--rail-lane)]' : '', 'pr-2') : 'px-1',
         )}
       >
-        <h2 className="text-lg font-semibold tracking-tight text-text">
+        <h2 className="flex items-baseline gap-2 text-lg font-semibold tracking-tight text-text">
           {onOpenTitle === undefined ? (
             title
           ) : (
             <Button variant="link" size="none" onClick={onOpenTitle} className="text-left">
               {title}
             </Button>
+          )}
+
+          {count === undefined ? null : (
+            <>
+              {' '}
+              <span className="text-sm font-normal tabular-nums text-text-muted/70">{count}</span>
+            </>
           )}
         </h2>
 
@@ -141,13 +156,13 @@ const Rail = ({
           className={cn(
             'valence-rail -my-6 flex snap-x snap-mandatory gap-4 overflow-x-auto scroll-smooth py-6',
             'hover-hover:overflow-x-hidden',
-            sizesCards ? FITTED : 'scroll-p-1 px-1',
+            sizesCards ? cn(FITTED, hasArrows ? LANE : '') : 'scroll-p-1 px-1',
           )}
         >
           {children}
         </motion.ul>
 
-        {isFirst ? null : (
+        {!hasArrows || isFirst ? null : (
           <Button
             variant="bare"
             size="none"
@@ -163,7 +178,7 @@ const Rail = ({
           </Button>
         )}
 
-        {isLast ? null : (
+        {!hasArrows || isLast ? null : (
           <Button
             variant="bare"
             size="none"

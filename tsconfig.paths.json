@@ -67,6 +67,8 @@
       "@ValenceUI/FormField.types": ["./packages/ui/src/components/FormField/FormField.types.ts"],
       "@ValenceUI/DotField": ["./packages/ui/src/components/DotField/DotField.tsx"],
       "@ValenceUI/DotField.types": ["./packages/ui/src/components/DotField/DotField.types.ts"],
+      "@ValenceUI/Drawer": ["./packages/ui/src/components/Drawer/Drawer.tsx"],
+      "@ValenceUI/Drawer.types": ["./packages/ui/src/components/Drawer/Drawer.types.ts"],
       "@ValenceUI/FilePicker": ["./packages/ui/src/components/FilePicker/FilePicker.tsx"],
       "@ValenceUI/GlassPanel": ["./packages/ui/src/components/GlassPanel/GlassPanel.tsx"],
       "@ValenceUI/HoverCard": ["./packages/ui/src/components/HoverCard/HoverCard.tsx"],

@@ -21,6 +21,8 @@ type AppShellProps = {
   onOpenAdmin: () => void;
   isDownloadsOpen: boolean;
   onOpenDownloads: () => void;
+  isSearchOpen: boolean;
+  onOpenSearch: () => void;
   onSurprise?: (only?: LibraryKind) => void;
   libraryKinds?: LibraryKind[];
   stocked?: ShellSection[];
