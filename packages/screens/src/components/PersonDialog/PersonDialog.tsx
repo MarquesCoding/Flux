@@ -165,13 +165,9 @@ const PersonDialog = ({
           ) : null}
 
           {credits.films.length === 0 ? null : (
-            <Rail title="Films" className="px-0">
+            <Rail title="Films" sizesCards className="px-0">
               {credits.films.map((media, at) => (
-                <RevealItem
-                  key={media.id}
-                  index={at}
-                  className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
-                >
+                <RevealItem key={media.id} index={at} className="shrink-0 snap-start">
                   <RailCard media={media} onPlay={onPlay} onInspect={onInspect} />
                 </RevealItem>
               ))}
@@ -179,13 +175,9 @@ const PersonDialog = ({
           )}
 
           {credits.shows.length === 0 ? null : (
-            <Rail title="Programmes" className="px-0">
+            <Rail title="Programmes" sizesCards className="px-0">
               {credits.shows.map((media, at) => (
-                <RevealItem
-                  key={media.id}
-                  index={at}
-                  className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
-                >
+                <RevealItem key={media.id} index={at} className="shrink-0 snap-start">
                   <RailCard
                     media={media}
                     onPlay={onPlay}
@@ -198,13 +190,9 @@ const PersonDialog = ({
           )}
 
           {credits.episodes.length === 0 ? null : (
-            <Rail title="Episodes" className="px-0">
+            <Rail title="Episodes" sizesCards className="px-0">
               {credits.episodes.map((media, at) => (
-                <RevealItem
-                  key={media.id}
-                  index={at}
-                  className="w-[70vw] shrink-0 snap-start sm:w-72 lg:w-80"
-                >
+                <RevealItem key={media.id} index={at} className="shrink-0 snap-start">
                   <RailCard media={media} onPlay={onPlay} onInspect={onInspect} />
                 </RevealItem>
               ))}

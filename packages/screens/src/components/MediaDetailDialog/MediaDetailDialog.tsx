@@ -30,6 +30,7 @@ import { BackdropScrim } from '@ValenceUI/BackdropScrim';
 import { Badge } from '@ValenceUI/Badge';
 import { Skeleton } from '@ValenceUI/Skeleton';
 import { MediaCard } from '@ValenceUI/MediaCard';
+import { Rail } from '@ValenceUI/Rail';
 import { revealVariants, revealTransition, staggerVariants } from '@ValenceUI/animations/reveal';
 import { formatDuration } from '@ValenceCore/functions/formatDuration';
 import { CouldNotRead } from '@ValenceUI/CouldNotRead';
@@ -385,78 +386,70 @@ const MediaDetailDialog = ({
             </section>
 
             {extras.length === 0 ? null : (
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-                  Extras
-                </h3>
-
-                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
-                  {extras.map((extra) => (
-                    <li key={extra.id} className="w-56 shrink-0 sm:w-64">
-                      <MediaCard
-                        {...(extra.extraKind === null || extra.extraKind === undefined
-                          ? {}
-                          : { eyebrow: EXTRA_KIND_LABELS[extra.extraKind] })}
-                        title={extra.title}
-                        subtitle={
-                          <MediaFacts
-                            media={extra}
-                            hasRuntime
-                            className="flex flex-wrap items-center gap-2"
-                          />
-                        }
-                        shape="wide"
-                        {...(extra.hasBackdrop
-                          ? { imageUrl: artworkUrl(extra.id, 'backdrop') }
-                          : {})}
-                        onSelect={() => {
-                          onPlay(extra, 0);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+              <Rail title="Extras" sizesCards className="px-0">
+                {extras.map((extra) => (
+                  <li key={extra.id}>
+                    <MediaCard
+                      {...(extra.extraKind === null || extra.extraKind === undefined
+                        ? {}
+                        : { eyebrow: EXTRA_KIND_LABELS[extra.extraKind] })}
+                      title={extra.title}
+                      subtitle={
+                        <MediaFacts
+                          media={extra}
+                          hasRuntime
+                          className="flex flex-wrap items-center gap-2"
+                        />
+                      }
+                      shape="wide"
+                      {...(extra.hasBackdrop ? { imageUrl: artworkUrl(extra.id, 'backdrop') } : {})}
+                      onSelect={() => {
+                        onPlay(extra, 0);
+                      }}
+                    />
+                  </li>
+                ))}
+              </Rail>
             )}
 
             {shownSiblings.length === 0 ? null : (
-              <section className="flex flex-col gap-3">
-                <h3 className="text-sm font-medium uppercase tracking-[0.18em] text-text-muted">
-                  {season === null
+              <Rail
+                title={
+                  season === null
                     ? 'More from this series'
-                    : `More from season ${season.toString()}`}
-                </h3>
-
-                <ul className="valence-rail -my-6 flex gap-4 overflow-x-auto px-1 py-6">
-                  {shownSiblings.map((sibling) => (
-                    <li key={sibling.id} className="w-56 shrink-0 sm:w-64">
-                      <MediaCard
-                        {...(sibling.seriesTitle === null || sibling.seriesTitle === undefined
-                          ? {}
-                          : { eyebrow: sibling.title })}
-                        title={sibling.seriesTitle ?? sibling.title}
-                        subtitle={
-                          <MediaFacts
-                            media={sibling}
-                            hasRuntime
-                            className="flex flex-wrap items-center gap-2"
-                          />
-                        }
-                        shape="wide"
-                        {...(watchedFractionFor?.(sibling.id) === undefined
-                          ? {}
-                          : { watchedFraction: watchedFractionFor(sibling.id) ?? 0 })}
-                        {...(sibling.hasBackdrop
-                          ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
-                          : {})}
-                        onSelect={() => {
-                          onSelectSibling?.(sibling);
-                        }}
-                      />
-                    </li>
-                  ))}
-                </ul>
-              </section>
+                    : `More from season ${season.toString()}`
+                }
+                sizesCards
+                className="px-0"
+              >
+                {shownSiblings.map((sibling) => (
+                  <li key={sibling.id}>
+                    <MediaCard
+                      {...(sibling.seriesTitle === null || sibling.seriesTitle === undefined
+                        ? {}
+                        : { eyebrow: sibling.title })}
+                      title={sibling.seriesTitle ?? sibling.title}
+                      subtitle={
+                        <MediaFacts
+                          media={sibling}
+                          hasRuntime
+                          className="flex flex-wrap items-center gap-2"
+                        />
+                      }
+                      shape="wide"
+                      {...(watchedFractionFor?.(sibling.id) === undefined
+                        ? {}
+                        : { watchedFraction: watchedFractionFor(sibling.id) ?? 0 })}
+                      {...(sibling.hasBackdrop
+                        ? { imageUrl: artworkUrl(sibling.id, 'backdrop') }
+                        : {})}
+                      onSelect={() => {
+                        onSelectSibling?.(sibling);
+                      }}
+                    />
+                  </li>
+                ))}
+              </Rail>
             )}
           </div>
         </motion.div>
