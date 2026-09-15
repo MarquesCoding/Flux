@@ -1,6 +1,8 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { toWebVtt } from '@ValenceCore/functions/toWebVtt';
+import { decodeSubtitle } from './decodeSubtitle';
+import { describeSubtitleCharset } from './describeSubtitleCharset';
 import {
   findSidecarSubtitles,
   isBitmapSubtitle,
@@ -164,7 +166,14 @@ const createSidecarSubtitleService = ({
       }
 
       try {
-        return toWebVtt(await readFile(track.path, 'utf8'), track.format);
+        const decoded = decodeSubtitle(await readFile(track.path), track.language);
+        const guessed = describeSubtitleCharset(decoded);
+
+        if (guessed !== null) {
+          onProblem?.(track.path, guessed);
+        }
+
+        return toWebVtt(decoded.text, track.format);
       } catch (error) {
         onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.');
 
