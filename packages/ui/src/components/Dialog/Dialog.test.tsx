@@ -101,9 +101,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('data-open:fade-in-0');
-    expect(panel.className).toContain('data-closed:fade-out-0');
-    expect(panel.className).toContain('data-closed:fade-out-0');
+    expect(panel.className).toContain('data-[state=open]:fade-in-0');
+    expect(panel.className).toContain('data-[state=closed]:fade-out-0');
   });
 
   it('rises from the edge a thumb summoned it from, and settles in place on a desktop', () => {
@@ -115,8 +114,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('max-sm:data-open:slide-in-from-bottom-8');
-    expect(panel.className).toContain('sm:data-open:zoom-in-95');
+    expect(panel.className).toContain('max-sm:data-[state=open]:slide-in-from-bottom-8');
+    expect(panel.className).toContain('sm:data-[state=open]:zoom-in-95');
   });
 
   it('drops the movement, but not the fade, when movement is unwelcome', () => {
@@ -138,7 +137,7 @@ describe('Dialog', () => {
     );
 
     expect(screen.getByRole('dialog', { name: 'Arrival' }).className).toContain(
-      'data-closed:ease-[var(--ease-in-out)]',
+      'data-[state=closed]:ease-[var(--ease-in-out)]',
     );
   });
 
@@ -151,8 +150,8 @@ describe('Dialog', () => {
 
     const panel = screen.getByRole('dialog', { name: 'Arrival' });
 
-    expect(panel.className).toContain('data-closed:duration-[var(--duration-leaving)]');
-    expect(panel.className).toContain('sm:data-closed:zoom-out-95');
+    expect(panel.className).toContain('data-[state=closed]:duration-[var(--duration-leaving)]');
+    expect(panel.className).toContain('sm:data-[state=closed]:zoom-out-95');
   });
 
   describe('in fullscreen', () => {
@@ -224,5 +223,33 @@ describe('Dialog', () => {
     );
 
     expect(screen.getByRole('dialog', { name: 'Rename' }).className).not.toContain('sm:min-h-');
+  });
+
+  it('stands a drawer at the foot of the screen rather than the centre', () => {
+    render(
+      <Dialog label="Search" isOpen onClose={vi.fn()} size="drawer">
+        <span>Filters</span>
+      </Dialog>,
+    );
+
+    const panel = screen.getByRole('dialog', { name: 'Search' });
+
+    expect(panel.className).toContain('bottom-0');
+    expect(panel.className).toContain('sm:top-auto');
+    expect(panel.className).not.toContain('sm:-translate-x-1/2');
+  });
+
+  it('slides a drawer up from the foot rather than fading and zooming it', () => {
+    render(
+      <Dialog label="Search" isOpen onClose={vi.fn()} size="drawer">
+        <span>Filters</span>
+      </Dialog>,
+    );
+
+    const panel = screen.getByRole('dialog', { name: 'Search' });
+
+    expect(panel.className).toContain('data-[state=open]:slide-in-from-bottom');
+    expect(panel.className).toContain('ease-[var(--ease-drawer)]');
+    expect(panel.className).not.toContain('data-[state=open]:zoom-in-95');
   });
 });

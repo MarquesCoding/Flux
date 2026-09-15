@@ -64,7 +64,6 @@ standalone functions. snake_case for Rust modules.
 | Plugins       | Process-per-plugin, brokered        |
 | Media         | Rust + FFmpeg child process         |
 | UI            | Radix + Tailwind + CVA + Motion     |
-| Dialogs       | Base UI, and nothing else is        |
 | Desktop       | Electron, a window onto the server  |
 | Lint          | oxlint + ESLint + husky             |
 | Realtime      | One WebSocket, viewer + admin feeds |

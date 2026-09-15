@@ -21,10 +21,6 @@ const SHARED_IMPORT_BANS = [
       'Icons come from @hugeicons/core-free-icons, drawn by @ValenceUI/Icon — see code standards section 10.',
   },
   {
-    group: ['@base-ui/react', '@base-ui/react/*'],
-    message: 'Base UI is for Dialog alone. Everything else in ValenceUI is Radix.',
-  },
-  {
     group: ['@hugeicons/react'],
     message:
       'Draw an icon with @ValenceUI/Icon rather than HugeiconsIcon, so the set stays swappable in one file.',
@@ -133,10 +129,7 @@ export default tseslint.config(
     },
   },
   {
-    files: [
-      'packages/ui/src/components/Icon/Icon.tsx',
-      'packages/ui/src/components/Dialog/Dialog.tsx',
-    ],
+    files: ['packages/ui/src/components/Icon/Icon.tsx'],
     rules: {
       'no-restricted-imports': 'off',
     },
