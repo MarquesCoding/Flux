@@ -1140,6 +1140,24 @@ const NEEDS_A_BITRATE_TOO: [&str; 2] = ["libvpx-vp9", "libvpx"];
 /// How much the encoder may overshoot the cap before it has to give the bits back.
 const BUFFER_MULTIPLE: u32 = 2;
 
+/// The `VAAPI` encoders, which are told their rate control mode rather than left to infer one.
+const VAAPI_ENCODERS: [&str; 4] = ["h264_vaapi", "hevc_vaapi", "av1_vaapi", "vp9_vaapi"];
+
+/// The `QSV` encoders, which have no mode flag and are steered by their numbers instead.
+const QSV_ENCODERS: [&str; 3] = ["h264_qsv", "hevc_qsv", "av1_qsv"];
+
+/// The `QSV` encoders carrying macroblock level rate control.
+const QSV_MACROBLOCK_ENCODERS: [&str; 2] = ["h264_qsv", "hevc_qsv"];
+
+/// How far `QSV` may overshoot, which is twice what the rest are given.
+const QSV_BUFFER_MULTIPLE: u32 = 4;
+
+/// How full `QSV` starts its buffer, so the first demanding scene has something to spend.
+const QSV_INITIAL_OCCUPANCY_MULTIPLE: u32 = 2;
+
+/// The bitrate below which `h264_qsv` will not open at all.
+const QSV_SMALLEST_BITRATE_KBPS: u32 = 1_000;
+
 /// How to ask an encoder for a picture, rather than for a number of bits.
 ///
 /// A bitrate is not a quality. Told to hit four and a half megabits, an encoder spends all of them
@@ -1161,11 +1179,40 @@ const BUFFER_MULTIPLE: u32 = 2;
 /// put a file through: AMF, RKMPP, QSV and VAAPI each express quality differently enough that
 /// guessing would be worse than the honest bitrate they already get.
 ///
+/// Intel's two need one thing more, because they pick a rate control mode out of the numbers rather
+/// than being told one, and the mode they were landing on was the worst available. `VAAPI` tries
+/// constant bitrate first where the ceiling equals the target, which is exactly what a capped
+/// bitrate looks like — so every Intel transcode was encoded at a flat rate, spending the same
+/// allocation on a still frame as on a snow storm. A demanding scene then has nothing to borrow and
+/// visibly falls apart until it passes.
+///
+/// So the mode is stated. `VAAPI` takes `-rc_mode` outright; `QSV` has no such flag and is steered
+/// by its numbers instead, which is what `qsv_rate_control_arguments` is for. The ceiling, the
+/// target and the window are all unchanged: this buys a better picture at the same bitrate by
+/// letting the encoder put the bits where the film needs them.
+///
+/// Measured on an i5-13500 with iHD 26.2.4, against the build Valence ships: `-b:v 4000k -maxrate
+/// 4000k` reports `RC mode: CBR`, and the same with `-maxrate 4001k` reports `RC mode: VBR`.
+///
+/// The i965 driver is the exception nobody here has. Jellyfin forces constant bitrate back on for
+/// it, VBR there being liable to produce a pixelated picture, and that driver serves Intel parts
+/// old enough that this build does not carry it. Should one turn up, the mode would have to be
+/// chosen from the driver rather than from the backend.
+///
 #[must_use]
 pub fn rate_control_arguments(encoder: &str, max_bitrate_kbps: u32) -> Vec<String> {
+    if QSV_ENCODERS.contains(&encoder) {
+        return qsv_rate_control_arguments(encoder, max_bitrate_kbps);
+    }
+
     let target = QUALITY_TARGETS.iter().find(|(name, _, _)| *name == encoder);
 
     let mut arguments = Vec::new();
+
+    if VAAPI_ENCODERS.contains(&encoder) {
+        arguments.push("-rc_mode".to_owned());
+        arguments.push("VBR".to_owned());
+    }
 
     if let Some((_, flag, value)) = target {
         arguments.push((*flag).to_owned());
@@ -1181,6 +1228,44 @@ pub fn rate_control_arguments(encoder: &str, max_bitrate_kbps: u32) -> Vec<Strin
     arguments.push(format!("{max_bitrate_kbps}k"));
     arguments.push("-bufsize".to_owned());
     arguments.push(format!("{}k", max_bitrate_kbps * BUFFER_MULTIPLE));
+
+    arguments
+}
+
+/// What to ask a `QSV` encoder for, which is the same request made a different way.
+///
+/// `QSV` has no mode flag. It reads one out of the numbers, and a ceiling equal to the target reads
+/// as constant bitrate there exactly as it does on `VAAPI`. The mode is therefore steered by raising
+/// the ceiling a single kilobit above the target, which is what Jellyfin does and for this reason.
+///
+/// The rest is what Intel's own guidance asks for once the mode is right: macroblock level rate
+/// control, which spends bits where a viewer looks rather than evenly across the frame, a buffer of
+/// twice the usual depth, and that buffer part filled at the start so the first demanding scene has
+/// something to draw on rather than beginning at empty.
+///
+/// `h264_qsv` refuses to open below a megabit, so a ceiling under that is raised to it. A stream
+/// that cheap is being asked for by a profile nobody can watch comfortably anyway.
+///
+/// None of this is measured here. `QSV` cannot currently draw thumbnails on the Intel machine this
+/// was found on, so the numbers are Jellyfin's rather than ours; see VAL-199 and VAL-215.
+fn qsv_rate_control_arguments(encoder: &str, max_bitrate_kbps: u32) -> Vec<String> {
+    let bitrate = max_bitrate_kbps.max(QSV_SMALLEST_BITRATE_KBPS);
+
+    let mut arguments = Vec::new();
+
+    if QSV_MACROBLOCK_ENCODERS.contains(&encoder) {
+        arguments.push("-mbbrc".to_owned());
+        arguments.push("1".to_owned());
+    }
+
+    arguments.push("-b:v".to_owned());
+    arguments.push(format!("{bitrate}k"));
+    arguments.push("-maxrate".to_owned());
+    arguments.push(format!("{}k", bitrate + 1));
+    arguments.push("-rc_init_occupancy".to_owned());
+    arguments.push(format!("{}k", bitrate * QSV_INITIAL_OCCUPANCY_MULTIPLE));
+    arguments.push("-bufsize".to_owned());
+    arguments.push(format!("{}k", bitrate * QSV_BUFFER_MULTIPLE));
 
     arguments
 }
@@ -2827,6 +2912,117 @@ format=bgra,hwupload=derive_device=vaapi[sub]"
                 "{encoder}: {arguments:?}"
             );
         }
+    }
+
+    /// The bug this exists to stop. `VAAPI` reads a ceiling equal to the target as a request for
+    /// constant bitrate, which spends the same allocation on a still frame as on a snow storm, so
+    /// the mode has to be said rather than implied. Confirmed on an i5-13500: without this the
+    /// encoder reports `RC mode: CBR`.
+    #[test]
+    fn tells_vaapi_to_vary_the_rate_rather_than_leaving_it_to_guess() {
+        for encoder in ["h264_vaapi", "hevc_vaapi", "av1_vaapi", "vp9_vaapi"] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                arguments.windows(2).any(|pair| pair == ["-rc_mode", "VBR"]),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// Nothing else gets a mode flag, `-rc_mode` being a `VAAPI` option and meaningless elsewhere.
+    #[test]
+    fn asks_nobody_else_for_a_mode_they_do_not_have() {
+        for encoder in [
+            "libx264",
+            "h264_videotoolbox",
+            "h264_nvenc",
+            "h264_amf",
+            "h264_qsv",
+        ] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                !arguments.iter().any(|argument| argument == "-rc_mode"),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// `QSV` has no mode flag, so the same request is made by lifting the ceiling a kilobit clear of
+    /// the target. Equal values read as constant bitrate there too.
+    #[test]
+    fn lifts_the_qsv_ceiling_clear_of_its_target_so_the_rate_may_vary() {
+        for encoder in ["h264_qsv", "hevc_qsv", "av1_qsv"] {
+            let arguments = rate_control_arguments(encoder, 2500);
+
+            assert!(
+                arguments.windows(2).any(|pair| pair == ["-b:v", "2500k"]),
+                "{encoder}: {arguments:?}"
+            );
+            assert!(
+                arguments
+                    .windows(2)
+                    .any(|pair| pair == ["-maxrate", "2501k"]),
+                "{encoder}: {arguments:?}"
+            );
+        }
+    }
+
+    /// A buffer of twice the usual depth, part filled at the start, is what lets a demanding scene
+    /// borrow rather than fall apart.
+    #[test]
+    fn gives_qsv_room_to_absorb_a_scene_that_costs_more_than_the_ceiling() {
+        let arguments = rate_control_arguments("h264_qsv", 2500);
+
+        assert!(
+            arguments
+                .windows(2)
+                .any(|pair| pair == ["-bufsize", "10000k"]),
+            "{arguments:?}"
+        );
+        assert!(
+            arguments
+                .windows(2)
+                .any(|pair| pair == ["-rc_init_occupancy", "5000k"]),
+            "{arguments:?}"
+        );
+    }
+
+    /// Macroblock level rate control spends bits where a viewer looks. Only two of the three carry
+    /// it, and asking the third for it would be asking for an option it does not have.
+    #[test]
+    fn asks_for_macroblock_rate_control_only_where_there_is_one() {
+        for encoder in ["h264_qsv", "hevc_qsv"] {
+            assert!(
+                rate_control_arguments(encoder, 2500)
+                    .windows(2)
+                    .any(|pair| pair == ["-mbbrc", "1"]),
+                "{encoder}"
+            );
+        }
+
+        assert!(!rate_control_arguments("av1_qsv", 2500)
+            .iter()
+            .any(|argument| argument == "-mbbrc"));
+    }
+
+    /// `h264_qsv` will not open below a megabit, so a ceiling under that is raised to meet it rather
+    /// than producing an encoder that never starts.
+    #[test]
+    fn raises_a_qsv_ceiling_the_encoder_would_refuse_to_open_on() {
+        let arguments = rate_control_arguments("h264_qsv", 400);
+
+        assert!(
+            arguments.windows(2).any(|pair| pair == ["-b:v", "1000k"]),
+            "{arguments:?}"
+        );
+        assert!(
+            arguments
+                .windows(2)
+                .any(|pair| pair == ["-maxrate", "1001k"]),
+            "{arguments:?}"
+        );
     }
 
     /// A backend nobody has put a file through keeps what it had, capped rather than merely aimed
