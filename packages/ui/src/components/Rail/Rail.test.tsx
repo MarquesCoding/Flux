@@ -161,14 +161,14 @@ describe('Rail', () => {
     });
   });
 
-  it('asks for a denser row where the cards stand taller than they are wide', () => {
+  it('sizes a row of cards standing tall the same as one lying wide', () => {
     const { container } = render(
       <Rail title="Cast" sizesCards cards="portrait">
         {items}
       </Rail>,
     );
 
-    expect(container.querySelector('section')).toHaveClass('[--rail-per:3]');
+    expect(container.querySelector('section')).toHaveClass('[--rail-per:2]');
   });
 
   it('sizes cards for a film row unless told they stand tall', () => {

@@ -386,7 +386,7 @@ const MediaDetailDialog = ({
             </section>
 
             {extras.length === 0 ? null : (
-              <Rail title="Extras" sizesCards className="px-0">
+              <Rail title="Extras" sizesCards hasArrows={false} className="px-0">
                 {extras.map((extra) => (
                   <li key={extra.id}>
                     <MediaCard
@@ -420,6 +420,7 @@ const MediaDetailDialog = ({
                     : `More from season ${season.toString()}`
                 }
                 sizesCards
+                hasArrows={false}
                 className="px-0"
               >
                 {shownSiblings.map((sibling) => (
