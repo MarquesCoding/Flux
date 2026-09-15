@@ -50,6 +50,7 @@ fn app(root: std::path::PathBuf) -> axum::Router {
             cache_root: root.clone(),
             artefact_root: root,
             idle_timeout: Duration::from_secs(60),
+            manifest_timeout: std::time::Duration::from_secs(120),
             max_concurrent: 2,
         }),
         ffprobe: ffprobe(),

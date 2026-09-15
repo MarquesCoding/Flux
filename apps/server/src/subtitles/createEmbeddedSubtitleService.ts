@@ -5,7 +5,9 @@ import { describeFailure } from '@ValenceServer/logging/describeFailure';
 
 const HEARING_IMPAIRED_MARKERS = ['sdh', 'cc', 'hearing', 'hard of hearing'];
 
-const NOT_TEXT = new Set(['pgs', 'vobsub', 'dvbsub', 'unknown']);
+const IMAGE = new Set(['pgs', 'vobsub', 'dvbsub']);
+
+const UNREADABLE = new Set(['unknown']);
 
 type EmbeddedStream = {
   index: number;
@@ -23,9 +25,15 @@ type Extractor = {
   readSubtitle: (request: { inputPath: string; streamIndex: number }) => Promise<string>;
 };
 
+/**
+ * Whether this track is pictures rather than words.
+ */
+const isImage = (format: string): boolean => IMAGE.has(format);
+
 type CreateEmbeddedSubtitleServiceOptions = {
   media: EmbeddedLookup;
   transcoder: Extractor;
+  canBurnImageSubtitles: () => Promise<boolean>;
   onProblem?: (path: string, reason: string) => void;
 };
 
@@ -75,6 +83,7 @@ const marksHearingImpaired = (title: string | null | undefined): boolean => {
 const createEmbeddedSubtitleService = ({
   media,
   transcoder,
+  canBurnImageSubtitles,
   onProblem,
 }: CreateEmbeddedSubtitleServiceOptions): SubtitleService => {
   const discover = async (mediaId: string) => {
@@ -84,7 +93,7 @@ const createEmbeddedSubtitleService = ({
       return null;
     }
 
-    const streams = found.streams.filter((stream) => !NOT_TEXT.has(stream.format));
+    const streams = found.streams.filter((stream) => !UNREADABLE.has(stream.format));
 
     return { path: found.path, streams };
   };
@@ -107,14 +116,22 @@ const createEmbeddedSubtitleService = ({
         return null;
       }
 
-      const tracks: SubtitleTrack[] = found.streams.map((stream, position) => ({
-        id: idFor(found.path, stream.index),
-        language: readLanguage(stream.language),
-        label: describeSubtitle(stream, position + 1),
-        format: stream.format,
-        isForced: stream.isForced,
-        isHearingImpaired: marksHearingImpaired(stream.title),
-      }));
+      const canBurn = found.streams.some((stream) => isImage(stream.format))
+        ? await canBurnImageSubtitles()
+        : false;
+
+      const tracks: SubtitleTrack[] = found.streams
+        .filter((stream) => !isImage(stream.format) || canBurn)
+        .map((stream, position) => ({
+          id: idFor(found.path, stream.index),
+          language: readLanguage(stream.language),
+          label: describeSubtitle(stream, position + 1),
+          format: stream.format,
+          isForced: stream.isForced,
+          isHearingImpaired: marksHearingImpaired(stream.title),
+          delivery: isImage(stream.format) ? ('burnIn' as const) : ('text' as const),
+          streamIndex: stream.index,
+        }));
 
       return tracks;
     },
@@ -124,6 +141,10 @@ const createEmbeddedSubtitleService = ({
       const stream = found?.streams.find((candidate) => idFor(found.path, candidate.index) === id);
 
       if (found === null || stream === undefined) {
+        return null;
+      }
+
+      if (isImage(stream.format)) {
         return null;
       }
 

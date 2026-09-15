@@ -289,6 +289,7 @@ describe('VideoPlayer', () => {
         0,
         undefined,
         'original',
+        undefined,
       );
     });
   });
@@ -1323,6 +1324,7 @@ describe('VideoPlayer', () => {
         2400,
         2,
         'original',
+        undefined,
       );
     });
   });

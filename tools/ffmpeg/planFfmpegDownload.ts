@@ -1,4 +1,4 @@
-const RELEASES = 'https://github.com/MarquesCoding/flux-ffmpeg/releases/download';
+const RELEASES = 'https://github.com/ValenceOSS/valence-ffmpeg/releases/download';
 
 const SUITE = 'bookworm';
 
@@ -38,14 +38,14 @@ const planFfmpegDownload = ({
       return {
         kind: 'unsupported',
         message: [
-          `This is an Intel Mac, and flux-ffmpeg builds Apple silicon only.`,
+          `This is an Intel Mac, and valence-ffmpeg builds Apple silicon only.`,
           'Every VideoToolbox measurement so far is on Apple silicon and there is no Intel Mac to',
           'verify against, so no Intel artefact is published rather than one nobody has run.',
         ].join('\n'),
       };
     }
 
-    const fileName = `flux-ffmpeg_${version}_portable_macarm64-gpl.tar.xz`;
+    const fileName = `valence-ffmpeg_${version}_portable_macarm64-gpl.tar.xz`;
 
     return { kind: 'tarball', url: `${RELEASES}/v${version}/${fileName}`, fileName };
   }
@@ -56,11 +56,11 @@ const planFfmpegDownload = ({
     if (debianArch === undefined) {
       return {
         kind: 'unsupported',
-        message: `flux-ffmpeg publishes amd64 and arm64 for Linux, and this machine is ${arch}.`,
+        message: `valence-ffmpeg publishes amd64 and arm64 for Linux, and this machine is ${arch}.`,
       };
     }
 
-    const fileName = `flux-ffmpeg_${version}-${SUITE}_${debianArch}.deb`;
+    const fileName = `valence-ffmpeg_${version}-${SUITE}_${debianArch}.deb`;
 
     return { kind: 'deb', url: `${RELEASES}/v${version}/${fileName}`, fileName };
   }
@@ -68,7 +68,7 @@ const planFfmpegDownload = ({
   return {
     kind: 'unsupported',
     message: [
-      `flux-ffmpeg publishes Linux and macOS builds, and this machine is ${platform}.`,
+      `valence-ffmpeg publishes Linux and macOS builds, and this machine is ${platform}.`,
       'Run Valence in the container, which carries the build already.',
     ].join('\n'),
   };

@@ -412,6 +412,8 @@ type CreateAppOptions = {
     hardwareAccels: string[];
     rejected?: { encoder: string; reason: string }[];
     concurrentRenders?: number;
+    toneMapping?: 'zscale' | 'libplacebo' | 'unavailable';
+    hardwareToneMaps?: string[];
     chains?: {
       accel: string;
       shape: 'preview' | 'sheet' | 'transcode';
@@ -946,8 +948,14 @@ const createApp = ({
 
   app.openapi(startRoute, async (context) => {
     const { mediaId } = context.req.valid('param');
-    const { deviceProfile, clientId, startSeconds, audioStreamIndex, requestedQuality } =
-      context.req.valid('json');
+    const {
+      deviceProfile,
+      clientId,
+      startSeconds,
+      audioStreamIndex,
+      requestedQuality,
+      subtitleStreamIndex,
+    } = context.req.valid('json');
 
     const outcome = await playback.start(
       mediaId,
@@ -956,6 +964,7 @@ const createApp = ({
       audioStreamIndex,
       requestedQuality,
       clientId,
+      subtitleStreamIndex,
     );
 
     if (outcome.kind === 'notFound') {
@@ -1802,6 +1811,8 @@ const createApp = ({
           rejectedEncoders: transcoderCapabilities?.rejected ?? [],
           chains: transcoderCapabilities?.chains ?? [],
           concurrentRenders: transcoderCapabilities?.concurrentRenders ?? 0,
+          toneMapping: transcoderCapabilities?.toneMapping ?? 'unavailable',
+          hardwareToneMaps: transcoderCapabilities?.hardwareToneMaps ?? [],
         },
         library: {
           libraryCount: libraries.length,

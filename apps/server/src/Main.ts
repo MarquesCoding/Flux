@@ -1317,6 +1317,11 @@ const subtitleService = createLayeredSubtitleService([
       },
     },
     transcoder,
+    canBurnImageSubtitles: async () =>
+      transcoder
+        .capabilities()
+        .then((found) => found.canBurnImageSubtitles)
+        .catch(() => false),
     onProblem: reportSubtitleProblem,
   }),
 ]);

@@ -47,7 +47,7 @@ const isAvailable = (command: string): boolean =>
 /**
  * Unpacks a deb into the install directory, keeping the package's own layout.
  *
- * The whole `usr/lib/flux-ffmpeg` tree rather than the two binaries, because they carry an rpath
+ * The whole `usr/lib/valence-ffmpeg` tree rather than the two binaries, because they carry an rpath
  * into the `lib` directory beside them and are not runnable without it.
  *
  * @param archive - The downloaded deb.
@@ -83,7 +83,7 @@ if (plan.kind === 'unsupported') {
   process.exit(1);
 }
 
-say(`flux-ffmpeg ${version} for ${process.platform} ${process.arch}`);
+say(`valence-ffmpeg ${version} for ${process.platform} ${process.arch}`);
 
 rmSync(INSTALL_DIR, { recursive: true, force: true });
 mkdirSync(INSTALL_DIR, { recursive: true });
@@ -115,7 +115,7 @@ if (plan.kind === 'tarball') {
 
 rmSync(archive, { force: true });
 
-const packaged = join(INSTALL_DIR, 'usr', 'lib', 'flux-ffmpeg');
+const packaged = join(INSTALL_DIR, 'usr', 'lib', 'valence-ffmpeg');
 
 const prefix = existsSync(packaged) ? packaged : INSTALL_DIR;
 

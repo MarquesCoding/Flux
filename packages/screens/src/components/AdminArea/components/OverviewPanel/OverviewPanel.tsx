@@ -14,6 +14,7 @@ import { formatBytes } from '@ValenceCore/functions/formatBytes';
 import { describeQueueKind } from '@ValenceScreens/components/AdminArea/describeQueueKind';
 import { describeAcceleration } from '@ValenceScreens/components/AdminArea/describeAcceleration';
 import { describeChains } from '@ValenceScreens/components/AdminArea/describeChains';
+import { describeToneMapping } from '@ValenceScreens/components/AdminArea/describeToneMapping';
 import { describeCard } from '@ValenceScreens/components/AdminArea/describeCard';
 import { memoryEnvelope } from '@ValenceScreens/components/AdminArea/memoryEnvelope';
 import { measureStorage } from '@ValenceClient/admin/fetchAdmin';
@@ -125,6 +126,11 @@ const OverviewPanel = ({
 
   const chains = overview === null ? null : describeChains(overview.transcoder.chains);
 
+  const toneMapping =
+    overview === null
+      ? null
+      : describeToneMapping(overview.transcoder.toneMapping, overview.transcoder.hardwareToneMaps);
+
   const now = Date.now();
   const watching = sessions.filter((session) => session.playback !== null);
   const running = (monitor?.queue.jobs ?? []).filter((job) => job.state === 'running');
@@ -175,6 +181,18 @@ const OverviewPanel = ({
               <dt className="shrink-0 text-text-muted">Hardware chains</dt>
               <dd className="min-w-0 truncate text-text">{chains?.label ?? '—'}</dd>
             </div>
+
+            <div className="flex items-baseline justify-between gap-3">
+              <dt className="shrink-0 text-text-muted">HDR conversion</dt>
+              <dd className="min-w-0 truncate text-text">{toneMapping?.label ?? '—'}</dd>
+            </div>
+
+            {toneMapping !== null && toneMapping.detail !== null && (
+              <div className="flex flex-col gap-1">
+                <dt className="text-text-muted">HDR conversion</dt>
+                <dd className="text-xs text-text-muted">{toneMapping.detail}</dd>
+              </div>
+            )}
 
             {(chains?.refusals ?? []).length +
               (overview?.transcoder.rejectedEncoders ?? []).length >

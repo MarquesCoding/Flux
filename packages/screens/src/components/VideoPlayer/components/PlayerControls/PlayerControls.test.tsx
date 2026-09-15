@@ -25,6 +25,8 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
         format: 'srt',
         isForced: false,
         isHearingImpaired: false,
+        delivery: 'text' as const,
+        streamIndex: null,
       },
     ],
     selectedSubtitleId: 'off',

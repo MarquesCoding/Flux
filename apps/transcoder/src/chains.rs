@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use tokio::process::Command;
 
-use crate::capability::VerifiedEncoder;
+use crate::capability::{complaint, VerifiedEncoder};
 use crate::transcode_plan::{HardwareAccel, HardwarePipeline};
 
 /// The size a probe frame is drawn at.
@@ -203,7 +203,60 @@ pub fn chain_probe_arguments(
     arguments
 }
 
+/// How much a probe is asked to say when the quiet run explained nothing.
+const EXPLAIN_LEVEL: &str = "verbose";
+
+/// What became of one run of a probe.
+enum ProbeOutcome {
+    Ran,
+    Complained(String),
+    /// Exited non-zero having said nothing anybody can act on.
+    SaidNothing,
+    WouldNotStart(String),
+}
+
+/// The same probe, asked to say more about itself.
+///
+/// The quiet level is right for a probe that passes, which is almost all of
+/// them on almost every machine, and wrong for the one that does not: a chain
+/// that fails without a word leaves an operator with "it does not work" and no
+/// next step. Asking again costs one more run of a four-frame synthetic clip,
+/// and only ever on a chain that has already failed.
+fn asked_to_explain(arguments: &[String]) -> Vec<String> {
+    let mut louder = arguments.to_vec();
+
+    if let Some(index) = louder.iter().position(|argument| argument == "-loglevel") {
+        if let Some(level) = louder.get_mut(index + 1) {
+            level.clear();
+            level.push_str(EXPLAIN_LEVEL);
+        }
+    }
+
+    louder
+}
+
+/// Runs a probe once and reads what it made of itself.
+async fn run_probe(ffmpeg: &str, arguments: &[String]) -> ProbeOutcome {
+    let outcome = Command::new(ffmpeg)
+        .args(arguments)
+        .kill_on_drop(true)
+        .output()
+        .await;
+
+    match outcome {
+        Ok(output) if output.status.success() => ProbeOutcome::Ran,
+        Ok(output) => complaint(&String::from_utf8_lossy(&output.stderr))
+            .map_or(ProbeOutcome::SaidNothing, ProbeOutcome::Complained),
+        Err(failure) => ProbeOutcome::WouldNotStart(failure.to_string()),
+    }
+}
+
 /// Runs one chain and says whether this machine will have it.
+///
+/// A chain that fails silently is run a second time with ffmpeg told to
+/// explain itself, because the reason is the whole value of the verification.
+/// Reporting a shape as unavailable without saying why turns a bug report into
+/// a mystery, and the machine that found this one spent a fortnight there.
 async fn verify_chain(
     ffmpeg: &str,
     accel: HardwareAccel,
@@ -212,28 +265,20 @@ async fn verify_chain(
     encoder: &str,
     device: &str,
 ) -> VerifiedChain {
-    let outcome = Command::new(ffmpeg)
-        .args(chain_probe_arguments(
-            accel, shape, bit_depth, encoder, device,
-        ))
-        .kill_on_drop(true)
-        .output()
-        .await;
+    let arguments = chain_probe_arguments(accel, shape, bit_depth, encoder, device);
+
+    let outcome = match run_probe(ffmpeg, &arguments).await {
+        ProbeOutcome::SaidNothing => run_probe(ffmpeg, &asked_to_explain(&arguments)).await,
+        settled => settled,
+    };
 
     let (works, reason) = match outcome {
-        Ok(output) if output.status.success() => (true, None),
-        Ok(output) => (
+        ProbeOutcome::Ran => (true, None),
+        ProbeOutcome::Complained(said) | ProbeOutcome::WouldNotStart(said) => (false, Some(said)),
+        ProbeOutcome::SaidNothing => (
             false,
-            Some(
-                String::from_utf8_lossy(&output.stderr)
-                    .lines()
-                    .last()
-                    .unwrap_or("ffmpeg would not run the chain")
-                    .trim()
-                    .to_owned(),
-            ),
+            Some("ffmpeg would not run the chain, and said nothing about why".to_owned()),
         ),
-        Err(failure) => (false, Some(failure.to_string())),
     };
 
     VerifiedChain {
@@ -335,7 +380,7 @@ pub fn runs_here(
 
 #[cfg(test)]
 mod tests {
-    use super::{chain_probe_arguments, runs_here, ChainShape, VerifiedChain};
+    use super::{asked_to_explain, chain_probe_arguments, runs_here, ChainShape, VerifiedChain};
     use crate::transcode_plan::HardwareAccel;
 
     fn chain_of(arguments: &[String]) -> String {
@@ -604,5 +649,49 @@ mod tests {
             ChainShape::Preview,
             None
         ));
+    }
+
+    #[test]
+    fn asks_a_silent_probe_to_explain_itself() {
+        let arguments =
+            chain_probe_arguments(HardwareAccel::Qsv, ChainShape::Sheet, 8, "mjpeg_qsv", "");
+
+        let louder = asked_to_explain(&arguments);
+
+        let level = louder
+            .iter()
+            .position(|argument| argument == "-loglevel")
+            .and_then(|index| louder.get(index + 1));
+
+        assert_eq!(level.map(String::as_str), Some("verbose"));
+    }
+
+    #[test]
+    fn changes_nothing_but_the_level_when_it_asks_again() {
+        let arguments =
+            chain_probe_arguments(HardwareAccel::Qsv, ChainShape::Sheet, 8, "mjpeg_qsv", "");
+
+        let louder = asked_to_explain(&arguments);
+
+        assert_eq!(louder.len(), arguments.len());
+        assert_eq!(
+            louder
+                .iter()
+                .filter(|argument| *argument == "error")
+                .count(),
+            0,
+            "the quiet level is the only thing replaced"
+        );
+        assert_eq!(
+            louder
+                .iter()
+                .filter(|argument| argument.contains("vpp_qsv"))
+                .count(),
+            arguments
+                .iter()
+                .filter(|argument| argument.contains("vpp_qsv"))
+                .count(),
+            "the chain under test must be the same chain"
+        );
     }
 }

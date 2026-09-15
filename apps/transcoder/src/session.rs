@@ -788,6 +788,16 @@ pub struct SessionConfig {
     /// root forced one answer for both.
     pub artefact_root: PathBuf,
     pub idle_timeout: Duration,
+    /// How long a request for a session waits for ffmpeg to write a manifest.
+    ///
+    /// Twenty seconds is what a viewer will sit through, and it is generous
+    /// against the thing being waited for: one segment, on a machine that has
+    /// already proved it can encode. Settable because "already proved it" is
+    /// doing a lot of work in that sentence — a cold container, a network
+    /// filesystem and a 4K source between them can put the first segment past
+    /// any figure chosen here, and an operator who knows their box is slow
+    /// should be able to say so rather than be told the transcode failed.
+    pub manifest_timeout: Duration,
     pub max_concurrent: usize,
 }
 
@@ -800,6 +810,7 @@ impl Default for SessionConfig {
             cache_root: std::env::temp_dir().join("valence-transcodes"),
             artefact_root: std::env::temp_dir().join("valence-artefacts"),
             idle_timeout: Duration::from_secs(90),
+            manifest_timeout: Duration::from_secs(20),
             max_concurrent: 2,
         }
     }
@@ -2339,6 +2350,11 @@ mod tests {
     #[test]
     fn keeps_a_session_alive_through_three_missed_heartbeats_worth_of_idle_time() {
         assert_eq!(SessionConfig::default().idle_timeout.as_secs(), 90);
+    }
+
+    #[test]
+    fn waits_for_a_manifest_as_long_as_a_viewer_will() {
+        assert_eq!(SessionConfig::default().manifest_timeout.as_secs(), 20);
     }
 
     /// A directory as an abandoned session leaves it: two segments, and no

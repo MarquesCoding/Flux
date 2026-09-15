@@ -5,7 +5,7 @@ import { planFfmpegDownload, SUITE } from './planFfmpegDownload';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
-const VERSION = '8.1.2-2flux1';
+const VERSION = '8.1.2-5.1';
 
 describe('planFfmpegDownload', () => {
   it('takes the portable tarball on Apple silicon', () => {
@@ -13,8 +13,8 @@ describe('planFfmpegDownload', () => {
 
     expect(plan).toStrictEqual({
       kind: 'tarball',
-      fileName: `flux-ffmpeg_${VERSION}_portable_macarm64-gpl.tar.xz`,
-      url: `https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VERSION}/flux-ffmpeg_${VERSION}_portable_macarm64-gpl.tar.xz`,
+      fileName: `valence-ffmpeg_${VERSION}_portable_macarm64-gpl.tar.xz`,
+      url: `https://github.com/ValenceOSS/valence-ffmpeg/releases/download/v${VERSION}/valence-ffmpeg_${VERSION}_portable_macarm64-gpl.tar.xz`,
     });
   });
 
@@ -23,15 +23,15 @@ describe('planFfmpegDownload', () => {
 
     expect(plan).toStrictEqual({
       kind: 'deb',
-      fileName: `flux-ffmpeg_${VERSION}-${SUITE}_amd64.deb`,
-      url: `https://github.com/MarquesCoding/flux-ffmpeg/releases/download/v${VERSION}/flux-ffmpeg_${VERSION}-${SUITE}_amd64.deb`,
+      fileName: `valence-ffmpeg_${VERSION}-${SUITE}_amd64.deb`,
+      url: `https://github.com/ValenceOSS/valence-ffmpeg/releases/download/v${VERSION}/valence-ffmpeg_${VERSION}-${SUITE}_amd64.deb`,
     });
   });
 
   it('leaves arm64 alone, which Debian and Node already agree on', () => {
     const plan = planFfmpegDownload({ platform: 'linux', arch: 'arm64', version: VERSION });
 
-    expect(plan).toMatchObject({ fileName: `flux-ffmpeg_${VERSION}-${SUITE}_arm64.deb` });
+    expect(plan).toMatchObject({ fileName: `valence-ffmpeg_${VERSION}-${SUITE}_arm64.deb` });
   });
 
   it('says why an Intel Mac has nothing to fetch', () => {

@@ -148,6 +148,8 @@ const createSidecarSubtitleService = ({
         format: track.format,
         isForced: track.isForced,
         isHearingImpaired: track.isHearingImpaired,
+        delivery: 'text' as const,
+        streamIndex: null,
       }));
 
       return tracks;
