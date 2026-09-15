@@ -27,6 +27,7 @@ import {
   sendPresenceHeartbeat,
 } from '@ValenceClient/playback/startPlaybackSession';
 import { attachShaka, CRITICAL } from '@ValenceScreens/playback/attachShaka';
+import type { PointerEvent as ReactPointerEvent } from 'react';
 import type { DeliveredFormat } from '@ValenceScreens/playback/attachShaka';
 import {
   describePlaybackFailure,
@@ -40,6 +41,9 @@ import {
 } from '@ValenceScreens/playback/castPlayback';
 import { handOverToDevice } from '@ValenceScreens/playback/handOverToDevice';
 import { loadCastSender, castStateOf, castStream } from '@ValenceScreens/playback/castSender';
+import { applyVolumeBoost } from '@ValenceScreens/playback/volumeBoost';
+import { hasFinePointer } from '@ValenceUI/hasFinePointer';
+import { SKIP_SECONDS } from './components/PlayerControls/PlayerControls.types';
 import { fetchTrickplay } from '@ValenceScreens/playback/fetchTrickplay';
 import { popOutWithCaptions } from '@ValenceScreens/playback/popOutWithCaptions';
 import { captureFrame } from '@ValenceScreens/playback/captureFrame';
@@ -102,6 +106,10 @@ type FullscreenOwner = {
 };
 
 const IDLE_MILLISECONDS = 2500;
+
+const DOUBLE_TAP_MILLISECONDS = 300;
+
+const TAP_EDGE = 0.33;
 
 const STALL_BEFORE_SAYING_SO_MS = 400;
 
@@ -237,6 +245,7 @@ const VideoPlayer = ({
   const [detail, setDetail] = useState<MediaDetail | null>(null);
   const deviceProfile = useMemo(() => detectFromBrowser(platformInUse().describeThisClient()), []);
   const [volume, setVolume] = useState(() => readPlaybackPreferences().volume);
+  const [boost, setBoost] = useState(() => readPlaybackPreferences().boost);
   const [isMuted, setIsMuted] = useState(() => readPlaybackPreferences().isMuted);
   const [isShowingRemaining, setIsShowingRemaining] = useState(
     () => readPlaybackPreferences().showsRemaining,
@@ -1116,14 +1125,15 @@ const VideoPlayer = ({
     if (element !== null) {
       element.volume = volume;
       element.muted = isMuted;
+      applyVolumeBoost(element, boost);
     }
 
     if (isSilencedByPolicyRef.current) {
       return;
     }
 
-    writePlaybackPreferences({ volume, isMuted });
-  }, [volume, isMuted]);
+    writePlaybackPreferences({ volume, isMuted, boost });
+  }, [volume, isMuted, boost]);
 
   useEffect(() => {
     const element = videoRef.current;
@@ -1372,6 +1382,48 @@ const VideoPlayer = ({
 
   skipRef.current = skip;
 
+  const lastTapRef = useRef<{ at: number; x: number } | null>(null);
+
+  const onTapStage = useCallback(
+    (event: ReactPointerEvent<HTMLDivElement>) => {
+      if (event.pointerType === 'mouse' || hasFinePointer()) {
+        return;
+      }
+
+      const stage = stageRef.current;
+      const now = Date.now();
+      const last = lastTapRef.current;
+      const near = last !== null && now - last.at < DOUBLE_TAP_MILLISECONDS;
+
+      setIsIdle(false);
+      setActivity((count) => count + 1);
+
+      if (event.target instanceof Node && controlsRef.current?.contains(event.target) === true) {
+        lastTapRef.current = null;
+
+        return;
+      }
+
+      if (near && stage !== null) {
+        const { left, width } = stage.getBoundingClientRect();
+        const across = (event.clientX - left) / width;
+
+        if (across <= TAP_EDGE) {
+          skipRef.current(-SKIP_SECONDS);
+        } else if (across >= 1 - TAP_EDGE) {
+          skipRef.current(SKIP_SECONDS);
+        }
+
+        lastTapRef.current = null;
+
+        return;
+      }
+
+      lastTapRef.current = { at: now, x: event.clientX };
+    },
+    [setIsIdle, setActivity],
+  );
+
   const toggleFullscreen = useCallback(() => {
     const stage = stageRef.current;
 
@@ -1602,6 +1654,7 @@ const VideoPlayer = ({
       <div
         ref={stageRef}
         tabIndex={-1}
+        onPointerUp={onTapStage}
         className={`${
           isImmersive
             ? 'relative flex min-h-0 flex-1 items-center justify-center overflow-hidden bg-shade'
@@ -1801,6 +1854,8 @@ const VideoPlayer = ({
             position={position}
             duration={duration}
             volume={volume}
+            boost={boost}
+            onBoostChange={setBoost}
             isMuted={isMuted}
             isFullscreen={isFullscreen}
             isShowingStats={isShowingStats}

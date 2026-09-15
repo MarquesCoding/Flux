@@ -12,6 +12,7 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     position: 30,
     duration: 7200,
     volume: 1,
+    boost: 1,
     isMuted: false,
     isFullscreen: false,
     isShowingStats: false,
@@ -45,6 +46,7 @@ const draw = (overrides: Partial<PlayerControlsProps> = {}) => {
     onCaptionStyleChange: vi.fn(),
     onCaptionStyleReset: vi.fn(),
     onVolumeChange: vi.fn(),
+    onBoostChange: vi.fn(),
     onToggleMute: vi.fn(),
     onToggleFullscreen: vi.fn(),
     onToggleStats: vi.fn(),
@@ -166,6 +168,8 @@ describe('PlayerControls', () => {
         position={30}
         duration={7200}
         volume={1}
+        boost={1}
+        onBoostChange={vi.fn()}
         isMuted={false}
         isFullscreen={false}
         isShowingStats={false}
@@ -266,14 +270,15 @@ describe('PlayerControls', () => {
     expect(props.onSubtitleChange).toHaveBeenCalledWith('en');
   });
 
-  it('still offers caption appearance when a film has no subtitles beside it', async () => {
+  it('offers nothing about subtitles for a film that has none', async () => {
     const user = userEvent.setup();
     draw({ subtitleTracks: [] });
 
     await user.click(screen.getByRole('button', { name: 'Settings' }));
 
-    expect(await screen.findByRole('button', { name: /Caption settings/ })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /English/ })).not.toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Playback speed/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Subtitles/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Caption settings/ })).not.toBeInTheDocument();
   });
 
   it('opens the caption settings as a page of the panel rather than over the film', async () => {

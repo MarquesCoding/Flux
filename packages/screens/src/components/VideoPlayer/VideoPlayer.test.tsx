@@ -1,6 +1,7 @@
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { renderInAnAddress } from '@ValenceScreens/testing/renderInAnAddress';
 import userEvent from '@testing-library/user-event';
+import { SKIP_SECONDS } from './components/PlayerControls/PlayerControls.types';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { VideoPlayer } from './VideoPlayer';
 import { fakeMediaElement } from '@ValenceScreens/testing/fakeMediaElement';
@@ -1160,6 +1161,18 @@ describe('VideoPlayer', () => {
 
   it('opens the caption settings from the subtitles menu', async () => {
     const actor = userEvent.setup();
+
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'en',
+        language: 'en',
+        label: 'English',
+        format: 'srt',
+        isForced: false,
+        isHearingImpaired: false,
+      },
+    ]);
+
     renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
@@ -1171,6 +1184,18 @@ describe('VideoPlayer', () => {
 
   it('remembers caption settings for the next film', async () => {
     const actor = userEvent.setup();
+
+    subtitlesMock.mockResolvedValue([
+      {
+        id: 'en',
+        language: 'en',
+        label: 'English',
+        format: 'srt',
+        isForced: false,
+        isHearingImpaired: false,
+      },
+    ]);
+
     const { unmount } = renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} />);
 
     await settled();
@@ -1349,6 +1374,123 @@ describe('VideoPlayer', () => {
 
       if (stage !== null) {
         fireEvent.pointerMove(stage);
+      }
+
+      expect(stage?.className).toContain('cursor-default');
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('skips on a double tap towards one side, since a finger has no keyboard', async () => {
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
+
+    seekableTo(element, 7200);
+
+    const stage = element.parentElement;
+
+    if (stage !== null) {
+      stage.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 500);
+
+      fireEvent.pointerUp(stage, { clientX: 900, clientY: 250, pointerType: 'touch' });
+      fireEvent.pointerUp(stage, { clientX: 900, clientY: 250, pointerType: 'touch' });
+    }
+
+    await waitFor(() => {
+      expect(element).toHaveProperty('currentTime', SKIP_SECONDS);
+    });
+  });
+
+  it('leaves the film alone for a single tap, which is only asking for the controls', async () => {
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
+
+    seekableTo(element, 7200);
+
+    const stage = element.parentElement;
+
+    if (stage !== null) {
+      stage.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 500);
+
+      fireEvent.pointerUp(stage, { clientX: 900, clientY: 250, pointerType: 'touch' });
+    }
+
+    expect(element).toHaveProperty('currentTime', 0);
+  });
+
+  it('never skips from the controls themselves, where a double press means something else', async () => {
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
+
+    seekableTo(element, 7200);
+
+    const stage = element.parentElement;
+
+    if (stage !== null) {
+      stage.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 500);
+    }
+
+    const onTheBar = screen.getByRole('button', { name: 'Play' });
+
+    fireEvent.pointerUp(onTheBar, { clientX: 100, clientY: 480, pointerType: 'touch' });
+    fireEvent.pointerUp(onTheBar, { clientX: 100, clientY: 480, pointerType: 'touch' });
+
+    expect(element).toHaveProperty('currentTime', 0);
+  });
+
+  it('leaves a mouse to the controls it already has', async () => {
+    renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+
+    await settled();
+
+    const element = screen.getByLabelText('Arrival');
+
+    seekableTo(element, 7200);
+
+    const stage = element.parentElement;
+
+    if (stage !== null) {
+      stage.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 500);
+
+      fireEvent.pointerUp(stage, { clientX: 900, clientY: 250, pointerType: 'mouse' });
+      fireEvent.pointerUp(stage, { clientX: 900, clientY: 250, pointerType: 'mouse' });
+    }
+
+    expect(element).toHaveProperty('currentTime', 0);
+  });
+
+  it('brings the controls back on a tap, which no pointer movement ever reports', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+
+    try {
+      renderInAnAddress(<VideoPlayer media={media} onClose={vi.fn()} isImmersive />);
+
+      const element = await screen.findByLabelText('Arrival');
+
+      fireEvent.play(element);
+
+      act(() => {
+        vi.advanceTimersByTime(4000);
+      });
+
+      const stage = element.parentElement;
+
+      expect(stage?.className).toContain('cursor-none');
+
+      if (stage !== null) {
+        stage.getBoundingClientRect = () => new DOMRect(0, 0, 1000, 500);
+
+        fireEvent.pointerUp(stage, { clientX: 500, clientY: 250, pointerType: 'touch' });
       }
 
       expect(stage?.className).toContain('cursor-default');

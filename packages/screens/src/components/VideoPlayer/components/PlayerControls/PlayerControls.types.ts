@@ -15,12 +15,15 @@ const SKIP_SECONDS = 10;
 
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 
+const BOOST_STEPS = [1, 1.5, 2, 3] as const;
+
 type PlayerControlsProps = {
   title: string;
   isPlaying: boolean;
   position: number;
   duration: number;
   volume: number;
+  boost: number;
   isMuted: boolean;
   isFullscreen: boolean;
   isShowingStats: boolean;
@@ -51,6 +54,7 @@ type PlayerControlsProps = {
   onCaptionStyleChange: (style: CaptionStyle) => void;
   onCaptionStyleReset: () => void;
   onVolumeChange: (volume: number) => void;
+  onBoostChange: (boost: number) => void;
   onToggleMute: () => void;
   onToggleFullscreen: () => void;
   onToggleStats: () => void;
@@ -66,4 +70,4 @@ type PlayerControlsProps = {
 
 export type { PlayerControlsProps };
 
-export { SKIP_SECONDS, PLAYBACK_RATES };
+export { SKIP_SECONDS, PLAYBACK_RATES, BOOST_STEPS };

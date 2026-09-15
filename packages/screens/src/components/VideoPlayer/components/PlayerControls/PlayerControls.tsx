@@ -30,7 +30,7 @@ import { SUBTITLES_OFF } from '@ValenceClient/playback/fetchSubtitles';
 import { QUALITY_STEPS } from '@ValenceContracts/schemas/QualityStep';
 import { CaptionSettings } from '@ValenceScreens/components/VideoPlayer/components/CaptionSettings/CaptionSettings';
 import { EpisodeMenu } from '@ValenceScreens/components/VideoPlayer/components/EpisodeMenu/EpisodeMenu';
-import { SKIP_SECONDS, PLAYBACK_RATES } from './PlayerControls.types';
+import { SKIP_SECONDS, PLAYBACK_RATES, BOOST_STEPS } from './PlayerControls.types';
 import type { PlayerControlsProps } from './PlayerControls.types';
 
 /**
@@ -122,6 +122,7 @@ const PlayerControls = ({
   position,
   duration,
   volume,
+  boost,
   isMuted,
   isFullscreen,
   isShowingStats,
@@ -152,6 +153,7 @@ const PlayerControls = ({
   onCaptionStyleChange,
   onCaptionStyleReset,
   onVolumeChange,
+  onBoostChange,
   onToggleMute,
   onToggleFullscreen,
   onPopOut,
@@ -321,22 +323,26 @@ const PlayerControls = ({
                   })),
                 },
               ]),
-          {
-            kind: 'choice' as const,
-            id: 'subtitles',
-            label: 'Subtitles/CC',
-            icon: <Icon of={SubtitleIcon} size={18} />,
-            selectedId: selectedSubtitleId,
-            onSelect: onSubtitleChange,
-            choices: [
-              { id: SUBTITLES_OFF, label: 'Off' },
-              ...subtitleTracks.map((track) => ({
-                id: track.id,
-                label: track.label,
-                ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
-              })),
-            ],
-          },
+          ...(subtitleTracks.length === 0
+            ? []
+            : [
+                {
+                  kind: 'choice' as const,
+                  id: 'subtitles',
+                  label: 'Subtitles/CC',
+                  icon: <Icon of={SubtitleIcon} size={18} />,
+                  selectedId: selectedSubtitleId,
+                  onSelect: onSubtitleChange,
+                  choices: [
+                    { id: SUBTITLES_OFF, label: 'Off' },
+                    ...subtitleTracks.map((track) => ({
+                      id: track.id,
+                      label: track.label,
+                      ...(track.format === '' ? {} : { detail: track.format.toUpperCase() }),
+                    })),
+                  ],
+                },
+              ]),
           ...(selectedSubtitleId === SUBTITLES_OFF || onSubtitleOffsetChange === undefined
             ? []
             : [
@@ -390,19 +396,23 @@ const PlayerControls = ({
                   ),
                 },
               ]),
-          {
-            kind: 'panel' as const,
-            id: 'appearance',
-            label: 'Caption settings',
-            icon: <Icon of={TextFontIcon} size={18} />,
-            content: (
-              <CaptionSettings
-                style={captionStyle}
-                onChange={onCaptionStyleChange}
-                onReset={onCaptionStyleReset}
-              />
-            ),
-          },
+          ...(subtitleTracks.length === 0
+            ? []
+            : [
+                {
+                  kind: 'panel' as const,
+                  id: 'appearance',
+                  label: 'Caption settings',
+                  icon: <Icon of={TextFontIcon} size={18} />,
+                  content: (
+                    <CaptionSettings
+                      style={captionStyle}
+                      onChange={onCaptionStyleChange}
+                      onReset={onCaptionStyleReset}
+                    />
+                  ),
+                },
+              ]),
           {
             kind: 'choice' as const,
             id: 'speed',
@@ -415,6 +425,20 @@ const PlayerControls = ({
             choices: PLAYBACK_RATES.map((rate) => ({
               id: rate.toString(),
               label: rate === 1 ? 'Normal' : rateLabel(rate),
+            })),
+          },
+          {
+            kind: 'choice' as const,
+            id: 'boost',
+            label: 'Volume boost',
+            icon: <Icon of={VolumeHighIcon} size={18} />,
+            selectedId: boost.toString(),
+            onSelect: (id: string) => {
+              onBoostChange(Number(id));
+            },
+            choices: BOOST_STEPS.map((step) => ({
+              id: step.toString(),
+              label: step === 1 ? 'Off' : rateLabel(step),
             })),
           },
           ...(availableQualitySteps.length === 0
