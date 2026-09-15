@@ -107,6 +107,36 @@ describe('useHasScrolledPast', () => {
     vi.unstubAllGlobals();
   });
 
+  it('judges against the top of the window where the page itself is what scrolls', () => {
+    const watched = document.createElement('span');
+
+    watched.getBoundingClientRect = () => new DOMRect(0, -40);
+    document.body.append(watched);
+
+    const { result } = renderHook(() => useHasScrolledPast());
+
+    act(() => {
+      result.current.mark(watched);
+    });
+
+    expect(result.current.hasPassed).toBe(true);
+  });
+
+  it('says nothing has gone while the mark is still down the page', () => {
+    const watched = document.createElement('span');
+
+    watched.getBoundingClientRect = () => new DOMRect(0, 120);
+    document.body.append(watched);
+
+    const { result } = renderHook(() => useHasScrolledPast());
+
+    act(() => {
+      result.current.mark(watched);
+    });
+
+    expect(result.current.hasPassed).toBe(false);
+  });
+
   it('forgets what it knew when the element goes', () => {
     const { watched } = inAScroller(10, 60);
     const { result } = renderHook(() => useHasScrolledPast());
