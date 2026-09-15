@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.3.0](https://github.com/ValenceOSS/Valence/compare/v0.2.0...v0.3.0) (2026-09-15)
+
+
+### Added
+
+* **server:** say which tone mapper this machine picked ([#272](https://github.com/ValenceOSS/Valence/issues/272)) ([1f47021](https://github.com/ValenceOSS/Valence/commit/1f47021db9d2560372dc52787183ff83ee6d8b0c))
+* **subtitles:** ASS and SSA styling — draw a sign where the script put it ([#278](https://github.com/ValenceOSS/Valence/issues/278)) ([b5127da](https://github.com/ValenceOSS/Valence/commit/b5127da0df4b7891ca6671bf94de8930d42ea683))
+* **ui:** raise search as a drawer over the page instead of a route ([#279](https://github.com/ValenceOSS/Valence/issues/279)) ([4c1dd39](https://github.com/ValenceOSS/Valence/commit/4c1dd395930e7f588eb809eaaf4762b246d5fc57))
+
+
+### Fixed
+
+* **server:** one process at a time on a library, not one per process ([#275](https://github.com/ValenceOSS/Valence/issues/275)) ([dad01bc](https://github.com/ValenceOSS/Valence/commit/dad01bc9a3906a934ccbe3274692d6d4c1b7a68b))
+* **server:** subtitles read in the encoding they were written in ([#276](https://github.com/ValenceOSS/Valence/issues/276)) ([4fc830f](https://github.com/ValenceOSS/Valence/commit/4fc830ff7dcac8af393b2b5a2062e2d571002924))
+* **server:** subtitles that are pictures rather than words ([#274](https://github.com/ValenceOSS/Valence/issues/274)) ([4e1aed9](https://github.com/ValenceOSS/Valence/commit/4e1aed9b04d6d77ee2f65702e7bfe5821a1d4e1c))
+* **server:** the render schedules a scan made redundant ([#268](https://github.com/ValenceOSS/Valence/issues/268)) ([5b457b2](https://github.com/ValenceOSS/Valence/commit/5b457b2c39daf6c11e0b5b17bf7a0fafd2d9b65e))
+* **server:** work already being done is not asked for again ([#265](https://github.com/ValenceOSS/Valence/issues/265)) ([d20c959](https://github.com/ValenceOSS/Valence/commit/d20c9591892b1acb2670597b8d09cd25a353c91a))
+* **transcoder:** a chain failure that says what went wrong ([#269](https://github.com/ValenceOSS/Valence/issues/269)) ([ca8ee81](https://github.com/ValenceOSS/Valence/commit/ca8ee81c38571175f42a98235a100751ffc503f4))
+* **transcoder:** an intel card valence can read, from the kernel's own books ([#262](https://github.com/ValenceOSS/Valence/issues/262)) ([a036873](https://github.com/ValenceOSS/Valence/commit/a036873ac5e21dffb2ea5225e940b67f8d80d809))
+* **transcoder:** artefacts that are still there after an update ([#264](https://github.com/ValenceOSS/Valence/issues/264)) ([da4455c](https://github.com/ValenceOSS/Valence/commit/da4455c781f1ecd984a0495d6e11942fe29f0c0f))
+* **transcoder:** let a hardware encode spend where the film needs it ([#280](https://github.com/ValenceOSS/Valence/issues/280)) ([9c49998](https://github.com/ValenceOSS/Valence/commit/9c4999883373543ca19bf7075be3d5b746128ffe))
+
 ## [0.2.0](https://github.com/MarquesCoding/Valence/compare/v0.1.0...v0.2.0) (2026-09-14)
 
 
