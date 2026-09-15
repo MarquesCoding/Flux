@@ -3,7 +3,7 @@ import { useQueries, useQuery } from '@tanstack/react-query';
 import { libraryQueries } from '@ValenceClient/query/libraryQueries';
 import { viewingQueries } from '@ValenceClient/query/viewingQueries';
 import { useShell } from '@ValenceClient/shell/useShell';
-import { homeRows, ROW_LIMIT } from '@ValenceClient/library/homeRows';
+import { homeRows, MIN_ROW, ROW_LIMIT } from '@ValenceClient/library/homeRows';
 import { pickForYou } from '@ValenceClient/library/pickForYou';
 import { tasteOf } from '@ValenceClient/library/tasteOf';
 import { isWorthResuming } from '@ValenceContracts/schemas/WatchProgress';
@@ -16,6 +16,14 @@ const FIRST_GENRES = 6;
 
 const GENRE_BATCH = 4;
 
+const DECADE_BATCH = 4;
+
+const DECADE_SPAN = 9;
+
+const ENCORE_BATCH = 3;
+
+const ENCORE_ORDERS = ['newest', 'title'] as const;
+
 const TASTE_DEPTH = 3;
 
 const LIKED_STARS = 4;
@@ -23,6 +31,27 @@ const LIKED_STARS = 4;
 const LIKED_READ = 60;
 
 const ACCLAIMED_FROM = 7.5;
+
+/**
+ * What to call a shelf in the endless tail, which is a genre seen from a particular angle: the newest
+ * of it, the whole of it by name, or the part of it belonging to one decade.
+ *
+ * @param genre - The genre the shelf is drawn from.
+ * @param order - The order it is arranged in, where the angle is an arrangement.
+ * @param decade - The decade it is narrowed to, where the angle is a decade.
+ * @returns What the row says it is.
+ */
+const encoreTitle = (
+  genre: string,
+  order: 'newest' | 'title' | null,
+  decade: number | null,
+): string => {
+  if (decade !== null) {
+    return `${genre} from the ${decade.toString()}s`;
+  }
+
+  return order === 'newest' ? `New in ${genre}` : `${genre} A–Z`;
+};
 
 /**
  * Orders things by when somebody last had them on, most recent first.
@@ -96,6 +125,8 @@ const useHomeRows = (
   const { user } = useShell();
   const canAsk = isActive && watchable.length > 0;
   const [genreLimit, setGenreLimit] = useState(FIRST_GENRES);
+  const [decadeLimit, setDecadeLimit] = useState(0);
+  const [encoreLimit, setEncoreLimit] = useState(0);
 
   const favourites = useQuery(viewingQueries.favourites(user.id));
   const ratings = useQuery({
@@ -166,6 +197,62 @@ const useHomeRows = (
     })),
   });
 
+  const everyDecade = useMemo(
+    () =>
+      facets.data === undefined ? [] : [...facets.data.decades].sort((left, right) => right - left),
+    [facets.data],
+  );
+
+  const decades = useMemo(() => everyDecade.slice(0, decadeLimit), [everyDecade, decadeLimit]);
+
+  const byDecade = useQueries({
+    queries: decades.map((decade) => ({
+      ...libraryQueries.across(watchable, {
+        yearFrom: decade,
+        yearTo: decade + DECADE_SPAN,
+        limit: ROW_LIMIT,
+      }),
+      enabled: canAsk,
+    })),
+  });
+
+  const areGenresSettled = byGenre.every((one) => !one.isLoading);
+
+  const shownGenres = areGenresSettled
+    ? genres.filter((_, at) => (byGenre[at]?.data ?? []).length >= MIN_ROW)
+    : [];
+
+  const encores = Array.from({ length: encoreLimit }, (_, at) => {
+    const step = Math.floor(at / 2);
+
+    if (at % 2 === 0) {
+      const wide = Math.max(1, shownGenres.length);
+      const genre = shownGenres[step % wide];
+      const order = ENCORE_ORDERS[Math.floor(step / wide) % ENCORE_ORDERS.length];
+
+      return genre === undefined || order === undefined ? null : { at, genre, order, decade: null };
+    }
+
+    const across = Math.max(1, everyGenre.length);
+    const deep = Math.max(1, everyDecade.length);
+    const genre = everyGenre[step % across];
+    const decade = everyDecade[Math.floor(step / across) % deep];
+
+    return genre === undefined || decade === undefined ? null : { at, genre, order: null, decade };
+  }).filter((one) => one !== null);
+
+  const byEncore = useQueries({
+    queries: encores.map(({ genre, order, decade }) => ({
+      ...libraryQueries.across(watchable, {
+        genre,
+        limit: ROW_LIMIT,
+        ...(order === null ? {} : { order }),
+        ...(decade === null ? {} : { yearFrom: decade, yearTo: decade + DECADE_SPAN }),
+      }),
+      enabled: canAsk,
+    })),
+  });
+
   const leanings = new Set(taste.slice(0, TASTE_DEPTH));
 
   const candidates = genres.flatMap((genre, at) =>
@@ -181,6 +268,15 @@ const useHomeRows = (
       genre,
       items: [...(byGenre[at]?.data ?? [])].sort(byRating),
     })),
+    decades: decades.map((decade, at) => ({
+      decade,
+      items: [...(byDecade[at]?.data ?? [])].sort(byRating),
+    })),
+    more: encores.map(({ at, genre, order, decade }, index) => ({
+      id: `more:${at.toString()}`,
+      title: encoreTitle(genre, order, decade),
+      items: [...(byEncore[index]?.data ?? [])],
+    })),
   });
 
   const isReading =
@@ -193,15 +289,33 @@ const useHomeRows = (
       liked.isLoading ||
       byGenre.slice(0, FIRST_GENRES).some((one) => one.isLoading));
 
+  const hasMoreGenres = everyGenre.length > genreLimit;
+  const hasMoreDecades = everyDecade.length > decadeLimit;
+
   const showMore = useCallback(() => {
-    setGenreLimit((limit) => limit + GENRE_BATCH);
-  }, []);
+    if (hasMoreGenres) {
+      setGenreLimit((limit) => limit + GENRE_BATCH);
+
+      return;
+    }
+
+    if (hasMoreDecades) {
+      setDecadeLimit((limit) => limit + DECADE_BATCH);
+
+      return;
+    }
+
+    setEncoreLimit((limit) => limit + ENCORE_BATCH);
+  }, [hasMoreGenres, hasMoreDecades]);
 
   return {
     rails,
     isReading,
-    hasMore: everyGenre.length > genreLimit,
-    isReadingMore: byGenre.some((one) => one.isLoading),
+    hasMore: hasMoreGenres || hasMoreDecades || shownGenres.length > 0,
+    isReadingMore:
+      byGenre.some((one) => one.isLoading) ||
+      byDecade.some((one) => one.isLoading) ||
+      byEncore.some((one) => one.isLoading),
     showMore,
   };
 };

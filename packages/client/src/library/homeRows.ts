@@ -8,6 +8,8 @@ type HomeRowsInput = {
   recent: MediaSummary[];
   acclaimed: MediaSummary[];
   genres: { genre: string; items: MediaSummary[] }[];
+  decades: { decade: number; items: MediaSummary[] }[];
+  more: { id: string; title: string; items: MediaSummary[] }[];
 };
 
 const ROW_LIMIT = 20;
@@ -47,8 +49,17 @@ const row = (
 };
 
 /**
+ * Names a decade the way somebody says it rather than as the year it happens to start on.
+ *
+ * @param decade - The year the decade begins.
+ * @returns What the row calls itself.
+ */
+const decadeTitle = (decade: number): string => `From the ${decade.toString()}s`;
+
+/**
  * The rows the front page is browsed by: carrying on, what somebody is likely to want, what is
- * new, what is well thought of, and then a row for each of a handful of genres.
+ * new, what is well thought of, a row for each of a handful of genres, and then the decades the
+ * library spans.
  *
  * Every row is bounded, so a server holding six thousand films is still a page of a dozen rows
  * rather than one row six thousand long — the rest is what the sections along the top and search
@@ -60,14 +71,26 @@ const row = (
  * @param input - What each row was asked to hold.
  * @returns The rows to draw, in the order they should appear.
  */
-const homeRows = ({ resuming, picked, recent, acclaimed, genres }: HomeRowsInput): Rail[] => [
+const homeRows = ({
+  resuming,
+  picked,
+  recent,
+  acclaimed,
+  genres,
+  decades,
+  more,
+}: HomeRowsInput): Rail[] => [
   ...row('resume', 'Continue watching', resuming, false, 1),
   ...row('picked', 'Picked for you', picked),
   ...row('recent', 'Recently added', recent, true, 1),
   ...row('acclaimed', 'Critically acclaimed', acclaimed),
   ...genres.flatMap(({ genre, items }) => row(`genre:${genre}`, genre, items)),
+  ...decades.flatMap(({ decade, items }) =>
+    row(`decade:${decade.toString()}`, decadeTitle(decade), items),
+  ),
+  ...more.flatMap(({ id, title, items }) => row(id, title, items)),
 ];
 
 export type { HomeRowsInput };
 
-export { homeRows, ROW_LIMIT };
+export { homeRows, ROW_LIMIT, MIN_ROW };
