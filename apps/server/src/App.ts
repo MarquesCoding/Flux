@@ -155,7 +155,11 @@ import {
   deleteProfileRoute,
   promoteProfileRoute,
 } from '@ValenceServer/routes/ProfileRoute';
-import { listSubtitlesRoute, readSubtitleRoute } from '@ValenceServer/routes/SubtitleRoute';
+import {
+  listSubtitlesRoute,
+  readSubtitleCuesRoute,
+  readSubtitleRoute,
+} from '@ValenceServer/routes/SubtitleRoute';
 import { setupStatusRoute, setupCompleteRoute } from './routes/SetupRoute';
 import { JOB_DEFINITIONS, RESET_LIBRARY_JOB } from '@ValenceServer/jobs/jobDefinitions';
 import {
@@ -177,6 +181,7 @@ import { JsonValueSchema } from '@ValenceContracts/schemas/JsonValue';
 import type { JsonValue } from '@ValenceContracts/schemas/JsonValue';
 import type { JobStall } from '@ValenceServer/jobs/createJobHealthWatch';
 import { drawAvatar, isAvatarStyle } from '@ValenceServer/profiles/drawAvatar';
+import { shiftSubtitleCues } from '@ValenceCore/functions/shiftSubtitleCues';
 import { shiftWebVtt } from '@ValenceCore/functions/shiftWebVtt';
 import type { ProfileService } from '@ValenceServer/profiles/ProfileService';
 import type { BookService } from '@ValenceServer/books/createDatabaseBookService';
@@ -3482,6 +3487,19 @@ const createApp = ({
     return context.body(shiftWebVtt(track, from), 200, {
       'content-type': 'text/vtt; charset=utf-8',
     });
+  });
+
+  app.openapi(readSubtitleCuesRoute, async (context) => {
+    const { mediaId, trackId } = context.req.valid('param');
+    const { from } = context.req.valid('query');
+
+    const cues = await subtitles.readCues(mediaId, trackId);
+
+    if (cues === null) {
+      return context.json({ error: 'That track carries no styling of its own.' }, 404);
+    }
+
+    return context.json({ cues: shiftSubtitleCues(cues, from) }, 200);
   });
 
   app.openapi(stopRoute, async (context) => {

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import type { AssCue } from '@ValenceCore/functions/parseAdvancedSubStation';
 
 type SubtitleTrack = {
   id: string;
@@ -14,6 +15,7 @@ type SubtitleTrack = {
 type SubtitleService = {
   list: (mediaId: string) => Promise<SubtitleTrack[] | null>;
   read: (mediaId: string, trackId: string) => Promise<string | null>;
+  readCues: (mediaId: string, trackId: string) => Promise<AssCue[] | null>;
 };
 
 /**

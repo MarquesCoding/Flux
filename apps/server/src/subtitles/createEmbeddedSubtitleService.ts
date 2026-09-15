@@ -159,6 +159,8 @@ const createEmbeddedSubtitleService = ({
         return null;
       }
     },
+
+    readCues: () => Promise.resolve(null),
   };
 };
 
