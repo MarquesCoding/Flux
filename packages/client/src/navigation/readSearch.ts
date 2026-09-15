@@ -2,6 +2,7 @@ import { z } from 'zod';
 
 type PlaceSearch = {
   q?: string;
+  search?: string;
   show?: string;
   person?: number;
   item?: string;
@@ -21,6 +22,7 @@ const said = z.string().min(1).nullish().catch(null);
 
 const SearchSchema = z.object({
   q: z.string().nullish().catch(null),
+  search: said,
   show: said,
   person: z.coerce.number().int().positive().nullish().catch(null),
   item: said,

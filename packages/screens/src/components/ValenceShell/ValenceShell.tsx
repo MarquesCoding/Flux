@@ -10,6 +10,7 @@ import { PersonDialog } from '@ValenceScreens/components/PersonDialog/PersonDial
 import { AccountDialog } from '@ValenceScreens/components/AccountDialog/AccountDialog';
 import { AdminDialog } from '@ValenceScreens/components/AdminDialog/AdminDialog';
 import { DownloadsDialog } from '@ValenceScreens/components/DownloadsDialog/DownloadsDialog';
+import { SearchDrawer } from '@ValenceScreens/components/SearchDrawer/SearchDrawer';
 import { ShareDialog } from '@ValenceScreens/components/ShareDialog/ShareDialog';
 import type { ShareSubject } from '@ValenceScreens/components/ShareDialog/ShareDialog.types';
 import { StillWatchingDialog } from '@ValenceScreens/components/StillWatchingDialog/StillWatchingDialog';
@@ -160,11 +161,7 @@ const ValenceShell = () => {
     <AppShell
       section={place.section}
       onSectionChange={(next) => {
-        go({
-          section: next,
-          search: next === 'search' ? place.search : '',
-          genre: next === 'search' ? place.genre : null,
-        });
+        go({ section: next });
       }}
       isAccountOpen={place.account !== null}
       onOpenAccount={() => {
@@ -177,6 +174,10 @@ const ValenceShell = () => {
       isDownloadsOpen={place.downloads}
       onOpenDownloads={() => {
         go({ downloads: true });
+      }}
+      isSearchOpen={place.isSearchOpen}
+      onOpenSearch={() => {
+        go({ isSearchOpen: true });
       }}
       moodLights={place.section === 'home' ? moodLights : []}
       isAdministrator={mayAdminister}
@@ -350,6 +351,13 @@ const ValenceShell = () => {
         isOpen={place.downloads}
         onClose={() => {
           go({ downloads: false });
+        }}
+      />
+
+      <SearchDrawer
+        isOpen={place.isSearchOpen}
+        onClose={() => {
+          go({ isSearchOpen: false });
         }}
       />
 

@@ -22,6 +22,7 @@ const SectionSchema = z.enum(SECTIONS);
 type Place = {
   section: (typeof SECTIONS)[number];
   search: string;
+  isSearchOpen: boolean;
   inspecting: string | null;
   show: string | null;
   person: number | null;
@@ -39,6 +40,7 @@ type Place = {
 const HOME: Place = {
   section: 'home',
   search: '',
+  isSearchOpen: false,
   inspecting: null,
   show: null,
   person: null,
@@ -59,9 +61,9 @@ const HOME: Place = {
  * Anything unrecognised lands on the home page rather than failing: an address is something people
  * edit, share and keep, and a bad one should arrive somewhere sensible.
  *
- * An account and the server are dialogs rather than sections, so `/account` and `/admin` — which
- * is what Valence used to be and what links people already hold still say — arrive at the home page
- * with the dialog open, rather than at a page that is no longer there.
+ * An account, the server and search are dialogs rather than sections, so `/account`, `/admin` and
+ * `/search` — which is what Valence used to be and what links people already hold still say —
+ * arrive at the home page with the dialog open, rather than at a page that is no longer there.
  *
  * @param pathname - The path, which decides the section and what is playing.
  * @param query - What sat after the question mark, however the router handed it over.
@@ -74,10 +76,14 @@ const placeIn = (pathname: string, query: Record<string, string>): Place => {
 
   return {
     section:
-      section.success && section.data !== 'account' && section.data !== 'admin'
+      section.success &&
+      section.data !== 'account' &&
+      section.data !== 'admin' &&
+      section.data !== 'search'
         ? section.data
         : 'home',
     search: said.q ?? '',
+    isSearchOpen: said.search === 'open' || first === 'search',
     inspecting: first === 'media' && second !== '' ? second : (said.item ?? null),
     show: said.show ?? null,
     person: said.person ?? null,
@@ -136,6 +142,10 @@ const writeLocation = (place: Place): string => {
 
   if (place.search !== '') {
     query.set('q', place.search);
+  }
+
+  if (place.isSearchOpen) {
+    query.set('search', 'open');
   }
 
   if (place.show !== null) {

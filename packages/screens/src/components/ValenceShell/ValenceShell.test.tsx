@@ -319,7 +319,7 @@ describe('ValenceShell', () => {
     });
   });
 
-  it('opens the page somebody chose from the dock', async () => {
+  it('raises search over the page somebody was on, rather than leaving it', async () => {
     const actor = userEvent.setup();
 
     renderTheApp();
@@ -328,8 +328,11 @@ describe('ValenceShell', () => {
 
     await actor.click(within(dock).getByRole('button', { name: 'Search' }));
 
+    expect(await screen.findByRole('dialog', { name: 'Search' })).toBeInTheDocument();
+
     await waitFor(() => {
-      expect(window.location.pathname).toBe('/search');
+      expect(window.location.pathname).toBe('/');
+      expect(window.location.search).toContain('search=open');
     });
   });
 });

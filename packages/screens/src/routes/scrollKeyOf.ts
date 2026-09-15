@@ -8,6 +8,7 @@ const KEPT_IN_PLACE = [
   'job',
   'downloads',
   'library',
+  'search',
 ] as const;
 
 /**

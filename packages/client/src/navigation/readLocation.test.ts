@@ -116,8 +116,9 @@ describe('writeLocation', () => {
 
   it('writes what it can read back', () => {
     const place = {
-      section: 'search',
+      section: 'films',
       search: 'blade',
+      isSearchOpen: true,
       inspecting: 'abc',
       show: null,
       person: null,
@@ -315,5 +316,31 @@ describe('downloads, which are a dialog rather than a page', () => {
 
     expect(place.section).toBe('home');
     expect(place.downloads).toBe(true);
+  });
+});
+
+describe('search, which is a dialog rather than a page', () => {
+  it('opens over whichever section it was opened from', () => {
+    expect(writeLocation({ ...HOME, section: 'films', isSearchOpen: true })).toBe(
+      '/films?search=open',
+    );
+  });
+
+  it('is shut when nothing in the address says otherwise', () => {
+    expect(placeIn('/films', {}).isSearchOpen).toBe(false);
+  });
+
+  it('still answers the address it used to be a page at, so held links keep working', () => {
+    const place = placeIn('/search', {});
+
+    expect(place.section).toBe('home');
+    expect(place.isSearchOpen).toBe(true);
+  });
+
+  it('lets a held search link still open with what was typed', () => {
+    const place = placeIn('/search', { q: 'blade' });
+
+    expect(place.isSearchOpen).toBe(true);
+    expect(place.search).toBe('blade');
   });
 });
