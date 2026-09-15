@@ -1,6 +1,7 @@
 import { readdir, readFile } from 'node:fs/promises';
 import { basename, dirname, join } from 'node:path';
 import { toWebVtt } from '@ValenceCore/functions/toWebVtt';
+import { parseAdvancedSubStation } from '@ValenceCore/functions/parseAdvancedSubStation';
 import { decodeSubtitle } from './decodeSubtitle';
 import { describeSubtitleCharset } from './describeSubtitleCharset';
 import {
@@ -11,7 +12,9 @@ import {
 } from './findSidecarSubtitles';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
-import type { SidecarFile } from './findSidecarSubtitles';
+import type { SidecarFile, SidecarSubtitle } from './findSidecarSubtitles';
+
+const STYLED_FORMATS = new Set(['ass', 'ssa']);
 
 type MediaPathLookup = {
   findPath: (mediaId: string) => Promise<string | null>;
@@ -92,6 +95,30 @@ const createSidecarSubtitleService = ({
   media,
   onProblem,
 }: CreateSidecarSubtitleServiceOptions): SubtitleService => {
+  /**
+   * Reads one subtitle file as text, in whatever it was written in, reporting a guessed encoding and
+   * a file that could not be read at all.
+   *
+   * @param track - The track to read.
+   * @returns The text, or null where the file could not be read.
+   */
+  const readTrack = async (track: SidecarSubtitle): Promise<{ text: string } | null> => {
+    try {
+      const decoded = decodeSubtitle(await readFile(track.path), track.language);
+      const guessed = describeSubtitleCharset(decoded);
+
+      if (guessed !== null) {
+        onProblem?.(track.path, guessed);
+      }
+
+      return { text: decoded.text };
+    } catch (error) {
+      onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.');
+
+      return null;
+    }
+  };
+
   const discover = async (mediaId: string) => {
     const videoPath = await media.findPath(mediaId);
 
@@ -165,20 +192,22 @@ const createSidecarSubtitleService = ({
         return null;
       }
 
-      try {
-        const decoded = decodeSubtitle(await readFile(track.path), track.language);
-        const guessed = describeSubtitleCharset(decoded);
+      const read = await readTrack(track);
 
-        if (guessed !== null) {
-          onProblem?.(track.path, guessed);
-        }
+      return read === null ? null : toWebVtt(read.text, track.format);
+    },
 
-        return toWebVtt(decoded.text, track.format);
-      } catch (error) {
-        onProblem?.(track.path, error instanceof Error ? error.message : 'Unreadable.');
+    readCues: async (mediaId, id) => {
+      const found = await discover(mediaId);
+      const track = found?.tracks.find((candidate) => trackId(candidate.path) === id);
 
+      if (track === undefined || !STYLED_FORMATS.has(track.format.toLowerCase())) {
         return null;
       }
+
+      const read = await readTrack(track);
+
+      return read === null ? null : parseAdvancedSubStation(read.text).cues;
     },
   };
 };

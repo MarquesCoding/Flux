@@ -35,14 +35,14 @@ describe('reading an Advanced SubStation script', () => {
   it('dresses a line in the style it named, rather than ignoring the styles section', () => {
     expect(parsed.cues[0]?.spans[0]).toMatchObject({
       fontFamily: 'Arial',
-      fontSize: 48,
+      fontHeight: 48 / 1080,
       colour: '#ffffff',
       isBold: false,
     });
 
     expect(parsed.cues[1]?.spans[0]).toMatchObject({
       fontFamily: 'Impact',
-      fontSize: 72,
+      fontHeight: 72 / 1080,
       colour: '#ff0000',
       isBold: true,
     });

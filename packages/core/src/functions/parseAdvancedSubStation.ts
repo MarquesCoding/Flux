@@ -4,8 +4,9 @@ import { BOTTOM_CENTRE, readAssAlignment } from './readAssAlignment';
 import { readAssTimestamp } from './toWebVtt';
 import type { AssTextStyle } from './parseAssOverrides';
 
-type AssSpan = AssTextStyle & {
+type AssSpan = Omit<AssTextStyle, 'fontSize'> & {
   text: string;
+  fontHeight: number | null;
 };
 
 type AssMargins = {
@@ -155,8 +156,12 @@ const readSpans = (
   text: string,
   base: AssTextStyle,
   isLegacy: boolean,
-): { spans: AssSpan[]; alignment: number | null; position: { x: number; y: number } | null } => {
-  const spans: AssSpan[] = [];
+): {
+  spans: (AssTextStyle & { text: string })[];
+  alignment: number | null;
+  position: { x: number; y: number } | null;
+} => {
+  const spans: (AssTextStyle & { text: string })[] = [];
 
   let current: AssTextStyle = { ...base };
   let alignment: number | null = null;
@@ -198,9 +203,11 @@ const readSpans = (
  * line looks, and some of it — `\pos` and the alignments — describes where on the picture it goes,
  * which is the difference between a subtitle and a sign painted on a shop window.
  *
- * Positions are written in the script's own coordinates, which `[Script Info]` declares and which
- * are not the video's. They come back as fractions of the picture so that whatever draws them need
- * not know what the script thought it was being shown at.
+ * Positions, margins and lettering sizes are written in the script's own coordinates, which
+ * `[Script Info]` declares and which are not the video's. They all come back as fractions of the
+ * picture — a size of `0.0667` being a fifteenth of its height — so that whatever draws them need
+ * not know what the script thought it was being shown at, and so a script written for one resolution
+ * looks the same shown at another.
  *
  * A line is taken for a sign where the script put it somewhere: given a position outright, or
  * aligned anywhere other than the bottom centre where dialogue belongs. That is a structural
@@ -302,6 +309,11 @@ const parseAdvancedSubStation = (source: string): AssScript => {
       continue;
     }
 
+    const spans = read.spans.map(({ fontSize, ...rest }) => ({
+      ...rest,
+      fontHeight: fontSize === null ? null : fontSize / height,
+    }));
+
     const rowMargin = (name: string, fallback: number): number => {
       const value = Number(fieldOf(fields, eventColumns, name));
 
@@ -321,7 +333,7 @@ const parseAdvancedSubStation = (source: string): AssScript => {
     cues.push({
       from,
       to,
-      spans: read.spans,
+      spans,
       alignment,
       position,
       margins: {

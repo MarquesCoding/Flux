@@ -165,7 +165,7 @@ const findSidecarSubtitles = (
   return found;
 };
 
-export type { SidecarFile };
+export type { SidecarFile, SidecarSubtitle };
 
 export {
   findSidecarSubtitles,
