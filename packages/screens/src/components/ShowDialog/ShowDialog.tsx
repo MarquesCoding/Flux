@@ -272,6 +272,7 @@ const ShowDialog = ({
               {seasons.length < 2 && (gaps?.seasons ?? []).length === 0 ? null : (
                 <SegmentedRow
                   size="sm"
+                  tone="accent"
                   label="Which season"
                   items={chooseFrom.map((one) => ({
                     id: String(one.seasonNumber ?? 'specials'),

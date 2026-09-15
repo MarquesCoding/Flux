@@ -45,7 +45,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
         setPointedAt(null);
       }}
       className={cn(
-        'flex items-center gap-1 rounded-full p-1',
+        'flex items-center gap-1 rounded-md p-1',
         SEGMENTED.tones.inverted.track,
         className,
       )}
@@ -68,7 +68,7 @@ const GridSizeChooser = ({ value, onValueChange, className }: GridSizeChooserPro
             onValueChange(id);
           }}
           className={cn(
-            'relative flex size-8 items-center justify-center rounded-full',
+            'relative flex size-8 items-center justify-center rounded-md',
             'transition-colors duration-[var(--duration-fast)] ease-[var(--ease-soft)]',
             lit === id ? 'text-text' : 'text-text-muted',
           )}
