@@ -100,6 +100,12 @@ type JobQueue = {
     payload: { [key: string]: JsonValue },
     singletonKey?: string,
   ) => Promise<string | null>;
+  enqueueAfter: (
+    kind: string,
+    payload: { [key: string]: JsonValue },
+    seconds: number,
+    singletonKey?: string,
+  ) => Promise<string | null>;
   readState: (jobId: string) => Promise<JobState>;
   readProgress: (jobId: string) => JobProgress | null;
   reportProgress: (jobId: string, phase: string, processed: number, total: number) => void;

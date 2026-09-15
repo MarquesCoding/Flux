@@ -10,6 +10,7 @@ import type { JobQueue } from './JobQueue';
 const createInertJobQueue = (overrides: Partial<JobQueue> = {}): JobQueue => ({
   startWorking: () => Promise.resolve(),
   enqueue: () => Promise.resolve(null),
+  enqueueAfter: () => Promise.resolve(null),
   readState: () => Promise.resolve('unknown'),
   readProgress: () => null,
   listRunning: () => [],

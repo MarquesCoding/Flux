@@ -144,6 +144,8 @@ import { resolveJobsTimezone } from '@ValenceServer/jobs/resolveJobsTimezone';
 import { createDatabaseJobTriggerStore } from '@ValenceServer/jobs/createDatabaseJobTriggerStore';
 import { markJobComplete } from '@ValenceServer/library/createMediaStore';
 import { createWorkLock } from '@ValenceServer/jobs/createWorkLock';
+import { createDatabaseWorkLock } from '@ValenceServer/jobs/createDatabaseWorkLock';
+import { createLibraryWorkRunner } from '@ValenceServer/jobs/createLibraryWorkRunner';
 import { seedDefaultJobTriggers } from '@ValenceServer/jobs/seedDefaultJobTriggers';
 import { seedDefaultRoles } from '@ValenceServer/auth/seedDefaultRoles';
 import { ADMINISTRATOR_ROLE_NAME, DEFAULT_ROLE_NAME } from '@ValenceCore/functions/defaultRoles';
@@ -161,7 +163,7 @@ const ChapterListSchema = z.array(
   }),
 );
 const env = readEnv(process.env);
-const { db, schema } = createDatabase(env.DATABASE_URL);
+const { db, pool, schema } = createDatabase(env.DATABASE_URL);
 
 const MIGRATIONS_FOLDER = join(import.meta.dirname, '..', 'drizzle');
 
@@ -594,25 +596,7 @@ const scheduleAcrossLibraries =
 
 const libraryWork = createWorkLock();
 
-/**
- * Names the lock a piece of work takes out on a library.
- *
- * Reading and re-reading share one, because they are the two things that decide which items a
- * library has and two of them at once would fight over that. Everything else — clips, thumbnails,
- * lettering, intros — makes artefacts for items that already exist, works from what is outstanding
- * rather than from a list it was handed, and so has a lock of its own.
- *
- * It used to be the bare library id for all of them. That is what made a scan wait for the
- * thumbnails: not the job queue, which was happy to run both, but this lock inside the process.
- *
- * @param kind - The job asking.
- * @param libraryId - The library it is working on.
- * @returns The key to serialise it under.
- */
-const lockFor = (kind: string, libraryId: string): string =>
-  kind === SCAN_LIBRARY_JOB || kind === READ_AGAIN_JOB
-    ? `reading:${libraryId}`
-    : `${kind}:${libraryId}`;
+const librariesAcrossProcesses = createDatabaseWorkLock({ sessions: pool });
 
 const webhookSubscriptions = createDatabaseWebhookStore(db);
 
@@ -798,7 +782,7 @@ const jobs = await createJobQueue({
 
         const { libraryId, force, runId, runOf } = parsed.data;
 
-        await libraryWork.run(lockFor(SCAN_LIBRARY_JOB, libraryId), async () => {
+        await runLibraryWork(SCAN_LIBRARY_JOB, libraryId, payload, async () => {
           const libraries = await libraryService.list();
           const scanned = libraries.find((entry) => entry.id === libraryId);
 
@@ -866,7 +850,7 @@ const jobs = await createJobQueue({
 
         const { libraryId, paths } = parsed.data;
 
-        await libraryWork.run(lockFor(READ_AGAIN_JOB, libraryId), async () => {
+        await runLibraryWork(READ_AGAIN_JOB, libraryId, payload, async () => {
           await libraryService.runReadAgain(libraryId, paths, jobId);
         });
       },
@@ -882,7 +866,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(lockFor(REGENERATE_PREVIEWS_JOB, parsed.data.libraryId), () =>
+        await runLibraryWork(REGENERATE_PREVIEWS_JOB, parsed.data.libraryId, payload, () =>
           libraryService.runRegeneratePreviews(
             parsed.data.libraryId,
             parsed.data.defaultAudioLanguage,
@@ -899,7 +883,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(lockFor(REGENERATE_TRICKPLAY_JOB, parsed.data.libraryId), () =>
+        await runLibraryWork(REGENERATE_TRICKPLAY_JOB, parsed.data.libraryId, payload, () =>
           libraryService.runRegenerateTrickplay(parsed.data.libraryId, jobId),
         );
       },
@@ -912,7 +896,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(lockFor(FETCH_LOGOS_JOB, parsed.data.libraryId), () =>
+        await runLibraryWork(FETCH_LOGOS_JOB, parsed.data.libraryId, payload, () =>
           libraryService.runFetchLogos(parsed.data.libraryId, jobId),
         );
       },
@@ -928,7 +912,7 @@ const jobs = await createJobQueue({
           return;
         }
 
-        await libraryWork.run(lockFor(DETECT_SEGMENTS_JOB, parsed.data.libraryId), () =>
+        await runLibraryWork(DETECT_SEGMENTS_JOB, parsed.data.libraryId, payload, () =>
           runDetectSegments(parsed.data.libraryId, jobId),
         );
       },
@@ -1193,6 +1177,18 @@ const jobs = await createJobQueue({
     log.error('jobs', `job queue: ${message}`);
   },
   onFinished: announceFinishedJob,
+});
+
+const runLibraryWork = createLibraryWorkRunner({
+  inProcess: libraryWork,
+  acrossProcesses: librariesAcrossProcesses,
+  jobs: {
+    enqueueAfter: (kind, payload, seconds, singletonKey) =>
+      jobs.enqueueAfter(kind, payload, seconds, singletonKey),
+  },
+  onDeferred: (kind, libraryId) => {
+    log.info('jobs', `${kind}: another process has ${libraryId}, asking again shortly`);
+  },
 });
 
 /**
