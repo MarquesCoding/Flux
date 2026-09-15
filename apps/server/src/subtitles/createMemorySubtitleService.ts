@@ -1,6 +1,9 @@
 import { toWebVtt } from '@ValenceCore/functions/toWebVtt';
+import { parseAdvancedSubStation } from '@ValenceCore/functions/parseAdvancedSubStation';
 import { trackId } from './SubtitleService';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
+
+const STYLED_FORMATS = new Set(['ass', 'ssa']);
 
 type MemorySubtitle = {
   path: string;
@@ -49,6 +52,16 @@ const createMemorySubtitleService = (state: MemoryState = {}): SubtitleService =
       const track = state[mediaId]?.find((candidate) => trackId(candidate.path) === id);
 
       return Promise.resolve(track === undefined ? null : toWebVtt(track.contents, track.format));
+    },
+
+    readCues: (mediaId, id) => {
+      const track = state[mediaId]?.find((candidate) => trackId(candidate.path) === id);
+
+      if (track === undefined || !STYLED_FORMATS.has(track.format.toLowerCase())) {
+        return Promise.resolve(null);
+      }
+
+      return Promise.resolve(parseAdvancedSubStation(track.contents).cues);
     },
   };
 };

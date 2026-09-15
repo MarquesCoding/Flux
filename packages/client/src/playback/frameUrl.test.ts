@@ -24,4 +24,3 @@ describe('frameUrl', () => {
     expect(frameUrl('abc', 0, 320)).toContain('width=320');
   });
 });
-

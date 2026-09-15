@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createLayeredSubtitleService } from './createLayeredSubtitleService';
+import type { AssCue } from '@ValenceCore/functions/parseAdvancedSubStation';
 import type { SubtitleService, SubtitleTrack } from './SubtitleService';
 
 const MEDIA_ID = '9c858901-8a57-4791-81fe-4c455b099bc9';
@@ -21,9 +22,33 @@ const trackOf = (id: string): SubtitleTrack => ({
 const sourceOf = (
   tracks: SubtitleTrack[] | null,
   content: Record<string, string> = {},
+  cues: Record<string, AssCue[]> = {},
 ): SubtitleService => ({
   list: () => Promise.resolve(tracks),
   read: (_mediaId, trackId) => Promise.resolve(content[trackId] ?? null),
+  readCues: (_mediaId, trackId) => Promise.resolve(cues[trackId] ?? null),
+});
+
+const cueOf = (text: string): AssCue => ({
+  from: 0,
+  to: 1,
+  spans: [
+    {
+      text,
+      fontFamily: null,
+      fontHeight: null,
+      colour: null,
+      opacity: null,
+      isBold: false,
+      isItalic: false,
+      isUnderlined: false,
+      isStruckThrough: false,
+    },
+  ],
+  alignment: 2,
+  position: null,
+  margins: { left: 0, right: 0, vertical: 0 },
+  isSign: false,
 });
 
 describe('createLayeredSubtitleService', () => {
@@ -91,5 +116,22 @@ describe('createLayeredSubtitleService', () => {
     const layered = createLayeredSubtitleService([]);
 
     await expect(layered.list(MEDIA_ID)).resolves.toBeNull();
+  });
+
+  it('asks each source for a styled track until one of them has it', async () => {
+    const layered = createLayeredSubtitleService([
+      sourceOf([trackOf('embedded')]),
+      sourceOf([trackOf('sidecar')], {}, { sidecar: [cueOf('a sign')] }),
+    ]);
+
+    const cues = await layered.readCues(MEDIA_ID, 'sidecar');
+
+    expect(cues?.[0]?.spans[0]?.text).toBe('a sign');
+  });
+
+  it('answers with nothing where no source has a styled form of that track', async () => {
+    const layered = createLayeredSubtitleService([sourceOf([trackOf('embedded')])]);
+
+    await expect(layered.readCues(MEDIA_ID, 'embedded')).resolves.toBeNull();
   });
 });

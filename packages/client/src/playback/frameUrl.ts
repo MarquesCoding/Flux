@@ -1,4 +1,3 @@
-
 const FRAME_WIDTH = 1280;
 
 /**
